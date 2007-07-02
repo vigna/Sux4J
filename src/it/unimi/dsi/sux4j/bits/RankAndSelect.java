@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j;
+package it.unimi.dsi.sux4j.bits;
 
 /** A <em>rank-and-select</em> can be thought of as a vector of <var>n</var> bits, indexed
  *  from 0 to <var>n</var>&minus;1, that can be accessed via two basic methods:
