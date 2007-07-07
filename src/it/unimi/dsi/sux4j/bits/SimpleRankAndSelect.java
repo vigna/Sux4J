@@ -1,9 +1,5 @@
 package it.unimi.dsi.sux4j.bits;
 
-import java.util.Arrays;
-
-import it.unimi.dsi.mg4j.util.Fast;
-
 public class SimpleRankAndSelect implements RankAndSelect {
 	final public static int BITS_IN_LONG = 64;
 	final public static int BITS_IN_LONG_SHIFT_MASK = 6;
@@ -22,20 +18,12 @@ public class SimpleRankAndSelect implements RankAndSelect {
 	final private int k;
 	final private int blockBits;
 	
-	public static long ceilLog2( final long x ) {
-		return Fast.mostSignificantBit( x - 1 ) + 1;
-	}
-	
 	public static int popCount( long x ) {
-		System.err.println( Long.toBinaryString( x ) );
 		int c = 0;
 		for( int i = 4; i-- != 0; ) {
 			c += COUNT[ (int)( x & 0xFFFF ) ];
 			x >>>= 16;
 		}
-		
-		System.err.println( "Result:" + c);
-		
 		return c;
 	}
 	
@@ -124,9 +112,7 @@ public class SimpleRankAndSelect implements RankAndSelect {
 			else r = p;
 		}
 		
-		System.err.println( "pos: " + p + " count:" + ( p != -1 ? count[ p ] : -1 ) );
 		int residual = (int)( p == 0 ? rank : rank - count[ p - 1 ] );
-		System.err.println( "residual:" + residual );
 		int pos = p * k, t;
 		for( int i = 1; i <= k; i++ ) {
 			t = popSearch( bits[ pos ], residual );

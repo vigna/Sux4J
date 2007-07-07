@@ -169,6 +169,10 @@ public class SimpleRankAndSelectTest extends TestCase {
 		for( i = 129; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rankAndSelect.rank( i ) );
 		for( i = 65; i-- != 1; ) assertEquals( i * 2 - 2, rankAndSelect.select( i ) );
 
+		rankAndSelect = new SimpleRankAndSelect( new long[] { 0xAAAAAAAAAAAAAAAAL, 0xAAAAAAAAAAAAAAAAL, 0xAAAAAAAAAAAAAAAAL, 0xAAAAAAAAAAAAAAAAL, 0xAAAAAAAAAAAAAAAAL }, 64 * 5, 2 );
+		for( i = 64 * 5 + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rankAndSelect.rank( i ) );
+		for( i = 32 * 5 + 1; i-- != 1; ) assertEquals( i * 2 - 2, rankAndSelect.select( i ) );
+
 		rankAndSelect = new SimpleRankAndSelect( new long[] { 0xAAAAAAAAAAAAAAAAL }, 33, 1 );
 		for( i = 34; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rankAndSelect.rank( i ) );
 		for( i = 17; i-- != 1; ) assertEquals( i * 2 - 2, rankAndSelect.select( i ) );
