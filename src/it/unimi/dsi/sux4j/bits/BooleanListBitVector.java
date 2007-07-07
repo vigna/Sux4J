@@ -34,6 +34,10 @@ public class BooleanListBitVector extends AbstractBitVector {
 	/** The backing list. */
 	final private BooleanList list;
 	
+	protected static final void ensureIntegerIndex( final long index ) {
+		if ( index > Integer.MAX_VALUE ) throw new IllegalArgumentException( "This BitVector implementation accepts integer indices only" );
+	}
+	
 	protected BooleanListBitVector( final BooleanList list ) { this.list = list; }
 	
 	public BooleanListBitVector() {
@@ -44,28 +48,33 @@ public class BooleanListBitVector extends AbstractBitVector {
 		return new BooleanListBitVector( list );
 	}
 	
-	public int size() {
+	public long length() {
 		return list.size();
 	}
 	
-	public boolean set( final int index, final boolean value ) {
-		return list.set( index, value );
+	public boolean set( final long index, final boolean value ) {
+		ensureIntegerIndex( index );
+		return list.set( (int)index, value );
 	}
 	
-	public boolean getBoolean( final int index ) {
-		return list.getBoolean( index );
+	public boolean getBoolean( final long index ) {
+		ensureIntegerIndex( index );
+		return list.getBoolean( (int)index );
 	}
 	
-	public void add( final int index, final boolean value ) {
-		list.add( index, value );
+	public void add( final long index, final boolean value ) {
+		ensureIntegerIndex( index );
+		list.add( (int)index, value );
 	}
 
-	public boolean removeBoolean( final int index ) {
-		return list.removeBoolean( index );
+	public boolean removeBoolean( final long index ) {
+		ensureIntegerIndex( index );
+		return list.removeBoolean( (int)index );
 	}
 	
-	public BitVector copy( final int from, final int to ) {
-		return new BooleanListBitVector( list.subList( from, to ) );
+	public BitVector copy( final long from, final long to ) {
+		BitVectors.ensureFromTo( length(), from, to );
+		return new BooleanListBitVector( list.subList( (int)from, (int)to ) );
 	}
 	
 	public BitVector copy() {

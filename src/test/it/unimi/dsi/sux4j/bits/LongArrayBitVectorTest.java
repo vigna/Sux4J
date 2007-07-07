@@ -5,15 +5,6 @@ import junit.framework.TestCase;
 
 public class LongArrayBitVectorTest extends TestCase {
 
-	public void testCopy() {
-		LongArrayBitVector v = LongArrayBitVector.getInstance();
-		int[] bits = { 0,0,0,0,1,1,1,0,0,0,0,1,1,0,0 };
-		for( int i = 0; i < bits.length; i++ ) v.add( bits[ i ] );
-		LongArrayBitVector c = LongArrayBitVector.getInstance();
-		for( int i = 5; i < bits.length; i++ ) c.add( bits[ i ] );
-		assertEquals( v.copy( 5, 15 ), c );
-	}
-
 	public void testSetClearFlip() {
 		LongArrayBitVector v = LongArrayBitVector.getInstance();
 		v.size( 1 );
@@ -24,10 +15,28 @@ public class LongArrayBitVectorTest extends TestCase {
 		BitVectorTest.testSetClearFlip( v );
 		v.size( 150 );
 		BitVectorTest.testSetClearFlip( v );
+		
+		BitVectorTest.testSetClearFlip( v.subVector( 0, 90 ) );
+		BitVectorTest.testSetClearFlip( v.subVector( 5, 90 ) );
 	}
-	
+
 	public void testFillFlip() {
 		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		v.size( 100 );
 		BitVectorTest.testFillFlip( v );
+		BitVectorTest.testFillFlip( v.subVector( 0, 90 ) );
+		BitVectorTest.testFillFlip( v.subVector( 5, 90 ) );
+	}
+	
+	public void testRemove() {
+		BitVectorTest.testRemove( LongArrayBitVector.getInstance() );
+	}
+
+	public void testAdd() {
+		BitVectorTest.testAdd( LongArrayBitVector.getInstance() );
+	}
+
+	public void testCopy() {
+		BitVectorTest.testCopy( LongArrayBitVector.getInstance() );
 	}
 }

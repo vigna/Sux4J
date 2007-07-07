@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
-import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 
 import java.io.IOException;
@@ -52,14 +51,15 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	private final static int LOG2_BITS_PER_UNIT = 6;
 	private final static int BITS_PER_UNIT = 1 << LOG2_BITS_PER_UNIT;
 	private final static int UNIT_MASK = BITS_PER_UNIT - 1;
+	private final static int LAST_BIT = BITS_PER_UNIT - 1;
 	private final static long ALL_ONES = 0xFFFFFFFFFFFFFFFFL;
-	private final static long LAST_BIT_MASK = (long)1 << ( BITS_PER_UNIT - 1 );
+	private final static long LAST_BIT_MASK = 1L << LAST_BIT;
 	
 	/** Whether this class has been compiled with index checks or not. */
 	public  final static boolean CHECKS = true;
 	
 	/** The number of bits in this vector. */
-	private int size;
+	private long length;
 	/** The backing array of this vector. Bit {@link #BITS_PER_UNIT}&minus;1 
 	 * of the first element contains bit 0 of the bit vector, 
 	 * bit {@link #BITS_PER_UNIT}&minus;2 of the second long contains bit 1 of the bit vector
@@ -72,8 +72,9 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return the number of units that are necessary to hold the given number of bits.
 	 */
 	
-	private static int numUnits( final int size ) {
-		return ( size + UNIT_MASK ) >>> LOG2_BITS_PER_UNIT;
+	private static int numUnits( final long size ) {
+		if ( CHECKS && ( size + UNIT_MASK ) >>> LOG2_BITS_PER_UNIT > Integer.MAX_VALUE ) throw new IllegalArgumentException();
+		return (int)( ( size + UNIT_MASK ) >>> LOG2_BITS_PER_UNIT );
 	}
 
 	/** Return the index of the unit that holds a bit of specified index.
@@ -81,8 +82,9 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param index the index of a bit.
 	 * @return the index of the unit that holds the bit of given index.
 	 */
-	private static int unit( final int index ) {
-		return index >>> LOG2_BITS_PER_UNIT;
+	private static int unit( final long index ) {
+		if ( CHECKS && index >>> LOG2_BITS_PER_UNIT > Integer.MAX_VALUE ) throw new IllegalArgumentException();
+		return (int)( index >>> LOG2_BITS_PER_UNIT );
 	}
 
 	/** Returns the unit index of the bit that would hold the bit of specified index.
@@ -95,8 +97,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param index the index of a bit.
 	 * @return the unit index of the bit that would hold the bit of specified index.
 	 */
-	private static int bit( final int index ) {
-		return BITS_PER_UNIT - 1 - ( index & UNIT_MASK );
+	private static int bit( final long index ) {
+		return LAST_BIT - (int)( index & UNIT_MASK );
 	}
 
 	/** Returns a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
@@ -105,7 +107,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
 	 */
 	
-	private static long mask( final int index ) {
+	private static long mask( final long index ) {
 		return LAST_BIT_MASK >>> ( index & UNIT_MASK );
 	}
 
@@ -114,13 +116,13 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param index the index of a bit.
 	 * @return the number of bits at the left of the bit that would hold the bit of specified index.
 	 */
-	private static int bitsAtLeft( final int index ) {
-		return index & UNIT_MASK;
+	private static int bitsAtLeft( final long index ) {
+		return (int)( index & UNIT_MASK );
 	}
 
 
 
-	protected LongArrayBitVector( final int capacity ) {
+	protected LongArrayBitVector( final long capacity ) {
 		this.bits = capacity > 0 ? new long[ numUnits( capacity ) ] : LongArrays.EMPTY_ARRAY;
 	}
 
@@ -134,7 +136,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * 
 	 * @param capacity the size (number of bits) of the new bit vector.
 	 */
-	public static LongArrayBitVector getInstance( final int capacity ) {
+	public static LongArrayBitVector getInstance( final long capacity ) {
 		return new LongArrayBitVector( capacity );
 	}
 
@@ -143,22 +145,23 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return new LongArrayBitVector( 0 );
 	}
 	
-	public int size() {
-		return size;
+	public long length() {
+		return length;
 	}
 	
-	public void size( final int newSize ) {
-		bits = LongArrays.grow( bits, numUnits( newSize ), numUnits( size ) );
-		final int oldSize = size;
-		size = newSize;
-		if ( newSize > oldSize ) fill( oldSize, newSize, false );
+	public void length( final long newLength ) {
+		bits = LongArrays.grow( bits, numUnits( newLength ), numUnits( length ) );
+		final long oldLength = length;
+		length = newLength;
+		if ( newLength > oldLength ) fill( oldLength, newLength, false );
 	}
+
 
 	/** Reduces as must as possible the size of the backing array.
 	 */
 	
 	public void trim() {
-		bits = LongArrays.setLength( bits, numUnits( size ) );
+		bits = LongArrays.setLength( bits, numUnits( length ) );
 	}
 
 	/** Sets the size of this bit vector to 0.
@@ -166,55 +169,56 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * If you want to force that behaviour, call {@link #trim()} afterwards.
 	 */
 	public void clear() {
-		size = 0;
+		length = 0;
+		LongArrays.fill( bits, 0 );
 	}
 
-	public BitVector copy( final int from, final int to ) {
-		Arrays.ensureFromTo( size, from, to );
+	public BitVector copy( final long from, final long to ) {
+		BitVectors.ensureFromTo( length, from, to );
 
 		final LongArrayBitVector copy = new LongArrayBitVector( to - from );
-		copy.size = to - from;
+		if ( ( copy.length = to - from ) == 0 ) return copy;
+		
 		final int numUnits = numUnits( to - from );
 		final int startUnit = unit( from );
 		final int startBit = bit( from );
 		final int bitsAtLeft = bitsAtLeft( from );
-		if ( numUnits > 0 ) {
-			// If we're copying from the first bit, we just copy the array. 
-			if ( bitsAtLeft == 0 ) {
-				System.arraycopy( bits, startUnit, copy.bits, 0, numUnits );
-				copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to );
-			}
-			else if ( startUnit == unit( to - 1 ) ) {
-				// Same unit
-				copy.bits[ 0 ] = ( bits[ startUnit ] & ALL_ONES << bit( to ) ) << bitsAtLeft;
-			}
-			else {
-				copy.bits[ 0 ] = bits[ startUnit ] << bitsAtLeft;
-				for( int unit = 1; unit < numUnits; unit++ ) {
-					copy.bits[ unit - 1 ] |= bits[ unit + startUnit ] >>> startBit;
-					copy.bits[ unit ] = bits[ unit + startUnit ] << bitsAtLeft;
-				}
-				copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to );
-			}
-		}
 
+		// If we're copying from the first bit, we just copy the array. 
+		if ( bitsAtLeft == 0 ) {
+			System.arraycopy( bits, startUnit, copy.bits, 0, numUnits );
+			copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to - 1 );
+		}
+		else if ( startUnit == unit( to - 1 ) ) {
+			// Same unit
+			copy.bits[ 0 ] = ( bits[ startUnit ] & ALL_ONES << bit( to ) ) << bitsAtLeft;
+		}
+		else {
+			copy.bits[ 0 ] = bits[ startUnit ] << bitsAtLeft;
+			for( int unit = 1; unit < numUnits; unit++ ) {
+				copy.bits[ unit - 1 ] |= bits[ unit + startUnit ] >>> startBit + 1;
+			copy.bits[ unit ] = bits[ unit + startUnit ] << bitsAtLeft;
+			}
+			copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to );
+		}
+	
 		return copy;
 	}
 
 	public BitVector copy() {
-		LongArrayBitVector copy = new LongArrayBitVector( size );
-		copy.size = size;
-		System.arraycopy( bits, 0, copy.bits, 0, numUnits( size ) );
+		LongArrayBitVector copy = new LongArrayBitVector( length );
+		copy.length = length;
+		System.arraycopy( bits, 0, copy.bits, 0, numUnits( length ) );
 		return copy;
 	}
 
 	
-	public boolean getBoolean( final int index ) {
+	public boolean getBoolean( final long index ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		return ( bits[ unit( index ) ] & mask( index ) ) != 0;  
 	}
 
-	public boolean set( final int index, final boolean value ) {
+	public boolean set( final long index, final boolean value ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		final int unit = unit( index );
 		final long mask = mask( index );
@@ -224,29 +228,29 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return oldValue != value;
 	}
 
-	public void set( final int index ) {
+	public void set( final long index ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		bits[ unit( index ) ] |= mask( index ); 
 	}
 
-	public void clear( final int index ) {
+	public void clear( final long index ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		bits[ unit( index ) ] &= ~mask( index ); 
 	}
 	
-	public void add( final int index, final boolean value ) {
+	public void add( final long index, final boolean value ) {
 		if ( CHECKS ) ensureIndex( index );
-		if ( size == bits.length * BITS_PER_UNIT ) bits = LongArrays.grow( bits, numUnits( size + 1 ) );
+		if ( length == bits.length * BITS_PER_UNIT ) bits = LongArrays.grow( bits, numUnits( length + 1 ) );
 		
-		size++;
+		length++;
 
-		if ( index == size - 1 ) set( index, value );
+		if ( index == length - 1 ) set( index, value );
 		else {
 			final int unit = unit( index );
 			final int bit = bit( index );
 			boolean carry = ( bits[ unit ] & 1 ) != 0, nextCarry;
-			bits[ unit ] = ( bits[ unit ] & ALL_ONES << bit ) | ( bits[ unit ] & ALL_ONES >>> bit ) >>> 1 | ( value ? (long)1 << bit : 0 );
-			for( int i = unit + 1; i < numUnits( size ); i++ ) {
+			bits[ unit ] = ( bit == LAST_BIT ? 0 : bits[ unit ] & ALL_ONES << bit + 1 ) | ( bit == 0 ? 0 : bits[ unit ] & ALL_ONES >>> LAST_BIT - bit ) >>> 1 | ( value ? 1L << bit : 0 );
+			for( int i = unit + 1; i < numUnits( length ); i++ ) {
 				nextCarry = ( bits[ i ] & 1 ) != 0;
 				bits[ i ] >>>= 1;
 				if ( carry ) bits[ i ] |= LAST_BIT_MASK;
@@ -257,21 +261,20 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return;
 	}
 	
-	public boolean removeBoolean( final int index ) {
+	public boolean removeBoolean( final long index ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		final boolean oldValue = getBoolean( index );
-		size--;
+		final long[] bits = this.bits;
+		length--;
 
-		if ( index < size ) {
-			final int unit = unit( index );
-			final int bit = bit( index );
-			bits[ unit ] = ( bits[ unit ] & ALL_ONES << bit ) | ( bits[ unit ] & ( 1L << bit ) - 1 ) << 1;
-			for( int i = unit + 1; i < numUnits( size ); i++ ) {
-				if ( ( bits[ i ] & ALL_ONES ) != 0 ) bits[ i - 1 ] |= 1;
-				bits[ i ] <<= 1;
-			}
+		final int unit = unit( index );
+		final int bit = bit( index );
+		bits[ unit ] = ( bit != LAST_BIT ? bits[ unit ] & ALL_ONES << ( bit + 1 ) : 0 ) | ( bits[ unit ] & ( 1L << bit ) - 1 ) << 1;
+		for( int i = unit + 1; i < numUnits( length ); i++ ) {
+			if ( ( bits[ i ] & LAST_BIT_MASK ) != 0 ) bits[ i - 1 ] |= 1;
+			bits[ i ] <<= 1;
 		}
-			
+
 		return oldValue;
 	}
 
@@ -285,9 +288,9 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
         return ( (int)( unit ) + (int)( unit >>> 32 ) ) & 0xff;
     }
 
-	public int count() {
-		int c = 0;
-		for( int i = numUnits( size ); i-- != 0; ) c += count( bits[ i ] );
+	public long count() {
+		long c = 0;
+		for( int i = numUnits( length ); i-- != 0; ) c += count( bits[ i ] );
 		return c;
 	}
 	
@@ -297,10 +300,10 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param size the number of bits of the newly created bit vector.
 	 * @return a bit vector of size <code>size</code> using <code>array</code> as backing array.
 	 */
-	public static LongArrayBitVector wrap( final long[] array, final int size ) {
+	public static LongArrayBitVector wrap( final long[] array, final long size ) {
 		if ( size > array.length << LOG2_BITS_PER_UNIT ) throw new IllegalArgumentException( "The provided array is too short (" + array.length + " elements) for the given size (" + size + ")" );
 		final LongArrayBitVector result = new LongArrayBitVector( 0 );
-		result.size = size;
+		result.length = size;
 		result.bits = array;
 		return result;
 	}
@@ -308,7 +311,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	/** Returns a cloned copy of this bit vector.
 	 * 
 	 * <P>This method is functionally equivalent to {@link #copy()},
-	 * excepted that {@link #copy()} trims the backing array.
+	 * except that {@link #copy()} trims the backing array.
 	 * 
 	 * @return a copy of this bit vector.
 	 */
@@ -324,15 +327,15 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	}
 
 	public boolean equals( final LongArrayBitVector v ) {
-		if ( size != v.size() ) return false;
-		int i = numUnits( size );
+		if ( length != v.length() ) return false;
+		int i = numUnits( length );
 		while( i-- != 0 ) if ( bits[ i ] != v.bits[ i ] ) return false;
 		return true;
 	}
 
 	public int hashCode() {
 		long h = 1234;
-		for( int i = numUnits( size ); i-- != 0; )
+		for( int i = numUnits( length ); i-- != 0; )
 			h ^= bits[ i ] * ( i + 1 );
 
 		return (int)( ( h >> 32 ) ^ h );
@@ -340,13 +343,13 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
-		final int numUnits = numUnits( size );
+		final int numUnits = numUnits( length );
 		for( int i = 0; i < numUnits; i++ ) s.writeLong( bits[ i ] );
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		final int numUnits = numUnits( size );
+		final int numUnits = numUnits( length );
 		bits = new long[ numUnits ];
 		for( int i = 0; i < numUnits; i++ ) bits[ i ] = s.readLong();
 	}

@@ -22,8 +22,9 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.booleans.BooleanList;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
+import java.util.List;
 import java.util.RandomAccess;
 
 /** A vector of bits, a&#46;k&#46;a&#46; bit sequence, bit string, binary word, etc.
@@ -38,11 +39,11 @@ import java.util.RandomAccess;
  * partially of set-theoretical nature (e.g., asking which bits are set to one). 
  * To accomodate all these points of view, this interface extends  
  * {@link it.unimi.dsi.fastutil.booleans.BooleanList}, but also provides an
- * {@link #asIntSet()} method that exposes a {@link java.util.BitSet}-like view.
+ * {@link #asLongSet()} method that exposes a {@link java.util.BitSet}-like view.
  * 
  * <P>Most, if not all, classical operations on bit vectors can be seen as standard
  * operations on these two views: for instance, the number of bits set to one is just
- * the number of elements of the set returned by {@link #asIntSet()} (albeit a direct {@link #count()} method
+ * the number of elements of the set returned by {@link #asLongSet()} (albeit a direct {@link #count()} method
  * is provided, too). The standard {@link java.util.Collection#addAll(java.util.Collection)} method
  * can be used to concatenate bit vectors, and {@linkplain java.util.List#subList(int, int) sublist views}
  * make it easy performing any kind of logical operation on subvectors.
@@ -66,31 +67,31 @@ public interface BitVector extends RandomAccess, BooleanList {
 	/** Sets a bit in this bit vector (optional operation). 
 	 * @param index the index of a bit.
 	 */
-	public void set( int index );
+	public void set( long index );
 	
 	/** Clears a bit in this bit vector (optional operation). 
 	 * @param index the index of a bit.
 	 */
-	public void clear( int index );
+	public void clear( long index );
 
 	/** Flips a bit in this bit vector (optional operation). 
 	 * @param index the index of a bit.
 	 */
-	public void flip( int index );
+	public void flip( long index );
 
 	/** Fills a range of bits in this bit vector (optional operation). 
 	 * @param from the first index (inclusive).
 	 * @param to the last index (not inclusive).
 	 * @param value the value (true or false).
 	 */
-	public void fill( int from, int to, boolean value );
+	public void fill( long from, long to, boolean value );
 	
 	/** Clears a range of bits in this bit vector (optional operation). 
 	 * @param from the first index (inclusive).
 	 * @param to the last index (not inclusive).
 	 * @param value the value (zero or nonzero).
 	 */
-	public void fill( int from, int to, int value );
+	public void fill( long from, long to, int value );
 	
 	/** Sets all bits this bit vector to the given boolean value (optional operation). */
 	public void fill( boolean value );
@@ -102,7 +103,7 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * @param from the first index (inclusive).
 	 * @param to the last index (not inclusive).
 	 */
-	public void flip( int from, int to );
+	public void flip( long from, long to );
 
 	/** Flips all bits in this bit vector (optional operation). */
 	public void flip();
@@ -113,9 +114,9 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * @param from the first index (inclusive).
 	 * @param to the last index (not inclusive).
 	 */
-	public BitVector subVector( int from, int to );
+	public BitVector subVector( long from, long to );
 
-	/** Returns a view of this bit vector as a set of integers.
+	/** Returns a view of this bit vector as a set of long integers.
 	 * 
 	 * <P>More formally, this bit vector is infinitely extended to the
 	 * left with zeros (e.g., all bits beyond {@link java.util.List#size()} are
@@ -126,34 +127,75 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * exactly that of a {@link java.util.BitSet}.
 	 *
 	 */
-	public IntSet asIntSet();
+	public LongSet asLongSet();
 	
+	/** Returns the value of the specified bit.
+	 * 
+	 * <P>This method is semantically equivalent to {@link BooleanList#getBoolean(int)},
+	 * but it gives access to long indices.
+	 * 
+	 * @param index the index of a bit.
+	 * @return the value of the specified bit.
+	 */
+	public boolean getBoolean( final long index );
+
+
 	/** Returns the value of the specified bit as an integer.
 	 * 
-	 * <P>This method is a useful synonym for {@link BooleanList#getBoolean(int)}.
+	 * <P>This method is a useful synonym for {@link #getBoolean(long)}.
 	 * 
 	 * @param index the index of a bit.
 	 * @return the value of the specified bit as an integer (0 or 1).
 	 */
-	public int getInt( final int index );
-	
-	/** Sets the value of the specified bit, specifying the value as an integer (optional operation).
+	public int getInt( final long index );
+
+	/** Sets the value of the specified bit (optional operation).
 	 * 
-	 * <P>This method is a useful synonym for {@link BooleanList#set(int,boolean)}.
+	 * <P>This method is semantically equivalent to {@link BooleanList#set(int,boolean)},
+	 * but it gives access to long indices.
+	 * 
+	 * @param index the index of a bit.
+	 * @param value the new value.
+	 */
+	public boolean set( final long index, final boolean value );
+	
+	/** Sets the value of the specified bit as an integer (optional operation).
+	 * 
+	 * <P>This method is a useful synonym for {@link #set(long, boolean)}.
 	 * 
 	 * @param index the index of a bit.
 	 * @param value the new value (any nonzero integer for setting the bit, zero for clearing the bit).
 	 */
-	public void set( final int index, final int value );
+	public void set( final long index, final int value );
 	
-	/** Adds a bit with specified value at the specified index.
+	/** Adds a bit with specified value at the specified index (optional operation).
 	 * 
-	 * <P>This method is a useful synonym for {@link BooleanList#add(int,boolean)}.
+	 * <P>This method is semantically equivalent to {@link BooleanList#add(int,boolean)},
+	 * but it gives access to long indices.
+	 * 
+	 * @param index the index of a bit.
+	 * @param value the value that will be inserted at position <code>index</code>.
+	 */
+	public void add( final long index, final boolean value );
+	
+	/** Removes a bit with specified index (optional operation).
+	 * 
+	 * <P>This method is semantically equivalent to {@link BooleanList#removeBoolean(int)},
+	 * but it gives access to long indices.
+	 * 
+	 * @param index the index of a bit.
+	 * @return the previous value of the bit.
+	 */
+	public boolean removeBoolean( final long index );
+	
+	/** Adds a bit with specified integer value at the specified index (optional operation).
+	 * 
+	 * <P>This method is a useful synonym for {@link #add(long, boolean)}.
 	 * 
 	 * @param index the index of a bit.
 	 * @param value the value that will be inserted at position <code>index</code> (any nonzero integer for a true bit, zero for a false bit).
 	 */
-	public void add( final int index, final int value );
+	public void add( final long index, final int value );
 	
 	/** Adds a bit with specified value at the end of this bit vector.
 	 * 
@@ -161,13 +203,31 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * 
 	 * @param value the new value (any nonzero integer for a true bit, zero for a false bit).
 	 */
+
 	public void add( final int value );
 
+	/** Returns the number of bits in this bit vector.
+	 *
+	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
+	 * method is semantically equivalent to {@link List#size()}. 
+	 *
+	 * @return the number of bits in this bit vector. 
+	 */
+	public long length();
+	
+	/** Sets the number of bits in this bit vector.
+	 *
+	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
+	 * method is semantically equivalent to {@link BooleanList#size(int)}. 
+	 *
+	 */
+	public void length( long newLength );
+	
 	/** Counts the number of bits set to true in this bit vector.
 	 *
 	 * @return the number of bits set to true in this bit vector. 
 	 */
-	public int count();
+	public long count();
 	
 	/** Performs a logical and between this bit vector and another one, leaving the result in this vector.
 	 * 
@@ -191,20 +251,20 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 *
 	 * @return the most significant bit of this vector, or -1 for a vector of zeroes. 
 	 */
-	public int mostSignificantBit();
+	public long mostSignificantBit();
 
 	/** Returns the least significant bit of this vector.
 	 *
 	 * @return the least significant bit of this vector, or -1 for a vector of zeroes. 
 	 */
-	public int leastSignificantBit();
+	public long leastSignificantBit();
 
 	/** Returns the length of the greatest common prefix between this and the specified vector.
 	 *
 	 * @param v a bit vector.
 	 * @return the length of the greatest common prefix.
 	 */
-	public int maximumCommonPrefixLength( BitVector v );
+	public long maximumCommonPrefixLength( BitVector v );
 
 	/** Returns a copy of a part of this bit vector.
 	 *
@@ -213,7 +273,7 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * @return a copy of the part of this bit vector going from bit <code>from</code> (inclusive) to bit <code>to</code>
 	 * (not inclusive)
 	 */
-	public BitVector copy( final int from, final int to );
+	public BitVector copy( final long from, final long to );
 
 	/** Returns a copy of this bit vector.
 	 *

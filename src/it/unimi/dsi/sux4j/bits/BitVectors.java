@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
-import it.unimi.dsi.fastutil.Arrays;
 
 /** A class providing static methods and objects that do useful things with bit vectors.
  * 
@@ -30,9 +29,17 @@ import it.unimi.dsi.fastutil.Arrays;
 
 public class BitVectors {
 
+	
 	private BitVectors() {}
 
-	public static final byte[] COUNT = new byte[ 1 << 16 ];
+	
+    public static void ensureFromTo( final long bitVectorLength, final long from, final long to ) {
+        if ( from < 0 ) throw new ArrayIndexOutOfBoundsException( "Start index (" + from + ") is negative" );
+        if ( from > to ) throw new IllegalArgumentException( "Start index (" + from + ") is greater than end index (" + to + ")" );
+        if ( to > bitVectorLength ) throw new ArrayIndexOutOfBoundsException( "End index (" + to + ") is greater than array length (" + bitVectorLength + ")" );
+    }
+    
+    public static final byte[] COUNT = new byte[ 1 << 16 ];
 	static {
 		// TODO: this must be written into a file and loaded
 		for( int i = 1 << 16; i-- != 0; ) BitVectors.COUNT[ i ] = (byte)Integer.bitCount( i );
@@ -40,31 +47,31 @@ public class BitVectors {
 	
 	/** An immutable, singleton empty bit vector. */ 
 	public final static BitVector EMPTY_VECTOR = new AbstractBitVector() {
-		public final int size() { return 0; }
-		public final BitVector copy( final int from, final int to ) { 
-			Arrays.ensureFromTo( 0, from, to );
+		public final long length() { return 0; }
+		public final BitVector copy( final long from, final long to ) { 
+			ensureFromTo( 0, from, to );
 			return EMPTY_VECTOR; 
 		}
-		public final boolean getBoolean( final int index ) { throw new IndexOutOfBoundsException(); } 
+		public final boolean getBoolean( final long index ) { throw new IndexOutOfBoundsException(); }
 	};
 
 	/** An immutable bit vector of length one containing a zero. */ 
 	public final static BitVector ZERO = new AbstractBitVector() {
-		public final int size() { return 1; }
-		public final BitVector copy( final int from, final int to ) { 
-			Arrays.ensureFromTo( 1, from, to );
+		public final long length() { return 1; }
+		public final BitVector copy( final long from, final long to ) { 
+			ensureFromTo( 1, from, to );
 			return from == to ? EMPTY_VECTOR : this; 
 		}
-		public final boolean getBoolean( final int index ) { if ( index > 0 ) throw new IndexOutOfBoundsException(); else return false; } 
+		public final boolean getBoolean( final long index ) { if ( index > 0 ) throw new IndexOutOfBoundsException(); else return false; } 
 	};
 
 	/** An immutable bit vector of length one containing a one. */ 
 	public final static BitVector ONE = new AbstractBitVector() {
-		public final int size() { return 1; }
-		public final BitVector copy( final int from, final int to ) { 
-			Arrays.ensureFromTo( 1, from, to );
+		public final long length() { return 1; }
+		public final BitVector copy( final long from, final long to ) { 
+			ensureFromTo( 1, from, to );
 			return from == to ? EMPTY_VECTOR : this; 
 		}
-		public final boolean getBoolean( final int index ) { if ( index > 0 ) throw new IndexOutOfBoundsException(); else return true; } 
+		public final boolean getBoolean( final long index ) { if ( index > 0 ) throw new IndexOutOfBoundsException(); else return true; } 
 	};
 }

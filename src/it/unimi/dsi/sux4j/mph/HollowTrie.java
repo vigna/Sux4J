@@ -39,7 +39,7 @@ public class HollowTrie {
 		
 		CharSequence s = iterator.next();
 		LongArrayBitVector prev = seq2bv( s ), curr;
-		int prefix;
+		long prefix;
 		Node p;
 		
 		while( iterator.hasNext() ) {
