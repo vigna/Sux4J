@@ -1,7 +1,6 @@
 package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.mg4j.util.Fast;
-import cern.colt.bitvector.QuickBitVector;
 
 public class ClarkRankAndSelect implements RankAndSelect {
 	final long size;
@@ -20,7 +19,7 @@ public class ClarkRankAndSelect implements RankAndSelect {
 		this.size = size;
 		this.blockBits = (int)( ceilLog2( size ) / 2 );
 		this.superBlockBits = (int)( blockBits * ceilLog2( size ) );
-		blocks = new long[ ]
+		throw new UnsupportedOperationException();
 	}
 	
 	
