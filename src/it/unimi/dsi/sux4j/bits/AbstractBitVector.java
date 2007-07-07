@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
 /*		 
- * MG4J: Managing Gigabytes for Java
+ * Sux4J: Succinct data structures for Java
  *
  * Copyright (C) 2005-2007 Sebastiano Vigna 
  *

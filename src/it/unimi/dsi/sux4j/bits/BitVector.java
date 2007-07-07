@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.bits;
 
 /*		 
- * MG4J: Managing Gigabytes for Java
+ * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2005-2007 Sebastiano Vigna 
+ * Copyright (C) 2007 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -151,7 +151,7 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * <P>This method is a useful synonym for {@link BooleanList#add(int,boolean)}.
 	 * 
 	 * @param index the index of a bit.
-	 * @param value the new value (any nonzero integer for a true bit, zero for a false bit).
+	 * @param value the value that will be inserted at position <code>index</code> (any nonzero integer for a true bit, zero for a false bit).
 	 */
 	public void add( final int index, final int value );
 	
@@ -215,7 +215,7 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public BitVector copy( final int from, final int to );
 
-	/** Returns a copy of a part of this bit vector.
+	/** Returns a copy of this bit vector.
 	 *
 	 * @return a copy of this bit vector. 
 	 */

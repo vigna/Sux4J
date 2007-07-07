@@ -12,7 +12,22 @@ public class LongArrayBitVectorTest extends TestCase {
 		LongArrayBitVector c = LongArrayBitVector.getInstance();
 		for( int i = 5; i < bits.length; i++ ) c.add( bits[ i ] );
 		assertEquals( v.copy( 5, 15 ), c );
-	
 	}
 
+	public void testSetClearFlip() {
+		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		v.size( 1 );
+		BitVectorTest.testSetClearFlip( v );
+		v.size( 64 );
+		BitVectorTest.testSetClearFlip( v );
+		v.size( 80 );
+		BitVectorTest.testSetClearFlip( v );
+		v.size( 150 );
+		BitVectorTest.testSetClearFlip( v );
+	}
+	
+	public void testFillFlip() {
+		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		BitVectorTest.testFillFlip( v );
+	}
 }

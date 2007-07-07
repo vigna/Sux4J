@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
 /*		 
- * MG4J: Managing Gigabytes for Java
+ * Sux4J: Succinct data structures for Java
  *
  * Copyright (C) 2005-2007 Sebastiano Vigna 
  *
@@ -31,6 +31,12 @@ import it.unimi.dsi.fastutil.Arrays;
 public class BitVectors {
 
 	private BitVectors() {}
+
+	public static final byte[] COUNT = new byte[ 1 << 16 ];
+	static {
+		// TODO: this must be written into a file and loaded
+		for( int i = 1 << 16; i-- != 0; ) BitVectors.COUNT[ i ] = (byte)Integer.bitCount( i );
+	}
 	
 	/** An immutable, singleton empty bit vector. */ 
 	public final static BitVector EMPTY_VECTOR = new AbstractBitVector() {

@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
 /*		 
- * MG4J: Managing Gigabytes for Java
+ * Sux4J: Succinct data structures for Java
  *
  * Copyright (C) 2005-2007 Sebastiano Vigna 
  *
@@ -149,7 +149,9 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	public void size( final int newSize ) {
 		bits = LongArrays.grow( bits, numUnits( newSize ), numUnits( size ) );
+		final int oldSize = size;
 		size = newSize;
+		if ( newSize > oldSize ) fill( oldSize, newSize, false );
 	}
 
 	/** Reduces as must as possible the size of the backing array.

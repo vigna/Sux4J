@@ -5,10 +5,6 @@ public class SimpleRankAndSelect implements RankAndSelect {
 	final public static int BITS_IN_LONG_SHIFT_MASK = 6;
 	final public static int BITS_IN_LONG_MODULO_MASK = BITS_IN_LONG - 1;
 
-	private static final byte[] COUNT = new byte[ 1 << 16 ];
-	static {
-		for( int i = 1 << 16; i-- != 0; ) COUNT[ i ] = (byte)Integer.bitCount( i );
-	}
 	
 	final private long size;
 	final private long[] bits;
@@ -21,7 +17,7 @@ public class SimpleRankAndSelect implements RankAndSelect {
 	public static int popCount( long x ) {
 		int c = 0;
 		for( int i = 4; i-- != 0; ) {
-			c += COUNT[ (int)( x & 0xFFFF ) ];
+			c += BitVectors.COUNT[ (int)( x & 0xFFFF ) ];
 			x >>>= 16;
 		}
 		return c;
@@ -77,27 +73,27 @@ public class SimpleRankAndSelect implements RankAndSelect {
 		int c, t, tot = 0;
 		
 		t = (int)( x >>> 48 & 0xFFFF );
-		c = COUNT[ t ];
+		c = BitVectors.COUNT[ t ];
 		tot += c;
 		if ( k - c <= 0 ) return bitSearch( t, k );
 		k -= c;
 		
 		t = (int)( x >>> 32 & 0xFFFF );
-		c = COUNT[ t ];
+		c = BitVectors.COUNT[ t ];
 		tot += c;
 		if ( k - c <= 0 ) return bitSearch( t, k ) + 16;
 		k -= c;
 		
 		t = (int)( x >>> 16 & 0xFFFF );
-		c = COUNT[ t ];
+		c = BitVectors.COUNT[ t ];
 		tot += c;
 		if ( k - c <= 0 ) return bitSearch( t, k ) + 32;
 		k -= c;
 		
 		t = (int)( x & 0xFFFF );
-		c = COUNT[ t ];
+		c = BitVectors.COUNT[ t ];
 		tot += c;
-		if ( k - COUNT[ t ] <= 0 ) return bitSearch( t, k ) + 48;
+		if ( k - BitVectors.COUNT[ t ] <= 0 ) return bitSearch( t, k ) + 48;
 		return -tot - 1;
 	}
 	
