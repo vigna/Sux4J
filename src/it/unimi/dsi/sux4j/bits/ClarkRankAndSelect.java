@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
 
-public class ClarkRankAndSelect implements RankAndSelect {
+public abstract class ClarkRankAndSelect implements RankAndSelect {
 	final long size;
 	final long[] bits;
 	final int blockBits;

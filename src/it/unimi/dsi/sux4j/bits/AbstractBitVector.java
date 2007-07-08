@@ -23,12 +23,14 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.fastutil.booleans.AbstractBooleanList;
 import it.unimi.dsi.fastutil.longs.AbstractLongBidirectionalIterator;
+import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.fastutil.longs.AbstractLongSortedSet;
 import it.unimi.dsi.fastutil.longs.LongBidirectionalIterator;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 
+import java.io.Serializable;
 import java.util.NoSuchElementException;
 
 /** An abstract implementation of a {@link it.unimi.dsi.sux4j.bits.BitVector}.
@@ -144,6 +146,12 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		return true;
 	}
 
+	public long[] bits() {
+		final long[] bits = new long[ (int)( ( length() + LongArrayBitVector.BITS_PER_UNIT - 1 ) >> LongArrayBitVector.LOG2_BITS_PER_UNIT ) ];
+		final long length = length();
+		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) bits[ i >> LongArrayBitVector.LOG2_BITS_PER_UNIT ] |= 1L << LongArrayBitVector.LAST_BIT - ( i & LongArrayBitVector.UNIT_MASK ); 
+		return bits;
+	}
 	
 	/** An integer sorted set view of a bit vector. 
 	 * 
@@ -152,7 +160,8 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	 * a one beyond the current size is set), but it is never shrunk.
 	 */
 	
-	public static class LongSetView extends AbstractLongSortedSet implements LongSet {
+	public static class LongSetView extends AbstractLongSortedSet implements LongSet, Serializable {
+		private static final long serialVersionUID = 1L;
 		private final BitVector bitVector;
 		private final long from;
 		private final long to;
@@ -269,14 +278,87 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		}		
 	}
 	
+	/** A list-of-integers view of a bit vector. 
+	 * 
+	 * <P>This class implements in the obvious way a view
+	 * of a bit vector as a list of integers of given width. The vector is enlarged as needed (i.e., when
+	 * adding new elements), but it is never shrunk.
+	 */
+	
+	public static class LongBigListView extends AbstractLongList implements LongBigList, Serializable {
+		private static final long serialVersionUID = 1L;
+		protected final BitVector bitVector;
+		protected final int width;
+		protected final long maxValue;
+		
+		public LongBigListView( final BitVector bitVector, final int width ) {
+			this.width = width;
+			this.bitVector = bitVector;
+			maxValue = ( 1L << width ) - 1; 
+		}
+		
+		
+		public long length() {
+			return bitVector.length() / width;
+		}
+
+		public int size() {
+			final long length = length();
+			if ( length > Integer.MAX_VALUE ) throw new IllegalStateException( "The number of elements of this bit list (" + length + ") exceeds Integer.MAX_INT" );
+			return (int)length;
+		}
+		
+		public LongBidirectionalIterator iterator( final long from ) {
+			// TODO: implement 
+			throw new UnsupportedOperationException();
+		}
+
+		public void add( int index, long value ) {
+			add( (long)index, value );
+		}
+
+		public void add( long index, long value ) {
+			if ( value > maxValue ) throw new IllegalArgumentException();
+			final long end = ( index + 1 ) * width - 1;
+			for( int i = width; i-- != 0; ) bitVector.add( end - i, ( value & 1L << i ) != 0 );
+		}
+
+		public long getLong( long index ) {
+			long result = 0;
+			final long end = ( index + 1 ) * width - 1;
+			for( int i = width; i-- != 0; ) result |= bitVector.getInt( end - i ) << i;
+			return result;
+		}
+
+		public long getLong( int index ) {
+			return getLong( (long)index );
+		}
+
+		public long set( long index, long value ) {
+			if ( value > maxValue ) throw new IllegalArgumentException();
+			long oldValue = getLong( index );
+			final long end = ( index + 1 ) * width - 1;
+			for( int i = width; i-- != 0; ) bitVector.set( end - i, ( value & 1L << i ) != 0 );
+			return oldValue;
+		}
+
+		public long set( int index, long value ) {
+			return set( (long)index, value );
+		}
+	}
+		
 	public void length( long newLength ) {
 		final long length = length();
 		if ( length < newLength ) for( long i = newLength - length; i-- != 0; ) add( false );
-		else for( long i = length - newLength; i-- != 0; ) removeBoolean( length );
+		else for( long i = length - newLength; i-- != 0; ) removeBoolean( i );
 	}
 
 	public LongSet asLongSet() {
-		return new LongSetView( this, 0, 0, true );
+		return new LongSetView( this, 0, length(), true );
+	}	
+	
+	public LongBigList asLongBigList( final int width ) {
+		return new LongBigListView( this, width );
 	}	
 	
 	public SubBitVector subList( final int from, final int to ) {

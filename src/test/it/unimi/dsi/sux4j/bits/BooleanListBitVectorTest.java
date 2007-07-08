@@ -1,13 +1,16 @@
 package test.it.unimi.dsi.sux4j.bits;
 
+import java.util.Arrays;
+
+import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import junit.framework.TestCase;
 
-public class LongArrayBitVectorTest extends TestCase {
+public class BooleanListBitVectorTest extends TestCase {
 
 	public void testSetClearFlip() {
-		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		BooleanListBitVector v = BooleanListBitVector.getInstance();
 		v.size( 1 );
 		BitVectorTest.testSetClearFlip( v );
 		v.size( 64 );
@@ -22,7 +25,7 @@ public class LongArrayBitVectorTest extends TestCase {
 	}
 
 	public void testFillFlip() {
-		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		BooleanListBitVector v = BooleanListBitVector.getInstance();
 		v.size( 100 );
 		BitVectorTest.testFillFlip( v );
 		BitVectorTest.testFillFlip( v.subVector( 0, 90 ) );
@@ -30,23 +33,22 @@ public class LongArrayBitVectorTest extends TestCase {
 	}
 	
 	public void testRemove() {
-		BitVectorTest.testRemove( LongArrayBitVector.getInstance() );
+		BitVectorTest.testRemove( BooleanListBitVector.getInstance() );
 	}
 
 	public void testAdd() {
-		BitVectorTest.testAdd( LongArrayBitVector.getInstance() );
+		BitVectorTest.testAdd( BooleanListBitVector.getInstance() );
 	}
 
 	public void testCopy() {
-		BitVectorTest.testCopy( LongArrayBitVector.getInstance() );
+		BitVectorTest.testCopy( BooleanListBitVector.getInstance() );
 	}
 
 	public void testBits() {
-		BitVectorTest.testBits( LongArrayBitVector.getInstance() );
+		BitVectorTest.testBits( BooleanListBitVector.getInstance() );
 	}
 		
 	public void testLongBigListView() {
-		BitVectorTest.testLongBigListView( LongArrayBitVector.getInstance() );
+		BitVectorTest.testLongBigListView( BooleanListBitVector.getInstance() );
 	}
-	
 }

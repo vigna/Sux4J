@@ -1,7 +1,11 @@
 package test.it.unimi.dsi.sux4j.bits;
 
+import java.util.Arrays;
+
 import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.LongBigList;
 import junit.framework.TestCase;
 
 public class BitVectorTest extends TestCase {
@@ -127,4 +131,14 @@ public class BitVectorTest extends TestCase {
 		assertEquals( v, v.copy() );
 	}
 	
+	public static void testBits( BitVector b ) {
+		for( int i = 0; i < 100; i++ ) b.add( i % 2 );
+		assertTrue( LongArrayBitVector.wrap( b.bits(), b.length() ).toString(), Arrays.equals( new long[] { 0x5555555555555555L, 0x5555555550000000L }, b.bits() ) );
+	}
+
+	public static void testLongBigListView( BitVector b ) {
+		LongBigList list = b.asLongBigList( 10 );
+		for( int i = 0; i < 100; i++ ) list.add( i );
+		for( int i = 0; i < 100; i++ ) assertEquals( i, list.getLong( i ) );
+	}
 }

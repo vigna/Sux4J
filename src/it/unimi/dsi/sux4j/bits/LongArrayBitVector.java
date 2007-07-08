@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.sux4j.bits.AbstractBitVector.LongBigListView;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -48,12 +49,12 @@ import java.io.Serializable;
 
 public class LongArrayBitVector extends AbstractBitVector implements Cloneable, Serializable {
 	private static final long serialVersionUID = 1L;
-	private final static int LOG2_BITS_PER_UNIT = 6;
-	private final static int BITS_PER_UNIT = 1 << LOG2_BITS_PER_UNIT;
-	private final static int UNIT_MASK = BITS_PER_UNIT - 1;
-	private final static int LAST_BIT = BITS_PER_UNIT - 1;
-	private final static long ALL_ONES = 0xFFFFFFFFFFFFFFFFL;
-	private final static long LAST_BIT_MASK = 1L << LAST_BIT;
+	public final static int LOG2_BITS_PER_UNIT = 6;
+	public final static int BITS_PER_UNIT = 1 << LOG2_BITS_PER_UNIT;
+	public final static int UNIT_MASK = BITS_PER_UNIT - 1;
+	public final static int LAST_BIT = BITS_PER_UNIT - 1;
+	public final static long ALL_ONES = 0xFFFFFFFFFFFFFFFFL;
+	public final static long LAST_BIT_MASK = 1L << LAST_BIT;
 	
 	/** Whether this class has been compiled with index checks or not. */
 	public  final static boolean CHECKS = true;
@@ -64,7 +65,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * of the first element contains bit 0 of the bit vector, 
 	 * bit {@link #BITS_PER_UNIT}&minus;2 of the second long contains bit 1 of the bit vector
 	 * and so on. */
-	private transient long[] bits;
+	public transient long[] bits;
 
 	/** Returns the number of units that are necessary to hold the given number of bits.
 	 * 
@@ -143,6 +144,17 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	/** Creates a new empty bit vector. */
 	public static LongArrayBitVector getInstance() {
 		return new LongArrayBitVector( 0 );
+	}
+	
+	/** Creates a new bit vector with given bits. */
+	public static LongArrayBitVector of( final int... bit ) {
+		final LongArrayBitVector bitVector = new LongArrayBitVector( bit.length );
+		for( int b : bit ) bitVector.add( b );
+		return bitVector;
+	}
+	
+	public long[] bits() {
+		return bits;
 	}
 	
 	public long length() {
@@ -341,6 +353,73 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return (int)( ( h >> 32 ) ^ h );
 	}
 	
+	/** A list-of-integers view of a bit vector. 
+	 * 
+	 * <P>This class implements in the obvious way a view
+	 * of a bit vector as a list of integers of given width. The vector is enlarged as needed (i.e., when
+	 * adding new elements), but it is never shrunk.
+	 */
+	
+	protected static class LongBigListView extends AbstractBitVector.LongBigListView {
+		private static final long serialVersionUID = 1L;
+		final long bits[];
+		
+		public LongBigListView( final LongArrayBitVector bitVector, final int width ) {
+			super( bitVector, width );
+			bits = bitVector.bits;
+		}
+		
+		public void add( long index, long value ) {
+			if ( value > maxValue ) throw new IllegalArgumentException();
+			final long length = bitVector.length();
+			final long start = index * width;
+			final long end = start + width - 1;
+			final int startUnit = unit( start );
+			final int endUnit = unit( end );
+			
+			bitVector.length( length + width );
+			if ( start == length ) {
+				// Optimised at-the-end concatenation
+				if ( startUnit == endUnit ) bits[ startUnit ] |= value << ( BITS_PER_UNIT - ( length & UNIT_MASK ) - width );
+				else {
+					bits[ startUnit ] &= ALL_ONES << ( start & UNIT_MASK );
+					bits[ startUnit ] |= value >> ( end & UNIT_MASK );
+					bits[ endUnit ] = value << BITS_PER_UNIT - ( end & UNIT_MASK );
+				}
+			}
+			else {
+				bits[ startUnit ] &= ALL_ONES << ( start & UNIT_MASK );
+				bits[ endUnit ] &= ALL_ONES >> ( end & UNIT_MASK );
+				bits[ startUnit ] |= value >> ( end & UNIT_MASK );
+				bits[ endUnit ] |= value << BITS_PER_UNIT - ( end & UNIT_MASK );
+			}
+		}
+
+		public long getLong( long index ) {
+			final long start = index * width;
+			final long end = start + width - 1;
+			final int startUnit = unit( start );
+			final int endUnit = unit( end );
+			if ( startUnit == endUnit ) return ( bits[ startUnit ] >>> end & UNIT_MASK ) & maxValue;
+			long result = bits[ unit( end ) ] >>> BITS_PER_UNIT - ( end & UNIT_MASK );
+			result |= bits[ unit( start ) ] << end;
+			return result & maxValue;
+		}
+
+		public long set( long index, long value ) {
+			if ( value > maxValue ) throw new IllegalArgumentException();
+			long oldValue = getLong( index );
+			final long start = index * width;
+			final long end = start + width - 1;
+			for( int i = width; i-- != 0; ) bitVector.set( end - i, ( value & 1L << i ) != 0 );
+			return oldValue;
+		}
+	}
+	
+	public LongBigList asLongBigList( final int width ) {
+		return new LongBigListView( this, width );
+	}	
+	
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
 		final int numUnits = numUnits( length );
@@ -354,5 +433,4 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		for( int i = 0; i < numUnits; i++ ) bits[ i ] = s.readLong();
 	}
 
-	
 }

@@ -28,7 +28,8 @@ import it.unimi.dsi.fastutil.booleans.BooleanList;
  * 
  * <P>This implementation of a bit vector is based on a backing
  * list of booleans. It is rather inefficient, but useful for
- * wrapping purposes, and for procucing mock objects.
+ * wrapping purposes, for covering completely the code in 
+ * {@link AbstractBitVector} and for creating mock objects.
  */
 public class BooleanListBitVector extends AbstractBitVector {
 	/** The backing list. */
@@ -38,10 +39,28 @@ public class BooleanListBitVector extends AbstractBitVector {
 		if ( index > Integer.MAX_VALUE ) throw new IllegalArgumentException( "This BitVector implementation accepts integer indices only" );
 	}
 	
+	public static BooleanListBitVector getInstance( final long capacity ) {
+		if ( capacity > Integer.MAX_VALUE ) throw new IllegalArgumentException( "This BitVector implementation accepts integer indices only" );
+		return new BooleanListBitVector( (int)capacity );
+	}
+
+	/** Creates a new empty bit vector. */
+	public static BooleanListBitVector getInstance() {
+		return new BooleanListBitVector( 0 );
+	}
+	
+	/** Creates a new bit vector with given bits. */
+	public static BooleanListBitVector of( final int... bit ) {
+		final BooleanListBitVector bitVector = BooleanListBitVector.getInstance( bit.length );
+		for( int b : bit ) bitVector.add( b );
+		return bitVector;
+	}
+	
+
 	protected BooleanListBitVector( final BooleanList list ) { this.list = list; }
 	
-	public BooleanListBitVector() {
-		this( new BooleanArrayList( 0 ) );
+	protected BooleanListBitVector( final int capacity ) {
+		this( new BooleanArrayList( capacity ) );
 	}
 	
 	public static BooleanListBitVector wrap( final BooleanList list ) {

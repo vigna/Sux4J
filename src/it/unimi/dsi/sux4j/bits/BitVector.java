@@ -39,7 +39,9 @@ import java.util.RandomAccess;
  * partially of set-theoretical nature (e.g., asking which bits are set to one). 
  * To accomodate all these points of view, this interface extends  
  * {@link it.unimi.dsi.fastutil.booleans.BooleanList}, but also provides an
- * {@link #asLongSet()} method that exposes a {@link java.util.BitSet}-like view.
+ * {@link #asLongSet()} method that exposes a {@link java.util.BitSet}-like view
+ * and a {@link #asLongBigList(int)} method that provides integer-like access to
+ * blocks of bits of given width.
  * 
  * <P>Most, if not all, classical operations on bit vectors can be seen as standard
  * operations on these two views: for instance, the number of bits set to one is just
@@ -128,6 +130,14 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 *
 	 */
 	public LongSet asLongSet();
+	
+	/** Returns a view of this bit vector as a list of integers of specified width.
+	 * 
+	 * <P>More formally, {@link LongBigList#getLong(long) getLong(p)} will return
+	 * the integer defined by the bits starting at <code>p * width</code> (inclusive)
+	 * and ending at <code>(p + 1) * width</code> (exclusive). 
+	 */
+	public LongBigList asLongBigList( int width );
 	
 	/** Returns the value of the specified bit.
 	 * 
@@ -281,4 +291,10 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public BitVector copy();
 	
+	/** Returns the bits in this bit vector as an array of longs, not to be modified.
+	 * 
+	 * @return an array of longs whose first {@link #length()} bits contain the bits of
+	 * this bit vector. The array cannot be modified.
+	 */
+	public long[] bits();
 }

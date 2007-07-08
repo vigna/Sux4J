@@ -1,12 +1,12 @@
 package it.unimi.dsi.sux4j.bits;
 
-public class SimpleRankAndSelect implements RankAndSelect {
+public class SimpleRankAndSelect extends AbstractRankAndSelect {
 	final public static int BITS_IN_LONG = 64;
 	final public static int BITS_IN_LONG_SHIFT_MASK = 6;
 	final public static int BITS_IN_LONG_MODULO_MASK = BITS_IN_LONG - 1;
 
 	
-	final private long size;
+	final private long length;
 	final private long[] bits;
 	final private long[] count;
 	final private int numCounts;
@@ -23,13 +23,17 @@ public class SimpleRankAndSelect implements RankAndSelect {
 		return c;
 	}
 	
-	public SimpleRankAndSelect( long[] bits, long size, int k ) {
+	public SimpleRankAndSelect( final LongArrayBitVector bitVector, int k ) {
+		this( bitVector.bits(), bitVector.length(), k );
+	}
+		
+	public SimpleRankAndSelect( long[] bits, long length, int k ) {
 		this.bits = bits;
-		this.size = size;
+		this.length = length;
 		this.k = k;
 		
 		blockBits = k * BITS_IN_LONG;
-		numCounts = (int)( size / blockBits );
+		numCounts = (int)( length / blockBits );
 		count = new long[ numCounts + 1 ];
 
 		if ( numCounts != 0 ) {
@@ -48,11 +52,13 @@ public class SimpleRankAndSelect implements RankAndSelect {
 		}
 		
 		count[ numCounts ] = Integer.MAX_VALUE; // To simplify binary search
-		numOnes = rank( size );
+		numOnes = rank( length - 1 );
 	}
 	
 	
 	public long rank( long pos ) {
+		if ( pos == -1 ) return 0;
+		pos++;
 		final int end = (int)( pos / blockBits );
 		long c = end > 0 ? count[ end - 1 ] : 0;
 		int r;
@@ -98,8 +104,7 @@ public class SimpleRankAndSelect implements RankAndSelect {
 	}
 	
 	public long select( long rank ) {
-		if ( rank == 0 ) return 0;
-		if ( rank > numOnes ) return -1;
+		if ( rank == 0 || rank > numOnes ) return -1;
 		int l = 0, r = numCounts + 1, p = 0;
 		while( r != l ) {
 			p = ( l + r ) / 2;
@@ -108,18 +113,23 @@ public class SimpleRankAndSelect implements RankAndSelect {
 			else r = p;
 		}
 		
+		if ( p > numCounts ) return -1;
 		int residual = (int)( p == 0 ? rank : rank - count[ p - 1 ] );
 		int pos = p * k, t;
-		for( int i = 1; i <= k; i++ ) {
-			t = popSearch( bits[ pos ], residual );
-			if ( t >= 0 ) return p * blockBits + ( ( i - 1 ) << BITS_IN_LONG_SHIFT_MASK ) + t;
+		for( int i = 0; i < k; i++ ) {
+			t = popSearch( bits[ pos + i ], residual );
+			if ( t >= 0 ) return p * blockBits + ( i << BITS_IN_LONG_SHIFT_MASK ) + t;
 			residual -= -t - 1;
 		}
 		
-		throw new IllegalStateException();
+		return -1;
 	}
 
-	public long size() {
-		return size;
+	public long[] bits() {
+		return bits;
+	}
+	
+	public long length() {
+		return length;
 	}
 }
