@@ -49,4 +49,7 @@ public class LongArrayBitVectorTest extends TestCase {
 		BitVectorTest.testLongBigListView( LongArrayBitVector.getInstance() );
 	}
 	
+	public void testFirstLast() {
+		BitVectorTest.testFirstLastPrefix( LongArrayBitVector.getInstance() );
+	}
 }

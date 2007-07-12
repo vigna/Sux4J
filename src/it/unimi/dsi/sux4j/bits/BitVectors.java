@@ -1,5 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -28,10 +30,49 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 public class BitVectors {
-
 	
+
 	private BitVectors() {}
 
+	/** A trivial transformation for data already in {@link BitVector} form. */
+	private final static BitVector.TransformationStrategy<BitVector> IDENTITY = new BitVector.TransformationStrategy<BitVector>() {
+		private static final long serialVersionUID = 1L;
+
+		public BitVector toBitVector( final BitVector object ) {
+			return object;
+		}
+	};
+	
+	/** A trivial transformation from strings to bit vectors. It concatenates the bits of the UTF-16 representation and completes
+	 * the representation with 16 zeroes to guarantee lexicographical ordering and prefix-freeness. As a result, an
+	 * {@link IllegalArgumentException} will be thrown if any string contains an ASCII NUL. */
+	private final static BitVector.TransformationStrategy<CharSequence> UTF_16 = new BitVector.TransformationStrategy<CharSequence>() {
+		private static final long serialVersionUID = 1L;
+
+		public BitVector toBitVector( final CharSequence s ) {
+			LongArrayBitVector bitVector = LongArrayBitVector.getInstance( ( s.length() + 1 ) * Character.SIZE );
+			final int l = s.length();
+			char c;
+			for( int i = 0; i < l; i++ ) {
+				bitVector.append( c = s.charAt( i ), Character.SIZE );
+				if ( c == 0 ) throw new IllegalArgumentException( "You cannot code with this transformation strings containing ASCII NULs" );
+			}
+			bitVector.append( 0, Character.SIZE );
+			return bitVector;
+		}
+	};
+
+	
+	@SuppressWarnings("unchecked")
+	public static <T extends CharSequence> BitVector.TransformationStrategy<T> utf16() {
+		return (TransformationStrategy<T>)UTF_16;
+	}
+ 	
+	@SuppressWarnings("unchecked")
+	public static <T extends BitVector> BitVector.TransformationStrategy<T> identity() {
+		return (TransformationStrategy<T>)IDENTITY;
+	}
+ 	
 	
     public static void ensureFromTo( final long bitVectorLength, final long from, final long to ) {
         if ( from < 0 ) throw new ArrayIndexOutOfBoundsException( "Start index (" + from + ") is negative" );

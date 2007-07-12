@@ -4,7 +4,7 @@ import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.RankAndSelect;
 import junit.framework.TestCase;
 
-public class RankAndSelectTestCase extends TestCase {
+public abstract class RankAndSelectTestCase extends TestCase {
 	public void assertRankAndSelect( RankAndSelect rs ) {
 		final long length = rs.length();
 		final LongArrayBitVector bits = LongArrayBitVector.wrap( rs.bits(), rs.length() );

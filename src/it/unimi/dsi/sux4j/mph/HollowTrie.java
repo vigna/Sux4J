@@ -1,27 +1,28 @@
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.sux4j.bits.Fast.ceilLog2;
+import static it.unimi.dsi.sux4j.bits.Fast.length;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
+import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.mg4j.util.Fast;
 import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.sux4j.bits.BitVectors;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.LongBigList;
 import it.unimi.dsi.sux4j.bits.RankAndSelect;
 import it.unimi.dsi.sux4j.bits.SimpleRankAndSelect;
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
-import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
 
@@ -35,18 +36,19 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-import static it.unimi.dsi.sux4j.bits.Fast.ceilLog2;
-
-public class HollowTrie implements Serializable {
+public class HollowTrie<T> implements Serializable {
 	private static final Logger LOGGER = Fast.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
 
 	private static final boolean ASSERTS = true;
 	
-	public LongBigList skips;
+	public LongArrayBitVector skips;
+	public LongArrayBitVector delimiters;
+	public RankAndSelect delimitersRankAndSelect;
 	public BitVector trie;
 	public long lastOne;
 	public RankAndSelect rankAndSelect;
+	//public IntArrayList temp;
 	
 	private final static class Node {
 		Node left, right;
@@ -62,14 +64,28 @@ public class HollowTrie implements Serializable {
 	
 	private transient Node root;
 	private long numNodes;
+	private LongArrayBitVector borders;
+	private SimpleRankAndSelect skipLocator;
+	private final TransformationStrategy<? super T> transform;
 	
-	public long getLeafIndex( final BitVector bitVector ) {
+	public long getLeafIndex( final T object ) {
 		//System.err.println( bitVector );
+		final BitVector bitVector = transform.toBitVector( object );
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
+		long leftBorder, rightBorder;
 		
 		for(;;) {
-			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
+			leftBorder = 0;
+			if ( r > 0 ) leftBorder = skipLocator.select( r ) + 1;
+			rightBorder = skips.length();
+			if ( r < numNodes ) rightBorder = skipLocator.select( r + 1 ) + 1;
+		
+/*			System.err.println( skips + " " + borders + " " + temp + " " + r+" " +leftBorder + " " + rightBorder );
+			if ( (int)skips.extract( leftBorder, rightBorder )
+				!= temp.getInt( (int) r ) ) throw new AssertionError((int)skips.extract( leftBorder, rightBorder )
+						+"!="+ temp.getInt( (int) r ));*/
+			if ( ( s += (int)skips.extract( leftBorder, rightBorder ) ) >= length ) return -1;
 
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
@@ -115,6 +131,7 @@ public class HollowTrie implements Serializable {
 		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
 		final IntArrayList skips = new IntArrayList();
 		int p = 0, maxSkip = Integer.MIN_VALUE;
+		long skipsLength = 0;
 		bitVector.add( 1 );
 		queue.add( root );
 		root = null;
@@ -124,6 +141,7 @@ public class HollowTrie implements Serializable {
 			n = queue.get( p );
 			if ( maxSkip < n.skip ) maxSkip = n.skip;
 			skips.add( n.skip );
+			skipsLength += length( n.skip );
 			bitVector.add( n.left != null );
 			bitVector.add( n.right != null );
 			if ( n.left != null ) queue.add( n.left );
@@ -132,36 +150,43 @@ public class HollowTrie implements Serializable {
 		}
 		
 		trie = bitVector;
-		rankAndSelect = new SimpleRankAndSelect( bitVector.bits(), bitVector.length(), 2 );
+		rankAndSelect = new SimpleRankAndSelect( bitVector, 2 );
 		lastOne = rankAndSelect.lastOne();
 		final int skipWidth = ceilLog2( maxSkip ) + 1;
+		final int skipLongWidth = ceilLog2( skipWidth ) + 1;
 		LOGGER.info( "Skip width: " + skipWidth );
-		this.skips = LongArrayBitVector.getInstance( skipWidth ).asLongBigList( skipWidth );
+		LOGGER.info( "Skip log width: " + skipWidth );
+		this.skips = LongArrayBitVector.getInstance( skipsLength );
+		this.borders = LongArrayBitVector.getInstance( skipsLength );
 		int s = skips.size();
-		for( IntIterator i = skips.iterator(); s-- != 0; ) this.skips.add( i.nextInt() );
+		int x;
+		for( IntIterator i = skips.iterator(); s-- != 0; ) {
+			x = i.nextInt();
+			this.skips.append( x, length( x ) );
+			borders.append( 1, length( x ) );
+		}
+		//this.temp = skips;
+		if ( this.skips.trim() ) throw new AssertionError();
+		if ( borders.trim() ) throw new AssertionError();
+		skipLocator = new SimpleRankAndSelect( borders, 2 );
 	}
 	
 	
-	public final static LongArrayBitVector seq2bv( CharSequence s ) {
-		LongArrayBitVector b = LongArrayBitVector.getInstance();
-		for( int i = 0; i < s.length(); i++ )
-			for( int j = 16; j-- != 0; ) b.add( s.charAt( i ) & 1 << j );
-		// 16-bit stopper
-		for( int j = 16; j-- != 0; ) b.add( 0 );
-		return b;
+	public HollowTrie( final Iterable<? extends T> iterable, final BitVector.TransformationStrategy<? super T> transform ) {
+		this( iterable.iterator(), transform );
 	}
-	
-	
-	public HollowTrie( final Iterator<? extends BitVector> iterator ) {
+		
+	public HollowTrie( final Iterator<? extends T> iterator, final BitVector.TransformationStrategy<? super T> transform ) {
 
+		this.transform = transform;
 		if ( ! iterator.hasNext() ) return;
 		
-		BitVector prev = iterator.next(), curr;
+		BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
 		int prefix;
 		Node p, parent;
 		
 		while( iterator.hasNext() ) {
-			curr = iterator.next();
+			curr = transform.toBitVector( iterator.next() );
 			if ( prev.compareTo( curr ) >= 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 			prefix = (int)curr.maximumCommonPrefixLength( prev );
 			if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
@@ -187,7 +212,6 @@ public class HollowTrie implements Serializable {
 				}
 			
 				prefix -= p.skip + 1;
-				if ( prefix < 0 ) System.err.println( prev + "\n" + curr );
 				parent = p;
 				p = p.right;
 			}
@@ -213,7 +237,7 @@ public class HollowTrie implements Serializable {
 				assert parent == null || ( p == null ? m == parent.right : m == n );
 			}
 			
-			prev = curr;
+			prev = curr.copy();
 		}
 	}
 	
@@ -240,22 +264,6 @@ public class HollowTrie implements Serializable {
 		return s.toString();
 	}
 	
-	public final static class CharSequenceBitVectorIterator extends AbstractObjectIterator<BitVector> {
-		private final Iterator<? extends CharSequence> iterator;
-
-		public CharSequenceBitVectorIterator( final Iterator<? extends CharSequence> iterator ){
-			this.iterator = iterator;
-		}
-
-		public boolean hasNext() {
-			return iterator.hasNext();
-		}
-
-		public BitVector next() {
-			return seq2bv( iterator.next() );
-		}
-	}
-	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
@@ -264,6 +272,7 @@ public class HollowTrie implements Serializable {
 					//new FlaggedOption( "class", MG4JClassParser.getParser(), klass.getName(), JSAP.NOT_REQUIRED, 'c', "class", "A subclass of MinimalPerfectHash to be used when creating the table." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
+					new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy." ),
 					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
 					new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised hollow trie." )
 		});
@@ -277,17 +286,19 @@ public class HollowTrie implements Serializable {
 		//final Class<?> tableClass = jsapResult.getClass( "class" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 		
-		final HollowTrie hollowTrie;
+		final HollowTrie<CharSequence> hollowTrie;
 		
 		LOGGER.info( "Building trie..." );
 
 		if ( termFile == null ) {
-			hollowTrie = new HollowTrie( new CharSequenceBitVectorIterator( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ) ) );
+			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), BitVectors.utf16() );
 			hollowTrie.succinct();
 		}
 		else {
-			hollowTrie = new HollowTrie( new CharSequenceBitVectorIterator( new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) ) ) );
+			FileLinesCollection collection = new FileLinesCollection( termFile, encoding.toString(), zipped );
+			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : BitVectors.utf16() );
 			hollowTrie.succinct();
 		}
 		

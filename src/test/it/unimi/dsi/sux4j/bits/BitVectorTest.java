@@ -1,16 +1,15 @@
 package test.it.unimi.dsi.sux4j.bits;
 
-import java.util.Arrays;
-
 import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
+
+import java.util.Arrays;
+
 import junit.framework.TestCase;
 
-public class BitVectorTest extends TestCase {
+public abstract class BitVectorTest extends TestCase {
 
-	
 	public static void testSetClearFlip( final BitVector v ) {
 		final int size = v.size();
 		for( int i = size; i-- != 0; ) {
@@ -58,6 +57,12 @@ public class BitVectorTest extends TestCase {
 		v.add( 0, true );
 		assertTrue( v.getBoolean( 0 ) );
 		assertTrue( v.getBoolean( 1 ) );
+
+		v.clear();
+		v.append( 1, 2 );
+		v.append( 1, 2 );
+		v.append( 3, 2 );
+		assertEquals( LongArrayBitVector.of( 0, 1, 0, 1, 1, 1 ), v );
 	}
 	
 	public static void testFillFlip( final BitVector v ) {
@@ -140,5 +145,52 @@ public class BitVectorTest extends TestCase {
 		LongBigList list = b.asLongBigList( 10 );
 		for( int i = 0; i < 100; i++ ) list.add( i );
 		for( int i = 0; i < 100; i++ ) assertEquals( i, list.getLong( i ) );
+		for( int i = 0; i < 100; i++ ) list.add( i );
+		for( int i = 0; i < 100; i++ ) assertEquals( i, list.set( i, i + 1 ) );
+		for( int i = 0; i < 100; i++ ) assertEquals( i + 1, list.getLong( i ) );
+	}
+
+	public static void testFirstLastPrefix( BitVector b ) {
+		b.clear();
+		b.length( 60 );
+		b.set( 4, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 4, b.lastOne() );
+		b.set( 50, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 50, b.lastOne() );
+		b.set( 20, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 50, b.lastOne() );
+		b.length( 100 );
+		b.set( 90, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 90, b.lastOne() );
+		b.clear();
+		b.length( 100 );
+		b.set( 4, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 4, b.lastOne() );
+		b.set( 90, true );
+		assertEquals( 4, b.firstOne() );
+		assertEquals( 90, b.lastOne() );
+		
+		b.length( 60 );
+		BitVector c = b.copy();
+		c.length( 40 );
+		assertEquals( c.length(), b.maximumCommonPrefixLength( c ) );
+		c.flip( 20 );
+		assertEquals( 20, b.maximumCommonPrefixLength( c ) );
+		c.flip( 0 );
+		assertEquals( 0, b.maximumCommonPrefixLength( c ) );
+
+		b.length( 100 );
+		c = b.copy();
+		c.length( 80 );
+		assertEquals( c.length(), b.maximumCommonPrefixLength( c ) );
+		c.flip( 20 );
+		assertEquals( 20, b.maximumCommonPrefixLength( c ) );
+		c.flip( 0 );
+		assertEquals( 0, b.maximumCommonPrefixLength( c ) );
 	}
 }

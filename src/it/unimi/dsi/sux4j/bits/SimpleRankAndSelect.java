@@ -23,7 +23,7 @@ public class SimpleRankAndSelect extends AbstractRankAndSelect {
 		return c;
 	}
 	
-	public SimpleRankAndSelect( final LongArrayBitVector bitVector, int k ) {
+	public SimpleRankAndSelect( final BitVector bitVector, int k ) {
 		this( bitVector.bits(), bitVector.length(), k );
 	}
 		

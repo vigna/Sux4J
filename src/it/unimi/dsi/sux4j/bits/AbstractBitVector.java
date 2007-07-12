@@ -86,22 +86,32 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public boolean add( final boolean value ) { add( length(), value ); return true; }
 	public void add( final int value ) { add( value != 0 ); }
 
+	public void append( long value, int k ) {
+		while( k-- != 0 ) add( ( value & 1L << k ) != 0 );
+	}
+
 	public BitVector copy() { return copy( 0, size() ); }
 
+	public BitVector copy( final long from, final long to ) {
+		LongArrayBitVector copy = LongArrayBitVector.getInstance( to - from );
+		for( long i = from; i < to; i++ ) copy.add( getBoolean( i ) );
+		return copy;
+	}
+	
 	public long count() {
 		long c = 0;
 		for( long i = length(); i-- != 0; ) c += getInt( i );
 		return c;
 	}
 	
-	public long mostSignificantBit() {
-		for ( long i = length(); i-- != 0; ) if ( getBoolean( i ) ) return i;
+	public long firstOne() {
+		final long length = length();
+		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) return i;
 		return -1;
 	}
 	
-	public long leastSignificantBit() {
-		final long length = length();
-		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) return i;
+	public long lastOne() {
+		for ( long i = length(); i-- != 0; ) if ( getBoolean( i ) ) return i;
 		return -1;
 	}
 	
@@ -417,53 +427,8 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			return new SubBitVector( bitVector, this.from + from, this.from + to );
 		}
 
-		public long count() {
-			int c = 0;
-			for( long i = length(); i-- != 0; ) c += getInt( i );
-			return c;
-		}
-		
-		public long mostSignificantBit() {
-			for ( long i = length(); i-- != 0; ) if ( getBoolean( i ) ) return i;
-			return -1;
-		}
-		
-		public long leastSignificantBit() {
-			final long length = length();
-			for( long i = 0; i < length; i++ ) if ( getBoolean( i ) ) return i;
-			return -1;
-		}
-		
-		public long maximumCommonPrefixLength( final BitVector v ) {
-			final long minlength = Math.min( length(), v.length() );
-			for( int i = 0; i < minlength; i++ ) if ( getBoolean( i ) != v.getBoolean( i ) ) return i;
-			return minlength;
-		}
-
-		public void and( final BitVector v ) {
-			for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( ! v.getBoolean( i ) ) clear( i );
-		}
-		
-		public void or( final BitVector v ) {
-			for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) set( i );
-		}
-
-		public void xor( final BitVector v ) {
-			for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) flip( i );
-		}
-
-		public LongSet asLongSet() {
-			return new LongSetView( this, 0, 0, true );
-		}
-
 		public long length() {
 			return to - from;
-		}
-
-		public void length( long newLength ) {
-			final long length = length();
-			if ( length < newLength ) for( long i = newLength - length; i-- != 0; ) bitVector.add( to++, false );
-			else for( long i = length - newLength; i-- != 0; ) bitVector.removeBoolean( --to );
 		}
 	}
 }

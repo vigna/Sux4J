@@ -51,4 +51,8 @@ public class BooleanListBitVectorTest extends TestCase {
 	public void testLongBigListView() {
 		BitVectorTest.testLongBigListView( BooleanListBitVector.getInstance() );
 	}
+
+	public void testFirstLast() {
+		BitVectorTest.testFirstLastPrefix( BooleanListBitVector.getInstance() );
+	}
 }

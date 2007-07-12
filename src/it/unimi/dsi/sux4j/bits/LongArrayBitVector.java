@@ -22,7 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.longs.LongArrays;
-import it.unimi.dsi.sux4j.bits.AbstractBitVector.LongBigListView;
+import it.unimi.dsi.mg4j.util.Fast;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -112,16 +112,23 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return LAST_BIT_MASK >>> ( index & UNIT_MASK );
 	}
 
-	/** Returns the number of bits at the left of the bit that would hold the bit of specified index.
+	/** Returns the number of bits strictly preceeding the bit that would hold the specified index.
 	 * 
 	 * @param index the index of a bit.
-	 * @return the number of bits at the left of the bit that would hold the bit of specified index.
+	 * @return the number of bits strictly preceeding the bit that would hold the specified index.
 	 */
 	private static int bitsAtLeft( final long index ) {
 		return (int)( index & UNIT_MASK );
 	}
 
-
+	/** Returns the number of bits strictly following the bit that would hold the specified index.
+	 * 
+	 * @param index the index of a bit.
+	 * @return the number of bits strictly following the bit that would hold the specified index.
+	 */
+	private static int bitsAtRight( final long index ) {
+		return (int)( UNIT_MASK - ( index & UNIT_MASK ) );
+	}
 
 	protected LongArrayBitVector( final long capacity ) {
 		this.bits = capacity > 0 ? new long[ numUnits( capacity ) ] : LongArrays.EMPTY_ARRAY;
@@ -170,10 +177,14 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 
 
 	/** Reduces as must as possible the size of the backing array.
+	 * 
+	 * @return true if some trimming was actually necessary.
 	 */
 	
-	public void trim() {
+	public boolean trim() {
+		if ( bits.length == numUnits( length ) ) return false;
 		bits = LongArrays.setLength( bits, numUnits( length ) );
+		return true;
 	}
 
 	/** Sets the size of this bit vector to 0.
@@ -252,7 +263,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	public void add( final long index, final boolean value ) {
 		if ( CHECKS ) ensureIndex( index );
-		if ( length == bits.length * BITS_PER_UNIT ) bits = LongArrays.grow( bits, numUnits( length + 1 ) );
+		if ( length == bits.length << LOG2_BITS_PER_UNIT ) bits = LongArrays.grow( bits, numUnits( length + 1 ) );
 		
 		length++;
 
@@ -290,7 +301,32 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return oldValue;
 	}
 
-	
+	public void append( long value, int width ) {
+		if ( value >= 1L << width ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
+		final long length = length();
+		final long start = length;
+		final long end = length + width - 1;
+		final int startUnit = unit( start );
+		final int endUnit = unit( end );
+		
+		length( length + width );
+		final long bits[] = this.bits;
+
+		if ( startUnit == endUnit ) bits[ startUnit ] |= value << bitsAtRight( end );
+		else {
+			bits[ startUnit ] |= value >> bitsAtLeft( end ) + 1;
+			bits[ endUnit ] = value << bitsAtRight( end );
+		}
+	}
+
+	public long extract( long from, long to ) {
+		to--;
+		final int startUnit = unit( from );
+		final int endUnit = unit( to );
+		if ( startUnit == endUnit ) return ( bits[ startUnit ] >>> bitsAtRight( to ) ) & ( ( 1L << ( to - from + 1 ) ) - 1 );
+		return ( bits[ startUnit ] << bitsAtLeft( to ) + 1 | bits[ endUnit ] >>> bitsAtRight( to ) ) & ( ( 1L << ( to - from + 1 ) ) - 1 );
+	}
+
 	private static int count( long unit ) {
         unit -= ( unit & 0xaaaaaaaaaaaaaaaaL ) >>> 1;
         unit = ( unit & 0x3333333333333333L ) + ( (unit >>> 2 ) & 0x3333333333333333L );
@@ -305,6 +341,54 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		for( int i = numUnits( length ); i-- != 0; ) c += count( bits[ i ] );
 		return c;
 	}
+
+	public long firstOne() {
+		final long[] bits = this.bits;
+		final long units = bits.length;
+		for ( int i = 0; i < units; i++ ) 
+			if ( bits[ i ] != 0 ) 
+				return ( i + 1 ) * BITS_PER_UNIT - Fast.mostSignificantBit( bits[ i ] ) - 1;
+		return -1;
+	}
+	
+	public long lastOne() {
+		final long[] bits = this.bits;
+		for ( int i = bits.length; i-- != 0; ) 
+			if ( bits[ i ] != 0 ) 
+				return ( i + 1 ) * BITS_PER_UNIT - Fast.leastSignificantBit( bits[ i ] ) - 1;
+		return -1;
+	}
+	
+	public long maximumCommonPrefixLength( final BitVector v ) {
+		if ( v instanceof LongArrayBitVector ) return maximumCommonPrefixLength( (LongArrayBitVector)v );
+		return super.maximumCommonPrefixLength( v );
+	}
+
+	public long maximumCommonPrefixLength( final LongArrayBitVector v ) {
+		final long units = Math.min( bits.length, v.bits.length );
+		final long[] bits = this.bits;
+		final long[] vBits = v.bits;
+		for ( int i = 0; i < units; i++ ) 
+			if ( bits[ i ] != vBits[ i ] ) 
+				return ( i + 1 ) * BITS_PER_UNIT - 1 - Fast.mostSignificantBit( bits[ i ] ^ vBits[ i ] );
+		return Math.min( v.length(), length() );
+	}
+
+	public void and( final BitVector v ) {
+		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( ! v.getBoolean( i ) ) clear( i );
+	}
+	
+	public void or( final BitVector v ) {
+		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) set( i );
+	}
+
+	public void xor( final BitVector v ) {
+		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) flip( i );
+	}
+
+
+	
+	
 	
 	/** Wraps the given array of longs in a bit vector.
 	 * 
@@ -362,56 +446,52 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	protected static class LongBigListView extends AbstractBitVector.LongBigListView {
 		private static final long serialVersionUID = 1L;
-		final long bits[];
+		@SuppressWarnings("hiding")
+		final private LongArrayBitVector bitVector;
 		
 		public LongBigListView( final LongArrayBitVector bitVector, final int width ) {
 			super( bitVector, width );
-			bits = bitVector.bits;
+			this.bitVector = bitVector;
 		}
 		
 		public void add( long index, long value ) {
-			if ( value > maxValue ) throw new IllegalArgumentException();
-			final long length = bitVector.length();
-			final long start = index * width;
-			final long end = start + width - 1;
-			final int startUnit = unit( start );
-			final int endUnit = unit( end );
-			
-			bitVector.length( length + width );
-			if ( start == length ) {
-				// Optimised at-the-end concatenation
-				if ( startUnit == endUnit ) bits[ startUnit ] |= value << ( BITS_PER_UNIT - ( length & UNIT_MASK ) - width );
-				else {
-					bits[ startUnit ] &= ALL_ONES << ( start & UNIT_MASK );
-					bits[ startUnit ] |= value >> ( end & UNIT_MASK );
-					bits[ endUnit ] = value << BITS_PER_UNIT - ( end & UNIT_MASK );
-				}
-			}
-			else {
-				bits[ startUnit ] &= ALL_ONES << ( start & UNIT_MASK );
-				bits[ endUnit ] &= ALL_ONES >> ( end & UNIT_MASK );
-				bits[ startUnit ] |= value >> ( end & UNIT_MASK );
-				bits[ endUnit ] |= value << BITS_PER_UNIT - ( end & UNIT_MASK );
-			}
+			// TODO: implement
+			throw new UnsupportedOperationException();
+		}
+		
+		public boolean add( long value ) {
+			bitVector.append( value, width );
+			return true;
 		}
 
 		public long getLong( long index ) {
 			final long start = index * width;
-			final long end = start + width - 1;
-			final int startUnit = unit( start );
-			final int endUnit = unit( end );
-			if ( startUnit == endUnit ) return ( bits[ startUnit ] >>> end & UNIT_MASK ) & maxValue;
-			long result = bits[ unit( end ) ] >>> BITS_PER_UNIT - ( end & UNIT_MASK );
-			result |= bits[ unit( start ) ] << end;
-			return result & maxValue;
+			return bitVector.extract( start, start + width );
 		}
 
 		public long set( long index, long value ) {
 			if ( value > maxValue ) throw new IllegalArgumentException();
-			long oldValue = getLong( index );
+			final long bits[] = bitVector.bits;
 			final long start = index * width;
 			final long end = start + width - 1;
-			for( int i = width; i-- != 0; ) bitVector.set( end - i, ( value & 1L << i ) != 0 );
+			final int startUnit = unit( start );
+			final int endUnit = unit( end );
+			final long oldValue;
+			final int bitsAtRightOfEnd = bitsAtRight( end );
+			
+			if ( startUnit == endUnit ) {
+				oldValue = ( bits[ startUnit ] >>> bitsAtRightOfEnd ) & maxValue;
+				bits[ startUnit ] &= ~ ( maxValue << bitsAtRightOfEnd );
+				bits[ startUnit] |= value << bitsAtRightOfEnd;
+			}
+			else {
+				final int bitsAtLeftOfEnd = bitsAtLeft( end );
+				oldValue = ( bits[ startUnit ] << bitsAtLeftOfEnd + 1 | bits[ endUnit ] >>> bitsAtRightOfEnd ) & maxValue;
+				bits[ startUnit ] &= ALL_ONES << bitsAtRight( start ) + 1;
+				bits[ startUnit ] |= value >>> bitsAtLeftOfEnd + 1;
+				bits[ endUnit ] &= ALL_ONES >>> bitsAtLeftOfEnd + 1;
+				bits[ endUnit ] |= value << bitsAtRightOfEnd;
+			}
 			return oldValue;
 		}
 	}

@@ -5,16 +5,16 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.sux4j.bits.BitVectors;
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
-import it.unimi.dsi.sux4j.mph.HollowTrie.CharSequenceBitVectorIterator;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
-
-import junit.framework.TestCase;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -26,7 +26,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-public class HollowTrieSpeedTest extends TestCase {
+public class HollowTrieSpeedTest {
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
@@ -50,13 +50,15 @@ public class HollowTrieSpeedTest extends TestCase {
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		
-		final HollowTrie hollowTrie = (HollowTrie)BinIO.loadObject( trieName );
+		@SuppressWarnings("unchecked")
+		final HollowTrie<BitVector> hollowTrie = (HollowTrie)BinIO.loadObject( trieName );
 		
-		CharSequenceBitVectorIterator i;
-		if ( termFile == null ) i = new CharSequenceBitVectorIterator( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ) );
-		else i = new CharSequenceBitVectorIterator( new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) ) );
+		Iterator<? extends CharSequence> i;
+		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
+		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
 		ObjectArrayList<BitVector> bitVectors = new ObjectArrayList<BitVector>();
-		while( i.hasNext() ) bitVectors.add( i.next().copy() );
+		TransformationStrategy<CharSequence> transform = BitVectors.utf16();
+		while( i.hasNext() ) bitVectors.add( transform.toBitVector( i.next() ) );
 		
 		long time = -System.currentTimeMillis();
 		for( int j = Math.min( 200000, bitVectors.size() ); j-- != 0; ) {

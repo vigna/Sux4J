@@ -42,4 +42,12 @@ public final class Fast {
 	public static int ceilLog2( final long x ) {
 		return mostSignificantBit( x - 1 ) + 1;
 	}
+
+	public static int length( final int x ) {
+		return x == 0 ? 1 : mostSignificantBit( x ) + 1;
+	}
+
+	public static int length( final long x ) {
+		return x == 0 ? 1 : mostSignificantBit( x ) + 1;
+	}
 }

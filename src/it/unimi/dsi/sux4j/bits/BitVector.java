@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.RandomAccess;
 
@@ -66,6 +67,23 @@ import java.util.RandomAccess;
  */
 public interface BitVector extends RandomAccess, BooleanList {
 
+	/** A generic transformation from objects of a given type to bit vector. Most useful
+	 * when adding strings, etc. to a trie.
+	 */
+	
+	public interface TransformationStrategy<T> extends Serializable {
+		/** Returns a bit vector representation of the given object.
+		 * 
+		 * <strong>Warning</strong>: string representations must be prefix-free. This
+		 * is essential to ensure that tries to work.
+		 * 
+		 * @param object the object to be turned into bit representation.
+		 * @return a bit vector representation of <code>object</code>.
+		 */
+		public BitVector toBitVector( T object );
+	}
+	
+	
 	/** Sets a bit in this bit vector (optional operation). 
 	 * @param index the index of a bit.
 	 */
@@ -216,6 +234,14 @@ public interface BitVector extends RandomAccess, BooleanList {
 
 	public void add( final int value );
 
+	/** Adds the less significant bits of along integer to this bit vector.
+	 * 
+	 * @param value a value to be appended
+	 * @param k the number of less significant bits to be added to this bit vector.
+	 */
+
+	public void append( final long value, final int k );
+
 	/** Returns the number of bits in this bit vector.
 	 *
 	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
@@ -257,17 +283,17 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public void xor( BitVector v );
 
-	/** Returns the most significant bit of this vector.
+	/** Returns the positions of the first bit set to on in this vector.
 	 *
-	 * @return the most significant bit of this vector, or -1 for a vector of zeroes. 
+	 * @return the first bit set to one, or -1 for a vector of zeroes. 
 	 */
-	public long mostSignificantBit();
+	public long firstOne();
 
-	/** Returns the least significant bit of this vector.
+	/** Returns the position of the last bit set to on in this vector.
 	 *
-	 * @return the least significant bit of this vector, or -1 for a vector of zeroes. 
+	 * @return the last bit set to one, or -1 for a vector of zeroes. 
 	 */
-	public long leastSignificantBit();
+	public long lastOne();
 
 	/** Returns the length of the greatest common prefix between this and the specified vector.
 	 *
