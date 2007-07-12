@@ -1,0 +1,122 @@
+<project name="sux4j" default="jar" basedir=".">
+	
+	<property name="build.sysclasspath" value="last"/>
+	
+	<property file="build.properties"/>
+	
+	<condition property="j2se.apiurl" value="${local.j2se.apiurl}" else="${remote.j2se.apiurl}"><isset property="local"/></condition>
+	<condition property="fastutil.apiurl" value="${local.fastutil.apiurl}" else="${remote.fastutil.apiurl}"><isset property="local"/></condition>
+	<condition property="mg4j.apiurl" value="${local.mg4j.apiurl}" else="${remote.mg4j.apiurl}"><isset property="local"/></condition>
+	<condition property="colt.apiurl" value="${local.colt.apiurl}" else="${remote.colt.apiurl}"><isset property="local"/></condition>
+	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
+	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
+
+	<property name="subdir"    value=""/>
+  
+	<path id="emma.lib" >
+		<pathelement location="${jar.base}/emma.jar" />
+		<pathelement location="${jar.base}/emma_ant.jar" />
+	</path>
+
+	<taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+	
+	<!-- ************		SOURCE		********************* -->
+	<target name="init">
+		<mkdir dir="${build}"/>
+		<mkdir dir="${reports}"/>
+		<mkdir dir="${coverage}"/>
+		<mkdir dir="${instrumented}"/>
+	</target>
+
+	<target name="compile" depends="init" description="Compile standard sources (not test files)">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
+	</target>
+	
+	<target name="jar" depends="compile" description="Creates jar (without tests)">
+		<jar jarfile="sux4j-${version}.jar">
+			<fileset dir="${build}"/>
+		</jar>	
+	</target>
+	
+	<!-- ************		JAVADOC		********************* -->
+	<target name="javadoc" description="Generates documentation">
+		<delete dir="${docs}"/>
+		<mkdir dir="${docs}"/>
+		<javadoc destdir="${docs}" 
+					encoding="UTF-8"
+					sourcepath="${src}" 
+					packagenames="it.unimi.dsi.sux4j.*" 
+					private="off"
+					overview="${src}/overview.html"
+					source="1.5" 
+					windowtitle="Sux4J ${version}">
+			<link href="${j2se.apiurl}"/>
+			<link href="${fastutil.apiurl}"/>
+			<link href="${mg4j.apiurl}"/>
+			<link href="${colt.apiurl}"/>
+			<link href="${jsap.apiurl}"/>
+			<link href="${junit.apiurl}"/>
+		</javadoc>
+	</target>
+	
+	<target name="junit" depends="instrument" description="Runs JUnit tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
+			<classpath location="${instrumented}/classes"/>
+			<classpath location="${src}"/>
+			<classpath location="${jar.base}/emma.jar"/>
+			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
+			<jvmarg value="-Demma.coverage.out.merge=true" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${instrumented}/classes">
+					<include name="test/**/*Test.class"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+
+		<emma>
+			<report sourcepath="${src}" >
+				<fileset file="${coverage}/*a"/>
+				<txt outfile="coverage.txt" />
+				<html outfile="coverage.html" />
+			</report>
+		</emma>
+	</target>
+
+	<target name="instrument" depends="compile" description="Generate instrumented classes">
+		<emma>
+			<instr mode="fullcopy"
+				 outdir="${instrumented}"
+				 merge="no"
+				 metadatafile="${coverage}/metadata.emma"
+				 instrpath="${build}"
+			>
+				<filter excludes="*Test*"/>
+			</instr>
+		</emma>
+	</target>
+	
+	<!-- ************		CLEAN		********************* -->
+	<target name="clean">
+		<delete dir="${build}"/>
+		<delete dir="${reports}"/>
+		<delete dir="${coverage}"/>
+		<delete dir="${instrumented}"/>
+		<delete dir="${docs}"/>
+		<delete>
+			<fileset dir="." includes="*.jar"/>
+		</delete>
+  </target>
+</project>
+
