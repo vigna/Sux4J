@@ -107,12 +107,12 @@ public class TestRank {
 			long start = - System.currentTimeMillis();
 			for( int i = test.length; i -- != 0; ) SimpleRankAndSelect.popSearch( test[ i ], pos[ i ] );
 			start += System.currentTimeMillis();
-			System.err.println( "Popsearch: " + start + "ms" );
+			System.err.println( "Popsearch: " + start + "ms " + test.length *1000 / start + " ranks/s" );
 
 			start = - System.currentTimeMillis();
 			for( int i = test.length; i -- != 0; ) select( test[ i ], pos[ i ] );
 			start += System.currentTimeMillis();
-			System.err.println( "SWAR: " + start + "ms" );
+			System.err.println( "SWAR: " + start + "ms " + test.length *1000 / start + " ranks/s" );
 		
 		
 		
