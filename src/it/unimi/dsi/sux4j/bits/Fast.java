@@ -34,6 +34,9 @@ import static it.unimi.dsi.mg4j.util.Fast.mostSignificantBit;
 
 public final class Fast {
 	private Fast() {}
+
+	final static public long ONES_STEP_4 = 0x1111111111111111L;
+	final static public long ONES_STEP_8 = 0x0101010101010101L;
 	
 	public static int ceilLog2( final int x ) {
 		return mostSignificantBit( x - 1 ) + 1;
@@ -49,5 +52,12 @@ public final class Fast {
 
 	public static int length( final long x ) {
 		return x == 0 ? 1 : mostSignificantBit( x ) + 1;
+	}
+
+	public static int count( final long x ) {
+		long byteSums = x - ( ( x & 0xa * ONES_STEP_4 ) >>> 1 );
+        byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+        byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
+        return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
 }
