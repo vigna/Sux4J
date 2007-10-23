@@ -76,13 +76,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * the provided character sequence (if it appeared in the list; otherwise, the result is a random position). The class
  * can then be saved by serialisation and reused later.
  *
- * <P>If you also need to establish whether a given term was or not in the
- * list, you should consider using a {@link SignedMinimalPerfectHash}
- * implementing class instead.
- *
  * <P>This class is very scalable, and if you have enough memory it will handle
  * efficiently hundreds of millions of terms: in particular, the 
- * {@linkplain #MinimalPerfectHash(String) offline constructor}
+ * {@linkplain #MinimalPerfectHash(Iterable, int) offline constructor}
  * can build a map without loading the terms in memory.
  * 
  * <P>To do its job, the class must store three vectors of weights that are used to compute
@@ -205,8 +201,10 @@ public class MinimalPerfectHash implements Serializable {
 	final protected int n;
 	/** The number of vertices of the intermediate hypergraph. */
 	final protected int m;
-	/** The maximum amount of right shift to perform on a 32-bit number so to obtain something greater than or equal to {@link #m}. */
-	final protected int rightShift;
+	/** {@link #m} &minus; 1. */
+	final protected int mMinus1;
+	/** {@link #m} &minus; 2. */
+	final protected int mMinus2;
 	/** Initialisation values for the intermediate hash functions. */
 	final protected int init[];
 	/** Vector of weights to compute the first intermediate hash function. */
@@ -257,10 +255,13 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
-
-		h0 = ( h0 >>> rightShift ) % m;
-		h1 = ( h1 >>> rightShift ) % m;
-		h2 = ( h2 >>> rightShift ) % m;
+		
+		h0 = ( h0 & 0x7FFFFFFF ) % m;
+		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
+		h2 = h0 + ( h2 & 0x7FFFFFFF ) % mMinus2 + 1;
+		if ( h2 >= h1 ) h2++;
+		h1 %= m;
+		h2 %= m;
 		
 		h[ 0 ] = h0;
 		h[ 1 ] = h1;
@@ -290,11 +291,14 @@ public class MinimalPerfectHash implements Serializable {
 			h2 ^= weight2[ i ] * c;
 		}
 
-		h0 = ( h0 >>> rightShift ) % m;
-		h1 = ( h1 >>> rightShift ) % m;
-		h2 = ( h2 >>> rightShift ) % m;
-
-		i = (int)( ( bits.get( h0 ) + bits.get( h1 ) + bits.get( h2 ) ) % 3 );
+		h0 = ( h0 & 0x7FFFFFFF ) % m;
+		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
+		h2 = h0 + ( h2 & 0x7FFFFFFF ) % mMinus2 + 1;
+		if ( h2 >= h1 ) h2++;
+		h1 %= m;
+		h2 %= m;
+			
+		i = (int)( ( bits.getLong( h0 ) + bits.getLong( h1 ) + bits.getLong( h2 ) ) % 3 );
 		
 		return rank( i == 0 ? h0 : i == 1 ? h1 : h2 );
 	}
@@ -326,11 +330,14 @@ public class MinimalPerfectHash implements Serializable {
 			h2 ^= weight2[ i ] * c;
 		}
 
-		h0 = ( h0 >>> rightShift ) % m;
-		h1 = ( h1 >>> rightShift ) % m;
-		h2 = ( h2 >>> rightShift ) % m;
+		h0 = ( h0 & 0x7FFFFFFF ) % m;
+		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
+		h2 = h0 + ( h2 & 0x7FFFFFFF ) % mMinus2 + 1;
+		if ( h2 >= h1 ) h2++;
+		h1 %= m;
+		h2 %= m;
 
-		i = (int)( ( bits.get( h0 ) + bits.get( h1 ) + bits.get( h2 ) ) % 3 );
+		i = (int)( ( bits.getLong( h0 ) + bits.getLong( h1 ) + bits.getLong( h2 ) ) % 3 );
 		
 		return rank( i == 0 ? h0 : i == 1 ? h1 : h2 );
 	}
@@ -366,11 +373,14 @@ public class MinimalPerfectHash implements Serializable {
 			h2 ^= weight2[ i ] * c;
 		}
 
-		h0 = ( h0 >>> rightShift ) % m;
-		h1 = ( h1 >>> rightShift ) % m;
-		h2 = ( h2 >>> rightShift ) % m;
+		h0 = ( h0 & 0x7FFFFFFF ) % m;
+		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
+		h2 = h0 + ( h2 & 0x7FFFFFFF ) % mMinus2 + 1;
+		if ( h2 >= h1 ) h2++;
+		h1 %= m;
+		h2 %= m;
 
-		i = (int)( ( bits.get( h0 ) + bits.get( h1 ) + bits.get( h2 ) ) % 3 );
+		i = (int)( ( bits.getLong( h0 ) + bits.getLong( h1 ) + bits.getLong( h2 ) ) % 3 );
 		
 		return rank( i == 0 ? h0 : i == 1 ? h1 : h2 );
 	}
@@ -481,7 +491,8 @@ public class MinimalPerfectHash implements Serializable {
 		
 		n4 = n * 4;
 		m = ( (int)Math.ceil( n * ENLARGEMENT_FACTOR ) + BITS_PER_BLOCK - 1 ) & -BITS_PER_BLOCK;
-		rightShift = ( Integer.SIZE - it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( m ) ) / 2;
+		mMinus1 = m - 1;
+		mMinus2 = m - 2;
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
 		bits = bitVector.asLongBigList( 2 );
 		bits.size( m );
@@ -653,6 +664,8 @@ public class MinimalPerfectHash implements Serializable {
 	protected MinimalPerfectHash( final MinimalPerfectHash mph ) {
 		this.n = mph.n;
 		this.m = mph.m;
+		this.mMinus1 = mph.mMinus1;
+		this.mMinus2 = mph.mMinus2;
 		this.weightLength = mph.weightLength;
 		this.weight0 = mph.weight0;
 		this.weight1 = mph.weight1;
@@ -661,7 +674,6 @@ public class MinimalPerfectHash implements Serializable {
 		this.bits = mph.bits;
 		this.array = mph.array;
 		this.rank8 = mph.rank8;
-		this.rightShift = mph.rightShift;
 		this.n4 = mph.n4;
 		this.t = mph.t;
 	}
@@ -842,7 +854,7 @@ public class MinimalPerfectHash implements Serializable {
 				s = 0;
 
 				for ( j = 0; j < 3; j++ ) {
-					if ( ! used.get( edge[ j ][ k ] ) ) v = j;
+					if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
 					else s += bits.getLong( edge[ j ][ k ] );
 					used.set( edge[ j ][ k ] );
 				}
