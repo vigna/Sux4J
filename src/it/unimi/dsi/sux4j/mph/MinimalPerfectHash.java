@@ -229,13 +229,41 @@ public class MinimalPerfectHash implements Serializable {
 
     public static final long serialVersionUID = 1L;
     
+    
+    int hash( char[] data, int start, int len ) {
+		int hash = start, tmp;
+		len >>= 2;
 
-	/* The following three methods MUST be kept synchronised. The reason why we duplicate code is 
-	 * that we do not want the overhead of allocating an array when searching for a string. 
+		for ( int i = 0; i < len; i += 2 ) {
+			hash += data[ i ];
+			tmp = ( data[ i + 1 ] << 11 ) ^ hash;
+			hash = ( hash << 16 ) ^ tmp;
+			hash += hash >> 11;
+		}
+
+		if ( ( len & 1 ) != 0 ) {
+			hash += data[ len - 1 ];
+			hash ^= hash << 11;
+			hash += hash >> 17;
+		}
+
+		hash ^= hash << 3;
+		hash += hash >> 5;
+		hash ^= hash << 4;
+		hash += hash >> 17;
+		hash ^= hash << 25;
+		hash += hash >> 6;
+
+		return hash;
+	}
+
+	/*
+	 * The following three methods MUST be kept synchronised. The reason why we duplicate code is
+	 * that we do not want the overhead of allocating an array when searching for a string.
 	 * 
-	 * Note that we don't use shift-add-xor hash functions (as in BloomFilter). They are significantly
-	 * slower, and in this case (in which we certainly have enough weights to disambiguate any pair
-	 * of strings) they are not particularly advantageous.  
+	 * Note that we don't use shift-add-xor hash functions (as in BloomFilter). They are
+	 * significantly slower, and in this case (in which we certainly have enough weights to
+	 * disambiguate any pair of strings) they are not particularly advantageous.
 	 */
 
 	/** Hashes a given term using the intermediate hash functions.
@@ -579,9 +607,10 @@ public class MinimalPerfectHash implements Serializable {
 
 	public int rank( long x ) {
 		x = 2 * x;
-		return (int)( rank8[ (int)( ( x / BITS_PER_BLOCK ) * 2 ) ] + 
-			( rank8[ (int)( ( x / BITS_PER_BLOCK ) * 2 + 1 ) ] >> ( x / Long.SIZE & 7 ) * 8 & 0xFF )
-			+ ( x % Long.SIZE == 0 ? 0 : countNonzeroPairs( array[ (int)( x / Long.SIZE ) ] & -1L << Long.SIZE - x % Long.SIZE  ) ) );
+		final int countOffset = (int)( ( x / BITS_PER_BLOCK ) * 2 );
+		return (int)( rank8[ countOffset ] + 
+			( rank8[ countOffset + 1 ] >> ( x / Long.SIZE & 7 ) * 8 & 0xFF )
+			+ countNonzeroPairs( array[ (int)( x / Long.SIZE ) ] & ( 1L << x % Long.SIZE ) - 1 ) );
 	}
 
 	/** Creates a new order-preserving minimal perfect hash table for the (possibly <samp>gzip</samp>'d) given file 
