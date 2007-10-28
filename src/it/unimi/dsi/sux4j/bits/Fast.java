@@ -90,7 +90,7 @@ public final class Fast {
 	
 	public static void main( final String a[] ) {
 		final long n = Long.parseLong( a[ 0 ] );
-		final long incr = ( 1L << 32 ) / ( 2 * n );
+		final long incr = Long.MAX_VALUE / ( n / 2 );
 		
 		long start, elapsed;
 		
