@@ -31,14 +31,21 @@ import java.io.Serializable;
 
 /** A bit vector implementation based on arrays of longs.
  * 
- * <P>The main goal of this class is to be fast. It implements a lightweight, 
- * fast, open, optimized,
- * reuse-oriented version of bit vectors. Instances of this class
+ * <P>The main goal of this class is to be fast and flexible. It implements a lightweight, 
+ * fast, open, optimized, reuse-oriented version of bit vectors. Instances of this class
  * represent a bit vector an array of longs that is enlarged as needed when new entries
  * are created (by dividing the current length by the golden ratio), but is
  * <em>never</em> made smaller (even on a {@link #clear()}). Use 
  * {@link #trim()} for that purpose.
- 
+ * 
+ * <p>Besides usual methods for setting and getting bits, this class provides <em>views</em>
+ * that make it possible to access comfortably the bit vector in different ways: for instance,
+ * {@link #asLongBigList(int)} provide access as a list of longs, whereas
+ * {@link #asLongSet()} provides access in setwise form.
+ *
+ * <P>Bit numbering follows the right-to-left convention: bit <var>k</var> (counted from the
+ * right) of word <var>w</var> is bit 64<var>w</var> + <var>k</var> of the overall bit vector.
+ *
  * <P>If {@link #CHECKS} is true at compile time, boundary checks for all bit operations
  * will be compiled in. For maximum speed, you may want to recompile this class with {@link #CHECKS}
  *  set to false. {@link #CHECKS} is public, so you can check from your code whether you're
@@ -61,10 +68,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	/** The number of bits in this vector. */
 	private long length;
-	/** The backing array of this vector. Bit {@link #BITS_PER_UNIT}&minus;1 
-	 * of the first element contains bit 0 of the bit vector, 
-	 * bit {@link #BITS_PER_UNIT}&minus;2 of the second long contains bit 1 of the bit vector
-	 * and so on. */
+	/** The backing array of this vector. Bit 0 of the first element contains bit 0 of the bit vector, 
+	 * bit 1 of the second element contains bit {@link #BITS_PER_UNIT} of the bit vector and so on. */
 	public transient long[] bits;
 
 	/** Returns the number of units that are necessary to hold the given number of bits.
@@ -90,16 +95,15 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 
 	/** Returns the unit index of the bit that would hold the bit of specified index.
 	 * 
-	 * <P>Note that bit 0 is positioned in unit 0, index {@link #BITS_PER_UNIT}&minus;1,
-	 * bit 1 in unit 0, index {@link #BITS_PER_UNIT}&minus;2, &hellip;,
-	 * bit {@link #BITS_PER_UNIT} in unit 0, index 0,
-	 * bit {@link #BITS_PER_UNIT} in unit 1, index {@link #BITS_PER_UNIT}&minus;1 and so on.
+	 * <P>Note that bit 0 is positioned in unit 0, index 0, bit 1 in unit 0, index 1, &hellip;,
+	 * bit {@link #BITS_PER_UNIT} in unit 0, index 0, bit {@link #BITS_PER_UNIT} + 1 in unit 1, index 1,
+	 * and so on.
 	 * 
 	 * @param index the index of a bit.
 	 * @return the unit index of the bit that would hold the bit of specified index.
 	 */
 	private static int bit( final long index ) {
-		return LAST_BIT - (int)( index & UNIT_MASK );
+		return (int)( index & UNIT_MASK );
 	}
 
 	/** Returns a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
@@ -109,7 +113,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 */
 	
 	private static long mask( final long index ) {
-		return LAST_BIT_MASK >>> ( index & UNIT_MASK );
+		return 1L << ( index & UNIT_MASK );
 	}
 
 	/** Returns the number of bits strictly preceeding the bit that would hold the specified index.
@@ -118,16 +122,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return the number of bits strictly preceeding the bit that would hold the specified index.
 	 */
 	private static int bitsAtLeft( final long index ) {
-		return (int)( index & UNIT_MASK );
-	}
-
-	/** Returns the number of bits strictly following the bit that would hold the specified index.
-	 * 
-	 * @param index the index of a bit.
-	 * @return the number of bits strictly following the bit that would hold the specified index.
-	 */
-	private static int bitsAtRight( final long index ) {
-		return (int)( UNIT_MASK - ( index & UNIT_MASK ) );
+		return (int)( LAST_BIT - ( index & UNIT_MASK ) );
 	}
 
 	protected LongArrayBitVector( final long capacity ) {
@@ -205,24 +200,24 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		final int numUnits = numUnits( to - from );
 		final int startUnit = unit( from );
 		final int startBit = bit( from );
-		final int bitsAtLeft = bitsAtLeft( from );
+		final int endBit = bit( to );
 
 		// If we're copying from the first bit, we just copy the array. 
-		if ( bitsAtLeft == 0 ) {
+		if ( startBit == 0 ) {
 			System.arraycopy( bits, startUnit, copy.bits, 0, numUnits );
-			copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to - 1 );
+			if ( endBit > 0 ) copy.bits[ numUnits - 1 ] &= ( 1L << endBit ) - 1;
 		}
 		else if ( startUnit == unit( to - 1 ) ) {
 			// Same unit
-			copy.bits[ 0 ] = ( bits[ startUnit ] & ALL_ONES << bit( to ) ) << bitsAtLeft;
+			copy.bits[ 0 ] = bits[ startUnit ] >>> startBit & ( ( 1L << endBit - startBit ) - 1 );
 		}
 		else {
-			copy.bits[ 0 ] = bits[ startUnit ] << bitsAtLeft;
+			copy.bits[ 0 ] = bits[ startUnit ] >>> startBit;
 			for( int unit = 1; unit < numUnits; unit++ ) {
-				copy.bits[ unit - 1 ] |= bits[ unit + startUnit ] >>> startBit + 1;
-			copy.bits[ unit ] = bits[ unit + startUnit ] << bitsAtLeft;
+				copy.bits[ unit - 1 ] |= bits[ unit + startUnit ] << startBit + 1;
+				copy.bits[ unit ] = bits[ unit + startUnit ] >>> startBit;
 			}
-			copy.bits[ numUnits - 1 ] &= ALL_ONES << bit( to );
+			if ( endBit > 0 ) copy.bits[ numUnits - 1 ] &= ( 1L << endBit ) - 1;
 		}
 	
 		return copy;
@@ -271,12 +266,16 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		else {
 			final int unit = unit( index );
 			final int bit = bit( index );
-			boolean carry = ( bits[ unit ] & 1 ) != 0, nextCarry;
-			bits[ unit ] = ( bit == LAST_BIT ? 0 : bits[ unit ] & ALL_ONES << bit + 1 ) | ( bit == 0 ? 0 : bits[ unit ] & ALL_ONES >>> LAST_BIT - bit ) >>> 1 | ( value ? 1L << bit : 0 );
+			boolean carry = ( bits[ unit ] & LAST_BIT_MASK ) != 0, nextCarry;
+			long t = bits[ unit ];
+			if ( bit == LAST_BIT ) t &= ~LAST_BIT_MASK;
+			else t = ( t & - ( 1L << bit ) ) << 1 | t & ( 1L << bit ) - 1;
+			if ( value ) t |= 1L << bit;
+			bits[ unit ] = t;
 			for( int i = unit + 1; i < numUnits( length ); i++ ) {
-				nextCarry = ( bits[ i ] & 1 ) != 0;
+				nextCarry = ( bits[ i ] & LAST_BIT_MASK ) != 0;
 				bits[ i ] >>>= 1;
-				if ( carry ) bits[ i ] |= LAST_BIT_MASK;
+				if ( carry ) bits[ i ] |= 1;
 				carry = nextCarry;
 			}
 		}
@@ -292,10 +291,10 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 
 		final int unit = unit( index );
 		final int bit = bit( index );
-		bits[ unit ] = ( bit != LAST_BIT ? bits[ unit ] & ALL_ONES << ( bit + 1 ) : 0 ) | ( bits[ unit ] & ( 1L << bit ) - 1 ) << 1;
+		bits[ unit ] = ( bits[ unit ] & - ( 1L << bit ) << 1 ) >>> 1 | bits[ unit ] & ( 1L << bit ) - 1;
 		for( int i = unit + 1; i < numUnits( length ); i++ ) {
-			if ( ( bits[ i ] & LAST_BIT_MASK ) != 0 ) bits[ i - 1 ] |= 1;
-			bits[ i ] <<= 1;
+			if ( ( bits[ i ] & 1 ) != 0 ) bits[ i - 1 ] |= LAST_BIT_MASK;
+			bits[ i ] >>>= 1;
 		}
 
 		return oldValue;
@@ -310,12 +309,12 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		final int endUnit = unit( end );
 		
 		length( length + width );
-		final long bits[] = this.bits;
 
-		if ( startUnit == endUnit ) bits[ startUnit ] |= value << bitsAtRight( end );
+		if ( startUnit == endUnit ) bits[ startUnit ] |= value << bit( start );
 		else {
-			bits[ startUnit ] |= value >> bitsAtLeft( end ) + 1;
-			bits[ endUnit ] = value << bitsAtRight( end );
+			final int startBit = bit( start );
+			bits[ startUnit ] |= value << startBit;
+			bits[ endUnit ] = value >>> BITS_PER_UNIT - startBit;
 		}
 	}
 
@@ -323,22 +322,14 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		to--;
 		final int startUnit = unit( from );
 		final int endUnit = unit( to );
-		if ( startUnit == endUnit ) return ( bits[ startUnit ] >>> bitsAtRight( to ) ) & ( ( 1L << ( to - from + 1 ) ) - 1 );
-		return ( bits[ startUnit ] << bitsAtLeft( to ) + 1 | bits[ endUnit ] >>> bitsAtRight( to ) ) & ( ( 1L << ( to - from + 1 ) ) - 1 );
+		final int startBit = bit( from );
+		if ( startUnit == endUnit ) return ( bits[ startUnit ] >>> startBit & ~ ( - ( 1L << to - from ) ) );
+		return bits[ startUnit ] >>> startBit | ( bits[ endUnit ] & ~ ( - ( 1L << to - from ) ) ) << ( BITS_PER_UNIT - startBit ); 
 	}
-
-	private static int count( long unit ) {
-        unit -= ( unit & 0xaaaaaaaaaaaaaaaaL ) >>> 1;
-        unit = ( unit & 0x3333333333333333L ) + ( (unit >>> 2 ) & 0x3333333333333333L );
-        unit = ( unit + ( unit >>> 4 ) ) & 0x0f0f0f0f0f0f0f0fL;
-        unit += unit >>> 8;     
-        unit += unit >>> 16;    
-        return ( (int)( unit ) + (int)( unit >>> 32 ) ) & 0xff;
-    }
 
 	public long count() {
 		long c = 0;
-		for( int i = numUnits( length ); i-- != 0; ) c += count( bits[ i ] );
+		for( int i = numUnits( length ); i-- != 0; ) c += it.unimi.dsi.sux4j.bits.Fast.count( bits[ i ] );
 		return c;
 	}
 
@@ -476,21 +467,20 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 			final long end = start + width - 1;
 			final int startUnit = unit( start );
 			final int endUnit = unit( end );
+			final int startBit = bit( start );
 			final long oldValue;
-			final int bitsAtRightOfEnd = bitsAtRight( end );
 			
 			if ( startUnit == endUnit ) {
-				oldValue = ( bits[ startUnit ] >>> bitsAtRightOfEnd ) & maxValue;
-				bits[ startUnit ] &= ~ ( maxValue << bitsAtRightOfEnd );
-				bits[ startUnit] |= value << bitsAtRightOfEnd;
+				oldValue = ( bits[ startUnit ] >>> startBit ) & maxValue;
+				bits[ startUnit ] &= ~ ( maxValue << startBit );
+				bits[ startUnit] |= value << startBit;
 			}
 			else {
-				final int bitsAtLeftOfEnd = bitsAtLeft( end );
-				oldValue = ( bits[ startUnit ] << bitsAtLeftOfEnd + 1 | bits[ endUnit ] >>> bitsAtRightOfEnd ) & maxValue;
-				bits[ startUnit ] &= ALL_ONES << bitsAtRight( start ) + 1;
-				bits[ startUnit ] |= value >>> bitsAtLeftOfEnd + 1;
-				bits[ endUnit ] &= ALL_ONES >>> bitsAtLeftOfEnd + 1;
-				bits[ endUnit ] |= value << bitsAtRightOfEnd;
+				oldValue = bits[ startUnit ] >>> startBit | ( bits[ endUnit ] & ~ ( - ( 1L << width ) ) ) << ( BITS_PER_UNIT - startBit );	
+				bits[ startUnit ] &= ( 1L << startBit ) - 1;
+				bits[ startUnit ] |= value << startBit;
+				bits[ endUnit ] &= ( 1L <<  width - startBit ) - 1;
+				bits[ endUnit ] |= value >>> startBit;
 			}
 			return oldValue;
 		}

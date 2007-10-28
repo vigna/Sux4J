@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import static it.unimi.dsi.mg4j.util.Fast.mostSignificantBit;
+import it.unimi.dsi.mg4j.io.InputBitStream;
 
 /** All-purpose optimised static-method container class.
  *
@@ -60,4 +61,64 @@ public final class Fast {
         byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
         return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
+	
+	public static int mostSignificantBit( long x ) {
+		int msb = 0;
+		
+		if ( x >= 1L << ( 1 << 5 ) ) {
+			x >>>= ( 1 << 5 );
+			msb += ( 1 << 5 );
+		}
+		
+		if ( x >= 1L << ( 1 << 4 ) ) {
+			x >>>= ( 1 << 4 );
+			msb += ( 1 << 4 );
+		}
+		
+		x |= x << 16;
+		x |= x << 32;
+		
+		final long y = x & 0xFF00F0F0CCCCAAAAL;
+		
+		long t = 0x8000800080008000L & ( y | (( y | 0x8000800080008000L ) - ( x ^ y )));
+		t |= t << 15;
+		t |= t << 30;
+		t |= t << 60;
+		
+		return (int)( msb + ( t >> 60 ) );
+	}
+	
+	public static void main( final String a[] ) {
+		final long n = Long.parseLong( a[ 0 ] );
+		final long incr = ( 1L << 32 ) / ( 2 * n );
+		
+		long start, elapsed;
+		
+		for( int k = 10; k-- !=0;  ) {
+			System.out.print( "Broadword: " );
+			
+			start = System.currentTimeMillis();
+			for( long i = n, v = 0; i-- != 0; ) mostSignificantBit( v += incr );
+			elapsed = System.currentTimeMillis() - start;
+
+			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
+
+			System.out.print( "Dichotomous: " );
+			
+			start = System.currentTimeMillis();
+			for( long i = n, v = 0; i-- != 0; ) it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( v += incr );
+			elapsed = System.currentTimeMillis() - start;
+
+			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
+
+			System.out.print( "java.lang: " );
+			
+			start = System.currentTimeMillis();
+			for( long i = n, v = 0; i-- != 0; ) Long.highestOneBit( v += incr );
+			elapsed = System.currentTimeMillis() - start;
+
+			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
+		}
+	}
+	
 }
