@@ -63,6 +63,7 @@ public final class Fast {
 	}
 	
 	public static int mostSignificantBit( long x ) {
+		if ( x == 0 ) return -1;
 		//System.err.println( "x: "+ x );
 		
 		int msb = 0;
@@ -100,7 +101,7 @@ public final class Fast {
 	
 	public static void main( final String a[] ) {
 		final long n = Long.parseLong( a[ 0 ] );
-		final long incr = Integer.MAX_VALUE / ( n / 2 );
+		final long incr = Long.MAX_VALUE / ( n / 2 );
 		
 		long start, elapsed;
 		
@@ -108,7 +109,7 @@ public final class Fast {
 			System.out.print( "Broadword: " );
 			
 			start = System.currentTimeMillis();
-			for( int i = (int)n, v = 0; i-- != 0; ) mostSignificantBit( v += incr );
+			for( long i = n, v = 0; i-- != 0; ) mostSignificantBit( v += incr );
 			elapsed = System.currentTimeMillis() - start;
 
 			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
@@ -116,7 +117,7 @@ public final class Fast {
 			System.out.print( "Dichotomous: " );
 			
 			start = System.currentTimeMillis();
-			for( int i = (int)n, v = 0; i-- != 0; ) it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( v += incr );
+			for( long i = n, v = 0; i-- != 0; ) it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( v += incr );
 			elapsed = System.currentTimeMillis() - start;
 
 			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
@@ -124,7 +125,7 @@ public final class Fast {
 			System.out.print( "java.lang: " );
 			
 			start = System.currentTimeMillis();
-			for( int i = (int)n, v = 0; i-- != 0; ) Long.numberOfLeadingZeros( v += incr );
+			for( long i = n, v = 0; i-- != 0; ) Long.numberOfLeadingZeros( v += incr );
 			elapsed = System.currentTimeMillis() - start;
 
 			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
