@@ -15,4 +15,17 @@ public class FastTest extends TestCase {
 		for( int i = 1; i < 100; i++ ) assertEquals( it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
 		for( long i = 1; i < 100; i++ ) assertEquals( it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
 	}
+	
+	public void testMostSignificantBit() {
+		for( int i = 0; i < 64; i++ ) {
+			assertEquals( i, Fast.mostSignificantBit( 1L << i ) );
+			assertEquals( i, Fast.mostSignificantBit( 1L << i | 1 ) );
+			assertEquals( i, Fast.mostSignificantBit( 1L << i ) );
+			assertEquals( i, Fast.mostSignificantBit( 1L << i | 1 ) );
+		}
+		
+		for( long i = 1; i < ( 1L << 62 ); i += 1000000000000L )
+			assertEquals( Long.toString( i ), 63 - Long.numberOfLeadingZeros( i ), Fast.mostSignificantBit( i ) );
+	}
+
 }

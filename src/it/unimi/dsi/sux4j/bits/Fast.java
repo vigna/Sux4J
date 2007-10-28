@@ -63,14 +63,16 @@ public final class Fast {
 	}
 	
 	public static int mostSignificantBit( long x ) {
+		//System.err.println( "x: "+ x );
+		
 		int msb = 0;
 		
-		if ( x >= 1L << ( 1 << 5 ) ) {
+		if ( ( x & 0xFFFFFFFF00000000L ) != 0 ) {
 			x >>>= ( 1 << 5 );
 			msb += ( 1 << 5 );
 		}
 		
-		if ( x >= 1L << ( 1 << 4 ) ) {
+		if ( ( x & 0xFFFF0000 ) != 0 ) {
 			x >>>= ( 1 << 4 );
 			msb += ( 1 << 4 );
 		}
@@ -78,14 +80,22 @@ public final class Fast {
 		x |= x << 16;
 		x |= x << 32;
 		
+		//System.err.println( "x2: " + Long.toBinaryString( x ) );
+		
 		final long y = x & 0xFF00F0F0CCCCAAAAL;
+		//System.err.println( "y: " + Long.toBinaryString( y  ) );
 		
 		long t = 0x8000800080008000L & ( y | (( y | 0x8000800080008000L ) - ( x ^ y )));
+		
+		//System.err.println( "t: " + Long.toBinaryString( t  ) );
+		
 		t |= t << 15;
 		t |= t << 30;
 		t |= t << 60;
 		
-		return (int)( msb + ( t >> 60 ) );
+		//System.err.println( "msb:" + msb + " t2: " + Long.toBinaryString( t  ) );
+
+		return (int)( msb + ( t >>> 60 ) );
 	}
 	
 	public static void main( final String a[] ) {
@@ -114,7 +124,7 @@ public final class Fast {
 			System.out.print( "java.lang: " );
 			
 			start = System.currentTimeMillis();
-			for( long i = n, v = 0; i-- != 0; ) Long.highestOneBit( v += incr );
+			for( long i = n, v = 0; i-- != 0; ) Long.numberOfLeadingZeros( v += incr );
 			elapsed = System.currentTimeMillis() - start;
 
 			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
