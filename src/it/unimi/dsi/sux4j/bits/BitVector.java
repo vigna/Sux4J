@@ -268,20 +268,23 @@ public interface BitVector extends RandomAccess, BooleanList {
 	/** Performs a logical and between this bit vector and another one, leaving the result in this vector.
 	 * 
 	 * @param v a bit vector.
+	 * @return this bit vector.
 	 */
-	public void and( BitVector v );
+	public BitVector and( BitVector v );
 
 	/** Performs a logical or between this bit vector and another one, leaving the result in this vector.
 	 * 
 	 * @param v a bit vector.
+	 * @return this bit vector.
 	 */
-	public void or( BitVector v );
+	public BitVector or( BitVector v );
 
 	/** Performs a logical xor between this bit vector and another one, leaving the result in this vector.
 	 * 
 	 * @param v a bit vector.
+	 * @return this bit vector.
 	 */
-	public void xor( BitVector v );
+	public BitVector xor( BitVector v );
 
 	/** Returns the positions of the first bit set to on in this vector.
 	 *

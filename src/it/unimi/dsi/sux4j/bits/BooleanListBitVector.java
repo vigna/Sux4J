@@ -21,6 +21,8 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
+import java.io.Serializable;
+
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 
@@ -31,7 +33,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanList;
  * wrapping purposes, for covering completely the code in 
  * {@link AbstractBitVector} and for creating mock objects.
  */
-public class BooleanListBitVector extends AbstractBitVector {
+public class BooleanListBitVector extends AbstractBitVector implements Serializable {
 	/** The backing list. */
 	final private BooleanList list;
 	

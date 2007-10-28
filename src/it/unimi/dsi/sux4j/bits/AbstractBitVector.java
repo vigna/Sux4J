@@ -86,8 +86,8 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public boolean add( final boolean value ) { add( length(), value ); return true; }
 	public void add( final int value ) { add( value != 0 ); }
 
-	public void append( long value, int k ) {
-		while( k-- != 0 ) add( ( value & 1L << k ) != 0 );
+	public void append( final long value, final int k ) {
+		for( int i = 0; i < k; i++ ) add( ( value & 1L << i ) != 0 );
 	}
 
 	public BitVector copy() { return copy( 0, size() ); }
@@ -121,16 +121,19 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		return minLength;
 	}
 
-	public void and( final BitVector v ) {
+	public BitVector and( final BitVector v ) {
 		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( ! v.getBoolean( i ) ) clear( i );
+		return this;
 	}
 	
-	public void or( final BitVector v ) {
+	public BitVector or( final BitVector v ) {
 		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) set( i );
+		return this;
 	}
 
-	public void xor( final BitVector v ) {
+	public BitVector xor( final BitVector v ) {
 		for( int i = Math.min( size(), v.size() ); i-- != 0; ) if ( v.getBoolean( i ) ) flip( i );
+		return this;
 	}
 
 	public int size() {
@@ -157,9 +160,9 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	}
 
 	public long[] bits() {
-		final long[] bits = new long[ (int)( ( length() + LongArrayBitVector.BITS_PER_UNIT - 1 ) >> LongArrayBitVector.LOG2_BITS_PER_UNIT ) ];
+		final long[] bits = new long[ (int)( ( length() + LongArrayBitVector.BITS_PER_WORD - 1 ) >> LongArrayBitVector.LOG2_BITS_PER_WORD ) ];
 		final long length = length();
-		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) bits[ i >> LongArrayBitVector.LOG2_BITS_PER_UNIT ] |= 1L << LongArrayBitVector.LAST_BIT - ( i & LongArrayBitVector.UNIT_MASK ); 
+		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) bits[ i >> LongArrayBitVector.LOG2_BITS_PER_WORD ] |= 1L << ( i & LongArrayBitVector.WORD_MASK ); 
 		return bits;
 	}
 	
@@ -360,7 +363,7 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public void length( long newLength ) {
 		final long length = length();
 		if ( length < newLength ) for( long i = newLength - length; i-- != 0; ) add( false );
-		else for( long i = length - newLength; i-- != 0; ) removeBoolean( i );
+		else for( long i = length; i-- != newLength; ) removeBoolean( i );
 	}
 
 	public LongSet asLongSet() {
@@ -381,8 +384,8 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 
 	/** Returns a string representation of this vector.
 	 * 
-	 * <P>Note that this string representation shows the least significant bit on the right.
-	 * @return a string representation of this vector, with the most significant bit on the left.
+	 * <P>Note that this string representation shows the bit of index 0 at the leftmost position.
+	 * @return a string representation of this vector, with the bit of index 0 on the left.
 	 */
 	
 	public String toString() {
@@ -410,10 +413,10 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		public int getInt( final long index ) { return getBoolean( index ) ? 1 : 0; }
 		public boolean set( final long index, final boolean value ) { return bitVector.set( from + index, value ); }
 		public void set( final long index, final int value ) { set( index, value != 0 ); }
-		public void add( final long index, final boolean value ) { bitVector.add( from + index, value ); }
-		public void add( final long index, final int value ) { add( index, value ); }
-		public void add( final int value ) { bitVector.add( to, value ); }
-		public boolean removeBoolean( final long index ) { return bitVector.removeBoolean( from + index ); }
+		public void add( final long index, final boolean value ) { bitVector.add( from + index, value ); to++; }
+		public void add( final long index, final int value ) { add( index, value ); to++; }
+		public void add( final int value ) { bitVector.add( to++, value ); }
+		public boolean removeBoolean( final long index ) { to--; return bitVector.removeBoolean( from + index ); } 
 		
 		public BitVector copy() { return copy( 0, length() ); }
 

@@ -1,5 +1,6 @@
 package test.it.unimi.dsi.sux4j.bits;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import it.unimi.dsi.sux4j.bits.BitVector;
@@ -55,4 +56,13 @@ public class BooleanListBitVectorTest extends TestCase {
 	public void testFirstLast() {
 		BitVectorTest.testFirstLastPrefix( BooleanListBitVector.getInstance() );
 	}
+	
+	public void testLogicOperators() {
+		BitVectorTest.testLogicOperators( BooleanListBitVector.getInstance() );
+	}
+
+	public void testSerialisation() throws IOException, ClassNotFoundException {
+		BitVectorTest.testSerialisation( BooleanListBitVector.getInstance() );
+	}
+
 }

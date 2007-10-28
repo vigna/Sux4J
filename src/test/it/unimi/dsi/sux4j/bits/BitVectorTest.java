@@ -1,9 +1,13 @@
 package test.it.unimi.dsi.sux4j.bits;
 
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 
 import junit.framework.TestCase;
@@ -62,7 +66,16 @@ public abstract class BitVectorTest extends TestCase {
 		v.append( 1, 2 );
 		v.append( 1, 2 );
 		v.append( 3, 2 );
-		assertEquals( LongArrayBitVector.of( 0, 1, 0, 1, 1, 1 ), v );
+		assertEquals( LongArrayBitVector.of( 1, 0, 1, 0, 1, 1 ), v );
+
+	
+		v.clear();
+		for( int i = 0; i < 80; i++ ) v.add( 0, true );
+		for( int i = 0; i < 80; i++ ) assertTrue( v.getBoolean( i ) );
+
+		v.clear();
+		for( int i = 0; i < 80; i++ ) v.add( 0, false );
+		for( int i = 0; i < 80; i++ ) assertFalse( v.getBoolean( i ) );
 	}
 	
 	public static void testFillFlip( final BitVector v ) {
@@ -138,7 +151,7 @@ public abstract class BitVectorTest extends TestCase {
 	
 	public static void testBits( BitVector b ) {
 		for( int i = 0; i < 100; i++ ) b.add( i % 2 );
-		assertTrue( LongArrayBitVector.wrap( b.bits(), b.length() ).toString(), Arrays.equals( new long[] { 0x5555555555555555L, 0x5555555550000000L }, b.bits() ) );
+		assertTrue( LongArrayBitVector.wrap( b.bits(), b.length() ).toString(), Arrays.equals( new long[] { 0xAAAAAAAAAAAAAAAAL, 0x0000000AAAAAAAAAL }, b.bits() ) );
 	}
 
 	public static void testLongBigListView( BitVector b ) {
@@ -146,13 +159,19 @@ public abstract class BitVectorTest extends TestCase {
 		for( int i = 0; i < 100; i++ ) list.add( i );
 		for( int i = 0; i < 100; i++ ) assertEquals( i, list.getLong( i ) );
 		for( int i = 0; i < 100; i++ ) list.add( i );
-		for( int i = 0; i < 100; i++ ) assertEquals( i, list.set( i, i + 1 ) );
+		for( int i = 0; i < 100; i++ ) {
+			assertEquals( i, list.set( i, i + 1 ) );
+			for( int j = i + 1; j < 100; j++ ) assertEquals( "" + i , j, list.getLong( j ) );
+		}
 		for( int i = 0; i < 100; i++ ) assertEquals( i + 1, list.getLong( i ) );
 	}
 
 	public static void testFirstLastPrefix( BitVector b ) {
 		b.clear();
 		b.length( 60 );
+		assertEquals( -1, b.firstOne() );
+		assertEquals( -1, b.lastOne() );
+
 		b.set( 4, true );
 		assertEquals( 4, b.firstOne() );
 		assertEquals( 4, b.lastOne() );
@@ -168,6 +187,9 @@ public abstract class BitVectorTest extends TestCase {
 		assertEquals( 90, b.lastOne() );
 		b.clear();
 		b.length( 100 );
+		assertEquals( -1, b.firstOne() );
+		assertEquals( -1, b.lastOne() );
+
 		b.set( 4, true );
 		assertEquals( 4, b.firstOne() );
 		assertEquals( 4, b.lastOne() );
@@ -188,9 +210,60 @@ public abstract class BitVectorTest extends TestCase {
 		c = b.copy();
 		c.length( 80 );
 		assertEquals( c.length(), b.maximumCommonPrefixLength( c ) );
+		assertEquals( c.length(), b.maximumCommonPrefixLength( BooleanListBitVector.wrap( c ) ) );
 		c.flip( 20 );
 		assertEquals( 20, b.maximumCommonPrefixLength( c ) );
+		assertEquals( 20, b.maximumCommonPrefixLength( BooleanListBitVector.wrap( c ) ) );
+
 		c.flip( 0 );
 		assertEquals( 0, b.maximumCommonPrefixLength( c ) );
+		assertEquals( 0, b.maximumCommonPrefixLength( BooleanListBitVector.wrap( c ) ) );
+	}
+
+	public static void testLogicOperators( BitVector b ) {
+		b.clear();
+		b.length( 100 );
+		BitVector c = b.copy();
+		for( int i = 0; i < 50; i++ ) b.set( 2 * i );
+		for( int i = 0; i < 50; i++ ) c.set( 2 * i + 1 );
+		BitVector r;
+
+		r = b.copy().and( c );
+		for( int i = 0; i < 100; i++ ) assertFalse( r.getBoolean( i ) );
+		r = b.copy().or( c );
+		for( int i = 0; i < 100; i++ ) assertTrue( r.getBoolean( i ) );
+		r = b.copy().xor( c );
+		for( int i = 0; i < 100; i++ ) assertTrue( r.getBoolean( i ) );
+		r.xor( r );
+		for( int i = 0; i < 100; i++ ) assertFalse( r.getBoolean( i ) );
+
+		r = b.copy().and( BooleanListBitVector.wrap( c ) );
+		for( int i = 0; i < 100; i++ ) assertFalse( r.getBoolean( i ) );
+		r = b.copy().or( BooleanListBitVector.wrap( c ) );
+		for( int i = 0; i < 100; i++ ) assertTrue( r.getBoolean( i ) );
+		r = b.copy().xor( BooleanListBitVector.wrap( c ) );
+		for( int i = 0; i < 100; i++ ) assertTrue( r.getBoolean( i ) );
+		r.xor( BooleanListBitVector.wrap( r ) );
+		for( int i = 0; i < 100; i++ ) assertFalse( r.getBoolean( i ) );
+	}
+
+	public static void testSerialisation( BitVector b ) throws IOException, ClassNotFoundException {
+		File file = File.createTempFile( BitVectorTest.class.getSimpleName(), "test" );
+		file.deleteOnExit();
+
+		b.clear();
+		
+		BinIO.storeObject( b, file );
+		assertEquals( b, BinIO.loadObject( file ) );
+
+		b.length( 1000 );
+		
+		BinIO.storeObject( b, file );
+		assertEquals( b, BinIO.loadObject( file ) );
+
+		b.fill( true );
+		
+		BinIO.storeObject( b, file );
+		assertEquals( b, BinIO.loadObject( file ) );
 	}
 }

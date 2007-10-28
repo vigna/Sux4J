@@ -79,13 +79,7 @@ public class BitVectors {
         if ( from > to ) throw new IllegalArgumentException( "Start index (" + from + ") is greater than end index (" + to + ")" );
         if ( to > bitVectorLength ) throw new ArrayIndexOutOfBoundsException( "End index (" + to + ") is greater than array length (" + bitVectorLength + ")" );
     }
-    
-    public static final byte[] COUNT = new byte[ 1 << 16 ];
-	static {
-		// TODO: this must be written into a file and loaded
-		for( int i = 1 << 16; i-- != 0; ) BitVectors.COUNT[ i ] = (byte)Integer.bitCount( i );
-	}
-	
+ 	
 	/** An immutable, singleton empty bit vector. */ 
 	public final static BitVector EMPTY_VECTOR = new AbstractBitVector() {
 		public final long length() { return 0; }

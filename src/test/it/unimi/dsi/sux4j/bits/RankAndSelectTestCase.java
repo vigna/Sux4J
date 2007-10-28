@@ -11,17 +11,17 @@ public abstract class RankAndSelectTestCase extends TestCase {
 		long lastOne = -1;
 		
 		for( int j = 0, i = 0; i < length; i++ ) {
+			assertEquals( "Ranking " + i, j, rs.rank( i ) );
 			if ( bits.getBoolean( i ) ) {
-				j++;
 				lastOne = i;
 				assertEquals( "Selecting " + j, i, rs.select( j ) );
+				j++;
 			}
-			assertEquals( "Ranking " + i, j, rs.rank( i ) );
 			
 		}
 		
 		assertEquals( lastOne, rs.lastOne() );
-		assertEquals( -1, rs.select( 0 ) );
-		assertEquals( 0, rs.rank( -1 ) );
+		//assertEquals( lastOne, rs.select( rs.rank( rs.length() ) ) );
+		//assertEquals( 0, rs.rank( rs.length() ) );
 	}
 }

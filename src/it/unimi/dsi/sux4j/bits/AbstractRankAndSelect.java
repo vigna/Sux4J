@@ -7,7 +7,7 @@ public abstract class AbstractRankAndSelect implements RankAndSelect {
 	}
 	
 	public long lastOne() {
-		return select( rank( length() - 1 ) );
+		return select( rank( length() ) );
 	}
 	
 	public long rank( final long from, final long to ) {

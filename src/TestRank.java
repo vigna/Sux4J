@@ -2,7 +2,7 @@ import java.util.Random;
 
 import it.unimi.dsi.mg4j.util.Fast;
 import it.unimi.dsi.sux4j.bits.BitVectors;
-import it.unimi.dsi.sux4j.bits.SimpleRankAndSelect;
+import it.unimi.dsi.sux4j.bits.Rank9Binary;
 
 
 public class TestRank {
@@ -104,7 +104,7 @@ public class TestRank {
 		
 		for( int k = 10; k-- != 0; ) {
 			long start = - System.currentTimeMillis();
-			for( int i = test.length; i -- != 0; ) SimpleRankAndSelect.popSearch( test[ i ], pos[ i ] );
+			for( int i = test.length; i -- != 0; ) Rank9Binary.popSearch( test[ i ], pos[ i ] );
 			start += System.currentTimeMillis();
 			System.err.println( "Popsearch: " + start + "ms " + test.length *1000 / start + " ranks/s" );
 

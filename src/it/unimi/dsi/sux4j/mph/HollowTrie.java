@@ -15,7 +15,7 @@ import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BitVectors;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.RankAndSelect;
-import it.unimi.dsi.sux4j.bits.SimpleRankAndSelect;
+import it.unimi.dsi.sux4j.bits.Rank9Binary;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class HollowTrie<T> implements Serializable {
 	private transient Node root;
 	private long numNodes;
 	private LongArrayBitVector borders;
-	private SimpleRankAndSelect skipLocator;
+	private Rank9Binary skipLocator;
 	private final TransformationStrategy<? super T> transform;
 	
 	public long getLeafIndex( final T object ) {
@@ -150,7 +150,7 @@ public class HollowTrie<T> implements Serializable {
 		}
 		
 		trie = bitVector;
-		rankAndSelect = new SimpleRankAndSelect( bitVector, 2 );
+		rankAndSelect = new Rank9Binary( bitVector, 2 );
 		lastOne = rankAndSelect.lastOne();
 		final int skipWidth = ceilLog2( maxSkip ) + 1;
 		final int skipLongWidth = ceilLog2( skipWidth ) + 1;
@@ -168,7 +168,7 @@ public class HollowTrie<T> implements Serializable {
 		//this.temp = skips;
 		if ( this.skips.trim() ) throw new AssertionError();
 		if ( borders.trim() ) throw new AssertionError();
-		skipLocator = new SimpleRankAndSelect( borders, 2 );
+		skipLocator = new Rank9Binary( borders, 2 );
 	}
 	
 	
