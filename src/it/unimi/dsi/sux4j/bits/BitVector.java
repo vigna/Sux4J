@@ -81,6 +81,12 @@ public interface BitVector extends RandomAccess, BooleanList {
 		 * @return a bit vector representation of <code>object</code>.
 		 */
 		public BitVector toBitVector( T object );
+		
+		/** The (approximate) number of bits occupied by this transformation.
+		 * 
+		 * @return the (approximate) number of bits occupied by this transformation.
+		 */
+		public long numBits();
 	}
 	
 	

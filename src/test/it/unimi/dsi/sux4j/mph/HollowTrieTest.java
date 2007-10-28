@@ -20,57 +20,62 @@ public class HollowTrieTest extends TestCase {
 		return vectors;
 	}
 	
-/*	public void testSimple() {
-		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 } } ).iterator() );
+@SuppressWarnings("unchecked")
+public void testSimple() {
+		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 } } ).iterator(), BitVectors.identity() );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 2 } ), hollowTrie.skips );
+		assertEquals( LongArrayList.wrap( new long[] { 2 } ), hollowTrie.skips.asLongBigList( 2 ) );
 
-		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 } } ).iterator() );
+		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 1, 0, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 1, 0 } ), hollowTrie.skips );
+		assertEquals( LongArrayList.wrap( new long[] { 1, 0 } ), hollowTrie.skips.asLongBigList( 1 ) );
 
-		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 1 } } ).iterator() );
+		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 1 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 1, 1, 0, 0, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 1, 0, 0 } ), hollowTrie.skips );
+		assertEquals( LongArrayList.wrap( new long[] { 1, 0, 0 } ), hollowTrie.skips.asLongBigList( 1 ) );
 
-		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 1, 1, 1 } } ).iterator() );
+		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0, 0 }, { 0, 1, 0, 0 }, { 0, 1, 1, 1 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 0, 1, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 1, 0 } ), hollowTrie.skips );
+		assertEquals( LongArrayList.wrap( new long[] { 1, 0 } ), hollowTrie.skips.asLongBigList( 1 ) );
 
-		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 1 }, { 0, 1, 1, 1, 1 } } ).iterator() );
+		hollowTrie = new HollowTrie( listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 1 }, { 0, 1, 1, 1, 1 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 1, 0, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 1, 2 } ), hollowTrie.skips );
+		assertEquals( 1, hollowTrie.skips.extract( 0, 1 ) );
+		assertEquals( 2, hollowTrie.skips.extract( 1, 3 ) );
 
 		hollowTrie = new HollowTrie( 
-				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator() );
+				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 0, 1, 1, 0, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 0, 2, 0 } ), hollowTrie.skips );
+		assertEquals( 0, hollowTrie.skips.extract( 0, 1 ) );
+		assertEquals( 2, hollowTrie.skips.extract( 1, 3 ) );
+		assertEquals( 0, hollowTrie.skips.extract( 3, 4 ) );
+
 		
 		hollowTrie = new HollowTrie( 
-				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator() );
+				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), BitVectors.identity()  );
 		hollowTrie.succinct();
 
 		assertEquals( LongArrayBitVector.of( 1, 0, 1, 1, 0, 0, 1, 0, 0 ), hollowTrie.trie );
-		assertEquals( LongArrayList.wrap( new long[] { 1, 0, 0, 1 } ), hollowTrie.skips );
+		assertEquals( LongArrayList.wrap( new long[] { 1, 0, 0, 1 } ), hollowTrie.skips.asLongBigList( 1 ));
 		
 		assertEquals( 0, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
 		assertEquals( 1, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 0, 0 ) ) );
 		assertEquals( 2, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 1, 0, 0 ) ) );
 		assertEquals( 3, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 1, 0, 1 ) ) );
 		assertEquals( 4, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
-	}*/
+	}
 	
 	public void testRandom() {
 		Random r = new Random( 3 );

@@ -1,11 +1,13 @@
 package it.unimi.dsi.sux4j.bits;
 
+/** A <code>rank9</code> implementation paired with a hinted binary search select implementation. */
+
 public class Rank9Binary extends AbstractRankAndSelect {
+	private static final boolean ASSERTS = true;
 	private static final long serialVersionUID = 0L;
-	final public static int BITS_IN_LONG = 64;
-	final public static int BITS_IN_LONG_SHIFT_MASK = 6;
-	final public static int BITS_IN_LONG_MODULO_MASK = BITS_IN_LONG - 1;
-	private static final boolean ASSERTS = false;
+
+	final public static int BITS_IN_LONG_SHIFT_MASK = Fast.mostSignificantBit( Long.SIZE );
+	final public static int BITS_IN_LONG_MODULO_MASK = Long.SIZE - 1;
 
 	public final static long ONES_STEP_9 = 1L << 0 | 1L << 9 | 1L << 18 | 1L << 27 | 1L << 36 | 1L << 45 | 1L << 54;
 	public final static long MSBS_STEP_9 = 0x100L * ONES_STEP_9;
@@ -68,6 +70,8 @@ public class Rank9Binary extends AbstractRankAndSelect {
 	
 	
 	public long rank( long pos ) {
+		if ( ASSERTS ) assert pos >= 0;
+		if ( ASSERTS ) assert pos <= length;
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
@@ -123,5 +127,9 @@ public class Rank9Binary extends AbstractRankAndSelect {
 	@Override
 	public long lastOne() {
 		return lastOne;
+	}
+
+	public long numBits() {
+		return count.length * Long.SIZE + inventory.length + Integer.SIZE;
 	}
 }

@@ -1,5 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.chars.Char2IntMap;
 import it.unimi.dsi.fastutil.chars.Char2IntOpenHashMap;
 import it.unimi.dsi.mg4j.compression.HuTuckerCodec;
@@ -56,9 +57,6 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 
 		private final HuTuckerTransformationStrategy strategy;
 		private final CharSequence s;
-		private int currChar;
-		private int currBitInChar;
-		private int currIndex;
 		private long length = -1;
 		
 		public CodedCharSequenceBitVector( final CharSequence s, HuTuckerTransformationStrategy strategy ) {
@@ -106,5 +104,10 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 	public BitVector toBitVector( CharSequence s ) {
 		return new CodedCharSequenceBitVector( s, this );
 	}
-
+	
+	public long numBits() {
+		long numBits = 0;
+		for( int i = codeWord.length; i-- != 0; ) numBits += codeWord[ i ].size();
+		return (long)( numBits + ( char2symbol.size() * ( Character.SIZE + Integer.SIZE ) / Hash.DEFAULT_LOAD_FACTOR ) );
+	}
 }

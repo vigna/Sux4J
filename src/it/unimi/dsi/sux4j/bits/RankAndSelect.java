@@ -11,9 +11,9 @@ import java.io.Serializable;
  *  
  * <p>The following properties always hold:
  * <ul>
- *  	<li><code>rank(length()-1)</code> is the number of ones in the vector;
- *  	<li>if <code>r&le;rank(length()-1)</code>, then <code>rank(select(r))==r</code>;
- *  	<li>if <code>p&lt;length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
+ *  	<li><code>rank(length())</code> is the number of ones in the vector;
+ *  	<li>if <code>r &lt; rank(length())</code>, then <code>rank(select(r))==r</code>;
+ *  	<li>if <code>p &le; length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
  *  	holds iff there is a one at position <code>p</code>.
  *  </ul>
  *
@@ -81,5 +81,11 @@ public interface RankAndSelect extends Serializable {
 	 * this bit vector. The array cannot be modified.
 	 */
 	public long[] bits();
-
+	
+	/** Returns the overall number of bits allocated by this structure. 
+	 * 
+	 * @return the overall number of bits allocated by this structure (not including {@link #bits()}).
+	 */
+	
+	public long numBits();
 }

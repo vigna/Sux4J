@@ -41,6 +41,8 @@ public class BitVectors {
 		public BitVector toBitVector( final BitVector object ) {
 			return object;
 		}
+		
+		public long numBits() { return 0; }
 	};
 	
 	/** A trivial transformation from strings to bit vectors. It concatenates the bits of the UTF-16 representation and completes
@@ -54,12 +56,15 @@ public class BitVectors {
 			final int l = s.length();
 			char c;
 			for( int i = 0; i < l; i++ ) {
-				bitVector.append( c = s.charAt( i ), Character.SIZE );
+				c = s.charAt( i );
+				for( int p = Character.SIZE; p-- != 0; ) bitVector.add( ( c & 1 << p ) != 0 );
 				if ( c == 0 ) throw new IllegalArgumentException( "You cannot code with this transformation strings containing ASCII NULs" );
 			}
 			bitVector.append( 0, Character.SIZE );
 			return bitVector;
 		}
+
+		public long numBits() { return 0; }
 	};
 
 	

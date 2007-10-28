@@ -309,6 +309,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	}
 
 	public long extract( long from, long to ) {
+		if ( from == to ) return 0;
 		to--;
 		final int startWord = unit( from );
 		final int endWord = unit( to );
