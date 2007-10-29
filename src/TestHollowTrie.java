@@ -25,7 +25,7 @@ public class TestHollowTrie {
 			
 			start += System.currentTimeMillis();
 			
-			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / trie.size() + " \uc2b5s/calls" );
+			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / trie.size() + " \u00b5s/calls" );
 		}
 	}
 }

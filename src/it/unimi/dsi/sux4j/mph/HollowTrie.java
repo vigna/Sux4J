@@ -271,7 +271,7 @@ public class HollowTrie<T> implements Serializable {
 	
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), rankAndSelect.numBits() );
+		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), rankAndSelect.length() );
 	}
 
 	

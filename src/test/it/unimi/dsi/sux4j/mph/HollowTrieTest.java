@@ -1,5 +1,6 @@
 package test.it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.sux4j.bits.BitVector;
@@ -7,6 +8,8 @@ import it.unimi.dsi.sux4j.bits.BitVectors;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -77,7 +80,8 @@ public void testSimple() {
 		assertEquals( 4, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
 	}
 	
-	public void testRandom() {
+	@SuppressWarnings("unchecked")
+	public void testRandom() throws IOException, ClassNotFoundException {
 		Random r = new Random( 3 );
 		final int n = 10;
 		final LongArrayBitVector[] bitVector = new LongArrayBitVector[ n ];
@@ -101,5 +105,11 @@ public void testSimple() {
 			int l = 8;
 			while( l-- != 0 ) bitVector[ i ].add( r.nextBoolean() );
 		}
+		
+		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+		temp.deleteOnExit();
+		BinIO.storeObject( hollowTrie, temp );
+		hollowTrie = (HollowTrie<LongArrayBitVector>)BinIO.loadObject( temp );
+		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
 	}
 }
