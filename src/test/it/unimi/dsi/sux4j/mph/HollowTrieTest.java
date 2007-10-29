@@ -99,17 +99,19 @@ public void testSimple() {
 		
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
 
+		// Test serialisation
+		final File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+		temp.deleteOnExit();
+		BinIO.storeObject( hollowTrie, temp );
+		hollowTrie = (HollowTrie<LongArrayBitVector>)BinIO.loadObject( temp );
+
+		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
+
 		// Test that random inquiries do not break the trie
 		for( int i = 0; i < 10; i++ ) {
 			bitVector[ i ] = LongArrayBitVector.getInstance();
 			int l = 8;
 			while( l-- != 0 ) bitVector[ i ].add( r.nextBoolean() );
 		}
-		
-		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( hollowTrie, temp );
-		hollowTrie = (HollowTrie<LongArrayBitVector>)BinIO.loadObject( temp );
-		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
 	}
 }

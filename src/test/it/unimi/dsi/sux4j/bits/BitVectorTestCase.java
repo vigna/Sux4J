@@ -1,6 +1,9 @@
 package test.it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBidirectionalIterator;
+import it.unimi.dsi.fastutil.longs.LongListIterator;
+import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
@@ -12,7 +15,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public abstract class BitVectorTest extends TestCase {
+public abstract class BitVectorTestCase extends TestCase {
 
 	public static void testSetClearFlip( final BitVector v ) {
 		final int size = v.size();
@@ -61,7 +64,46 @@ public abstract class BitVectorTest extends TestCase {
 		v.add( 0, true );
 		assertTrue( v.getBoolean( 0 ) );
 		assertTrue( v.getBoolean( 1 ) );
-
+		v.add( false );
+		assertTrue( v.getBoolean( 0 ) );
+		assertTrue( v.getBoolean( 1 ) );
+		assertFalse( v.getBoolean( 2 ) );
+		v.set( 1, false );
+		assertTrue( v.getBoolean( 0 ) );
+		assertFalse( v.getBoolean( 1 ) );
+		assertFalse( v.getBoolean( 2 ) );
+		v.set( 1, true );
+		assertTrue( v.getBoolean( 0 ) );
+		assertTrue( v.getBoolean( 1 ) );
+		assertFalse( v.getBoolean( 2 ) );
+		
+		v.clear();
+		v.size( 100 );
+		v.add( 0, 1 );
+		assertEquals( 1, v.getInt( 0 ) );
+		v.add( 0, 2 );
+		assertEquals( 1, v.getInt( 0 ) );
+		assertEquals( 1, v.getInt( 1 ) );
+		v.add( 0, 0 );
+		assertEquals( 0, v.getInt( 0 ) );
+		assertEquals( 1, v.getInt( 1 ) );
+		assertEquals( 1, v.getInt( 2 ) );
+		v.add( 0 );
+		assertEquals( 0, v.getInt( 0 ) );
+		assertEquals( 1, v.getInt( 1 ) );
+		assertEquals( 1, v.getInt( 2 ) );
+		assertEquals( 0, v.getInt( 3 ) );
+		v.set( 1, 0 );
+		assertEquals( 0, v.getInt( 0 ) );
+		assertEquals( 0, v.getInt( 1 ) );
+		assertEquals( 1, v.getInt( 2 ) );
+		assertEquals( 0, v.getInt( 3 ) );
+		v.set( 1, 1 );
+		assertEquals( 0, v.getInt( 0 ) );
+		assertEquals( 1, v.getInt( 1 ) );
+		assertEquals( 1, v.getInt( 2 ) );
+		assertEquals( 0, v.getInt( 3 ) );
+		
 		v.clear();
 		v.append( 1, 2 );
 		v.append( 1, 2 );
@@ -86,6 +128,8 @@ public abstract class BitVectorTest extends TestCase {
 		for( int i = v.size(); i-- != 0; ) assertTrue( v.getBoolean( i ) );
 		v.fill( false );
 		for( int i = v.size(); i-- != 0; ) assertFalse( v.getBoolean( i ) );
+		v.flip();
+		for( int i = v.size(); i-- != 0; ) assertTrue( v.getBoolean( i ) );
 		
 		v.clear();
 		v.size( 100 );
@@ -125,10 +169,14 @@ public abstract class BitVectorTest extends TestCase {
 		v.size( 100 );
 		v.fill( 5, 80, true );
 		BitVector w = v.copy( 0, 85 );
+		assertEquals( w, v.subVector( 0, 85 ).copy() );
+		
 		for( int i = w.size(); i-- != 0; ) assertEquals( i >= 5 && i < 80, w.getBoolean( i ) );	
 		w = v.copy( 5, 85 );
+		assertEquals( w, v.subVector( 5, 85 ).copy() );
 		for( int i = w.size(); i-- != 0; ) assertEquals( i < 75, w.getBoolean( i ) );	
 
+		
 		v.clear();
 		int[] bits = { 0,0,0,0,1,1,1,0,0,0,0,1,1,0,0 };
 		for( int i = 0; i < bits.length; i++ ) v.add( bits[ i ] );
@@ -137,6 +185,7 @@ public abstract class BitVectorTest extends TestCase {
 		for( int i = 5; i < bits.length; i++ ) c.add( bits[ i ] );
 		
 		assertEquals( c, v.copy( 5, 15 ) );
+		assertEquals( c, v.subVector( 5, 15 ).copy() );
 
 		v.clear();
 		bits = new int[] { 0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,0,0 };
@@ -164,6 +213,57 @@ public abstract class BitVectorTest extends TestCase {
 			for( int j = i + 1; j < 100; j++ ) assertEquals( "" + i , j, list.getLong( j ) );
 		}
 		for( int i = 0; i < 100; i++ ) assertEquals( i + 1, list.getLong( i ) );
+		list.size( 100 );
+		int k = 0;
+		LongListIterator i = list.listIterator();
+		while( i.hasNext() ) {
+			assertEquals( k, i.nextIndex() );
+			assertEquals( ++k, i.nextLong() ); 
+		}
+		while( i.hasPrevious() ) {
+			assertEquals( k - 1, i.previousIndex() );
+			assertEquals( k--, i.previousLong() );
+		}
+	}
+
+	public static void testLongSetView( BitVector b ) {
+		LongSortedSet s = b.asLongSet();
+		assertNull( s.comparator() );
+		
+		for( int i = 0; i < 100; i++ ) s.add( i * 2 );
+		for( int i = 0; i < 100; i++ ) assertTrue( s.contains( i * 2 ) );
+		for( int i = 0; i < 100; i++ ) assertFalse( s.contains( i * 2 + 1 ) );
+		
+		LongBidirectionalIterator iterator = s.iterator();
+		for( int i = 0; i < 100; i++ ) assertEquals( i * 2, iterator.nextLong() );
+		assertFalse( iterator.hasNext() );
+		for( int i = 100; i-- != 0; ) assertEquals( i * 2, iterator.previousLong() );
+		assertFalse( iterator.hasPrevious() );
+		
+		assertEquals( 100, s.size() );
+		assertEquals( false, s.remove( 1 ) );
+		assertEquals( 100, s.size() );
+		assertEquals( true, s.remove( 0 ) );
+		assertEquals( 99, s.size() );
+		assertEquals( true, s.remove( 60 ) );
+		assertEquals( 98, s.size() );
+		assertEquals( false, s.remove( 1000 ) );
+		assertEquals( 98, s.size() );
+		assertEquals( false, s.add( 2 ) );
+		assertEquals( 98, s.size() );
+		
+		assertEquals( 2, s.firstLong() );
+		assertEquals( 198, s.lastLong() );
+		
+		assertEquals( 18, s.subSet( 3, 40 ).size());
+		assertEquals( 19, s.headSet( 40 ).size());
+		assertEquals( 5, s.tailSet( 190 ).size());
+		
+		iterator = s.iterator();
+		assertEquals( 2, iterator.nextLong() );
+		iterator.remove();
+		assertFalse( s.contains( 2 ) );
+		
 	}
 
 	public static void testFirstLastPrefix( BitVector b ) {
@@ -218,6 +318,21 @@ public abstract class BitVectorTest extends TestCase {
 		c.flip( 0 );
 		assertEquals( 0, b.maximumCommonPrefixLength( c ) );
 		assertEquals( 0, b.maximumCommonPrefixLength( BooleanListBitVector.wrap( c ) ) );
+		
+		c.clear();
+		c.length( 2 );
+		c.set( 0, 0 );
+		assertFalse( c.getBoolean( 0 ) );
+		c.set( 0, 1 );
+		assertTrue( c.getBoolean( 0 ) );
+		c.set( 0, 2 );
+		assertTrue( c.getBoolean( 0 ) );
+		c.set( 0, 0 );
+		assertFalse( c.getBoolean( 0 ) );
+		c.add( 0, 0 );
+		assertFalse( c.getBoolean( 0 ) );
+		c.add( 0, 1 );
+		assertTrue( c.getBoolean( 0 ) );
 	}
 
 	public static void testLogicOperators( BitVector b ) {
@@ -246,9 +361,16 @@ public abstract class BitVectorTest extends TestCase {
 		r.xor( BooleanListBitVector.wrap( r ) );
 		for( int i = 0; i < 100; i++ ) assertFalse( r.getBoolean( i ) );
 	}
+	
+	public static void testCount( BitVector b ) {
+		b.clear();
+		b.length( 100 );
+		for( int i = 0; i < 50; i++ ) b.set( i * 2 );
+		assertEquals( 50, b.count() );
+	}
 
 	public static void testSerialisation( BitVector b ) throws IOException, ClassNotFoundException {
-		File file = File.createTempFile( BitVectorTest.class.getSimpleName(), "test" );
+		final File file = File.createTempFile( BitVectorTestCase.class.getSimpleName(), "test" );
 		file.deleteOnExit();
 
 		b.clear();

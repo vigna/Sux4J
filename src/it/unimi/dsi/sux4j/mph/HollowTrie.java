@@ -19,6 +19,7 @@ import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -39,7 +40,7 @@ public class HollowTrie<T> implements Serializable {
 	private static final Logger LOGGER = Fast.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
 
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
 	public LongArrayBitVector skips;
@@ -268,7 +269,11 @@ public class HollowTrie<T> implements Serializable {
 		recToString( root, new StringBuilder(), s, new StringBuilder(), 0 );
 		return s.toString();
 	}
-	
+
+	private void writeObject( final ObjectOutputStream s ) throws IOException {
+		s.defaultWriteObject();
+	}
+
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), rankAndSelect.length() );
@@ -280,7 +285,6 @@ public class HollowTrie<T> implements Serializable {
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
-					//new FlaggedOption( "class", MG4JClassParser.getParser(), klass.getName(), JSAP.NOT_REQUIRED, 'c', "class", "A subclass of MinimalPerfectHash to be used when creating the table." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
 					new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
@@ -294,7 +298,6 @@ public class HollowTrie<T> implements Serializable {
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String trieName = jsapResult.getString( "trie" );
 		final String termFile = jsapResult.getString( "termFile" );
-		//final Class<?> tableClass = jsapResult.getClass( "class" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );

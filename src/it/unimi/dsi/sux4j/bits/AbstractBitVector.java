@@ -24,9 +24,11 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.fastutil.booleans.AbstractBooleanList;
 import it.unimi.dsi.fastutil.longs.AbstractLongBidirectionalIterator;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongListIterator;
 import it.unimi.dsi.fastutil.longs.AbstractLongSortedSet;
 import it.unimi.dsi.fastutil.longs.LongBidirectionalIterator;
 import it.unimi.dsi.fastutil.longs.LongComparator;
+import it.unimi.dsi.fastutil.longs.LongListIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 
@@ -86,8 +88,9 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public boolean add( final boolean value ) { add( length(), value ); return true; }
 	public void add( final int value ) { add( value != 0 ); }
 
-	public void append( final long value, final int k ) {
+	public BitVector append( final long value, final int k ) {
 		for( int i = 0; i < k; i++ ) add( ( value & 1L << i ) != 0 );
+		return this;
 	}
 
 	public BitVector copy() { return copy( 0, size() ); }
@@ -105,13 +108,23 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	}
 	
 	public long firstOne() {
-		final long length = length();
-		for( int i = 0; i < length; i++ ) if ( getBoolean( i ) ) return i;
-		return -1;
+		return nextOne( 0 );
 	}
 	
 	public long lastOne() {
-		for ( long i = length(); i-- != 0; ) if ( getBoolean( i ) ) return i;
+		return previousOne( length() );
+	}
+	
+	public long nextOne( final long index ) {
+		ensureIndex( index );
+		final long length = length();
+		for( long i = index; i < length; i++ ) if ( getBoolean( i ) ) return i;
+		return -1;
+	}
+	
+	public long previousOne( final long index ) {
+		ensureIndex( index );
+		for ( long i = index; i-- != 0; ) if ( getBoolean( i ) ) return i;
 		return -1;
 	}
 	
@@ -174,30 +187,29 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	 */
 	
 	public static class LongSetView extends AbstractLongSortedSet implements LongSet, Serializable {
+
 		private static final long serialVersionUID = 1L;
 		private final BitVector bitVector;
 		private final long from;
 		private final long to;
-		private final boolean top;
 		
-		public LongSetView( final BitVector bitVector, final long from, final long to, final boolean top ) {
+		public LongSetView( final BitVector bitVector, final long from, final long to ) {
 			if ( from > to ) throw new IllegalArgumentException( "Start index (" + from + ") is greater than end index (" + to + ")" );
 			this.bitVector = bitVector;
 			this.from = from;
 			this.to = to;
-			this.top = top;
 		}
 
 		
 		public boolean contains( final long index ) {
 			if ( index < 0 ) throw new IllegalArgumentException( "The provided index (" + index + ") is negative" );
-			if ( index < from || !top && index > to ) return false;
+			if ( index < from || index >= to ) return false;
 			return index < bitVector.size() && bitVector.getBoolean( index );
 		}
 		
 		public boolean add( final long index ) {
 			if ( index < 0 ) throw new IllegalArgumentException( "The provided index (" + index + ") is negative" );
-			if ( index < from || !top && index > to ) return false;
+			if ( index < from || index >= to ) return false;
 
 			final int size = bitVector.size();
 			if ( index >= size ) bitVector.length( index + 1 );
@@ -215,59 +227,64 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		}
 		
 		public int size() {
-			if ( bitVector.count() > Integer.MAX_VALUE ) throw new IllegalStateException( "Set is too large to return an integer size" );
-			return (int)bitVector.count();
+			// This minimisation is necessary for implementations not supporting long indices.
+			final long size = bitVector.subVector( from, Math.min( to, bitVector.length() ) ).count(); 
+			if ( size > Integer.MAX_VALUE ) throw new IllegalStateException( "Set is too large to return an integer size" );
+			return (int)size;
 		}
 		
-		public LongBidirectionalIterator iterator( final long from ) {
-			// TODO: implement 
-			throw new UnsupportedOperationException();
-		}
-			
 		public LongBidirectionalIterator iterator() {
-			// TODO: implement bidirectionality
-			return new AbstractLongBidirectionalIterator() {
-				long pos = -1;
-				boolean toAdvance = true;
-				
-				public boolean hasNext() {
-					final long length = bitVector.length();
-					if ( ! toAdvance ) return pos < length;
-					toAdvance = false;
-					while( ++pos < length && ! bitVector.getBoolean( pos ) );
-					return pos < length;
-				}
-				
-				public long nextLong() {
-					if ( ! hasNext() ) throw new NoSuchElementException();
-					toAdvance = true;
-					return pos;
-				}
-				
-				public long previousLong() {
-					throw new UnsupportedOperationException();
-				}
+			return iterator( 0 );
+		}
 
-				public boolean hasPrevious() {
-					throw new UnsupportedOperationException();
-				}
+		private final class LongSetViewIterator extends AbstractLongBidirectionalIterator {
+			long pos, last = -1, nextPos = -1, prevPos = -1;
 
-				public void remove() {
-					if ( pos == -1 ) throw new IllegalStateException();
-					bitVector.clear( pos );
-				}
-			};
+			private LongSetViewIterator( long from ) {
+				pos = from - 1;
+			}
+
+			public boolean hasNext() {
+				if ( nextPos == -1 && pos < bitVector.length() ) nextPos = bitVector.nextOne( pos + 1 );
+				return nextPos != -1;
+			}
+
+			public boolean hasPrevious() {
+				if ( prevPos == -1 && pos > 0 ) prevPos = bitVector.previousOne( pos );
+				return prevPos != -1;
+			}
+
+			public long nextLong() {
+				if ( ! hasNext() ) throw new NoSuchElementException();
+				last = nextPos;
+				pos = nextPos + 1;
+				nextPos = -1;
+				return last;
+			}
+
+			public long previousLong() {
+				if ( ! hasPrevious() ) throw new NoSuchElementException();
+				pos = prevPos;
+				prevPos = -1;
+				return last = pos;	
+			}
+
+			public void remove() {
+				if ( last == -1 ) throw new IllegalStateException();
+				bitVector.clear( last );
+			}
+		}
+
+		public LongBidirectionalIterator iterator( final long from ) {
+			return new LongSetViewIterator( from );
 		}
 		
 		public long firstLong() {
-			final int size = bitVector.size();
-			for( int i = 0; i < size; i++ ) if ( bitVector.getBoolean( i ) ) return i;
-			throw new NoSuchElementException();
+			return bitVector.nextOne( from );
 		}
 
 		public long lastLong() {
-			for( int i = bitVector.size(); i-- != 0; ) if ( bitVector.getBoolean( i ) ) return i;
-			throw new NoSuchElementException();
+			return bitVector.previousOne( Math.min( bitVector.length(), to ) );
 		}
 
 		public LongComparator comparator() {
@@ -275,20 +292,19 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		}
 		
 		public LongSortedSet headSet( final long to ) {
-			if ( top ) return new LongSetView( bitVector, from, to, false );
-			return to < this.to ? new LongSetView( bitVector, from, to, false ) : this;
+			return to < this.to ? new LongSetView( bitVector, from, to ) : this;
 		}
 
 		public LongSortedSet tailSet( final long from ) {
-			return from > this.from ? new LongSetView( bitVector, from, to, top ) : this;
+			return from > this.from ? new LongSetView( bitVector, from, to ) : this;
 		}
 
 		public LongSortedSet subSet( long from, long to ) {
-			if ( ! top ) to = to < this.to ? to : this.to;
+			to = to < this.to ? to : this.to;
 			from = from > this.from ? from : this.from;
-			if ( ! top && from == this.from && to == this.to ) return this;
-			return new LongSetView( bitVector, from, to, false );
-		}		
+			if ( from == this.from && to == this.to ) return this;
+			return new LongSetView( bitVector, from, to );
+		}
 	}
 	
 	/** A list-of-integers view of a bit vector. 
@@ -321,9 +337,41 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			return (int)length;
 		}
 		
-		public LongBidirectionalIterator iterator( final long from ) {
-			// TODO: implement 
-			throw new UnsupportedOperationException();
+		public void size( final int newSize ) {
+			bitVector.length( (long)newSize * width );
+		}
+		
+		private final class LongBigListIterator extends AbstractLongListIterator {
+			private long pos = 0;
+			public boolean hasNext() { return pos < length(); }
+			public boolean hasPrevious() { return pos > 0; }
+
+			@Override
+			public long nextLong() {
+				if ( ! hasNext() ) throw new NoSuchElementException();
+				return getLong( pos++ ); 
+			}
+
+			@Override
+			public long previousLong() {
+				if ( ! hasPrevious() ) throw new NoSuchElementException();
+				return getLong( --pos ); 
+			}
+
+			public int nextIndex() {
+				if ( pos >= Integer.MAX_VALUE ) throw new IllegalStateException( "The current list position is larger than Integer.MAX_VALUE" );
+				return (int)pos;
+			}
+
+			public int previousIndex() {
+				if ( pos > Integer.MAX_VALUE + 1L ) throw new IllegalStateException( "The current list position is larger than Integer.MAX_VALUE" );
+				return (int)( pos - 1 );
+			}
+		}
+
+		@Override
+		public LongListIterator listIterator() {
+			return new LongBigListIterator();
 		}
 
 		public void add( int index, long value ) {
@@ -360,14 +408,15 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		}
 	}
 		
-	public void length( long newLength ) {
+	public BitVector length( long newLength ) {
 		final long length = length();
 		if ( length < newLength ) for( long i = newLength - length; i-- != 0; ) add( false );
 		else for( long i = length; i-- != newLength; ) removeBoolean( i );
+		return this;
 	}
 
-	public LongSet asLongSet() {
-		return new LongSetView( this, 0, length(), true );
+	public LongSortedSet asLongSet() {
+		return new LongSetView( this, 0, Long.MAX_VALUE );
 	}	
 	
 	public LongBigList asLongBigList( final int width ) {
@@ -414,7 +463,7 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		public boolean set( final long index, final boolean value ) { return bitVector.set( from + index, value ); }
 		public void set( final long index, final int value ) { set( index, value != 0 ); }
 		public void add( final long index, final boolean value ) { bitVector.add( from + index, value ); to++; }
-		public void add( final long index, final int value ) { add( index, value ); to++; }
+		public void add( final long index, final int value ) { add( index, value != 0 ); to++; }
 		public void add( final int value ) { bitVector.add( to++, value ); }
 		public boolean removeBoolean( final long index ) { to--; return bitVector.removeBoolean( from + index ); } 
 		

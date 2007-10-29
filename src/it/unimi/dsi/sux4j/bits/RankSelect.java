@@ -2,17 +2,31 @@ package it.unimi.dsi.sux4j.bits;
 
 import java.io.Serializable;
 
-/** A basic building block for most succinct data structures. 
+/** A data structure providing rank and select over a bit array.
  * 
- * <p>A instance of this class provide quick (e.g., constant time) computation
- * of {@link #rank(long)} and {@link #select(long)} on a vector of {@link #length()} bits.
- * Other derived operations are defined in terms of the former: for simplicity,
+ * <p>Rank and select are a basic building blocks for most succinct data structures. Usually,
+ * instances of this class class provide quick (e.g., constant time) computation of both primitives.
+ * 
+ * <p>Besides the standard {@link #rank(long)} and {@link #select(long)} methods, 
+ * other natural derived operations are defined in terms of the former: for simplicity,
  * they are implemented in {@link AbstractRankAndSelect}.
  *  
+ * <p>There is some variance in the literature about the exact semantics of rank and select&mdash;in most
+ * cases, it is a matter of off-by-ones. This interface specifies a zero-based set of rank/select operations.
+ * 
+ * <p>More precisely, rank and select are applied to a bit vector in which bits <em>positions</em> are numbered
+ * starting from <em>zero</em>. The {@link #rank(long)} of a bit is the number of ones that <em>precede</em> it (the bit
+ * itself is not included). Given a rank <code>r</code>, {@link #select(long)} returns the position of the
+ * bit set to one (assuming there is one)
+ * satisfying <code>rank(select(r))=r</code>. In other words, <code>select(r)</code> is the position of the 
+ * leftmost bit set to one and preceded by <code>r</code> bits.
+ * 
  * <p>The following properties always hold:
  * <ul>
- *  	<li><code>rank(length())</code> is the number of ones in the vector;
+ *  	<li><code>rank(0)=0</code>;
+ *  	<li><code>rank(length())</code> is the number of ones in the bit vector;
  *  	<li>if <code>r &lt; rank(length())</code>, then <code>rank(select(r))==r</code>;
+ *  	<li>if <code>r &ge; rank(length())</code>, then <code>select(r)=-1</code> is undefined;
  *  	<li>if <code>p &le; length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
  *  	holds iff there is a one at position <code>p</code>.
  *  </ul>
@@ -32,10 +46,10 @@ public interface RankSelect extends Serializable {
 	 */
 	public long count();
 
-	/** Returns the number of ones up preceding the specified position.
+	/** Returns the number of ones preceding the specified position.
 	 * 
 	 * @param pos a position in the bit vector.
-	 * @return the number of ones up to <code>pos</code>, exclusive.
+	 * @return the number of ones preceding <code>pos</code>.
 	 */
 	public long rank( long pos );
 
@@ -43,39 +57,38 @@ public interface RankSelect extends Serializable {
 	 * 
 	 * @param from a position in the bit vector.
 	 * @param to a position in the bit vector.
-	 * @return the number of ones between <code>from</code> (inclusive) and <code>to</code>,  exclusive; if
+	 * @return the number of ones between <code>from</code> (inclusive) and <code>to</code> (exclusive); if
 	 * <code>to</code> is smaller than <code>from</code>, 0 is returned.
 	 */
 	public long rank( long from, long to );
 
-	/** Returns the greatest position that is preceded by the specified number of ones. Equivalently, the
-	 * zero-based position of the bit of given rank (counted starting from 0).
+	/** Returns the position of the bit of given rank. 
+	 *  Equivalently, returns the greatest position that is preceded by the specified number of ones.
 	 * 
-	 * @param rank a number of bits.
-	 * @return the greatest position <code>pos</code> such that there are
-	 * <code>rank</code> ones before <code>pos</code>; if no such position exists, -1 is returned.
+	 * @param rank a rank.
+	 * @return the position of the bit of given rank; if no such position exists, &minus;1 is returned.
 	 */
 	public long select( long rank );
 
-	/** Returns the greatest position that is preceded by the specified number of ones starting from
-	 * the specified point.
+	/** Returns the position of the bit of given rank beyond a specified position.
 	 * 
 	 * @param from a starting position.
-	 * @param rank a number of bits.
-	 * @return the greatest position <code>pos</code> such that there are
-	 * <code>rank</code> ones between <code>from</code> (inclusive) and <code>pos</code> (exclusive); if no such position exists, 
-	 * <code>from</code> &minus; 1 is returned.
+	 * @param rank a rank.
+	 * @return the position of the bit of given rank starting from <code>from</code>; 
+	 * if no such position exists, <code>from</code> &minus;1 is returned.
 	 */
 	public long select( long from, long rank );
 	
 	/** Returns the position of the last one in the bit vector.
 	 * 
-	 * @return  the position of the last one in the bit vector (if the vector contains only
-	 * zeroes, -1 is returned).
+	 * @return the position of the last one in the bit vector (if the vector contains only
+	 * zeroes, &minus;1 is returned).
 	 */
 	public long lastOne();
 
-	/** Returns the bits indexed as an array of longs, not to be modified.
+	/** Returns the bits indexed as an array of longs (not to be modified).
+	 * 
+	 * <p>The returned array must follow the {@link LongArrayBitVector} conventions.
 	 * 
 	 * @return an array of longs whose first {@link #length()} bits contain the bits of
 	 * this bit vector. The array cannot be modified.
@@ -86,6 +99,6 @@ public interface RankSelect extends Serializable {
 	 * 
 	 * @return the overall number of bits allocated by this structure (not including {@link #bits()}).
 	 */
-	
+
 	public long numBits();
 }

@@ -22,7 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.booleans.BooleanList;
-import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSortedSet;
 
 import java.io.Serializable;
 import java.util.List;
@@ -141,10 +141,10 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public BitVector subVector( long from, long to );
 
-	/** Returns a view of this bit vector as a set of long integers.
+	/** Returns a view of this bit vector as a sorted set of long integers.
 	 * 
 	 * <P>More formally, this bit vector is infinitely extended to the
-	 * left with zeros (e.g., all bits beyond {@link java.util.List#size()} are
+	 * left with zeros (e.g., all bits beyond {@link #length(long)} are
 	 * considered zeroes). The resulting infinite string is interpreted as the
 	 * characteristic function of a set of integers.
 	 * 
@@ -152,12 +152,12 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * exactly that of a {@link java.util.BitSet}.
 	 *
 	 */
-	public LongSet asLongSet();
+	public LongSortedSet asLongSet();
 	
-	/** Returns a view of this bit vector as a list of integers of specified width.
+	/** Returns a view of this bit vector as a list of nonnegative integers of specified width.
 	 * 
 	 * <P>More formally, {@link LongBigList#getLong(long) getLong(p)} will return
-	 * the integer defined by the bits starting at <code>p * width</code> (inclusive)
+	 * the nonnegative integer defined by the bits starting at <code>p * width</code> (inclusive)
 	 * and ending at <code>(p + 1) * width</code> (exclusive). 
 	 */
 	public LongBigList asLongBigList( int width );
@@ -239,13 +239,14 @@ public interface BitVector extends RandomAccess, BooleanList {
 
 	public void add( final int value );
 
-	/** Adds the less significant bits of along integer to this bit vector.
+	/** Adds the less significant bits of a long integer to this bit vector.
 	 * 
 	 * @param value a value to be appended
 	 * @param k the number of less significant bits to be added to this bit vector.
+	 * @return this bit vector.
 	 */
 
-	public void append( final long value, final int k );
+	public BitVector append( final long value, final int k );
 
 	/** Returns the number of bits in this bit vector.
 	 *
@@ -260,9 +261,9 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 *
 	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
 	 * method is semantically equivalent to {@link BooleanList#size(int)}. 
-	 *
+	 * @return this bit vector.
 	 */
-	public void length( long newLength );
+	public BitVector length( long newLength );
 	
 	/** Counts the number of bits set to true in this bit vector.
 	 *
@@ -291,17 +292,29 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public BitVector xor( BitVector v );
 
-	/** Returns the positions of the first bit set to on in this vector.
+	/** Returns the position of the first bit set in this vector.
 	 *
-	 * @return the first bit set to one, or -1 for a vector of zeroes. 
+	 * @return the first bit set, or -1 for a vector of zeroes. 
 	 */
 	public long firstOne();
 
-	/** Returns the position of the last bit set to on in this vector.
+	/** Returns the position of the last bit set in this vector.
 	 *
-	 * @return the last bit set to one, or -1 for a vector of zeroes. 
+	 * @return the last bit set, or -1 for a vector of zeroes. 
 	 */
 	public long lastOne();
+
+	/** Returns the position of the first bit set after the given position.
+	 *
+	 * @return the first bit set after position <code>index</code> (inclusive), or -1 if no such bit exists. 
+	 */
+	public long nextOne( final long index );
+
+	/** Returns the position of the first bit set before or at the given position.
+	 *
+	 * @return the first bit set before or at the given position, or -1 if no such bit exists. 
+	 */
+	public long previousOne( final long index );
 
 	/** Returns the length of the greatest common prefix between this and the specified vector.
 	 *

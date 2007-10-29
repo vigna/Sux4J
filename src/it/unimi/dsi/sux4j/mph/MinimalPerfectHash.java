@@ -33,7 +33,6 @@ import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
-import it.unimi.dsi.sux4j.bits.RankSelect;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -41,7 +40,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,27 +75,69 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
- * an embedded {@linkplain RankSelect rank} structure, which uses {@linkplain #countNonzeroPairs(long) broadword techniques}
- * to rank inside a long and records the number of pairs each {@link #BITS_PER_BLOCK} bits;
- * it increases space occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
+ * an embedded ranking scheme that increases space 
+ * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
+ * At construction time, however, about 15<var>n</var> integers (i.e., 60<var>n</var> bytes) are necessary. 
  * 
  * <P>This class is very scalable, and if you have enough memory it will handle
- * efficiently hundreds of millions of terms: in particular, the 
+ * efficiently hundreds of millions of strings: in particular, the 
  * {@linkplain #MinimalPerfectHash(Iterable, int) offline constructor}
- * can build a map without loading the terms in memory.
+ * can build a map without loading the strings in memory.
  * 
  * <P>To do its job, the class must store three vectors of weights that are used to compute
- * certain hash functions. By default, the vectors are long as the longest term, but if
- * your collection is sorted you can ask (passing {@link #WEIGHT_UNKNOWN_SORTED_TERMS} to a constructor)
+ * certain hash functions. By default, the vectors are long as the longest string, but if
+ * your collection is sorted you can ask (passing {@link #WEIGHT_UNKNOWN_SORTED_STRINGS} to a constructor)
  * for the shortest possible vector length. This optimisation does not change the
  * memory footprint, but it can improve performance.
  * 
  * <P>As a commodity, this class provides a main method that reads from
- * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated terms, and
+ * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
  * writes a serialised minimal perfect hash for the given list.
  * 
  * <P>For efficiency, there are also method that access a minimal perfect hash
  * {@linkplain #getNumber(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
+ *
+ * <h3>How it Works</h3>
+ * 
+ * <p>The technique used is very similar (but developed independently) to that described by Botelho, Pagh and Ziviani
+ * in &ldquo;Simple and Efficient Minimal Perfect Hashing Functions&rdquo;, <i>Proc. WADS 2007</i>, number
+ * 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping technique describe
+ * therein was actually first proposed by Chazelle, Kilian, Rubinfeld and Tal in 
+ * &ldquo;The Bloomier Filter: an Efficient Data Structure for Static Support Lookup 
+ * Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004. 
+ * 
+ * <p>The basic ingredient is a stripping procedure to be applied to an acyclic 3-hypergraph. The  
+ * idea is due to Havas, Majewski, Wormald and Czech (&ldquo;A Family of Perfect Hashing Methods&rdquo;,
+ * <i>Computer J.</i>, 39(6):547&minus;554, 1996).
+ * First, a triple of intermediate hash functions (generated via universal hashing) define for each
+ * string a 3-hyperedge in a hypergraph with 1.23<var>n</var> vertices. Each intermediate hash function
+ * uses a vector of random weights; the length of the vector is by default the length of the longest
+ * string, but if the collection is sorted it is possible to compute the minimum length of a prefix that will
+ * distinguish any pair of strings. 
+ * 
+ * <P>Then, by successively stripping 3-hyperedges with one vertex of 
+ * degree one, we create an ordering on the hyperedges.
+ * Finally, we assign (in reverse order) to each vertex of a 3-hyperedge a two-bit number 
+ * in such a way that the sum of the three numbers modulo 3 gives, for each hyperedge, the index of the hash
+ * function generating the vertex of degree one found during the stripping procedure. This vertex is distinct for
+ * each 3-hyperedge, and as a result we obtain a perfect hash of the original string set (one just has to compute
+ * the three hash functions, collect the three two-bit values, add them modulo 3 and take the corresponding hash function value).
+ * 
+ * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value to a vertex,
+ * we can take care of using the number 3 instead of 0 if the vertex is actually the output value for some string. As
+ * a result, the final value of the minimal perfect hash function is the number of nonzero pairs of bits that precede
+ * the perfect hash value for the string. 
+ * To compute this number, we use a simple table-free ranking scheme, recording the number
+ * of nonzero pairs each {@link #BITS_PER_BLOCK} bits and modifying the
+ * standard broadword algorithm for computing the number of ones
+ * in a word into an algorithm that {@linkplain #countNonzeroPairs(long) counts
+ * the number of nonzero pairs of bits in a word}.
+ * 
+ * <P>Note that the mathematical results guaranteeing that it is possible to find a
+ * function in expected constant time are <em>asymptotic</em>. 
+ * Thus, when the number of strings is less than {@link #STRING_THRESHOLD}, an instance
+ * of this class just stores the strings in a vector and scans them linearly. This behaviour,
+ * however, is completely transparent to the user.
  *
  * <h3>Rounds and Logging</h3>
  * 
@@ -115,7 +155,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * hyperedge is generated, and the various construction phases.
  *
  * <P>Note that if during the generation process the log warns more than once about duplicate hyperedges, you should
- * suspect that there are duplicates in the term list, as duplicate hyperedges are <em>extremely</em> unlikely.
+ * suspect that there are duplicates in the string list, as duplicate hyperedges are <em>extremely</em> unlikely.
  *
  * @author Sebastiano Vigna
  * @since 0.1
@@ -128,18 +168,18 @@ public class MinimalPerfectHash implements Serializable {
 	private static final boolean DEBUG = true;
 	
 	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
-	public static final float ENLARGEMENT_FACTOR = 1.23f;
+	public static final double ENLARGEMENT_FACTOR = 1.23;
 	/** The number of bits per block in the rank structure. */
 	private static final int BITS_PER_BLOCK = 512;
-	/** The minimum number of terms that will trigger the construction of a minimal perfect hash;
-	 * overwise, terms are simply stored in a vector. */
-	public static final int TERM_THRESHOLD = 16;
+	/** The minimum number of strings that will trigger the construction of a minimal perfect hash;
+	 * overwise, strings are simply stored in a vector. */
+	public static final int STRING_THRESHOLD = 16;
 	/** A special value denoting that the weight length is unknown, and should be computed using
-	 * the maximum length of a term. */
+	 * the maximum length of a string. */
 	public static final int WEIGHT_UNKNOWN = -1;
 	/** A special value denoting that the weight length is unknown, and should be computed assuming
-	 * that the terms appear in lexicographic order. */
-	public static final int WEIGHT_UNKNOWN_SORTED_TERMS = -2;
+	 * that the strings appear in lexicographic order. */
+	public static final int WEIGHT_UNKNOWN_SORTED_STRINGS = -2;
 
 	/** The number of buckets. */
 	final protected int n;
@@ -167,7 +207,7 @@ public class MinimalPerfectHash implements Serializable {
 	final protected int count[];
 	/** Four times the number of buckets. */
 	protected transient long n4;
-	/** If {@link #n} is smaller than {@link #TERM_THRESHOLD}, a vector containing the terms. */
+	/** If {@link #n} is smaller than {@link #STRING_THRESHOLD}, a vector containing the strings. */
 	protected transient CharSequence[] t;
     
 	/*
@@ -179,7 +219,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * disambiguate any pair of strings) they are not particularly advantageous.
 	 */
 
-	/** Hashes a given term using the intermediate hash functions.
+	/** Hashes a given strings using the intermediate hash functions.
 	 *
 	 * @param term a term to hash.
 	 * @param h a three-element vector that will be filled with the three intermediate hash values.
@@ -399,7 +439,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * <P>If you do not know your weight length in advance, you can pass two
 	 * special values as <code>weightLength</code>: {@link #WEIGHT_UNKNOWN}
 	 * will force the computation of <code>weightLength</code> as the maximum
-	 * length of a term, whereas {@link #WEIGHT_UNKNOWN_SORTED_TERMS} forces
+	 * length of a term, whereas {@link #WEIGHT_UNKNOWN_SORTED_STRINGS} forces
 	 * the assumption that terms are sorted: in this case, we search for
 	 * the minimum prefix that will disambiguate all terms in the collection
 	 * (a shorter prefix yields faster lookups). 
@@ -412,13 +452,13 @@ public class MinimalPerfectHash implements Serializable {
 	 * is specified explicitly, it is assumed that there are no terms with a common prefix of
 	 * <code>weightLength</code> characters.
 	 * @param weightLength the number of weights used generating the
-	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_TERMS}.
+	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_STRINGS}.
 	 * @see #MinimalPerfectHash(Iterable)
 	 */
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public MinimalPerfectHash( final Iterable<? extends CharSequence> terms, int weightLength ) {
-		if ( weightLength != WEIGHT_UNKNOWN && weightLength != WEIGHT_UNKNOWN_SORTED_TERMS && weightLength <= 0 ) throw new IllegalArgumentException( "Non-positive weight length: " + weightLength );
+		if ( weightLength != WEIGHT_UNKNOWN && weightLength != WEIGHT_UNKNOWN_SORTED_STRINGS && weightLength <= 0 ) throw new IllegalArgumentException( "Non-positive weight length: " + weightLength );
 
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( terms instanceof Collection) n = ((Collection<? extends CharSequence>)terms).size();
@@ -455,7 +495,7 @@ public class MinimalPerfectHash implements Serializable {
 					currTerm = i.next();
 					currLength = currTerm.length();
 
-					if ( weightLength == WEIGHT_UNKNOWN_SORTED_TERMS ) {
+					if ( weightLength == WEIGHT_UNKNOWN_SORTED_STRINGS ) {
 						for( k = 0; k < prevLength && k < currLength && currTerm.charAt( k ) == prevTerm.charAt( k ); k++ );
 		
 						if ( k == currLength && k == prevLength ) throw new IllegalArgumentException( "The term list contains a duplicate (" + currTerm + ")" );
@@ -469,7 +509,7 @@ public class MinimalPerfectHash implements Serializable {
 				}
 			}
 
-			weightLength = weightLength == WEIGHT_UNKNOWN_SORTED_TERMS ? minPrefixLength : maxLength;
+			weightLength = weightLength == WEIGHT_UNKNOWN_SORTED_STRINGS ? minPrefixLength : maxLength;
 
 			LOGGER.info( "Completed [max term length=" + maxLength + "; weight length=" + weightLength + "]." );
 		}
@@ -481,7 +521,7 @@ public class MinimalPerfectHash implements Serializable {
 		init = new int[ 3 ];
 		this.weightLength = weightLength;
 
-		if ( n < TERM_THRESHOLD ) {
+		if ( n < STRING_THRESHOLD ) {
 			int j = 0;
 			t = new MutableString[ n ];
 			for( Iterator<? extends CharSequence> i = terms.iterator(); i.hasNext(); ) t[ j++ ] = new MutableString( i.next() ); 
@@ -546,7 +586,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * @param encoding the encoding of <code>termFile</code>; if <code>null</code>, it
 	 * is assumed to be the platform default encoding.
 	 * @param weightLength the number of weights used generating the
-	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_TERMS}.
+	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_STRINGS}.
 	 * @param zipped if true, the provided file is zipped and will be opened using a {@link GZIPInputStream}.
 	 * @see #MinimalPerfectHash(Iterable, int)
 	 */
@@ -583,7 +623,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * @param encoding the encoding of <code>termFile</code>; if <code>null</code>, it
 	 * is assumed to be the platform default encoding.
 	 * @param weightLength the number of weights used generating the
-	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_TERMS}.
+	 * intermediate hash functions, {@link #WEIGHT_UNKNOWN} or {@link #WEIGHT_UNKNOWN_SORTED_STRINGS}.
 	 * @see #MinimalPerfectHash(Iterable, int)
 	 */
 
@@ -819,29 +859,6 @@ public class MinimalPerfectHash implements Serializable {
 			LOGGER.info( "Completed." );
 		}
 
-		/*
-
-		This is the original recursive visit. It is here for documentation purposes. It
-		cannot handle more than about 1,000,000 terms.
-
-		private void visit( int x ) {
-		int i, j, k = -1;
-			
-		for( i = 0; i < last[x]; i++ ) 
-		if ( !removed[ k = ((int[])inc[x])[i] ] ) break; // The only hyperedge incident on x in the current configuration.
-		stack[top++] = k;
-
-		// We update the degrees and the incidence lists. 
-		removed[k] = true;
-		for( i = 0; i < 3; i++ ) d[edge[i][k]]--;
-				
-		// We follow recursively the other vertices of the hyperedge, if they have degree one in the current configuration.
-		for( i = 0; i < 3; i++ ) 
-		if ( edge[i][k] != x && d[edge[i][k]] == 1 ) 
-		visit( edge[i][k] );
-		}
-		*/
-
 		final int[] recStackI = new int[ n ]; // The stack for i.
 		final int[] recStackK = new int[ n ]; // The stack for k.
 
@@ -901,71 +918,61 @@ public class MinimalPerfectHash implements Serializable {
 
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
-		if ( n < TERM_THRESHOLD ) s.writeObject( t );
+		if ( n < STRING_THRESHOLD ) s.writeObject( t );
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException, IllegalArgumentException, SecurityException {
 		s.defaultReadObject();
 		n4 = n * 4;
 		bits = LongArrayBitVector.wrap( array, m * 2 ).asLongBigList( 2 );
-		if ( n < TERM_THRESHOLD ) t = (CharSequence[])s.readObject();
+		if ( n < STRING_THRESHOLD ) t = (CharSequence[])s.readObject();
 	}
 
-	/** A main method for minimal perfect hash construction that accepts a default class.
-	 *  
-	 * @param klass the default class to be built.
-	 * @param arg the usual argument array.
-	 */
-    @SuppressWarnings("unused")
-	protected static void main( final Class<? extends MinimalPerfectHash> klass, final String[] arg ) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
+	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( klass.getName(), "Builds a minimal perfect hash table reading a newline-separated list of terms.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect hash table reading a newline-separated list of strings.",
 				new Parameter[] {
-					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
-					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
-					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
-					new Switch( "sorted", 's', "sorted", "The term list is sorted--optimise weight length." ),
-					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
-					new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
+			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
+			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new Switch( "sorted", 's', "sorted", "The string list is sorted--optimise weight length." ),
+			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
+			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
 		});
-		
+
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
-		
+
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String tableName = jsapResult.getString( "table" );
-		final String termFile = jsapResult.getString( "termFile" );
+		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean sorted = jsapResult.getBoolean( "sorted" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		
+
 		final MinimalPerfectHash minimalPerfectHash;
-		
-		if ( termFile == null ) {
-			ArrayList<MutableString> termList = new ArrayList<MutableString>();
+
+		if ( stringFile == null ) {
+			ArrayList<MutableString> stringList = new ArrayList<MutableString>();
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.itemsName = "terms";
-			final LineIterator termIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
-			
-			pl.start( "Reading terms..." );
-			while( termIterator.hasNext() ) termList.add( termIterator.next().copy() );
+			pl.itemsName = "strings";
+			final LineIterator stringIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
+
+			pl.start( "Reading strings..." );
+			while( stringIterator.hasNext() ) stringList.add( stringIterator.next().copy() );
 			pl.done();
-			
+
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash( termList, sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN );
+			minimalPerfectHash = new MinimalPerfectHash( stringList, sorted ? WEIGHT_UNKNOWN_SORTED_STRINGS : WEIGHT_UNKNOWN );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash( termFile, encoding.toString(), sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN, zipped );
+			minimalPerfectHash = new MinimalPerfectHash( stringFile, encoding.toString(), sorted ? WEIGHT_UNKNOWN_SORTED_STRINGS : WEIGHT_UNKNOWN, zipped );
 		}
-		
+
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( minimalPerfectHash, tableName );
 		LOGGER.info( "Completed." );
 	}
-
-    public static void main( final String[] arg ) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
-    	main( MinimalPerfectHash.class, arg );
-    }
 
 }

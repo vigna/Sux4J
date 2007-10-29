@@ -25,7 +25,7 @@ public class FastTest extends TestCase {
 			assertEquals( i, Fast.mostSignificantBit( 1L << i | 1 ) );
 		}
 		
-		for( long i = 1; i < ( 1L << 62 ); i += 1000000000000L )
+		for( long i = 1; i < ( 1L << 62 ); i += 10000000000000L )
 			assertEquals( Long.toString( i ), 63 - Long.numberOfLeadingZeros( i ), Fast.mostSignificantBit( i ) );
 	}
 
@@ -38,7 +38,7 @@ public class FastTest extends TestCase {
 			assertEquals( 0, Fast.leastSignificantBit( 1L << i | 1 ) );
 		}
 		
-		for( long i = 1; i < ( 1L << 62 ); i += 1000000000000L )
+		for( long i = 1; i < ( 1L << 62 ); i += 10000000000000L )
 			assertEquals( Long.toString( i ), Long.numberOfTrailingZeros( i ), Fast.leastSignificantBit( i ) );
 	}
 
