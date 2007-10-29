@@ -77,10 +77,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
- * a {@linkplain RankAndSelect rank} structure, which is an embedded variant of <code>rank9</code>
- * and increases space occupancy by 25%, bringing the actual occupied spaces to slightly more
- * than 3 bits per string.
- *
+ * a {@linkplain RankAndSelect rank} structure, which in practise is an embedded variant of <code>rank9</code>
+ * and increases space occupancy by 25%, bringing the actual occupied spaces to around 3.07 bits per string.
+ * 
  * <P>This class is very scalable, and if you have enough memory it will handle
  * efficiently hundreds of millions of terms: in particular, the 
  * {@linkplain #MinimalPerfectHash(Iterable, int) offline constructor}
@@ -94,7 +93,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated terms, and
- * writes a serialised minimal perfect hash table for the given list.
+ * writes a serialised minimal perfect hash for the given list.
  * 
  * <P>For efficiency, there are also method that access a minimal perfect hash
  * {@linkplain #getNumber(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
@@ -105,11 +104,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * one can just give estimates of the expected time.
  * 
  * <P>There are two probabilistic sources of problems: duplicate hyperedges and non-acyclic hypergraphs.
- * The probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity, so it is not a source of problems.
- * Once the hypergraph has been generated, the stripping procedure may fail. However, the expected number
- * of trials tends to 1 as <var>n</var> approaches infinity (Czech, Havas and Majewski, for 
- * instance, report that on a set of 50,000 terms
- * they obtained consistently one trial for more than 5000 experiments).
+ * However, the probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity,
+ * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
+ * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
  * <P>To help diagnosing problem with the generation process
  * class, this class will log at {@link org.apache.log4j.Level#INFO INFO} level
@@ -125,17 +122,14 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHash implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = it.unimi.dsi.mg4j.util.Fast.getLogger( MinimalPerfectHash.class );
+	private static final Logger LOGGER = Fast.getLogger( MinimalPerfectHash.class );
 	
 	private static final boolean DEBUG = true;
 	
 	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
 	public static final float ENLARGEMENT_FACTOR = 1.23f;
-
 	/** The number of bits per block in the rank8 structure. */
 	private static final int BITS_PER_BLOCK = 512;
-	
-	// TODO: use original deterministic trick
 	/** The minimum number of terms that will trigger the construction of a minimal perfect hash;
 	 * overwise, terms are simply stored in a vector. */
 	public static final int TERM_THRESHOLD = 16;
@@ -174,7 +168,6 @@ public class MinimalPerfectHash implements Serializable {
 	protected transient long n4;
 	/** If {@link #n} is smaller than {@link #TERM_THRESHOLD}, a vector containing the terms. */
 	protected transient CharSequence[] t;
-    
     
 	/*
 	 * The following four methods MUST be kept synchronised. The reason why we duplicate code is
@@ -369,7 +362,6 @@ public class MinimalPerfectHash implements Serializable {
 	public int weightLength() {
 		return weightLength;
 	}
-
 
 	/** Returns the number of terms hashed.
 	 *
@@ -899,7 +891,7 @@ public class MinimalPerfectHash implements Serializable {
 		if ( n < TERM_THRESHOLD ) s.writeObject( t );
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException, IllegalArgumentException, SecurityException, IllegalAccessException, NoSuchFieldException {
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException, IllegalArgumentException, SecurityException {
 		s.defaultReadObject();
 		n4 = n * 4;
 		bits = LongArrayBitVector.wrap( array, m * 2 ).asLongBigList( 2 );

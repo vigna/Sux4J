@@ -1,5 +1,12 @@
 package it.unimi.dsi.sux4j.bits;
 
+import java.util.Enumeration;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -192,6 +199,58 @@ public final class Fast {
 		if ( ( x & 0xFFFFFFFFFFFFL ) != 0 ) return BYTELSB[ (int)( x >>> 40 & 0xFF ) ] + 40;
 		if ( ( x & 0xFFFFFFFFFFFFFFL ) != 0 ) return BYTELSB[ (int)( x >>> 48 & 0xFF ) ] + 48;
 		return BYTELSB[ (int)( x >>> 56 & 0xFF ) ] + 56;
+	}
+
+	
+	/** Checks whether Log4J is properly configuring by searching for appenders in all loggers.
+	 * 
+	 * @return whether Log4J is configured (or, at least, an educated guess).
+	 */
+	
+	public static boolean log4JIsConfigured() {
+		if ( Logger.getRootLogger().getAllAppenders().hasMoreElements() ) return true;
+		Enumeration<?> loggers = LogManager.getCurrentLoggers();
+		while ( loggers.hasMoreElements() ) {
+			Logger logger = (Logger)loggers.nextElement();
+			if ( logger.getAllAppenders().hasMoreElements() ) return true;
+		}
+		return false;
+	}
+	
+	/** Ensures that Log4J is configured, by invoking, if necessary,
+	 * {@link org.apache.log4j.BasicConfigurator#configure()}, and
+	 * setting the root logger level to {@link Level#INFO}.
+	 */
+	
+	public static void ensureLog4JIsConfigured() {
+		ensureLog4JIsConfigured( Level.INFO );
+	}
+	
+	/** Ensures that Log4J is configured, by invoking, if necessary,
+	 * {@link org.apache.log4j.BasicConfigurator#configure()}, and
+	 * setting the root logger level to <code>level</code>.
+	 * 
+	 * @param level the required logging level.
+	 */
+	
+	public static void ensureLog4JIsConfigured( final Level level ) {
+		if ( ! log4JIsConfigured() ) {
+			System.err.println( "WARNING: MG4J is autoconfiguring Log4J. You should configure Log4J properly instead." );
+			BasicConfigurator.configure();
+			LogManager.getRootLogger().setLevel( level );
+		}
+	}
+	
+	/** Calls Log4J's {@link Logger#getLogger(java.lang.Class)} method and then {@link #ensureLog4JIsConfigured()}.
+	 * 
+	 * @param klass a class that will be passed to {@link Logger#getLogger(java.lang.Class)}.
+	 * @return the logger returned by {@link Logger#getLogger(java.lang.Class)}.
+	 */
+	
+	public static Logger getLogger( final Class<?> klass ) {
+		Logger logger = Logger.getLogger( klass );
+		ensureLog4JIsConfigured();
+		return logger;
 	}
 	
 	final private static byte[] LSB_TABLE = { 

@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2005-2007 Sebastiano Vigna 
+ * Copyright (C) 2007 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -34,6 +34,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanList;
  * {@link AbstractBitVector} and for creating mock objects.
  */
 public class BooleanListBitVector extends AbstractBitVector implements Serializable {
+	private static final long serialVersionUID = 1L;
 	/** The backing list. */
 	final private BooleanList list;
 	

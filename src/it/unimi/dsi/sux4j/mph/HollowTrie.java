@@ -9,9 +9,9 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
-import it.unimi.dsi.mg4j.util.Fast;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BitVectors;
+import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9Binary;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
@@ -166,7 +166,7 @@ public class HollowTrie<T> implements Serializable {
 		skipLocator = new Rank9Binary( borders );
 		
 		final long numBits = rankAndSelect.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
-		LOGGER.info( "Bits: " + numBits + " bits/string: " + Fast.format( (double)numBits / size ) );
+		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
 	

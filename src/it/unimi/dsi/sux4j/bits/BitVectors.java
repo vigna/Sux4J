@@ -1,11 +1,9 @@
 package it.unimi.dsi.sux4j.bits;
 
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
-
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2005-2007 Sebastiano Vigna 
+ * Copyright (C) 2007 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -23,6 +21,8 @@ import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
  *
  */
 
+
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 /** A class providing static methods and objects that do useful things with bit vectors.
  * 

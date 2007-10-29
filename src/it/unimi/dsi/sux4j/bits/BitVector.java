@@ -60,8 +60,7 @@ import java.util.RandomAccess;
  * 
  * <P>The {@link AbstractBitVector} class provides a fairly complete
  * abstract implementation that provides all methods except for the most
- * basic {@link #getBoolean(int)}, {@link #set(int)} and {@link #clear(int)}
- * operations. Of course, the methods of {@link it.unimi.dsi.sux4j.bits.AbstractBitVector} are
+ * basic operations. Of course, the methods of {@link it.unimi.dsi.sux4j.bits.AbstractBitVector} are
  * very inefficient, but implementations such as {@link it.unimi.dsi.sux4j.bits.LongArrayBitVector}
  * have their own optimised implementations. 
  */

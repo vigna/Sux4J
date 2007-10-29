@@ -12,8 +12,8 @@ public class FastTest extends TestCase {
 	public void testLength() {
 		assertEquals( 1, Fast.length( 0 ) );
 		assertEquals( 1, Fast.length( 0L ) );
-		for( int i = 1; i < 100; i++ ) assertEquals( it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
-		for( long i = 1; i < 100; i++ ) assertEquals( it.unimi.dsi.mg4j.util.Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
+		for( int i = 1; i < 100; i++ ) assertEquals( Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
+		for( long i = 1; i < 100; i++ ) assertEquals( Fast.mostSignificantBit( i ) + 1, Fast.length( i ) ); 
 	}
 	
 	public void testMostSignificantBit() {
