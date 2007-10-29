@@ -52,9 +52,9 @@ import java.util.RandomAccess;
  * make it easy performing any kind of logical operation on subvectors.
  * 
  * <P>The only <i>caveat</i> is that sometimes the standard interface naming clashes slightly
- * with standard usage: for instance, {@link #clear(int)} will <em>not</em> set to zero
+ * with standard usage: for instance, {@link #clear(long)} will <em>not</em> set to zero
  * all bits (use {@link #fill(int) fill(0)} for that purpose), but rather will set the
- * vector length to zero. Also, {@link #add(int, int)} will not add logically a value at
+ * vector length to zero. Also, {@link #add(long, int)} will not add logically a value at
  * the specified index, but rather will insert a new bit with the specified value at the specified
  * position.
  * 
@@ -73,7 +73,7 @@ public interface BitVector extends RandomAccess, BooleanList {
 	public interface TransformationStrategy<T> extends Serializable {
 		/** Returns a bit vector representation of the given object.
 		 * 
-		 * <strong>Warning</strong>: string representations must be prefix-free. This
+		 * <p><strong>Warning</strong>: string representations must be prefix-free. This
 		 * is essential to ensure that tries to work.
 		 * 
 		 * @param object the object to be turned into bit representation.

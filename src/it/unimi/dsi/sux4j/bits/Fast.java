@@ -1,12 +1,5 @@
 package it.unimi.dsi.sux4j.bits;
 
-import java.util.Enumeration;
-
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -27,6 +20,13 @@ import org.apache.log4j.Logger;
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  */
+
+import java.util.Enumeration;
+
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 
 /** All-purpose optimised bit-fiddling static-method container class.
@@ -235,7 +235,7 @@ public final class Fast {
 	
 	public static void ensureLog4JIsConfigured( final Level level ) {
 		if ( ! log4JIsConfigured() ) {
-			System.err.println( "WARNING: MG4J is autoconfiguring Log4J. You should configure Log4J properly instead." );
+			System.err.println( "WARNING: Sux4J is autoconfiguring Log4J. You should configure Log4J properly instead." );
 			BasicConfigurator.configure();
 			LogManager.getRootLogger().setLevel( level );
 		}

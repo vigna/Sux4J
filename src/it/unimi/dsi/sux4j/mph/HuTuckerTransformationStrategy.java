@@ -10,12 +10,20 @@ import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.util.Iterator;
 
+/** A transformation strategy mapping strings to their {@linkplain HuTuckerCodec Hu-Tucker encoding}. The
+ * encoding is guaranteed to preserve lexicographical ordering. */
+
 public class HuTuckerTransformationStrategy implements TransformationStrategy<CharSequence> {
 	private static final long serialVersionUID = 1;
 	
 	private cern.colt.bitvector.BitVector[] codeWord;
 	private Char2IntOpenHashMap char2symbol;
 
+	/** Creates a Hu-Tucker transformation strategy for the character sequences returned by the given iterable. The
+	 * strategy will map a string to its Hu-Tucker encoding.
+	 * 
+	 * @param iterable an iterable object returning character sequences.
+	 */
 	public HuTuckerTransformationStrategy( final Iterable<? extends CharSequence> iterable ) {
 		// First of all, we gather frequencies for all Unicode characters
 		int[] frequency = new int[ Character.MAX_VALUE + 1 ]; 

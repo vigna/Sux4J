@@ -77,8 +77,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
- * a {@linkplain RankAndSelect rank} structure, which in practise is an embedded variant of <code>rank9</code>
- * and increases space occupancy by 25%, bringing the actual occupied spaces to around 3.07 bits per string.
+ * an embedded {@linkplain RankAndSelect rank} structure, which uses {@linkplain #countNonzeroPairs(long) broadword techniques}
+ * to rank inside a long and records the number of pairs each {@link #BITS_PER_BLOCK} bits;
+ * it increases space occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
  * 
  * <P>This class is very scalable, and if you have enough memory it will handle
  * efficiently hundreds of millions of terms: in particular, the 
@@ -128,7 +129,7 @@ public class MinimalPerfectHash implements Serializable {
 	
 	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
 	public static final float ENLARGEMENT_FACTOR = 1.23f;
-	/** The number of bits per block in the rank8 structure. */
+	/** The number of bits per block in the rank structure. */
 	private static final int BITS_PER_BLOCK = 512;
 	/** The minimum number of terms that will trigger the construction of a minimal perfect hash;
 	 * overwise, terms are simply stored in a vector. */
@@ -162,8 +163,8 @@ public class MinimalPerfectHash implements Serializable {
 	protected transient LongBigList bits;
 	/** The bit array supporting {@link #bits}. */
 	final protected long[] array;
-	/** The support array used for constant-time ranking. */
-	final protected long rank8[];
+	/** The number of nonzero bit pairs up to a given block. */
+	final protected int count[];
 	/** Four times the number of buckets. */
 	protected transient long n4;
 	/** If {@link #n} is smaller than {@link #TERM_THRESHOLD}, a vector containing the terms. */
@@ -490,12 +491,11 @@ public class MinimalPerfectHash implements Serializable {
 			new Visit( terms );
 		}
 		
-		rank8 = new long[ ( 2 * m / BITS_PER_BLOCK ) * 2 ];
-		long c = 0, s = 0;
+		count = new int[ 2 * m / BITS_PER_BLOCK ];
+		int c = 0;
 		
 		for( int i = 0; i < 2 * m / Long.SIZE; i++ ) {
-			if ( ( i & 7 ) == 0 ) rank8[ i / 8 * 2 ] = s = c;
-			else rank8[ i / 8 * 2 + 1 ] |= ( c - s ) << ( i & 7 ) * 8;
+			if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
 			c += countNonzeroPairs( array[ i ] );
 		}
 		
@@ -509,6 +509,17 @@ public class MinimalPerfectHash implements Serializable {
 		}
 	}
 
+	/** Counts the number of nonzero pairs of bits in a long.
+	 * 
+	 * <p>This method uses a very simple modification of the classical
+	 * {@linkplain Fast#count(long) broadword algorithm to count the number of ones in a word}.
+	 * Usually, in the first step of the algorithm one computes the number of ones in each pair of bits.
+	 * Instead, we compute one iff at least one of the bits in the pair is nonzero.
+	 * 
+	 * @param x a long.
+	 * @return the number of nonzero bit pairs in <code>x</code>.
+	 */
+	
 	public static int countNonzeroPairs( final long x ) {
 		long byteSums = ( x | x >>> 1 ) & 0x5 * Fast.ONES_STEP_4;
         byteSums = ( byteSums & 3 * Fast.ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * Fast.ONES_STEP_4 );
@@ -518,10 +529,12 @@ public class MinimalPerfectHash implements Serializable {
 
 	public int rank( long x ) {
 		x = 2 * x;
-		final int countOffset = (int)( ( x / BITS_PER_BLOCK ) * 2 );
-		return (int)( rank8[ countOffset ] + 
-			( rank8[ countOffset + 1 ] >>> ( x / Long.SIZE & 7 ) * 8 & 0xFF )
-			+ countNonzeroPairs( array[ (int)( x / Long.SIZE ) ] & ( 1L << x % Long.SIZE ) - 1 ) );
+		final int word = (int)( x / Long.SIZE );
+		int rank = count[ word / 8 ];
+		int wordInBlock = word & ~7;
+		while( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
+		
+		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
 	}
 
 	/** Creates a new order-preserving minimal perfect hash table for the (possibly <samp>gzip</samp>'d) given file 
@@ -613,7 +626,7 @@ public class MinimalPerfectHash implements Serializable {
 		this.init = mph.init;
 		this.bits = mph.bits;
 		this.array = mph.array;
-		this.rank8 = mph.rank8;
+		this.count = mph.count;
 		this.n4 = mph.n4;
 		this.t = mph.t;
 	}
