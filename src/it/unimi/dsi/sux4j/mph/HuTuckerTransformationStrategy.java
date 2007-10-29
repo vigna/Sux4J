@@ -1,6 +1,5 @@
 package it.unimi.dsi.sux4j.mph;
 
-import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.chars.Char2IntMap;
 import it.unimi.dsi.fastutil.chars.Char2IntOpenHashMap;
 import it.unimi.dsi.mg4j.compression.HuTuckerCodec;
@@ -108,6 +107,6 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 	public long numBits() {
 		long numBits = 0;
 		for( int i = codeWord.length; i-- != 0; ) numBits += codeWord[ i ].size();
-		return (long)( numBits + ( char2symbol.size() * ( Character.SIZE + Integer.SIZE ) / Hash.DEFAULT_LOAD_FACTOR ) );
+		return numBits;
 	}
 }

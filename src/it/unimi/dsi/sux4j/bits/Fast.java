@@ -82,17 +82,17 @@ public final class Fast {
         return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
 	
-	/** Returns the leftmost position preceded by a given number of ones.
+	/** Returns the position of a bit of given rank.
 	 * 
 	 * <p>This method implements a new broadword algorithm. 
 	 * 
 	 * @param x a long.
-	 * @param k a rank.
-	 * @return the leftmost position in <code>x</code> preceded by <code>k</code> ones; if no such
-	 * positions exists, returns 72.
+	 * @param rank a rank.
+	 * @return the position in <code>x</code> of the bit of rank <code>k</code> ones; if no such
+	 * bit exists, returns 72.
 	 */
-	public static int select( final long x, final int k ) {
-        if ( ASSERTS ) assert k < count( x ) : k + " >= " + count( x );
+	public static int select( final long x, final int rank ) {
+        if ( ASSERTS ) assert rank < count( x ) : rank + " >= " + count( x );
 
         // Phase 1: sums by byte
         long byteSums = x - ( ( x & 0xa * ONES_STEP_4 ) >>> 1 );
@@ -101,19 +101,19 @@ public final class Fast {
         byteSums *= ONES_STEP_8;
         
         // Phase 2: compare each byte sum with k
-        final long kStep8 = k * ONES_STEP_8;
-        final long place = ( ( ( ( ( ( kStep8 | MSBS_STEP_8 ) - ( byteSums & ~MSBS_STEP_8 ) ) ^ byteSums ^ kStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 53 ) & ~0x7;
+        final long rankStep8 = rank * ONES_STEP_8;
+        final long byteOffset = ( ( ( ( ( ( rankStep8 | MSBS_STEP_8 ) - ( byteSums & ~MSBS_STEP_8 ) ) ^ byteSums ^ rankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 53 ) & ~0x7;
 
         // Phase 3: Locate the relevant byte and make 8 copies with incrental masks
-        final int byteRank = (int)( k - ( ( ( byteSums << 8 ) >>> place ) & 0xFF ) );
+        final int byteRank = (int)( rank - ( ( ( byteSums << 8 ) >>> byteOffset ) & 0xFF ) );
 
-        final long spreadBits = ( x >>> place & 0xFF ) * ONES_STEP_8 & INCR_STEP_8;
+        final long spreadBits = ( x >>> byteOffset & 0xFF ) * ONES_STEP_8 & INCR_STEP_8;
         final long bitSums = ( ( ( spreadBits | ( ( spreadBits | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8;
 
         // Compute the inside-byte location and return the sum
         final long byteRankStep8 = byteRank * ONES_STEP_8;
 
-        return (int)( place + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 ) );
+        return (int)( byteOffset + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 ) );
 	}
 
 

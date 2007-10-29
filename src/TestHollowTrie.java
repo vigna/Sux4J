@@ -10,6 +10,7 @@ import java.util.Iterator;
 public class TestHollowTrie {
 
 	
+	@SuppressWarnings("unchecked")
 	public static void main( String a[] ) throws IOException, ClassNotFoundException {
 		HollowTrie<CharSequence> trie = (HollowTrie<CharSequence>)BinIO.loadObject( a[ 0 ] );
 		Collection<MutableString> c = new FileLinesCollection( a[ 1 ], "UTF-8" ).allLines();

@@ -74,7 +74,7 @@ public class SimpleRankAndSelectTest extends RankAndSelectTestCase {
 
 		rankAndSelect = new Rank9Binary( new long[] { 1L << 63, 0 }, 65 );
 		assertRankAndSelect( rankAndSelect );
-		for( i = 64; i-- != 64; ) assertEquals( 1, rankAndSelect.rank( i ) );
+		for( i = 65; i-- != 64; ) assertEquals( 1, rankAndSelect.rank( i ) );
 		while( i-- != 0 ) assertEquals( 0, rankAndSelect.rank( i ) );
 		assertEquals( 63, rankAndSelect.select( 0 ) );
 		assertEquals( -1, rankAndSelect.select( 1 ) );

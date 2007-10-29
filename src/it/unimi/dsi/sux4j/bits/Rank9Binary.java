@@ -130,6 +130,6 @@ public class Rank9Binary extends AbstractRankAndSelect {
 	}
 
 	public long numBits() {
-		return count.length * Long.SIZE + inventory.length + Integer.SIZE;
+		return count.length * Long.SIZE + inventory.length * Integer.SIZE;
 	}
 }

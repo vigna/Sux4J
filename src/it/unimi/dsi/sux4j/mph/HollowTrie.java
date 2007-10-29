@@ -51,7 +51,6 @@ public class HollowTrie<T> implements Serializable {
 	private long numNodes;
 	private final TransformationStrategy<? super T> transform;
 	private int size;
-	private long trieBitLength;
 	
 	private final static class Node {
 		Node left, right;
@@ -165,7 +164,6 @@ public class HollowTrie<T> implements Serializable {
 			System.err.println( borders );
 		}
 		skipLocator = new Rank9Binary( borders );
-		trieBitLength = trie.length();
 		
 		final long numBits = rankAndSelect.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + Fast.format( (double)numBits / size ) );
@@ -273,7 +271,7 @@ public class HollowTrie<T> implements Serializable {
 	
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), trieBitLength );
+		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), rankAndSelect.numBits() );
 	}
 
 	
