@@ -18,7 +18,7 @@ import java.io.Serializable;
  *  </ul>
  *
  */
-public interface RankAndSelect extends Serializable {
+public interface RankSelect extends Serializable {
 
 	/** Returns the number of bits in the bit vector indexed by this class.
 	 * 

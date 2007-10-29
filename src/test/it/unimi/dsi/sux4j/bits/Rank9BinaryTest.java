@@ -5,7 +5,7 @@ import java.util.Random;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9Binary;
 
-public class Rank9BinaryTest extends RankAndSelectTestCase {
+public class Rank9BinaryTest extends RankSelectTestCase {
 	
 	public void testEmpty() {
 		Rank9Binary rankAndSelect;

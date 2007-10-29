@@ -23,7 +23,7 @@ package it.unimi.dsi.sux4j.bits;
 
 /** An abstract class providing a few obvious implementations. */
 
-public abstract class AbstractRankAndSelect implements RankAndSelect {
+public abstract class AbstractRankAndSelect implements RankSelect {
 
 	public long count() {
 		return rank( length() );

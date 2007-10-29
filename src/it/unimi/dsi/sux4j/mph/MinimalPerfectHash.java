@@ -33,7 +33,7 @@ import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
-import it.unimi.dsi.sux4j.bits.RankAndSelect;
+import it.unimi.dsi.sux4j.bits.RankSelect;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -77,7 +77,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
- * an embedded {@linkplain RankAndSelect rank} structure, which uses {@linkplain #countNonzeroPairs(long) broadword techniques}
+ * an embedded {@linkplain RankSelect rank} structure, which uses {@linkplain #countNonzeroPairs(long) broadword techniques}
  * to rank inside a long and records the number of pairs each {@link #BITS_PER_BLOCK} bits;
  * it increases space occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
  * 
