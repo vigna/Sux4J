@@ -230,33 +230,6 @@ public class MinimalPerfectHash implements Serializable {
     public static final long serialVersionUID = 1L;
     
     
-    int hash( char[] data, int start, int len ) {
-		int hash = start, tmp;
-		len >>= 2;
-
-		for ( int i = 0; i < len; i += 2 ) {
-			hash += data[ i ];
-			tmp = ( data[ i + 1 ] << 11 ) ^ hash;
-			hash = ( hash << 16 ) ^ tmp;
-			hash += hash >> 11;
-		}
-
-		if ( ( len & 1 ) != 0 ) {
-			hash += data[ len - 1 ];
-			hash ^= hash << 11;
-			hash += hash >> 17;
-		}
-
-		hash ^= hash << 3;
-		hash += hash >> 5;
-		hash ^= hash << 4;
-		hash += hash >> 17;
-		hash ^= hash << 25;
-		hash += hash >> 6;
-
-		return hash;
-	}
-
 	/*
 	 * The following three methods MUST be kept synchronised. The reason why we duplicate code is
 	 * that we do not want the overhead of allocating an array when searching for a string.
@@ -283,6 +256,11 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
+		
+		
+		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
+		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
+		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 		
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
@@ -318,6 +296,10 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
+
+		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
+		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
+		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
@@ -357,6 +339,10 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
+
+		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
+		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
+		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
