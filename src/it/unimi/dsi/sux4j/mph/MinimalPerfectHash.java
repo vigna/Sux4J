@@ -33,6 +33,7 @@ import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
+import it.unimi.dsi.sux4j.bits.RankAndSelect;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -66,15 +67,19 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-
-
 /** Minimal perfect hash.
  *
- * <P>Given a list of terms without duplicates, 
- * the constructors of this class finds a perfect hash function for
- * the list. Subsequent calls to the {@link #getNumber(CharSequence)} method will return the ordinal position of
- * the provided character sequence (if it appeared in the list; otherwise, the result is a random position). The class
+ * <P>Given a list of strings without duplicates, 
+ * the constructors of this class finds a minimal perfect hash function for
+ * the list. Subsequent calls to the {@link #getNumber(CharSequence)} method will return a distinct
+ * number for each string in the list (for strings out of the list, the resulting number is undefined). The class
  * can then be saved by serialisation and reused later.
+ *
+ * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
+ * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
+ * a {@linkplain RankAndSelect rank} structure, which is an embedded variant of <code>rank9</code>
+ * and increases space occupancy by 25%, bringing the actual occupied spaces to slightly more
+ * than 3 bits per string.
  *
  * <P>This class is very scalable, and if you have enough memory it will handle
  * efficiently hundreds of millions of terms: in particular, the 
@@ -89,77 +94,21 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated terms, and
- * writes a serialised minimal perfect hash table for the given list. You can
- * specify on the command line the kind of table (e.g., 
- * {@link it.unimi.dsi.mg4j.util.HashCodeSignedMinimalPerfectHash}) and have it fetched by reflection.
- * As a commodity, all signed classes in MG4J have a main method invoking the {@linkplain #main(Class, String[]) 
- * parameterised main method} of this class,
- * which accept the default class to be built. In this way, running the main method of
- * any signed class provides the same features. 
+ * writes a serialised minimal perfect hash table for the given list.
  * 
  * <P>For efficiency, there are also method that access a minimal perfect hash
  * {@linkplain #getNumber(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
- *
- * <h3>Implementation Details</h3> 
- *
- * <P>An object of this class uses about 1.23<var>n</var> integers between 0 and <var>n</var>-1 inclusive
- * to hash <var>n</var> terms. This is asymptotically optimal, but for small collections using an integer
- * wastes a large number of bits in each entry. At construction time, however, about 15<var>n</var> integers
- * (i.e., 60<var>n</var> bytes) are necessary.
- *
- * <P>The technique used here is suggested (but not fully described) in the second edition of <em>Managing
- * Gigabytes</em>. It is due to Havas, Majewski, Wormald and Czech, and it is fully described in
- * the monograph by Czech, Havas and Majewski on perfect hashing (&ldquo;Perfect Hashing&rdquo;, 
- * <i>Theoret. Comput. Sci.</i> 182:1&minus;143, 1997).
- *
- * <P>First, a triple of intermediate hash functions (generated via universal hashing) define for each
- * term a 3-hyperedge in a hypergraph with 1.23<var>n</var> vertices. Each intermediate hash function
- * uses a vector of random weights; the length of the vector is by default the length of the longest
- * term, but if the collection is sorted it is possible to compute the minimum length of a prefix that will
- * distinguish any pair of term. 
- * 
- * <P>Then, by successively
- * stripping hyperedges with one vertex of degree one, we create an ordering on the hyperedges. 
- * Finally, we assign (in reverse order) to each vertex of a hyperedge a number in the range
- * 0 and <var>n</var>-1 in such a way that the sum of the three numbers modulo <var>n</var> is exactly
- * the original index of the term corresponding to the hyperedge. This is possible with high probability, 
- * so we try until we succeed.
- * 
- * <P>Note that the mathematical results guaranteeing that it is possible to find a
- * function in expected constant time are <em>asymptotic</em>. 
- * Thus, when the number of terms is less than {@link #TERM_THRESHOLD}, an instance
- * of this class just stores the terms in a vector and scans them linearly. This behaviour,
- * however, is completely transparent to the user.
  *
  * <h3>Rounds and Logging</h3>
  * 
  * <P>Building a minimal perfect hash map may take hours. As it happens with all probabilistic algorithms,
  * one can just give estimates of the expected time.
  * 
- * <P>There are two probabilistic sources of problems: degenerate hyperedges and non-acyclic hypergraphs.
- * The ratio between the number of vertices and the number of terms guarantee that acyclicity is true with high
- * probability. However, when generating the hypergraph we use three hash functions, and it must never happen
- * that the value of two of those functions coincide on a given term. Because of the birthday paradox, the
- * probability of getting a nondegerate edge is just
- * <blockquote>
- * (<var>m</var>-1)(<var>m</var>-2)/<var>m</var><sup>2</sup>,
- * </blockquote>
- * where <var>m</var>=1.26<var>n</var>. Since this must happen for <var>n</var> times, we must raise
- * this probability to <var>n</var>, and as <var>n</var> grows the value quickly (and monotonically) 
- * reaches <i>e</i><sup>-3/1.26</sup>. So the expected number of trials to generate a random 3-hypergraph 
- * would be bounded by <i>e</i><sup>3/1.26</sup>, which is about 11. Note that this bound 
- * <em>does not depend on <var>n</var></em>.
- * 
- * <p>However, starting from MG4J 1.2 this class will patch deterministically the hash functions so that
- * degenerate edges are <em>extremely</em> unlikely (in fact, so unlikely they never happen). One round of
- * generation should be sufficient for generating a valid hypergraph. The fix is performed by adding
- * {@link #NODE_OVERHEAD} nodes to the graph, and using them to remap the random hash functions in case
- * of clashes. The fix must be repeated, of course, each time {@link #getNumber(MutableString)} is called,
- * but in the vaste majority of cases it reduces to two checks for equality with negative result.
- *
- * <P>Once the hypergraph has been generated, the stripping procedure may fail. However, the expected number
- * of trials tends to 1 as <var>n</var>
- * approaches infinity (Czech, Havas and Majewski, for instance, report that on a set of 50,000 terms
+ * <P>There are two probabilistic sources of problems: duplicate hyperedges and non-acyclic hypergraphs.
+ * The probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity, so it is not a source of problems.
+ * Once the hypergraph has been generated, the stripping procedure may fail. However, the expected number
+ * of trials tends to 1 as <var>n</var> approaches infinity (Czech, Havas and Majewski, for 
+ * instance, report that on a set of 50,000 terms
  * they obtained consistently one trial for more than 5000 experiments).
  *  
  * <P>To help diagnosing problem with the generation process
@@ -171,11 +120,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * suspect that there are duplicates in the term list, as duplicate hyperedges are <em>extremely</em> unlikely.
  *
  * @author Sebastiano Vigna
- * @author Paolo Boldi
  * @since 0.1
  */
 
 public class MinimalPerfectHash implements Serializable {
+    public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = it.unimi.dsi.mg4j.util.Fast.getLogger( MinimalPerfectHash.class );
 	
 	private static final boolean DEBUG = true;
@@ -225,13 +174,10 @@ public class MinimalPerfectHash implements Serializable {
 	protected transient long n4;
 	/** If {@link #n} is smaller than {@link #TERM_THRESHOLD}, a vector containing the terms. */
 	protected transient CharSequence[] t;
-
-
-    public static final long serialVersionUID = 1L;
     
     
 	/*
-	 * The following three methods MUST be kept synchronised. The reason why we duplicate code is
+	 * The following four methods MUST be kept synchronised. The reason why we duplicate code is
 	 * that we do not want the overhead of allocating an array when searching for a string.
 	 * 
 	 * Note that we don't use shift-add-xor hash functions (as in BloomFilter). They are
@@ -256,11 +202,6 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
-		
-		
-		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
-		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
-		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 		
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
@@ -296,10 +237,6 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
-
-		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
-		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
-		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
@@ -339,10 +276,6 @@ public class MinimalPerfectHash implements Serializable {
 			h1 ^= weight1[ i ] * c;
 			h2 ^= weight2[ i ] * c;
 		}
-
-		h0 = Hashes.superFastHash( term.toString().toCharArray(), init[ 0 ], term.length() );
-		h1 = Hashes.superFastHash( term.toString().toCharArray(), init[ 1 ], term.length() );
-		h2 = Hashes.superFastHash( term.toString().toCharArray(), init[ 2 ], term.length() );
 
 		h0 = ( h0 & 0x7FFFFFFF ) % m;
 		h1 = h0 + ( h1 & 0x7FFFFFFF ) % mMinus1 + 1;
@@ -595,7 +528,7 @@ public class MinimalPerfectHash implements Serializable {
 		x = 2 * x;
 		final int countOffset = (int)( ( x / BITS_PER_BLOCK ) * 2 );
 		return (int)( rank8[ countOffset ] + 
-			( rank8[ countOffset + 1 ] >> ( x / Long.SIZE & 7 ) * 8 & 0xFF )
+			( rank8[ countOffset + 1 ] >>> ( x / Long.SIZE & 7 ) * 8 & 0xFF )
 			+ countNonzeroPairs( array[ (int)( x / Long.SIZE ) ] & ( 1L << x % Long.SIZE ) - 1 ) );
 	}
 
@@ -984,7 +917,6 @@ public class MinimalPerfectHash implements Serializable {
 		final SimpleJSAP jsap = new SimpleJSAP( klass.getName(), "Builds a minimal perfect hash table reading a newline-separated list of terms.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
-					new FlaggedOption( "class", JSAP.CLASS_PARSER, klass.getName(), JSAP.NOT_REQUIRED, 'c', "class", "A subclass of MinimalPerfectHash to be used when creating the table." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
 					new Switch( "sorted", 's', "sorted", "The term list is sorted--optimise weight length." ),
@@ -998,7 +930,6 @@ public class MinimalPerfectHash implements Serializable {
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String tableName = jsapResult.getString( "table" );
 		final String termFile = jsapResult.getString( "termFile" );
-		final Class<?> tableClass = jsapResult.getClass( "class" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean sorted = jsapResult.getBoolean( "sorted" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
@@ -1016,11 +947,11 @@ public class MinimalPerfectHash implements Serializable {
 			pl.done();
 			
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = (MinimalPerfectHash)tableClass.getConstructor( Iterable.class, int.class ).newInstance( termList, Integer.valueOf( sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN ) );
+			minimalPerfectHash = new MinimalPerfectHash( termList, sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = (MinimalPerfectHash)tableClass.getConstructor( String.class, String.class, int.class, boolean.class ).newInstance( termFile, encoding.toString(), Integer.valueOf( sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN ), Boolean.valueOf( zipped ) );
+			minimalPerfectHash = new MinimalPerfectHash( termFile, encoding.toString(), sorted ? WEIGHT_UNKNOWN_SORTED_TERMS : WEIGHT_UNKNOWN, zipped );
 		}
 		
 		LOGGER.info( "Writing to file..." );		
