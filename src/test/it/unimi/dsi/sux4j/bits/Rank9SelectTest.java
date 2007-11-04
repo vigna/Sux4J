@@ -260,18 +260,4 @@ public class Rank9SelectTest extends RankSelectTestCase {
 			
 		}
 	}
-
-	static int rnd_curr = 1;
-
-	int rnd() {
-		return rnd_curr = (int)( ( 279470273L * rnd_curr ) % 4294967291L );
-	}
-
-	public void testTemp() {
-		Random r = new Random( 1 );
-		LongArrayBitVector v = LongArrayBitVector.getInstance( 100000 ).length( 100000 );
-		for( int i = 0; i < 100000; i++ ) v.set( i, rnd() >= 1L << 30 );
-		Rank9Select rs = new Rank9Select( v );
-		for( int i = (int)rs.count(); i-- != 0; ) assertEquals( i, rs.rank( rs.select( i ) ) );
-	}
 }

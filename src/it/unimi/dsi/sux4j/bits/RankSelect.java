@@ -6,7 +6,7 @@ package it.unimi.dsi.sux4j.bits;
  * <p>This interface combines {@link Rank} and {@link Select}.
  * Besides the standard {@link #rank(long)} and {@link #select(long)} methods, 
  * other natural derived operations are defined in terms of the former: for simplicity,
- * they are implemented in {@link AbstractRankAndSelect}.
+ * they are implemented in {@link AbstractRankSelect}.
  *  
  * <p>There is some variance in the literature about the exact semantics of rank and select&mdash;in most
  * cases, it is a matter of off-by-ones. This interface specifies a zero-based set of rank/select operations.

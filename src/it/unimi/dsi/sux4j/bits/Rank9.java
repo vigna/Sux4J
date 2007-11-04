@@ -33,7 +33,7 @@ public class Rank9 implements Rank {
 			c += Fast.count( bits[ i ] );
 			if ( bits[ i ] != 0 ) l = i * 64 + Fast.mostSignificantBit( bits[ i ] );
 			for( int j = 1;  j < 8; j++ ) {
-				count[ pos + 1 ] |= ( ( i + j <= numWords ) ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
+				count[ pos + 1 ] |= ( ( true && i + j <= numWords ) ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
 				if ( i + j < numWords ) {
 					c += Fast.count( bits[ i + j ] );
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64 + Fast.mostSignificantBit( bits[ i + j ] );

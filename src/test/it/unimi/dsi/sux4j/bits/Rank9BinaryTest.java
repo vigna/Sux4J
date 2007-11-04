@@ -199,4 +199,5 @@ public class Rank9BinaryTest extends RankSelectTestCase {
 			
 		}
 	}
+	
 }
