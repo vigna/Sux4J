@@ -56,6 +56,8 @@ import java.io.Serializable;
 
 // TODO: take care that unused bits are zeroes
 
+// TODO: implement subVector properly
+
 public class LongArrayBitVector extends AbstractBitVector implements Cloneable, Serializable {
 	private static final long serialVersionUID = 1L;
 	public final static int LOG2_BITS_PER_WORD = 6;
@@ -258,8 +260,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 
 		if ( index == length - 1 ) set( index, value );
 		else {
-			final int word
-			= word( index );
+			final int word = word( index );
 			final int bit = bit( index );
 			boolean carry = ( bits[ word ] & LAST_BIT_MASK ) != 0, nextCarry;
 			long t = bits[ word ];
@@ -267,7 +268,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 			else t = ( t & - ( 1L << bit ) ) << 1 | t & ( 1L << bit ) - 1;
 			if ( value ) t |= 1L << bit;
 			bits[ word ] = t;
-			for( int i = word + 1; i < numWords( length ); i++ ) {
+			final int numWords = numWords( length );
+			for( int i = word + 1; i < numWords; i++ ) {
 				nextCarry = ( bits[ i ] & LAST_BIT_MASK ) != 0;
 				bits[ i ] <<= 1;
 				if ( carry ) bits[ i ] |= 1;
@@ -282,12 +284,12 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		if ( CHECKS ) ensureRestrictedIndex( index );
 		final boolean oldValue = getBoolean( index );
 		final long[] bits = this.bits;
-		length--;
 
 		final int word = word( index );
 		final int bit = bit( index );
 		bits[ word ] = ( bits[ word ] & - ( 1L << bit ) << 1 ) >>> 1 | bits[ word ] & ( 1L << bit ) - 1;
-		for( int i = word + 1; i < numWords( length ); i++ ) {
+		final int numWords = numWords( length-- );
+		for( int i = word + 1; i < numWords; i++ ) {
 			if ( ( bits[ i ] & 1 ) != 0 ) bits[ i - 1 ] |= LAST_BIT_MASK;
 			bits[ i ] >>>= 1;
 		}
@@ -314,7 +316,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return this;
 	}
 
-	public long extract( long from, long to ) {
+	public long getLong( long from, long to ) {
 		if ( from == to ) return 0;
 		to--;
 		final int startWord = word( from );
@@ -408,7 +410,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	
 	
-	/** Wraps the given array of longs in a bit vector.
+	/** Wraps the given array of longs in a bit vector for the given number of bits.
 	 * 
 	 * <p>Note that all bits in <code>array</code> beyond that of index
 	 * <code>size</code> must be unset, or an exception will be thrown.
@@ -429,7 +431,16 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		for( int i = lastWord + 1; i < arrayLength; i++ ) if ( array[ i ] != 0 ) throw new IllegalArgumentException( "Garbage beyond size in bit array" );
 		return result;
 	}
-	
+
+	/** Wraps the given array of longs in a bit vector.
+	 * 
+	 * @param array an array of longs.
+	 * @return a bit vector of size <code>array.length * Long.SIZE</code> using <code>array</code> as backing array.
+	 */
+	public static LongArrayBitVector wrap( final long[] array ) {
+		return wrap( array, array.length * Long.SIZE );
+	}
+
 	/** Returns a cloned copy of this bit vector.
 	 * 
 	 * <P>This method is functionally equivalent to {@link #copy()},
@@ -481,21 +492,19 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 			this.bitVector = bitVector;
 		}
 		
-		public void add( long index, long value ) {
-			// TODO: implement
-			throw new UnsupportedOperationException();
-		}
-		
+		@Override
 		public boolean add( long value ) {
 			bitVector.append( value, width );
 			return true;
 		}
 
+		@Override
 		public long getLong( long index ) {
 			final long start = index * width;
-			return bitVector.extract( start, start + width );
+			return bitVector.getLong( start, start + width );
 		}
 
+		@Override
 		public long set( long index, long value ) {
 			if ( value > maxValue ) throw new IllegalArgumentException();
 			final long bits[] = bitVector.bits;
@@ -526,6 +535,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		}
 	}
 	
+	@Override
 	public LongBigList asLongBigList( final int width ) {
 		return new LongBigListView( this, width );
 	}	

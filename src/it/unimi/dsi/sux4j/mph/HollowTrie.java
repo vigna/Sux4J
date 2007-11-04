@@ -5,6 +5,7 @@ import static it.unimi.dsi.sux4j.bits.Fast.length;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
@@ -43,13 +44,10 @@ public class HollowTrie<T> implements Serializable {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	public LongArrayBitVector skips;
-	public transient BitVector trie;
-	public long lastOne;
-	public Rank9Binary rankAndSelect;
-	private Rank9Binary skipLocator;
-	private transient Node root;
-	private long numNodes;
+	private LongArrayBitVector skips;
+	private transient BitVector trie;
+	public final Rank9Binary rankAndSelect;
+	private final Rank9Binary skipLocator;
 	private final TransformationStrategy<? super T> transform;
 	private int size;
 	
@@ -67,13 +65,13 @@ public class HollowTrie<T> implements Serializable {
 	
 	
 	public long getLeafIndex( final T object ) {
-		//System.err.println( bitVector );
+		if ( size == 0 ) return -1;
 		final BitVector bitVector = transform.toBitVector( object );
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
 		
 		for(;;) {
-			if ( ( s += (int)skips.extract( skipLocator.select( r ), skipLocator.select( r + 1 ) ) ) >= length ) return -1;
+			if ( ( s += (int)skips.getLong( skipLocator.select( r ), skipLocator.select( r + 1 ) ) ) >= length ) return -1;
 
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
@@ -113,9 +111,82 @@ public class HollowTrie<T> implements Serializable {
 		return index;
 	}
 	
-	public void succinct() {
+	public HollowTrie( final Iterable<? extends T> iterable, final BitVector.TransformationStrategy<? super T> transform ) {
+		this( iterable.iterator(), transform );
+	}
+		
+	public HollowTrie( final Iterator<? extends T> iterator, final BitVector.TransformationStrategy<? super T> transform ) {
+
+		this.transform = transform;
+		if ( ! iterator.hasNext() ) {
+			rankAndSelect = new Rank9Binary( LongArrays.EMPTY_ARRAY, 0 );
+			skipLocator = null;
+			return;
+		}
+		
+		BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
+		int prefix, size = 0, numNodes = 0;
+		Node root = null, node, parent;
+	
+		while( iterator.hasNext() ) {
+			size++;
+			curr = transform.toBitVector( iterator.next() );
+			if ( prev.compareTo( curr ) >= 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+			prefix = (int)curr.maximumCommonPrefixLength( prev );
+			if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+			
+			node = root;
+			parent = null;
+			Node n = null;
+			while( node != null ) {
+				if ( prefix < node.skip ) {
+					n = new Node( node, null, prefix );
+					numNodes++;
+					if ( parent == null ) {
+						root.skip -= prefix + 1;
+						if ( ASSERTS ) assert root.skip >= 0;
+						root = n;
+					}
+					else {
+						parent.right = n;
+						node.skip -= prefix + 1;
+						if ( ASSERTS ) assert node.skip >= 0;
+					}
+					break;
+				}
+			
+				prefix -= node.skip + 1;
+				parent = node;
+				node = node.right;
+			}
+			
+			if ( node == null ) {
+				if ( parent == null ) root = new Node( null, null, prefix );
+				else parent.right = new Node( null, null, prefix );
+				numNodes++;
+			}
+			
+			if ( ASSERTS ) {
+				long s = 0;
+				Node m = root;
+				while( m != null ) {
+					s += m.skip;
+					if ( curr.getBoolean( s ) ) {
+						if ( m.right == null ) break;
+					}
+					else if ( m.left == null ) break;
+					m = curr.getBoolean( s ) ? m.right : m.left;
+					s++;
+				}
+				assert parent == null || ( node == null ? m == parent.right : m == n );
+			}
+			
+			prev = curr.copy();
+		}
+		
+		this.size = size;
+
 		final BitVector bitVector = LongArrayBitVector.getInstance( 2 * numNodes + 1 );
-		if ( numNodes == 0 ) return;
 		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
 		final IntArrayList skips = new IntArrayList();
 		int p = 0, maxSkip = Integer.MIN_VALUE;
@@ -129,7 +200,6 @@ public class HollowTrie<T> implements Serializable {
 			n = queue.get( p );
 			if ( maxSkip < n.skip ) maxSkip = n.skip;
 			skips.add( n.skip );
-			// We shouldn't really record 0 skips
 			skipsLength += length( n.skip );
 			bitVector.add( n.left != null );
 			bitVector.add( n.right != null );
@@ -140,11 +210,11 @@ public class HollowTrie<T> implements Serializable {
 		
 		trie = bitVector;
 		rankAndSelect = new Rank9Binary( bitVector );
-		lastOne = rankAndSelect.lastOne();
-		final int skipWidth = ceilLog2( maxSkip ) + 1;
-		final int skipLogWidth = ceilLog2( skipWidth ) + 1;
+		final int skipWidth = ceilLog2( maxSkip );
+
+		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
-		LOGGER.info( "Max skip log width: " + skipLogWidth );
+		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		this.skips = LongArrayBitVector.getInstance( skipsLength );
 		final LongArrayBitVector borders = LongArrayBitVector.getInstance( skipsLength );
 		int s = skips.size();
@@ -170,79 +240,6 @@ public class HollowTrie<T> implements Serializable {
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
-	
-	public HollowTrie( final Iterable<? extends T> iterable, final BitVector.TransformationStrategy<? super T> transform ) {
-		this( iterable.iterator(), transform );
-	}
-		
-	public HollowTrie( final Iterator<? extends T> iterator, final BitVector.TransformationStrategy<? super T> transform ) {
-
-		this.transform = transform;
-		if ( ! iterator.hasNext() ) return;
-		
-		BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
-		int prefix, size = 0;
-		Node p, parent;
-	
-		while( iterator.hasNext() ) {
-			size++;
-			curr = transform.toBitVector( iterator.next() );
-			if ( prev.compareTo( curr ) >= 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-			prefix = (int)curr.maximumCommonPrefixLength( prev );
-			if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
-			
-			p = root;
-			parent = null;
-			Node n = null;
-			while( p != null ) {
-				if ( prefix < p.skip ) {
-					n = new Node( p, null, prefix );
-					numNodes++;
-					if ( parent == null ) {
-						root.skip -= prefix + 1;
-						if ( ASSERTS ) assert root.skip >= 0;
-						root = n;
-					}
-					else {
-						parent.right = n;
-						p.skip -= prefix + 1;
-						if ( ASSERTS ) assert p.skip >= 0;
-					}
-					break;
-				}
-			
-				prefix -= p.skip + 1;
-				parent = p;
-				p = p.right;
-			}
-			
-			if ( p == null ) {
-				if ( parent == null ) root = new Node( null, null, prefix );
-				else parent.right = new Node( null, null, prefix );
-				numNodes++;
-			}
-			
-			if ( ASSERTS ) {
-				long s = 0;
-				Node m = root;
-				while( m != null ) {
-					s += m.skip;
-					if ( curr.getBoolean( s ) ) {
-						if ( m.right == null ) break;
-					}
-					else if ( m.left == null ) break;
-					m = curr.getBoolean( s ) ? m.right : m.left;
-					s++;
-				}
-				assert parent == null || ( p == null ? m == parent.right : m == n );
-			}
-			
-			prev = curr.copy();
-		}
-		
-		this.size = size;
-	}
-	
 	public int size() {
 		return size;
 	}
@@ -264,12 +261,6 @@ public class HollowTrie<T> implements Serializable {
 		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
 	}
 	
-	public String toString() {
-		StringBuilder s = new StringBuilder();
-		recToString( root, new StringBuilder(), s, new StringBuilder(), 0 );
-		return s.toString();
-	}
-
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
 	}
@@ -310,12 +301,10 @@ public class HollowTrie<T> implements Serializable {
 
 		if ( termFile == null ) {
 			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), BitVectors.utf16() );
-			hollowTrie.succinct();
 		}
 		else {
 			FileLinesCollection collection = new FileLinesCollection( termFile, encoding.toString(), zipped );
 			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : BitVectors.utf16() );
-			hollowTrie.succinct();
 		}
 		
 		LOGGER.info( "Writing to file..." );		

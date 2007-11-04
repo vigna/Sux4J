@@ -51,10 +51,7 @@ public class FastTest extends TestCase {
 	}
 
 	public void testSelect() {
-		assertEquals( 72, Fast.select( 0, 0 ) );
-		assertEquals( 72, Fast.select( 0, 1 ) );
 		assertEquals( 0, Fast.select( 1, 0 ) );
-		assertEquals( 72, Fast.select( 1, 1 ) );
 		for( int i = 0; i < 64; i++ ) assertEquals( i, Fast.select( 0xFFFFFFFFFFFFFFFFL, i ) );
 		for( int i = 1; i < 32; i++ ) assertEquals( 2 * i + 1, Fast.select( 0xAAAAAAAAAAAAAAAAL, i ) );
 	}

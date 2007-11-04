@@ -73,6 +73,12 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public void flip( final long from, final long to ) { BitVectors.ensureFromTo( length(), from, to ); for( long i = to; i-- != from; ) flip( i ); }
 
 	public int getInt( final long index ) { return getBoolean( index ) ? 1 : 0; }
+	public long getLong( final long from, final long to ) {
+		if ( to - from > 64 ) throw new IllegalArgumentException( "Range too large for a long: [" + from + ".." + to + ")" );
+		long result = 0;
+		for( long i = from; i < to; i++ ) if ( getBoolean( i ) ) result |= 1L << i - from;
+		return result;
+	}
 	public boolean getBoolean( final int index ) { return getBoolean( (long)index ); }
 
 	public boolean removeBoolean( final int index ) { return removeBoolean( (long)index ); }
@@ -326,7 +332,6 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			maxValue = ( 1L << width ) - 1; 
 		}
 		
-		
 		public long length() {
 			return bitVector.length() / width;
 		}
@@ -380,15 +385,12 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 
 		public void add( long index, long value ) {
 			if ( value > maxValue ) throw new IllegalArgumentException();
-			final long end = ( index + 1 ) * width - 1;
-			for( int i = width; i-- != 0; ) bitVector.add( end - i, ( value & 1L << i ) != 0 );
+			for( int i = 0; i < width; i++ ) bitVector.add( ( value & 1L << i ) != 0 );
 		}
 
 		public long getLong( long index ) {
-			long result = 0;
-			final long end = ( index + 1 ) * width - 1;
-			for( int i = width; i-- != 0; ) result |= bitVector.getInt( end - i ) << i;
-			return result;
+			final long start = index * width;
+			return bitVector.getLong( start, start + width );
 		}
 
 		public long getLong( int index ) {
@@ -398,13 +400,17 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		public long set( long index, long value ) {
 			if ( value > maxValue ) throw new IllegalArgumentException();
 			long oldValue = getLong( index );
-			final long end = ( index + 1 ) * width - 1;
-			for( int i = width; i-- != 0; ) bitVector.set( end - i, ( value & 1L << i ) != 0 );
+			final long start = index * width;
+			for( int i = width; i-- != 0; ) bitVector.set( i + start, ( value & 1L << i ) != 0 );
 			return oldValue;
 		}
 
 		public long set( int index, long value ) {
 			return set( (long)index, value );
+		}
+
+		public LongBigList subList( long from, long to ) {
+			return bitVector.subVector( from * width, to * width ).asLongBigList( width );
 		}
 	}
 		

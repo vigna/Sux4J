@@ -11,25 +11,25 @@ public class Rank9BinaryTest extends RankSelectTestCase {
 		Rank9Binary rankAndSelect;
 		
 		rankAndSelect = new Rank9Binary( new long[ 1 ], 64 );
-		for( int i = 64; i-- != -1; ) assertEquals( Integer.toString( i ), 0, rankAndSelect.rank( i ) );
+		for( int i = 64; i-- != 0; ) assertEquals( Integer.toString( i ), 0, rankAndSelect.rank( i ) );
 		assertEquals( -1, rankAndSelect.select( 0 ) );
 		assertEquals( -1, rankAndSelect.select( 1 ) );
 		assertEquals( -1, rankAndSelect.lastOne() );
 		
 		rankAndSelect = new Rank9Binary( new long[ 2 ], 128 );
-		for( int i = 128; i-- != -1; ) assertEquals( 0, rankAndSelect.rank( i ) );
+		for( int i = 128; i-- != 0; ) assertEquals( 0, rankAndSelect.rank( i ) );
 		assertEquals( -1, rankAndSelect.select( 0 ) );
 		assertEquals( -1, rankAndSelect.select( 1 ) );
 		assertEquals( -1, rankAndSelect.lastOne() );
 
 		rankAndSelect = new Rank9Binary( new long[ 1 ], 63 );
-		for( int i = 63; i-- != -1; ) assertEquals( 0, rankAndSelect.rank( i ) );
+		for( int i = 63; i-- != 0; ) assertEquals( 0, rankAndSelect.rank( i ) );
 		assertEquals( -1, rankAndSelect.select( 0 ) );
 		assertEquals( -1, rankAndSelect.select( 1 ) );
 		assertEquals( -1, rankAndSelect.lastOne() );
 		
 		rankAndSelect = new Rank9Binary( new long[ 2 ], 65 );
-		for( int i = 65; i-- != -1; ) assertEquals( 0, rankAndSelect.rank( i ) );
+		for( int i = 65; i-- != 0; ) assertEquals( 0, rankAndSelect.rank( i ) );
 		assertEquals( -1, rankAndSelect.select( 0 ) );
 		assertEquals( -1, rankAndSelect.select( 1 ) );
 		assertEquals( -1, rankAndSelect.lastOne() );
@@ -48,7 +48,6 @@ public class Rank9BinaryTest extends RankSelectTestCase {
 		
 		rankAndSelect = new Rank9Binary( new long[] { 1L << 63, 0 }, 64 );
 		assertRankAndSelect( rankAndSelect );
-		assertEquals( 1, rankAndSelect.rank( 65 ) );
 		assertEquals( 1, rankAndSelect.rank( 64 ) );
 		assertEquals( 0, rankAndSelect.rank( 63 ) );
 		for( i = 63; i-- != 0; ) assertEquals( 0, rankAndSelect.rank( i ) );
@@ -186,5 +185,18 @@ public class Rank9BinaryTest extends RankSelectTestCase {
 
 		rankAndSelect = new Rank9Binary( bitVector );
 		assertRankAndSelect( rankAndSelect );
+	}
+	
+	public void testAllSizes() {
+		LongArrayBitVector v;
+		Rank9Binary r;
+		for( int size = 0; size <= 4096; size++ ) {
+			v = LongArrayBitVector.getInstance( size ).length( size );
+			for( int i = ( size + 1 ) / 2; i-- != 0; ) v.set( i * 2 );
+			r = new Rank9Binary( v );
+			for( int i = size + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, r.rank( i ) );
+			for( int i = size / 2; i-- != 0; ) assertEquals( i * 2, r.select( i ) );
+			
+		}
 	}
 }

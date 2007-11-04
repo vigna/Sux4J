@@ -41,13 +41,13 @@ import org.apache.log4j.Logger;
 public final class Fast {
 	private Fast() {}
 
-	final static public long ONES_STEP_4 = 0x1111111111111111L;
-	final static public long ONES_STEP_8 = 0x0101010101010101L;
-	final static public long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
-	final static public long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
-
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	
+	private static final long ONES_STEP_4 = 0x1111111111111111L;
+	private static final long ONES_STEP_8 = 0x0101010101010101L;
+	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
+	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
+
 	public static int ceilLog2( final int x ) {
 		return mostSignificantBit( x - 1 ) + 1;
 	}

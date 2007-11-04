@@ -1,6 +1,7 @@
 package test.it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.LongBigList;
 
 import java.io.IOException;
 
@@ -33,6 +34,13 @@ public class LongArrayBitVectorTest extends TestCase {
 	
 	public void testRemove() {
 		BitVectorTestCase.testRemove( LongArrayBitVector.getInstance() );
+		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		
+		v.clear();
+		v.size( 65 );
+		v.set( 64 );
+		v.removeBoolean( 0 );
+		assertEquals( 0, v.bits[ 1 ] );
 	}
 
 	public void testAdd() {
@@ -148,5 +156,13 @@ public class LongArrayBitVectorTest extends TestCase {
 		
 		assertTrue( ok );
 
+	}
+	
+	public void testLongBig() {
+		LongArrayBitVector v =  LongArrayBitVector.getInstance( 16 * 1024 );
+		LongBigList l = v.asLongBigList( Short.SIZE );
+		l.set( 0, 511 );
+		assertEquals( 511, v.bits[ 0 ] );
+		System.err.println( Long.toHexString( v.bits[ 0 ] ) );
 	}
 }

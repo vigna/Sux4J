@@ -1,13 +1,10 @@
 package it.unimi.dsi.sux4j.bits;
 
-import java.io.Serializable;
 
 /** A data structure providing rank and select over a bit array.
  * 
- * <p>Rank and select are a basic building blocks for most succinct data structures. Usually,
- * instances of this class class provide quick (e.g., constant time) computation of both primitives.
- * 
- * <p>Besides the standard {@link #rank(long)} and {@link #select(long)} methods, 
+ * <p>This interface combines {@link Rank} and {@link Select}.
+ * Besides the standard {@link #rank(long)} and {@link #select(long)} methods, 
  * other natural derived operations are defined in terms of the former: for simplicity,
  * they are implemented in {@link AbstractRankAndSelect}.
  *  
@@ -32,53 +29,8 @@ import java.io.Serializable;
  *  </ul>
  *
  */
-public interface RankSelect extends Serializable {
+public interface RankSelect extends Rank, Select {
 
-	/** Returns the number of bits in the bit vector indexed by this class.
-	 * 
-	 * @return number of bits in the bit vector indexed by this class.
-	 */
-	public long length();
-
-	/** Returns the number of ones in the bit vector indexed by this class.
-	 * 
-	 * @return number of ones in the bit vector indexed by this class.
-	 */
-	public long count();
-
-	/** Returns the number of ones preceding the specified position.
-	 * 
-	 * @param pos a position in the bit vector.
-	 * @return the number of ones preceding <code>pos</code>.
-	 */
-	public long rank( long pos );
-
-	/** Returns the number of ones in the specified interval.
-	 * 
-	 * @param from a position in the bit vector.
-	 * @param to a position in the bit vector.
-	 * @return the number of ones between <code>from</code> (inclusive) and <code>to</code> (exclusive); if
-	 * <code>to</code> is smaller than <code>from</code>, 0 is returned.
-	 */
-	public long rank( long from, long to );
-
-	/** Returns the position of the bit of given rank. 
-	 *  Equivalently, returns the greatest position that is preceded by the specified number of ones.
-	 * 
-	 * @param rank a rank.
-	 * @return the position of the bit of given rank; if no such position exists, &minus;1 is returned.
-	 */
-	public long select( long rank );
-
-	/** Returns the position of the bit of given rank beyond a specified position.
-	 * 
-	 * @param from a starting position.
-	 * @param rank a rank.
-	 * @return the position of the bit of given rank starting from <code>from</code>; 
-	 * if no such position exists, <code>from</code> &minus;1 is returned.
-	 */
-	public long select( long from, long rank );
-	
 	/** Returns the position of the last one in the bit vector.
 	 * 
 	 * @return the position of the last one in the bit vector (if the vector contains only
@@ -86,19 +38,4 @@ public interface RankSelect extends Serializable {
 	 */
 	public long lastOne();
 
-	/** Returns the bits indexed as an array of longs (not to be modified).
-	 * 
-	 * <p>The returned array must follow the {@link LongArrayBitVector} conventions.
-	 * 
-	 * @return an array of longs whose first {@link #length()} bits contain the bits of
-	 * this bit vector. The array cannot be modified.
-	 */
-	public long[] bits();
-	
-	/** Returns the overall number of bits allocated by this structure. 
-	 * 
-	 * @return the overall number of bits allocated by this structure (not including {@link #bits()}).
-	 */
-
-	public long numBits();
 }

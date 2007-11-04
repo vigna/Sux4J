@@ -157,8 +157,8 @@ public interface BitVector extends RandomAccess, BooleanList {
 	/** Returns a view of this bit vector as a list of nonnegative integers of specified width.
 	 * 
 	 * <P>More formally, {@link LongBigList#getLong(long) getLong(p)} will return
-	 * the nonnegative integer defined by the bits starting at <code>p * width</code> (inclusive)
-	 * and ending at <code>(p + 1) * width</code> (exclusive). 
+	 * the nonnegative integer defined by the bits starting at <code>p * width</code> (bit 0, inclusive)
+	 * and ending at <code>(p + 1) * width</code> (bit <code>width</code> &minus; 1, exclusive). 
 	 */
 	public LongBigList asLongBigList( int width );
 	
@@ -172,7 +172,6 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 */
 	public boolean getBoolean( final long index );
 
-
 	/** Returns the value of the specified bit as an integer.
 	 * 
 	 * <P>This method is a useful synonym for {@link #getBoolean(long)}.
@@ -181,6 +180,17 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * @return the value of the specified bit as an integer (0 or 1).
 	 */
 	public int getInt( final long index );
+
+	/** Returns the specified bit range as a long.
+	 * 
+	 * <P>Note that bit 0 of the returned long will be bit <code>from</code>
+	 * of this bit vector.
+	 * 
+	 * @param from the starting bit (inclusive).
+	 * @param to the ending bit (exclusive).
+	 * @return the long value contained in the specified bits.
+	 */
+	public long getLong( final long from, final long to );
 
 	/** Sets the value of the specified bit (optional operation).
 	 * 

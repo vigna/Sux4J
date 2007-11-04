@@ -165,6 +165,9 @@ public class MinimalPerfectHash implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Fast.getLogger( MinimalPerfectHash.class );
 	
+	private static final long ONES_STEP_4 = 0x1111111111111111L;
+	private static final long ONES_STEP_8 = 0x0101010101010101L;
+
 	private static final boolean DEBUG = true;
 	
 	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
@@ -561,10 +564,10 @@ public class MinimalPerfectHash implements Serializable {
 	 */
 	
 	public static int countNonzeroPairs( final long x ) {
-		long byteSums = ( x | x >>> 1 ) & 0x5 * Fast.ONES_STEP_4;
-        byteSums = ( byteSums & 3 * Fast.ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * Fast.ONES_STEP_4 );
-        byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * Fast.ONES_STEP_8;
-        return (int)( byteSums * Fast.ONES_STEP_8 >>> 56 );
+		long byteSums = ( x | x >>> 1 ) & 0x5 * ONES_STEP_4;
+        byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+        byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
+        return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
 
 	public int rank( long x ) {

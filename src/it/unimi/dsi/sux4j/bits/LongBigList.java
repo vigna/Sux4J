@@ -65,4 +65,13 @@ public interface LongBigList extends LongList {
 	 * @see List#size()
 	 */
 	public long length();
+	
+	/** Returns a big sublist view of this big list.
+	 * 
+	 * @param from the starting element (inclusive).
+	 * @param to the ending element (exclusive).
+	 * @return a big sublivst view of this big list.
+	 * @see List#subList(int, int)
+	 */
+	public LongBigList subList( long from, long to );
 }

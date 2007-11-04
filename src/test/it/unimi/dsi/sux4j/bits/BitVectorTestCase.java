@@ -207,12 +207,20 @@ public abstract class BitVectorTestCase extends TestCase {
 		LongBigList list = b.asLongBigList( 10 );
 		for( int i = 0; i < 100; i++ ) list.add( i );
 		for( int i = 0; i < 100; i++ ) assertEquals( i, list.getLong( i ) );
+		
+		assertTrue( b.getBoolean( 10 ) );
+		assertTrue( b.getBoolean( 21 ) );
+		
 		for( int i = 0; i < 100; i++ ) list.add( i );
 		for( int i = 0; i < 100; i++ ) {
 			assertEquals( i, list.set( i, i + 1 ) );
 			for( int j = i + 1; j < 100; j++ ) assertEquals( "" + i , j, list.getLong( j ) );
 		}
 		for( int i = 0; i < 100; i++ ) assertEquals( i + 1, list.getLong( i ) );
+
+		assertTrue( b.getBoolean( 0 ) );
+		assertTrue( b.getBoolean( 11 ) );
+
 		list.size( 100 );
 		int k = 0;
 		LongListIterator i = list.listIterator();
