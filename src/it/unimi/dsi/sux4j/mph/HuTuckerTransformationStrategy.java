@@ -56,7 +56,7 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 		packedFrequency[ 0 ] = count - 1; // The stop character appears once in each string.
 		
 		// We now build the coder used to code the strings
-		codeWord = ((PrefixCoder)new HuTuckerCodec( packedFrequency ).coder()).codeWords();
+		codeWord = ((PrefixCoder)new HuTuckerCodec( packedFrequency ).getCoder()).codeWords();
 	}
 	
 
