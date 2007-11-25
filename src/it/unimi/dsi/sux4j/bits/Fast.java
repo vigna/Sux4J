@@ -267,6 +267,16 @@ public final class Fast {
 		return LSB_TABLE[ (int)( ( ( x & -x ) * 0x03f79d71b4ca8b09L ) >>> 58 ) ]; 
 	}
 	
+	/** Returns the least significant bit of a long.
+	 * 
+	 * 
+	 * @param x a long.
+	 * @return the least significant bit of <code>x</code>, of <code>x</code> is nonzero; &minus;1, otherwise.
+	 */
+	private static int msbBasedLeastSignificantBit( long x ) {
+		return mostSignificantBit( x & -x ); 
+	}
+	
 	public static void main( final String a[] ) {
 		final long n = Long.parseLong( a[ 0 ] );
 		final long incr = Long.MAX_VALUE / ( n / 2 );
@@ -298,8 +308,16 @@ public final class Fast {
 
 			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
 
-			System.out.print( "Multiplication/lookup lsb: " );
+			System.out.print( "MSB-based lsb: " );
 			
+			start = System.currentTimeMillis();
+			for( long i = n, v = 0; i-- != 0; ) msbBasedLeastSignificantBit( v += incr );
+			elapsed = System.currentTimeMillis() - start;
+
+			System.out.println( "elapsed " + elapsed + ", " + ( 1000000.0 * elapsed / n ) + " ns/call" );
+
+			System.out.print( "Multiplication/lookup lsb: " );
+
 			start = System.currentTimeMillis();
 			for( long i = n, v = 0; i-- != 0; ) multLookupLeastSignificantBit( v += incr );
 			elapsed = System.currentTimeMillis() - start;
