@@ -6,36 +6,12 @@
 
   <body>
     <P>Sux4J is an effort to bring succinct data structures to Java. Presently it provides a very flexible bit vector
-    data structure, and some stuff related to minimal perfect hashing.
-    
+    data structure, rank/select implementations, and some stuff related to minimal perfect hashing.
+
     <P>Sux4J is distributed under the <A
     HREF="http://www.gnu.org/copyleft/lesser.html"><ACRONYM TITLE="GNU's not
     Unix">GNU</ACRONYM> Lesser General Public License</A>.
 	
-    <h2>Why Java?</h2>
-
-    <P>Writing in Java code that (essentially) has to roll bits over and over
-    may seem a Bad Thing&trade;. However, one should take into consideration
-    the following points:
-
-    <UL>
-      <LI>Improvements in JVMs makes low-level code written in Java faster and
-      faster; often, the performance penalty w.r.t. an equivalent C/C++
-      application is relatively small.
-      </LI>
-
-      <LI>Succinct structures can be mixed in several different ways, and an
-      object-oriented language makes it very easy to play with different
-      implementations of the same interface, or see the same string of bits
-      in several different ways (have a look at the views available for
-      a {@link it.unimi.dsi.sux4j.bits.BitVector}).</LI>
-
-      <LI>Most of the time, in particular in real-world applications, you will
-      need to rewrite all or part of the code. In this case, as a learning tool
-      a clean implementation in an object-oriented language is certainly better
-      than a C implementation.</LI>
-    </UL>
-
     <h2>Package Dependencies</h2>
 
     <P>Sux4J uses two packages providing high-performance containers and

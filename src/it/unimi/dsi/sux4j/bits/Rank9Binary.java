@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /** A <code>rank9</code> implementation paired with a hinted binary search select implementation.
  * 
  * <p>Instances of this class use {@link Rank9} for ranking. Selection is performed using a binary
- * search over <code>rank9</code>'s block counts, but the search is narrowed by 
+ * search over <code>rank9</code>'s block counts, but the search is narrowed by using a small inventory.
  * 
  */
 
