@@ -231,6 +231,11 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			bitVector.clear( index );
 			return oldValue;
 		}
+
+		@Override
+		public void clear() {
+			bitVector.clear();
+		}
 		
 		public int size() {
 			// This minimisation is necessary for implementations not supporting long indices.
@@ -247,11 +252,11 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			long pos, last = -1, nextPos = -1, prevPos = -1;
 
 			private LongSetViewIterator( long from ) {
-				pos = from - 1;
+				pos = from;
 			}
 
 			public boolean hasNext() {
-				if ( nextPos == -1 && pos < bitVector.length() ) nextPos = bitVector.nextOne( pos + 1 );
+				if ( nextPos == -1 && pos < bitVector.length() ) nextPos = bitVector.nextOne( pos );
 				return nextPos != -1;
 			}
 
@@ -342,8 +347,13 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 			return (int)length;
 		}
 		
+		public LongBigList length( final long newSize ) {
+			bitVector.length( newSize * width );
+			return this;
+		}
+		
 		public void size( final int newSize ) {
-			bitVector.length( (long)newSize * width );
+			length( newSize );
 		}
 		
 		private final class LongBigListIterator extends AbstractLongListIterator {

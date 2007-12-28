@@ -66,6 +66,13 @@ public interface LongBigList extends LongList {
 	 */
 	public long length();
 	
+	/** Sets the number of elements in this big list.
+	 * 
+	 * @return this big list.
+	 * @see LongList#size(int)
+	 */
+	public LongBigList length( long newLength );
+	
 	/** Returns a big sublist view of this big list.
 	 * 
 	 * @param from the starting element (inclusive).

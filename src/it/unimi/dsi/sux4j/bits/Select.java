@@ -32,15 +32,6 @@ public interface Select extends Serializable {
 	 */
 	public long select( long rank );
 
-	/** Returns the position of the bit of given rank beyond a specified position.
-	 * 
-	 * @param from a starting position.
-	 * @param rank a rank.
-	 * @return the position of the bit of given rank starting from <code>from</code>; 
-	 * if no such position exists, <code>from</code> &minus;1 is returned.
-	 */
-	public long select( long from, long rank );
-	
 	/** Returns the bits indexed as an array of longs (not to be modified).
 	 * 
 	 * <p>The returned array must follow the {@link LongArrayBitVector} conventions.

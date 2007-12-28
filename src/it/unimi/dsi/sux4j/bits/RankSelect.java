@@ -38,4 +38,14 @@ public interface RankSelect extends Rank, Select {
 	 */
 	public long lastOne();
 
+	/** Returns the position of the bit of given rank beyond a specified position.
+	 * 
+	 * @param from a starting position.
+	 * @param rank a rank.
+	 * @return the position of the bit of given rank starting from <code>from</code>; 
+	 * if no such position exists, <code>from</code> &minus;1 is returned.
+	 */
+	public long select( long from, long rank );
+	
+
 }

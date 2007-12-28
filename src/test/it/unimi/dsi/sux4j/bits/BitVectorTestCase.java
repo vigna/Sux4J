@@ -272,6 +272,18 @@ public abstract class BitVectorTestCase extends TestCase {
 		iterator.remove();
 		assertFalse( s.contains( 2 ) );
 		
+		s.clear();
+		assertNull( s.comparator() );
+		
+		for( int i = 0; i < 100; i++ ) s.add( i );
+		for( int i = 0; i < 100; i++ ) assertTrue( s.contains( i ) );
+		
+		iterator = s.iterator();
+		for( int i = 0; i < 100; i++ ) assertEquals( i, iterator.nextLong() );
+		assertFalse( iterator.hasNext() );
+		for( int i = 100; i-- != 0; ) assertEquals( i, iterator.previousLong() );
+		assertFalse( iterator.hasPrevious() );
+		
 	}
 
 	public static void testFirstLastPrefix( BitVector b ) {

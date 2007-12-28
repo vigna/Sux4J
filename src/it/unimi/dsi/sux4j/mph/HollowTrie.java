@@ -234,6 +234,8 @@ public class HollowTrie<T> implements Serializable {
 			System.err.println( this.skips );
 			System.err.println( borders );
 		}
+		
+		//TODO: try with SDArray
 		skipLocator = new Rank9Binary( borders );
 		
 		final long numBits = rankAndSelect.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
