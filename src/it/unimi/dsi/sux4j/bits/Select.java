@@ -12,9 +12,17 @@ import java.io.Serializable;
  * 
  * <p>More precisely, select is applied to a bit vector in which bits <em>positions</em> are numbered
  * starting from <em>zero</em>. Then, <code>select(r)</code> is the position of the 
- * leftmost bit set to one and preceded by <code>r</code> bits.
+ * leftmost bit set to one and preceded by <code>r</code> ones.
  *
- * @see RankSelect
+ * <p>A number of equations link {@link Rank#rank(long) rank()} and {@link #select(long) select()}:
+ * <ul>
+ *  	<li><code>rank(0)=0</code>;
+ *  	<li><code>rank(length())</code> is the number of ones in the bit vector;
+ *  	<li>if <code>r &lt; rank(length())</code>, then <code>rank(select(r))==r</code>;
+ *  	<li>if <code>r &ge; rank(length())</code>, then <code>select(r)=-1</code> is undefined;
+ *  	<li>if <code>p &le; length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
+ *  	holds iff there is a one at position <code>p</code>.
+ *  </ul>
  */
 public interface Select extends Serializable {
 

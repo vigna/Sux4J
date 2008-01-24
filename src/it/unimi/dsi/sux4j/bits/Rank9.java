@@ -2,7 +2,7 @@ package it.unimi.dsi.sux4j.bits;
 
 /** A <code>rank9</code> implementation. */
 
-public class Rank9 implements Rank {
+public class Rank9 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = true;
 	private static final long serialVersionUID = 0L;
 
