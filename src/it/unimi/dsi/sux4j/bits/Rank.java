@@ -58,7 +58,7 @@ public interface Rank extends Serializable {
 	 * @param pos a position in the bit vector.
 	 * @return the number of zeroes preceding <code>pos</code>.
 	 */
-	public long rankZeroes( long pos );
+	public long rankZero( long pos );
 
 	/** Returns the number of zeroes in the specified interval.
 	 * 
@@ -67,7 +67,7 @@ public interface Rank extends Serializable {
 	 * @return the number of zeroes between <code>from</code> (inclusive) and <code>to</code> (exclusive); if
 	 * <code>to</code> is smaller than <code>from</code>, 0 is returned.
 	 */
-	public long rankZeroes( long from, long to );
+	public long rankZero( long from, long to );
 
 	/** Returns the bits indexed as an array of longs (not to be modified).
 	 * 

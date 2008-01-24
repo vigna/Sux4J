@@ -3,9 +3,10 @@ package it.unimi.dsi.sux4j.bits;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A <code>rank9</code> implementation paired with constant-time selection based on broadword algorithms. */
+/** A <code>rank9</code> implementation paired with constant-time selection based on 
+ * broadword algorithms. */
 
-public class Rank9Select extends Rank9 implements RankSelect {
+public class Select9 implements Select {
 	private static final boolean ASSERTS = true;
 	private static final long serialVersionUID = 0L;
 
@@ -23,14 +24,19 @@ public class Rank9Select extends Rank9 implements RankSelect {
 	private final long[] subinventory;
 	private transient LongBigList subinventoryAsShorts;
 	private transient LongBigList subinventoryasInts;
-
-	public Rank9Select( final BitVector bitVector ) {
-		this( bitVector.bits(), bitVector.length() );
-	}
+	private final long numOnes;
+	private final int numWords;
+	private final long[] bits;
+	private final long[] count;
+	private final Rank9 rank9;
+	
+	public Select9( final Rank9 rank9 ) {
+		this.rank9 = rank9;
+		numOnes = rank9.numOnes;
+		numWords = rank9.numWords;
+		bits = rank9.bits;
+		count = rank9.count;
 		
-	public Rank9Select( long[] bits, long length ) {
-		super( bits, length );
-
 		final int inventorySize = (int)( ( numOnes + ONES_PER_INVENTORY - 1 ) / ONES_PER_INVENTORY );
 
 		inventory = new long[ inventorySize + 1 ];
@@ -235,12 +241,8 @@ public class Rank9Select extends Rank9 implements RankSelect {
 		return word * 64 + Fast.select( bits[ word ], rankInWord );
 	}
 
-	public long select( final long from, final long rank ) {
-		return select( rank + rank( from ) );
-	}
-
 	public long numBits() {
-		return super.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
+		return rank9.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
@@ -248,5 +250,13 @@ public class Rank9Select extends Rank9 implements RankSelect {
 		final BitVector v = LongArrayBitVector.wrap( subinventory );
 		subinventoryAsShorts = v.asLongBigList( Short.SIZE );
 		subinventoryasInts = v.asLongBigList( Integer.SIZE );
+	}
+
+	public long[] bits() {
+		return bits;
+	}
+
+	public long length() {
+		return rank9.length(); 
 	}
 }

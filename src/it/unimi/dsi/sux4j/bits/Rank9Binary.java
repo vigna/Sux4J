@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.bits;
  * 
  */
 
-public class Rank9Binary extends Rank9 implements RankSelect {
+public class HintedBinary implements Select {
 	@SuppressWarnings("unused")
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
