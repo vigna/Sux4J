@@ -88,7 +88,7 @@ public class SparseSelect implements Select {
 			last = pos;
 		}
 		
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + m + " positions in the provided iterator" );
+		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.m + " positions in the provided iterator" );
 		
 		selectUpper = new SimpleSelect( upperBits );
 	}
