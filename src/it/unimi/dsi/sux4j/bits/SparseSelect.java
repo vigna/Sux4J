@@ -32,7 +32,7 @@ public class SparseSelect implements Select {
 	/** The list of lower bits of the position of each one, stored explicitly. */
 	protected final LongBigList lowerBits;
 	/** The select structure used to extract the upper bits. */ 
-	protected final Select selectUpper;
+	protected final SimpleSelect selectUpper;
 
 	/** Creates a new <code>sdarray</code> select structure using a long array.
 	 * 
