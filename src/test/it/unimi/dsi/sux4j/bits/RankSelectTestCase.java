@@ -1,27 +1,23 @@
 package test.it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.RankSelect;
+import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Select;
 import junit.framework.TestCase;
 
 public abstract class RankSelectTestCase extends TestCase {
-	public void assertRankAndSelect( RankSelect rs ) {
-		final long length = rs.length();
-		final LongArrayBitVector bits = LongArrayBitVector.wrap( rs.bits(), rs.length() );
-		long lastOne = -1;
+	public void assertRankAndSelect( Rank rank, Select select ) {
+		final long length = rank.length();
+		final LongArrayBitVector bits = LongArrayBitVector.wrap( rank.bits(), rank.length() );
 		
 		for( int j = 0, i = 0; i < length; i++ ) {
-			assertEquals( "Ranking " + i, j, rs.rank( i ) );
+			assertEquals( "Ranking " + i, j, rank.rank( i ) );
 			if ( bits.getBoolean( i ) ) {
-				lastOne = i;
-				assertEquals( "Selecting " + j, i, rs.select( j ) );
+				assertEquals( "Selecting " + j, i, select.select( j ) );
 				j++;
 			}
 			
 		}
-		
-		assertEquals( lastOne, rs.lastOne() );
 	}
 
 	public void assertSelect( Select s ) {

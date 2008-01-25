@@ -14,7 +14,9 @@ import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BitVectors;
 import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.Rank9Binary;
+import it.unimi.dsi.sux4j.bits.Rank9;
+import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.IOException;
@@ -46,8 +48,9 @@ public class HollowTrie<T> implements Serializable {
 	
 	private LongArrayBitVector skips;
 	private transient BitVector trie;
-	public final Rank9Binary rankAndSelect;
-	private final Rank9Binary skipLocator;
+	public final Rank9 rank9;
+	public final SimpleSelect select;
+	private final SparseSelect skipLocator;
 	private final TransformationStrategy<? super T> transform;
 	private int size;
 	
@@ -76,18 +79,18 @@ public class HollowTrie<T> implements Serializable {
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
 
-			t = 2 * rankAndSelect.rank( a, b + 1 );
+			t = 2 * rank9.rank( a, b + 1 );
 			a = b + 1;
 			b += t;
 			
-			index += p - a - rankAndSelect.rank( a, p );
+			index += p - a - rank9.rank( a, p );
 
 			//System.err.println( a + " " + b + " " + p + " " + index );
 			
 			if ( ASSERTS ) assert p < trie.length();
 			if ( ! trie.getBoolean( p ) ) break;
 
-			r = rankAndSelect.rank( p + 1 ) - 1;
+			r = rank9.rank( p + 1 ) - 1;
 			
 			s++;
 		}
@@ -95,15 +98,15 @@ public class HollowTrie<T> implements Serializable {
 		// Complete computation of leaf index
 		
 		for(;;) {
-			p = rankAndSelect.select( ( r = rankAndSelect.rank( p + 1 ) ) - 1 );
+			p = select.select( ( r = rank9.rank( p + 1 ) ) - 1 );
 			if ( p < a ) break;
 			p = r * 2;
 			
-			t = 2 * rankAndSelect.rank( a, b + 1 );
+			t = 2 * rank9.rank( a, b + 1 );
 			a = b + 1;
 			b += t;
 			
-			index += p - a + 1 - rankAndSelect.rank( a, p + 1 );
+			index += p - a + 1 - rank9.rank( a, p + 1 );
 			
 			//System.err.println( a + " " + b + " " + p + " " + index );
 		}
@@ -119,7 +122,8 @@ public class HollowTrie<T> implements Serializable {
 
 		this.transform = transform;
 		if ( ! iterator.hasNext() ) {
-			rankAndSelect = new Rank9Binary( LongArrays.EMPTY_ARRAY, 0 );
+			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
+			select = new SimpleSelect( LongArrays.EMPTY_ARRAY, 0 );
 			skipLocator = null;
 			return;
 		}
@@ -209,7 +213,8 @@ public class HollowTrie<T> implements Serializable {
 		}
 		
 		trie = bitVector;
-		rankAndSelect = new Rank9Binary( bitVector );
+		rank9 = new Rank9( bitVector );
+		select = new SimpleSelect( bitVector );
 		final int skipWidth = ceilLog2( maxSkip );
 
 		LOGGER.info( "Max skip: " + maxSkip );
@@ -236,9 +241,9 @@ public class HollowTrie<T> implements Serializable {
 		}
 		
 		//TODO: try with SDArray
-		skipLocator = new Rank9Binary( borders );
+		skipLocator = new SparseSelect( borders );
 		
-		final long numBits = rankAndSelect.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
+		final long numBits = rank9.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
@@ -269,7 +274,7 @@ public class HollowTrie<T> implements Serializable {
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		trie = LongArrayBitVector.wrap( rankAndSelect.bits(), rankAndSelect.length() );
+		trie = LongArrayBitVector.wrap( rank9.bits(), rank9.length() );
 	}
 
 	

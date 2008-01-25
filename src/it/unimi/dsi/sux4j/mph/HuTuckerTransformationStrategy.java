@@ -3,7 +3,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.fastutil.chars.Char2IntMap;
 import it.unimi.dsi.fastutil.chars.Char2IntOpenHashMap;
 import it.unimi.dsi.mg4j.compression.HuTuckerCodec;
-import it.unimi.dsi.mg4j.compression.PrefixCoder;
 import it.unimi.dsi.sux4j.bits.AbstractBitVector;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
@@ -56,7 +55,7 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 		packedFrequency[ 0 ] = count - 1; // The stop character appears once in each string.
 		
 		// We now build the coder used to code the strings
-		codeWord = ((PrefixCoder)new HuTuckerCodec( packedFrequency ).getCoder()).codeWords();
+		codeWord = new HuTuckerCodec( packedFrequency ).coder().codeWords();
 	}
 	
 

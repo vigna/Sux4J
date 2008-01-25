@@ -16,11 +16,11 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
  * by selecting the <var>i</var>-th bit of the resulting dense (but small) bit array and subtracting <var>i</var> (note that this will
  * work because the upper bits are nondecreasing).
  * 
- * <p>This implementation uses a {@link Rank9Binary} to support selection inside the dense array. The resulting data structure uses 
+ * <p>This implementation uses {@link SimpleSelect} to support selection inside the dense array. The resulting data structure uses 
  * <var>m</var> log(<var>n</var>/<var>m</var>) + 2.75 <var>m</var> bits, and <em>does not store the original bit vector</em>.  
  */
 
-public class SDArraySelect implements Select {
+public class SparseSelect implements Select {
 	private static final long serialVersionUID = 1L;
 	
 	/** The length of the underlying bit array. */
@@ -43,7 +43,7 @@ public class SDArraySelect implements Select {
 	 * @param bits a long array containing the bits.
 	 * @param length the number of valid bits in <code>bits</code>.
 	 */
-	public SDArraySelect( final long[] bits, final long length ) {
+	public SparseSelect( final long[] bits, final long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 	
@@ -53,7 +53,7 @@ public class SDArraySelect implements Select {
 	 * 
 	 * @param bitVector the input bit vector.
 	 */
-	public SDArraySelect( final BitVector bitVector ) {
+	public SparseSelect( final BitVector bitVector ) {
 		this( bitVector.length(), bitVector.count(), bitVector.asLongSet().iterator() );
 	}
 	
@@ -67,7 +67,7 @@ public class SDArraySelect implements Select {
 	 * @param m the number of ones in the underlying bit vector.
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
-	public SDArraySelect( final long n, final long m, final LongIterator iterator ) {
+	public SparseSelect( final long n, final long m, final LongIterator iterator ) {
 		long pos = -1;
 		this.m = m;
 		this.n = n;
@@ -88,7 +88,7 @@ public class SDArraySelect implements Select {
 		
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + m + " positions in the provided iterator" );
 		
-		selectUpper = new Rank9Select( upperBits );
+		selectUpper = new SimpleSelect( upperBits );
 	}
 	
 	public long numBits() {

@@ -163,6 +163,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHash implements Serializable {
     public static final long serialVersionUID = 1L;
+
+	/** The number of bits per block in the rank structure. */
+	public static final int BITS_PER_BLOCK = 512;
+
 	private static final Logger LOGGER = Fast.getLogger( MinimalPerfectHash.class );
 	
 	private static final long ONES_STEP_4 = 0x1111111111111111L;
@@ -172,10 +176,8 @@ public class MinimalPerfectHash implements Serializable {
 	
 	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
 	public static final double ENLARGEMENT_FACTOR = 1.23;
-	/** The number of bits per block in the rank structure. */
-	private static final int BITS_PER_BLOCK = 512;
 	/** The minimum number of strings that will trigger the construction of a minimal perfect hash;
-	 * overwise, strings are simply stored in a vector. */
+	 * otherwise, strings are simply stored in a vector. */
 	public static final int STRING_THRESHOLD = 16;
 	/** A special value denoting that the weight length is unknown, and should be computed using
 	 * the maximum length of a string. */

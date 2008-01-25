@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.bits;
  * 
  */
 
-public class HintedBinary implements Select {
+public class HintedBsearchSelect implements Select {
 	@SuppressWarnings("unused")
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
@@ -18,15 +18,20 @@ public class HintedBinary implements Select {
 	final private int[] inventory;
 	final private int onesPerInventory;
 	final private int log2OnesPerInventory;
+	private final long numOnes;
+	private final int numWords;
+	private final long[] bits;
+	private final long[] count;
+	final private Rank9 rank9;
 
-	public Rank9Binary( final BitVector bitVector ) {
-		this( bitVector.bits(), bitVector.length() );
-	}
+	public HintedBsearchSelect( final Rank9 rank9 ) {
+		this.rank9 = rank9;
+		numOnes = rank9.numOnes;
+		numWords = rank9.numWords;
+		bits = rank9.bits;
+		count = rank9.count;
 		
-	public Rank9Binary( long[] bits, long length ) {
-		super( bits, length );
-
-		log2OnesPerInventory = length == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + length - 1 ) / length );
+		log2OnesPerInventory = rank9.length == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + rank9.length - 1 ) / rank9.length );
 		onesPerInventory = 1 << log2OnesPerInventory;
 		final int inventorySize = (int)( ( numOnes + onesPerInventory - 1 ) / onesPerInventory );
 
@@ -77,12 +82,16 @@ public class HintedBinary implements Select {
         return word * 64 + Fast.select( bits[ (int)word ], (int)rankInWord );
 	}
 
-	public long select( final long from, final long rank ) {
-		return select( rank + rank( from ) );
+	public long numBits() {
+		return rank9.numBits() + inventory.length * Integer.SIZE;
 	}
 
-	public long numBits() {
-		return super.numBits() + inventory.length * Integer.SIZE;
+	public long[] bits() {
+		return rank9.bits;
+	}
+
+	public long length() {
+		return rank9.length;
 	}
 
 }
