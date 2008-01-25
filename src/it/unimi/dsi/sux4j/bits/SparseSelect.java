@@ -76,10 +76,10 @@ public class SparseSelect implements Select {
 		}
 		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( m );
-		final BitVector upperBits = LongArrayBitVector.getInstance( m * 2 ).length( m * 2 );
+		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
+		final BitVector upperBits = LongArrayBitVector.getInstance( this.m * 2 ).length( this.m * 2 );
 		long last = 0;
-		for( long i = 0; i < m; i++ ) {
+		for( long i = 0; i < this.m; i++ ) {
 			pos = iterator.nextLong();
 			if ( pos >= n ) throw new IllegalArgumentException( "Position too large for " + n + " bits: " + pos );
 			if ( pos < last ) throw new IllegalArgumentException( "Positions are not nondecreasing: " + pos + " < " + last );

@@ -10,17 +10,17 @@ public class TestArchivePointers {
 	@SuppressWarnings("unchecked")
 	public static void main( String a[] ) throws IOException {
 		final InputBitStream skips = new InputBitStream( a[ 0 ] );
-		final int n = Integer.parseInt( a[ 1 ] );
-		final int m = Integer.parseInt( a[ 2 ] );
+		final long n = Long.parseLong( a[ 1 ] );
+		final long m = Long.parseLong( a[ 2 ] );
 		
 		SparseSelect sparse = new SparseSelect( n, m, new AbstractLongIterator() {
-			int i = -1;
+			int i = 0;
 			long curr = 0;
 
 			public long nextLong() {
 				i++;
 				try {
-					skips.readZeta(3) ;
+					skips.readZeta(3);
 					return curr += skips.readLongGamma();
 				}
 				catch ( IOException e ) {
@@ -29,10 +29,10 @@ public class TestArchivePointers {
 			}
 
 			public boolean hasNext() {
-				return i < n;
+				return i < m;
 			}
 		} );
 		
-		System.out.println( "Bits per pointer: " + (double)sparse.numBits() / n );
+		System.out.println( "Bits per pointer: " + (double)sparse.numBits() / m );
 	}
 }

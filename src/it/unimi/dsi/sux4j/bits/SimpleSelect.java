@@ -180,6 +180,7 @@ public class SimpleSelect implements Select {
 
 		if ( residual == 0 ) return start;
 
+		final long bits[] = this.bits;
 		int wordIndex = (int)( start / 64 );
 		long word = bits[ wordIndex ] & -1L << start;
 		long byteSums;
