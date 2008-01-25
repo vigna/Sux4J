@@ -7,9 +7,9 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
  * <p>The code is based on the <code>sdarray</code> structure
  * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, TODO.
  * The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
- * by storing separately the
- * the upper <var>{@linkplain #u}</var> = &lfloor;log <var>{@linkplain #m}</var> &rfloor; bits
- * and the lower <var>{@linkplain #l}</var> = &lceil;log <var>{@linkplain #n}</var> &rceil; &minus; <var>{@linkplain #u}</var> bits.
+ * by storing separately 
+ * the lower <var>{@linkplain #l}</var> = &lceil;log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )&rceil;</var> bits
+ * and the remaining upper bits.
  * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
  * of 2<var>{@linkplain #m}</var> bits by setting, if the <var>i</var>-th one is at position
  * <var>p</var>, the bit of index <var>p</var> / 2<sup><var>l</var></sup> + <var>i</var>; the value can then be recovered
@@ -27,8 +27,6 @@ public class SparseSelect implements Select {
 	protected final long n;
 	/** The number of ones in the underlying bit array. */
 	protected final long m;
-	/** The number of upper bits. */
-	protected final int u;
 	/** The number of lower bits. */
 	protected final int l;
 	/** The list of lower bits of the position of each one, stored explicitly. */
@@ -67,12 +65,16 @@ public class SparseSelect implements Select {
 	 * @param m the number of ones in the underlying bit vector.
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
-	public SparseSelect( final long n, final long m, final LongIterator iterator ) {
+	public SparseSelect( final long n, long m, final LongIterator iterator ) {
 		long pos = -1;
 		this.m = m;
 		this.n = n;
-		u = Fast.mostSignificantBit( m );
-		l = Fast.ceilLog2( n ) - u;
+		int l = 0;
+		while( m < n ) {
+			m *= 2;
+			l++;
+		}
+		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( m );
 		final BitVector upperBits = LongArrayBitVector.getInstance( m * 2 ).length( m * 2 );

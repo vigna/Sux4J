@@ -6,7 +6,6 @@ import it.unimi.dsi.sux4j.bits.Select9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
-import java.io.IOException;
 import java.util.Random;
 
 import com.martiansoftware.jsap.JSAP;
@@ -18,7 +17,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 public class RankSelectSpeedTest {
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
+	public static void main( final String[] arg ) throws JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
 				new Parameter[] {
@@ -72,7 +71,7 @@ public class RankSelectSpeedTest {
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) simpleSelect.select( selectPosition[ i ] );
 			time += System.currentTimeMillis();
-			System.err.println( time / 1E6 + "s, " + ( time * 1E6 ) / numPos + " ns/select" );
+			System.err.println( time / 1E6 + "s, " + ( time * 1 ) / numPos + " ns/select" );
 		}
 	}
 }
