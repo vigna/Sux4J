@@ -1,9 +1,11 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.sux4j.bits.HintedBsearchSelect;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.Select9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.util.Random;
@@ -55,21 +57,38 @@ public class RankSelectSpeedTest {
 
 		long time;
 		for( int k = 10; k-- != 0; ) {
+			System.out.println( "=== Rank 9 ===");
 			Rank9 rank9 = new Rank9( bitVector );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) rank9.rank( rankPosition[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1E6 + "s, " + ( time * 1E6 ) / numPos + " ns/rank" );
 
+			System.out.println( "=== Hinted bsearch ===");
+			HintedBsearchSelect hintedBsearchSelect = new HintedBsearchSelect( rank9 );
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) hintedBsearchSelect.select( selectPosition[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1E6 + "s, " + ( time * 1E6 ) / numPos + " ns/select" );
+
+			System.out.println( "=== Select9 ===");
 			Select9 select9 = new Select9( rank9 );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) select9.select( selectPosition[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1E6 + "s, " + ( time * 1E6 ) / numPos + " ns/select" );
 
+			System.out.println( "=== Simple ===");
 			SimpleSelect simpleSelect = new SimpleSelect( bitVector );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) simpleSelect.select( selectPosition[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1E6 + "s, " + ( time * 1 ) / numPos + " ns/select" );
+
+			System.out.println( "=== Sparse ===");
+			SparseSelect sparseSelect = new SparseSelect( bitVector );
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) sparseSelect.select( selectPosition[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1E6 + "s, " + ( time * 1 ) / numPos + " ns/select" );
 		}
