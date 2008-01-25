@@ -6,8 +6,6 @@ source: source2
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/Hollow\*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/Hollow\*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/HuTucker\*.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/bits/Rank9\*.java \
-		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/bits/Rank9\*.java \
 		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/mph/Hollow\*.java
 	gzip sux4j-$(version)-src.tar
 

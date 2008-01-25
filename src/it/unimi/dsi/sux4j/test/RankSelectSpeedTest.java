@@ -6,7 +6,6 @@ import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.Select9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.util.Random;
 
@@ -22,7 +21,7 @@ public class RankSelectSpeedTest {
 
 	public static void main( final String[] arg ) throws JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
+		final SimpleJSAP jsap = new SimpleJSAP( RankSelectSpeedTest.class.getName(), "Tests the speed of rank/select implementations.",
 				new Parameter[] {
 					new UnflaggedOption( "numBits", JSAP.LONGSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of bits." ),
 					new UnflaggedOption( "density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density." ),

@@ -12,7 +12,7 @@ public class TestArchivePointers {
 		final InputBitStream skips = new InputBitStream( a[ 0 ] );
 		final long n = Long.parseLong( a[ 1 ] );
 		final long m = Long.parseLong( a[ 2 ] );
-		
+
 		SparseSelect sparse = new SparseSelect( n, m, new AbstractLongIterator() {
 			int i = 0;
 			long curr = 0;
