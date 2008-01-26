@@ -2,7 +2,7 @@
 
 Name:           sux4j
 Version:        0.1
-Release:        1
+Release:        2
 Epoch:		0
 Summary:        Succinct data structures for Java
 License:        LGPL
@@ -11,9 +11,9 @@ URL:            http://sux4j.dsi.unimi.it/
 Group:          Development/Libraries/Java
 Distribution:   JPackage-like
 BuildArch:      noarch
-Requires:	fastutil5 >= 5.0.9, java >= 1.5.0, mg4j >= 0:2.0, colt >= 0:1.1.0, jsap, junit
+Requires:	fastutil5 >= 5.0.9, java >= 1.5.0, mg4j >= 0:2.0, colt >= 0:1.1.0, jsap, junit, log4j
 BuildRequires:	ant, jpackage-utils >= 0:1.6, /bin/bash
-BuildRequires:	java-devel >= 1.5.0, java-javadoc fastutil5-javadoc mg4j-javadoc colt-javadoc jsap-javadoc junit-javadoc
+BuildRequires:	java-devel >= 1.5.0, java-javadoc fastutil5-javadoc mg4j-javadoc colt-javadoc jsap-javadoc junit-javadoc log4j-javadoc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
@@ -30,12 +30,13 @@ Javadoc for %{name}.
 %setup -q
 
 %build
-export CLASSPATH=%(build-classpath fastutil5 mg4j colt jsap)
+export CLASSPATH=%(build-classpath fastutil5 mg4j colt jsap log4j)
 ant \
   -Dj2se.apiurl=%{_javadocdir}/java \
   -Dfastutil.apiurl=%{_javadocdir}/fastutil5 \
   -Dmg4j.apiurl=%{_javadocdir}/mg4j \
   -Dcolt.apiurl=%{_javadocdir}/colt \
+  -Dlog4j.apiurl=%{_javadocdir}/log4j \
   -Djsap.apiurl=%{_javadocdir}/jsap \
   -Djunit.apiurl=%{_javadocdir}/junit \
   jar javadoc
@@ -61,7 +62,7 @@ ln -s %{name}-%{version} %{_javadocdir}/%{name}
  
 %files
 %defattr(0644,root,root,0755)
-%doc CHANGES COPYING
+%doc CHANGES COPYING.LIB
 %{_javadir}/*.jar
 
 %files javadoc
