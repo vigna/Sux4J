@@ -70,9 +70,11 @@ public class SparseSelect implements Select {
 		this.m = m;
 		this.n = n;
 		int l = 0;
-		while( m < n ) {
-			m *= 2;
-			l++;
+		if ( m > 0 ) {
+			while( m < n ) {
+				m *= 2;
+				l++;
+			}
 		}
 		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;

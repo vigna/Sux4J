@@ -139,7 +139,10 @@ public class SimpleSelect implements Select {
 								subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + offset++ ] = i * 64 + j;
 							}
 							else {
-								if ( ( d & onesPerInventoryMask ) == 0 ) subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] = - spilled - 1;
+								if ( ( d & onesPerInventoryMask ) == 0 ) {
+									inventory[ inventoryIndex ] |= 1L << 63;
+									subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] = spilled;
+								}
 								exactSpill[ spilled++ ] = i * 64 + j;
 							}
 						}
@@ -163,18 +166,18 @@ public class SimpleSelect implements Select {
 		final long inventoryRank = inventory[ inventoryIndex ];
 		final int subrank = (int)( rank & onesPerInventoryMask );
 
-		if ( subrank == 0 ) return inventoryRank;
+		if ( subrank == 0 ) return inventoryRank & ~(1L<<63);
 
 		long start;
 		int residual;
 
-		if ( inventoryIndex >= 0 ) {
+		if ( inventoryRank >= 0 ) {
 			start = inventoryRank + subinventory16.getLong( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) + ( subrank >>> log2OnesPerSub16 ) );
 			residual = subrank & onesPerSub16Mask;
 		}
 		else {
-			if ( onesPerSub64 == 1 ) return subinventory[ ( ( - inventoryIndex - 1 ) << log2LongwordsPerSubinventory ) + subrank ];
-			return exactSpill[ (int)( subinventory[ ( - inventoryIndex - 1 ) << log2LongwordsPerSubinventory ] + subrank ) ];
+			if ( onesPerSub64 == 1 ) return subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + subrank ];
+			return exactSpill[ (int)( subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] + subrank ) ];
 		}
 
 		if ( residual == 0 ) return start;
