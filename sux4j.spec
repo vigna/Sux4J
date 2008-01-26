@@ -2,7 +2,7 @@
 
 Name:           sux4j
 Version:        0.1
-Release:        2
+Release:        3
 Epoch:		0
 Summary:        Succinct data structures for Java
 License:        LGPL
