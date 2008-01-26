@@ -69,7 +69,6 @@ public class SimpleSelect implements Select {
 					d++;
 				}
 
-		assert( c == d );
 		inventory[ inventorySize ] = length;
 
 		log2LongwordsPerSubinventory = Math.min( MAX_LOG2_LONGWORDS_PER_SUBINVENTORY, Math.max( 0, log2OnesPerInventory - 2 ) );
@@ -87,7 +86,8 @@ public class SimpleSelect implements Select {
 
 			for( int i = 0; i < numWords; i++ )
 				// We estimate the subinventory and exact spill size
-				for( int j = 0; j < 64; j++ )
+				for( int j = 0; j < 64; j++ ) {
+					if ( i * 64 + j >= length ) break;
 					if ( ( bits[ i ] & 1L << j ) != 0 ) {
 						if ( ( d & onesPerInventoryMask ) == 0 ) {
 							inventoryIndex = (int)( d >>> log2OnesPerInventory );
@@ -107,6 +107,7 @@ public class SimpleSelect implements Select {
 						}
 						d++;
 					}
+				}
 
 			final int subinventorySize = (int)( ( diff16 + 3 ) / 4 );
 			final int exactSpillSize = spilled;
@@ -119,7 +120,8 @@ public class SimpleSelect implements Select {
 			d = 0;
 
 			for( int i = 0; i < numWords; i++ )
-				for( int j = 0; j < 64; j++ )
+				for( int j = 0; j < 64; j++ ) {
+					if ( i * 64 + j >= length ) break;
 					if ( ( bits[ i ] & 1L << j ) != 0 ) {
 						if ( ( d & onesPerInventoryMask ) == 0 ) {
 							inventoryIndex = (int)( d >>> log2OnesPerInventory );
@@ -149,7 +151,7 @@ public class SimpleSelect implements Select {
 
 						d++;
 					}
-
+				}
 		}
 		else {
 			subinventory = exactSpill = LongArrays.EMPTY_ARRAY;

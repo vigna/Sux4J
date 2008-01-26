@@ -338,7 +338,7 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 		}
 		
 		public long length() {
-			return bitVector.length() / width;
+			return width == 0 ? 0 : bitVector.length() / width;
 		}
 
 		public int size() {
