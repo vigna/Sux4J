@@ -1,14 +1,37 @@
 package it.unimi.dsi.sux4j.bits;
 
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
 import it.unimi.dsi.fastutil.longs.LongIterator;
 
 /** An opportunistic select implementation for sparse arrays. 
  * 
- * <p>The code is based on the <code>sdarray</code> structure
- * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, TODO.
- * The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
+ * <p>The code is based on a 64-bit reimplementation of the <code>sdarray</code> structure
+ * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, In <i>Proc. of the 
+ * Workshop on Algorithm Engineering and Experiments, ALENEX 2007<i/i>. SIAM, 2007.
+ * 
+ * <p>The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
  * by storing separately 
- * the lower <var>{@linkplain #l}</var> = &lceil;log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )&rceil;</var> bits
+ * the lower <var>{@linkplain #l}</var> = &lceil; log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )&rceil;</var> bits
  * and the remaining upper bits.
  * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
  * of 2<var>{@linkplain #m}</var> bits by setting, if the <var>i</var>-th one is at position
@@ -17,7 +40,10 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
  * work because the upper bits are nondecreasing).
  * 
  * <p>This implementation uses {@link SimpleSelect} to support selection inside the dense array. The resulting data structure uses 
- * <var>m</var> log(<var>n</var>/<var>m</var>) + 2.75 <var>m</var> bits, and <em>does not store the original bit vector</em>.  
+ * <var>m</var> &lceil; log(<var>n</var>/<var>m</var>) &rceil; + 2.25 <var>m</var> bits, and <em>does not store the original bit vector</em>.
+ * 
+ * <p>Note that some data is shared with {@link SparseRank}: correspondingly, a suitable {@linkplain #SparseSelect(SparseRank) constructor}
+ * makes it possible to build an instance using an underlying {@link SparseRank} instance.
  */
 
 public class SparseSelect implements Select {

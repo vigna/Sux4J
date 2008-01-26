@@ -1,10 +1,33 @@
 package it.unimi.dsi.sux4j.bits;
 
-/** A <code>rank9</code> implementation paired with a hinted binary search select implementation.
+
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
+
+/** A hinted binary-search select implementation.
  * 
- * <p>Instances of this class use {@link Rank9} for ranking. Selection is performed using a binary
- * search over <code>rank9</code>'s block counts, but the search is narrowed by using a small inventory.
- * 
+ * <p>Instances of this class perform selection
+ * using a hinted binary search over an underlying {@link Rank9} instance. It uses
+ * 12.5% additional space for a small inventory.
  */
 
 public class HintedBsearchSelect implements Select {

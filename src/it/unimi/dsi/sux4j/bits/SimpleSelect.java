@@ -1,11 +1,34 @@
 package it.unimi.dsi.sux4j.bits;
 
+
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
 import it.unimi.dsi.fastutil.longs.LongArrays;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A simple select implementation based on a two-level inventory and broadword bit search. */
+/** A simple select implementation based on a two-level inventory and broadword bit search. 
+ * It uses around 13.75% additional space. */
 
 public class SimpleSelect implements Select {
 	@SuppressWarnings("unused")
@@ -22,7 +45,7 @@ public class SimpleSelect implements Select {
 
 	private final long[] inventory;
 	private final long[] subinventory;
-	private transient LongBigList subinventory16;
+	private final LongBigList subinventory16;
 	private final long numOnes;
 	private final long length;
 	private final int numWords;
@@ -225,7 +248,6 @@ public class SimpleSelect implements Select {
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
 	}
 
 	public long[] bits() {

@@ -1,10 +1,32 @@
 package it.unimi.dsi.sux4j.bits;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
 
-/** A <code>rank9</code> implementation paired with constant-time selection based on 
- * broadword algorithms. */
+
+/** A <code>select9</code> implementation.
+ * 
+ *  <code>select9</code> is based on an underlying <code>{@linkplain Rank9 rank9}</code> instance
+ *  and uses 25%-37.5% additional space, depending on density.
+ */
 
 public class Select9 implements Select {
 	private static final boolean ASSERTS = true;
@@ -22,8 +44,8 @@ public class Select9 implements Select {
 	
 	private final long[] inventory;
 	private final long[] subinventory;
-	private transient LongBigList subinventoryAsShorts;
-	private transient LongBigList subinventoryasInts;
+	private final LongBigList subinventoryAsShorts;
+	private final LongBigList subinventoryasInts;
 	private final long numOnes;
 	private final int numWords;
 	private final long[] bits;
@@ -243,13 +265,6 @@ public class Select9 implements Select {
 
 	public long numBits() {
 		return rank9.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
-	}
-
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
-		s.defaultReadObject();
-		final BitVector v = LongArrayBitVector.wrap( subinventory );
-		subinventoryAsShorts = v.asLongBigList( Short.SIZE );
-		subinventoryasInts = v.asLongBigList( Integer.SIZE );
 	}
 
 	public long[] bits() {

@@ -1,5 +1,26 @@
 package it.unimi.dsi.sux4j.bits;
 
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
 import java.io.Serializable;
 
 /** A data structure providing selecting over a bit array.
@@ -19,7 +40,7 @@ import java.io.Serializable;
  *  	<li><code>rank(0)=0</code>;
  *  	<li><code>rank(length())</code> is the number of ones in the bit vector;
  *  	<li>if <code>r &lt; rank(length())</code>, then <code>rank(select(r))==r</code>;
- *  	<li>if <code>r &ge; rank(length())</code>, then <code>select(r)=-1</code> is undefined;
+ *  	<li>if <code>r &ge; rank(length())</code>, then <code>select(r)=-1</code>;
  *  	<li>if <code>p &le; length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
  *  	holds iff there is a one at position <code>p</code>.
  *  </ul>

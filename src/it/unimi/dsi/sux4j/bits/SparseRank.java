@@ -1,23 +1,34 @@
 package it.unimi.dsi.sux4j.bits;
 
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
 import it.unimi.dsi.fastutil.longs.LongIterator;
 
-/** An opportunistic select implementation for sparse arrays. 
+/** An opportunistic rank implementation for sparse arrays. 
  * 
- * <p>The code is based on the <code>sdarray</code> structure
- * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, TODO.
- * The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
- * by storing separately 
- * the lower <var>{@linkplain #l}</var> = &lceil;log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )&rceil;</var> bits
- * and the remaining upper bits.
- * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
- * of 2<var>{@linkplain #m}</var> bits by setting, if the <var>i</var>-th one is at position
- * <var>p</var>, the bit of index <var>p</var> / 2<sup><var>l</var></sup> + <var>i</var>; the value can then be recovered
- * by selecting the <var>i</var>-th bit of the resulting dense (but small) bit array and subtracting <var>i</var> (note that this will
- * work because the upper bits are nondecreasing).
+ * <p>Please see the {@link SparseSelect} class documentation for some reference on the inner workings of this class.
  * 
- * <p>This implementation uses {@link SimpleSelect} to support selection inside the dense array. The resulting data structure uses 
- * <var>m</var> log(<var>n</var>/<var>m</var>) + 2.75 <var>m</var> bits, and <em>does not store the original bit vector</em>.  
+ * <p>Note that some data is shared with {@link SparseSelect}: correspondingly, a suitable {@linkplain #SparseRank(SparseSelect) constructor}
+ * makes it possible to build an instance using an underlying {@link SparseSelect} instance.
  */
 
 public class SparseRank extends AbstractRank {
@@ -35,10 +46,10 @@ public class SparseRank extends AbstractRank {
 	protected final LongBigList lowerBits;
 	/** The upper bits. */
 	protected final long[] upperBits;
-	/** The select structure used to extract the upper bits. */ 
+	/** The rank structure used to extract the upper bits. */ 
 	protected final SimpleSelectZero selectZeroUpper;
 
-	/** Creates a new <code>sdarray</code> select structure using a long array.
+	/** Creates a new <code>sdarray</code> rank structure using a long array.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original array.
 	 * 
@@ -49,7 +60,7 @@ public class SparseRank extends AbstractRank {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 	
-	/** Creates a new <code>sdarray</code> select structure using a bit vector.
+	/** Creates a new <code>sparse</code> rank structure using a bit vector.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original bit vector.
 	 * 
@@ -60,7 +71,7 @@ public class SparseRank extends AbstractRank {
 	}
 	
 	
-	/** Creates a new <code>sdarray</code> select structure using an {@linkplain LongIterator iterator}.
+	/** Creates a new <code>sparse</code> rank structure using an {@linkplain LongIterator iterator}.
 	 * 
 	 * <p>This constructor is particularly useful if the positions of the ones are provided by
 	 * some sequential source.
@@ -101,9 +112,9 @@ public class SparseRank extends AbstractRank {
 	}
 
 	
-	/** Creates a new <code>sdarray</code> select structure using a {@link SparseSelect}.
+	/** Creates a new <code>sparse</code> rank structure using a {@link SparseSelect}.
 	 *
-	 * @param sparseSelect a sparse select structure.
+	 * @param sparseSelect a sparse rank structure.
 	 */
 	public SparseRank( final SparseSelect sparseSelect ) {
 		n = sparseSelect.n;
