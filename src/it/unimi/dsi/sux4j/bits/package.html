@@ -1,0 +1,36 @@
+<html>
+<body>
+Main classes manipulating bits.
+
+<h2>Implementations of bit vectors</h2>
+
+<p>The first building block of Sux4J is the {@link it.unimi.dsi.sux4j.bits.BitVector} interface and the {@link it.unimi.dsi.sux4j.bits.LongArrayBitVector} implementation.
+The idea is to offer an efficent but easy-to-use bit-vector class by allowing access under many different <em>views</em>. For instance,
+a bit vector can be seen as a {@link it.unimi.dsi.sux4j.bits.LongBigList} of integers of fixed width. Or as a sorted set of
+integers, where the positions of the bits set to one represent elements.
+
+<strong>Warning</strong>: implementing all features of {@link it.unimi.dsi.sux4j.bits.LongArrayBitVector} has not been easy. There may be bugs.
+
+<h2>Rank and select</h2>
+
+<p>The second building block is a numbr of implementations of <em>rank/select queries</em> for bits vectors represented by arrays of longs. <em>Ranking</em> is 
+counting the number of ones in an initial segment of a bit vector. <em>Selection</em> is finding the position of the
+<var>r</var>-th one. Both operation can be performed in constant time on an array of <var>n</var> bits
+using <i>o</i>(<var>n</var>) additional bits, but in practise linear data structures with small constants and theoretically non-constant
+time work much better. Sux4J proposes a number of new, very efficient implementation of rank and select oriented to 64-bit processors
+(in other words: they will be fairly slow on 32-bit processors).
+
+<p>For dense arrays, {@link it.unimi.dsi.sux4j.bits.Rank9} is the only rank implementation. Selection can be performed
+using {@link it.unimi.dsi.sux4j.bits.SimpleSelect} for reasonably uniform bit arrays, or using {@link it.unimi.dsi.sux4j.bits.Select9}, which occupies more space
+but guarantees practical constant-time evaluation.
+
+<p>For sparse arrays (e.g., representation of pointers in a bitstream) 
+we provide {@link it.unimi.dsi.sux4j.bits.SparseRank} and {@link it.unimi.dsi.sux4j.bits.SparseSelect}. Their main
+feature is that <em>they do not require the original bit array</em>.
+
+<p>All structures can be serialised. Since in some cases the original bit vector is stored inside the structure, to
+avoid saving and loading twice the same vector we suggest to pack all structures into a {@link it.unimi.dsi.sux4j.bits.RankSelect} instance.
+
+ 
+</body>
+</html>
