@@ -21,7 +21,7 @@ public class TestMinimalPerfectHash {
 			start = -System.currentTimeMillis();
 			
 			Iterator<MutableString> s = c.iterator();
-			for( int i = mph.size(); i-- != 0; ) mph.getNumber( s.next() ); 
+			for( int i = mph.size(); i-- != 0; ) mph.getInt( s.next() ); 
 			
 			start += System.currentTimeMillis();
 			

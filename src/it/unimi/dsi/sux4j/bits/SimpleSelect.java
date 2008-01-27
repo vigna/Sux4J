@@ -27,12 +27,15 @@ import it.unimi.dsi.fastutil.longs.LongArrays;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A simple select implementation based on a two-level inventory and broadword bit search. 
- * It uses around 13.75% additional space. */
+/** A simple select implementation based on a two-level inventory and broadword bit search.
+ *  
+ * <p>This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
+ * under the same conditions, provide very fast selects. For very unevenly distributed arrays
+ * the space occupancy will grow significantly, and access time might vary wildly. */
 
 public class SimpleSelect implements Select {
 	@SuppressWarnings("unused")
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
 
 	private static final long ONES_STEP_8 = 0x0101010101010101L;

@@ -23,10 +23,15 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 
-/** A <code>rank9</code> implementation. */
+/** A <code>rank9</code> implementation. 
+ * 
+ * <p><code>rank9</code> is a 
+ * ranking structure using just 25% additional space
+ * and providing exceptionally fast ranking (on an Opteron at 2800 MHz this class
+ * ranks a million-bit array in less than 8 nanoseconds). */
 
 public class Rank9 extends AbstractRank implements Rank {
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
 
 	final protected long length;

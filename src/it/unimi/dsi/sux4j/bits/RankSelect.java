@@ -29,7 +29,7 @@ import java.io.Serializable;
  *  
  *  <p>Since structures in Sux4J serialise all contained data, including, if necessary, the underlying bit vector,
  *  serialising separately a rank and a select structure might result in storing the underlying bit
- *  vector twice. This class provide a simple solution by providing one-shot serialisation of
+ *  vector twice. This class provide a simple solution by allowing one-shot serialisation of
  *  all structures related to a bit vector. As a commodity, it provides also delegate methods, albeit
  *  the suggested usage is deserialisation and extraction of non-<code>null</code> structures.  
  *  

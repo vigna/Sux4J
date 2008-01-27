@@ -23,8 +23,8 @@ public class MinimalPerfectHashTest extends TestCase {
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) {
-			assertEquals( Integer.toString( i ), -1, check[ mph.getNumber( s[ i ] ) ] );
-			check[ mph.getNumber( s[ i ] ) ] = i;
+			assertEquals( Integer.toString( i ), -1, check[ mph.getInt( s[ i ] ) ] );
+			check[ mph.getInt( s[ i ] ) ] = i;
 		}
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
@@ -34,8 +34,8 @@ public class MinimalPerfectHashTest extends TestCase {
 
 		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) {
-			assertEquals( Integer.toString( i ), -1, check[ mph.getNumber( s[ i ] ) ] );
-			check[ mph.getNumber( s[ i ] ) ] = i;
+			assertEquals( Integer.toString( i ), -1, check[ mph.getInt( s[ i ] ) ] );
+			check[ mph.getInt( s[ i ] ) ] = i;
 		}
 	}
 	

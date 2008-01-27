@@ -483,7 +483,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	
 	protected static class LongBigListView extends AbstractBitVector.LongBigListView {
 		private static final long serialVersionUID = 1L;
-		private static final boolean ASSERTS = true;
+		private static final boolean ASSERTS = false;
 		@SuppressWarnings("hiding")
 		final private LongArrayBitVector bitVector;
 		

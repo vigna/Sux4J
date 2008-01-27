@@ -23,7 +23,7 @@ package it.unimi.dsi.sux4j.bits;
 
 import java.io.Serializable;
 
-/** A data structure providing selecting over a bit array.
+/** A data structure providing selection over a bit array.
  * 
  * <p>Selection is a basic building blocks for most succinct data structures. Usually,
  * instances of this class class provide quick (e.g., constant time) selection.

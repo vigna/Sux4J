@@ -26,7 +26,7 @@ package it.unimi.dsi.sux4j.bits;
 /** A hinted binary-search select implementation.
  * 
  * <p>Instances of this class perform selection
- * using a hinted binary search over an underlying {@link Rank9} instance. It uses
+ * using a hinted binary search over an underlying {@link Rank9} instance. We use
  * 12.5% additional space for a small inventory.
  */
 

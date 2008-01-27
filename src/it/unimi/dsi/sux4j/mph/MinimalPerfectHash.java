@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.fastutil.booleans.BooleanArrays;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
@@ -69,7 +70,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <P>Given a list of strings without duplicates, 
  * the constructors of this class finds a minimal perfect hash function for
- * the list. Subsequent calls to the {@link #getNumber(CharSequence)} method will return a distinct
+ * the list. Subsequent calls to the {@link #getInt(CharSequence)} method will return a distinct
  * number for each string in the list (for strings out of the list, the resulting number is undefined). The class
  * can then be saved by serialisation and reused later.
  *
@@ -95,7 +96,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * writes a serialised minimal perfect hash for the given list.
  * 
  * <P>For efficiency, there are also method that access a minimal perfect hash
- * {@linkplain #getNumber(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
+ * {@linkplain #getInt(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
  *
  * <h3>How it Works</h3>
  * 
@@ -161,7 +162,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.1
  */
 
-public class MinimalPerfectHash implements Serializable {
+public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence> implements Serializable {
     public static final long serialVersionUID = 1L;
 
 	/** The number of bits per block in the rank structure. */
@@ -255,6 +256,10 @@ public class MinimalPerfectHash implements Serializable {
 	}
 
 
+	public int getInt( final Object o ) {
+		return getInt( (CharSequence)o );
+	}
+	
 	/** Hashes a given term.
 	 *
 	 * @param term a term to be hashed.
@@ -262,7 +267,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * term was not in the original collection, the result is a random position.
 	 *
 	 */
-	public int getNumber( final CharSequence term ) {
+	public int getInt( final CharSequence term ) {
 		
 		if ( t != null ) return getFromT( term );
 		
@@ -300,7 +305,7 @@ public class MinimalPerfectHash implements Serializable {
 	 *         the result is a random position.
 	 */
 
-	public int getNumber( final MutableString term ) {
+	public int getInt( final MutableString term ) {
 
 		if ( t != null ) return getFromT( term );
 
@@ -338,7 +343,7 @@ public class MinimalPerfectHash implements Serializable {
 	 * term was not in the original collection, the result is a random position.
 	 */
 
-	public int getNumber( final byte[] a, final int off, final int len ) {
+	public int getInt( final byte[] a, final int off, final int len ) {
 
 		if ( t != null )
 			try {
@@ -379,8 +384,8 @@ public class MinimalPerfectHash implements Serializable {
 	 * term was not in the original collection, the result is a random position.
 	 */
 
-	public int getNumber( final byte[] a ) {
-		return getNumber( a, 0, a.length );
+	public int getInt( final byte[] a ) {
+		return getInt( a, 0, a.length );
 	}
 		
 	/** Gets a term out of the stored array {@link #t}. 
@@ -978,6 +983,11 @@ public class MinimalPerfectHash implements Serializable {
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( minimalPerfectHash, tableName );
 		LOGGER.info( "Completed." );
+	}
+
+
+	public boolean containsKey( Object key ) {
+		return true;
 	}
 
 }

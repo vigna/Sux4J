@@ -41,7 +41,7 @@ import org.apache.log4j.Logger;
 public final class Fast {
 	private Fast() {}
 
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	
 	private static final long ONES_STEP_4 = 0x1111111111111111L;
 	private static final long ONES_STEP_8 = 0x0101010101010101L;

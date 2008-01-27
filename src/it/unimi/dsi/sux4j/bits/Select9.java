@@ -24,12 +24,13 @@ package it.unimi.dsi.sux4j.bits;
 
 /** A <code>select9</code> implementation.
  * 
- *  <code>select9</code> is based on an underlying <code>{@linkplain Rank9 rank9}</code> instance
- *  and uses 25%-37.5% additional space, depending on density.
+ *  <p><code>select9</code> is based on an underlying <code>{@linkplain Rank9 rank9}</code> instance
+ *  and uses 25%-37.5% additional space, depending on density. It guarantees practical
+ *  constant time evaluation.
  */
 
 public class Select9 implements Select {
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
 
 	private final static long ONES_STEP_16 = 1L << 0 | 1L << 16 | 1L << 32 | 1L << 48;

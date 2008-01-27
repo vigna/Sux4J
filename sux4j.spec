@@ -1,8 +1,8 @@
 %define section free
 
 Name:           sux4j
-Version:        0.1
-Release:        3
+Version:        0.2
+Release:        1
 Epoch:		0
 Summary:        Succinct data structures for Java
 License:        LGPL
@@ -71,5 +71,7 @@ ln -s %{name}-%{version} %{_javadocdir}/%{name}
 %ghost %doc %{_javadocdir}/%{name}
 
 %changelog
+* Mon Nov 26 2007 Sebastiano Vigna <vigna at acm.org> 0.2
+- First rank/select structures
 * Mon Nov 26 2007 Sebastiano Vigna <vigna at acm.org> 0.1
 - First release

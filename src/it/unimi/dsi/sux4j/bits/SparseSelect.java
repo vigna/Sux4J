@@ -27,11 +27,11 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
  * 
  * <p>The code is based on a 64-bit reimplementation of the <code>sdarray</code> structure
  * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, In <i>Proc. of the 
- * Workshop on Algorithm Engineering and Experiments, ALENEX 2007<i/i>. SIAM, 2007.
+ * Workshop on Algorithm Engineering and Experiments, ALENEX 2007</i>. SIAM, 2007.
  * 
  * <p>The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
  * by storing separately 
- * the lower <var>{@linkplain #l}</var> = &lceil; log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )&rceil;</var> bits
+ * the lower <var>{@linkplain #l}</var> = &lceil; log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )</var> &rceil; bits
  * and the remaining upper bits.
  * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
  * of 2<var>{@linkplain #m}</var> bits by setting, if the <var>i</var>-th one is at position
