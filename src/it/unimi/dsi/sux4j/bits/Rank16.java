@@ -23,55 +23,49 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 
-/** A <code>rank9</code> implementation. 
+/** A <code>rank16</code> implementation. 
  * 
- * <p><code>rank9</code> is a 
- * ranking structure using just 25% additional space
- * and providing exceptionally fast ranking (on an Opteron at 2800 MHz this class
- * ranks a million-bit array in less than 8 nanoseconds). */
+ * <p><code>rank16</code> is a ranking structure using just 12.6% additional space
+ * and providing fast ranking. It is the natural ranking structure for 128-bit processors. */
 
-public class Rank9 extends AbstractRank implements Rank {
+public class Rank16 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
-
+	private static final int BLOCK_LENGTH = 1024;
+	
 	final protected long length;
 	final protected long[] bits;
-	final protected long[] count;
+	final protected long[] superCount;
+	final protected short[] count;
 	final protected int numWords;
 	final protected long numOnes;
 	final protected long lastOne;
 	
-	public Rank9( final BitVector bitVector ) {
+	public Rank16( final BitVector bitVector ) {
 		this( bitVector.bits(), bitVector.length() );
 	}
 		
-	public Rank9( long[] bits, long length ) {
+	public Rank16( long[] bits, long length ) {
 		this.bits = bits;
 		this.length = length;
 		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 
-		final int numCounts = (int)( ( length + 8 * Long.SIZE - 1 ) / ( 8 * Long.SIZE ) ) * 2;
+		final int numSuperCounts = (int)( ( length + BLOCK_LENGTH - 1 ) / BLOCK_LENGTH );
+		final int numCounts = ( numWords + 1 ) / 2;
 		// Init rank/select structure
-		count = new long[ numCounts + 1 ];
+		count = new short[ numCounts ];
+		superCount = new long[ numSuperCounts ];
 
 		long c = 0, l = -1;
-		int pos = 0;
-		for( int i = 0; i < numWords; i += 8, pos += 2 ) {
-			count[ pos ] = c;
+		for( int i = 0; i < numWords; i++ ) {
+			if ( i % BLOCK_LENGTH == 0 ) superCount[ i / BLOCK_LENGTH ] = c;
+			if ( i % 2 == 0 ) count[ i / 2 ] = (short)( c - superCount[ i / BLOCK_LENGTH ] );
 			c += Fast.count( bits[ i ] );
 			if ( bits[ i ] != 0 ) l = i * 64 + Fast.mostSignificantBit( bits[ i ] );
-			for( int j = 1;  j < 8; j++ ) {
-				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
-				if ( i + j < numWords ) {
-					c += Fast.count( bits[ i + j ] );
-					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64 + Fast.mostSignificantBit( bits[ i + j ] );
-				}
-			}
 		}
 		
 		numOnes = c;
 		lastOne = l;
-		count[ numCounts ] = c;
 	}
 	
 	
@@ -81,11 +75,13 @@ public class Rank9 extends AbstractRank implements Rank {
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
-		final int word = (int)( pos / 64 );
-		final int block = word / 4 & ~1;
-		final int offset = word % 8 - 1;
+		final int word = (int)( pos / Long.SIZE );
+		final int block = word / ( 2 * BLOCK_LENGTH );
+		final int offset = word / 2;
         
-		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
+		return word % 2 == 0 ?
+				superCount[ block ] + count[ offset ] + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) ) :
+				superCount[ block ] + count[ offset ] + Fast.count( bits[ word - 1 ] ) + Fast.count( bits[ word ] & ( 1L << pos % 64 ) - 1 );
 	}
 
 	public long[] bits() {
@@ -97,7 +93,7 @@ public class Rank9 extends AbstractRank implements Rank {
 	}
 	
 	public long numBits() {
-		return count.length * Long.SIZE;
+		return count.length * Short.SIZE + superCount.length * Long.SIZE;
 	}
 
 	public long count() {

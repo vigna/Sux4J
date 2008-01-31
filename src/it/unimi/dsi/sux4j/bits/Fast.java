@@ -48,6 +48,11 @@ public final class Fast {
 	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
 
+
+	public static double log2( final double x ) {
+		return Math.log( x ) / Math.log( 2 );
+	}
+ 	
 	public static int ceilLog2( final int x ) {
 		return mostSignificantBit( x - 1 ) + 1;
 	}

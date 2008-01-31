@@ -32,4 +32,15 @@ public abstract class RankSelectTestCase extends TestCase {
 			
 		}
 	}
+
+	public void assertRank( Rank rank ) {
+		final long length = rank.length();
+		final LongArrayBitVector bits = LongArrayBitVector.wrap( rank.bits(), rank.length() );
+		
+		for( int j = 0, i = 0; i < length; i++ ) {
+			assertEquals( "Ranking " + i, j, rank.rank( i ) );
+			if ( bits.getBoolean( i ) ) j++;
+		}
+	}
+
 }

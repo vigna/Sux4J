@@ -2,6 +2,7 @@ package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.sux4j.bits.HintedBsearchSelect;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.Select9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
@@ -62,6 +63,13 @@ public class RankSelectSpeedTest {
 			Rank9 rank9 = new Rank9( bitVector );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) rank9.rank( rankPosition[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/rank" );
+
+			System.out.println( "=== Rank 16 ===");
+			Rank16 rank16 = new Rank16( bitVector );
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) rank16.rank( rankPosition[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/rank" );
 

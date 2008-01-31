@@ -25,7 +25,7 @@ package it.unimi.dsi.sux4j.bits;
 /** A <code>select9</code> implementation.
  * 
  *  <p><code>select9</code> is based on an underlying <code>{@linkplain Rank9 rank9}</code> instance
- *  and uses 25%-37.5% additional space, depending on density. It guarantees practical
+ *  and uses 25%-37.5% additional space (beside the 25% due to <code>rank9</code>), depending on density. It guarantees practical
  *  constant time evaluation.
  */
 

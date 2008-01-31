@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2007 Sebastiano Vigna 
+ * Copyright (C) 2002-2008 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -21,10 +21,10 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.fastutil.booleans.BooleanArrays;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
+import it.unimi.dsi.fastutil.objects.AbstractObject2ObjectFunction;
+import it.unimi.dsi.fastutil.objects.Object2ObjectFunction;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
@@ -50,10 +50,7 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
 
-import cern.colt.GenericPermuting;
-import cern.colt.GenericSorting;
-import cern.colt.Swapper;
-import cern.colt.function.IntComparator;
+import test.it.unimi.dsi.sux4j.mph.HypergraphVisit;
 import cern.jet.random.engine.MersenneTwister;
 
 import com.martiansoftware.jsap.FlaggedOption;
@@ -105,7 +102,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping technique describe
  * therein was actually first proposed by Chazelle, Kilian, Rubinfeld and Tal in 
  * &ldquo;The Bloomier Filter: an Efficient Data Structure for Static Support Lookup 
- * Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004. 
+ * Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the steps to implement a mutable table.
  * 
  * <p>The basic ingredient is a stripping procedure to be applied to an acyclic 3-hypergraph. The  
  * idea is due to Havas, Majewski, Wormald and Czech (&ldquo;A Family of Perfect Hashing Methods&rdquo;,
@@ -175,11 +172,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 
 	private static final boolean DEBUG = true;
 	
-	/** The number of nodes the hypergraph will actually have. This value guarantees that the hypergraph will be acyclic with positive probability. */
-	public static final double ENLARGEMENT_FACTOR = 1.23;
-	/** The minimum number of strings that will trigger the construction of a minimal perfect hash;
-	 * otherwise, strings are simply stored in a vector. */
-	public static final int STRING_THRESHOLD = 16;
 	/** A special value denoting that the weight length is unknown, and should be computed using
 	 * the maximum length of a string. */
 	public static final int WEIGHT_UNKNOWN = -1;
@@ -206,15 +198,11 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 	/** The length of the components of the weight vectors (it's faster than asking the length of the vectors). */
 	final protected int weightLength;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
-	protected transient LongBigList bits;
+	final protected LongBigList bits;
 	/** The bit array supporting {@link #bits}. */
 	final protected long[] array;
 	/** The number of nonzero bit pairs up to a given block. */
 	final protected int count[];
-	/** Four times the number of buckets. */
-	protected transient long n4;
-	/** If {@link #n} is smaller than {@link #STRING_THRESHOLD}, a vector containing the strings. */
-	protected transient CharSequence[] t;
     
 	/*
 	 * The following four methods MUST be kept synchronised. The reason why we duplicate code is
@@ -269,8 +257,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 	 */
 	public int getInt( final CharSequence term ) {
 		
-		if ( t != null ) return getFromT( term );
-		
 		int h0 = init[ 0 ], h1 = init[ 1 ], h2 = init[ 2 ]; // We need three these values to map correctly the empty string
 		char c;
 		int i = term.length();
@@ -306,8 +292,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 	 */
 
 	public int getInt( final MutableString term ) {
-
-		if ( t != null ) return getFromT( term );
 
 		int h0 = init[ 0 ], h1 = init[ 1 ], h2 = init[ 2 ]; // We need three these values to map correctly the empty string
 		char c;
@@ -345,14 +329,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 
 	public int getInt( final byte[] a, final int off, final int len ) {
 
-		if ( t != null )
-			try {
-				return getFromT( new String( a, off, len, "ISO-8859-1" ) );
-			}
-			catch ( UnsupportedEncodingException cantHappen ) {
-				throw new RuntimeException( cantHappen );
-			}
-
 		int h0 = init[ 0 ], h1 = init[ 1 ], h2 = init[ 2 ]; // We need three these values to map correctly the empty string
 		int c;
 		int i = len;
@@ -388,22 +364,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		return getInt( a, 0, a.length );
 	}
 		
-	/** Gets a term out of the stored array {@link #t}. 
-	 * 
-	 * <P>Note: This method does not check for {@link #t} being non-<code>null</code>.
-	 * 
-	 * @param term a term.
-	 * @return the position of the given term in the generating collection, starting from 0. If the
-	 * term was not in the original collection, the result is 0.
-	 */
-	protected int getFromT( final CharSequence term ) {
-		int i = n;
-		/* Note that we invoke equality *on the stored MutableString*. This
-		 * is essential due to the known weaknesses in CharSequence's contract. */
-		while( i-- != 0 ) if ( t[ i ].equals( term ) ) return i; 
-		return 0;
-	}
-
 
 	/** Returns the length of the weight vectors.
 	 *
@@ -471,7 +431,7 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		if ( weightLength != WEIGHT_UNKNOWN && weightLength != WEIGHT_UNKNOWN_SORTED_STRINGS && weightLength <= 0 ) throw new IllegalArgumentException( "Non-positive weight length: " + weightLength );
 
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
-		if ( terms instanceof Collection) n = ((Collection<? extends CharSequence>)terms).size();
+		if ( terms instanceof Collection ) n = ((Collection<? extends CharSequence>)terms).size();
 		else {
 			int c = 0;
 			// Do not add a suppression annotation--it breaks javac
@@ -479,14 +439,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 			n = c;
 		}
 		
-		n4 = n * 4;
-		m = ( (int)Math.ceil( n * ENLARGEMENT_FACTOR ) + BITS_PER_BLOCK - 1 ) & -BITS_PER_BLOCK;
-		mMinus1 = m - 1;
-		mMinus2 = m - 2;
-		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
-		bits = bitVector.asLongBigList( 2 );
-		bits.size( m );
-		array = bitVector.bits();
 
 		if ( weightLength < 0 ) {
 			LOGGER.info( "Computing weight length..." );
@@ -531,17 +483,73 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		init = new int[ 3 ];
 		this.weightLength = weightLength;
 
-		if ( n < STRING_THRESHOLD ) {
-			int j = 0;
-			t = new MutableString[ n ];
-			for( Iterator<? extends CharSequence> i = terms.iterator(); i.hasNext(); ) t[ j++ ] = new MutableString( i.next() ); 
-		}
-		else {		
-			t = null;
-			new Visit( terms );
-		}
+
+		final MersenneTwister r = new MersenneTwister( new Date() );
+		HypergraphVisit<CharSequence> visit = new HypergraphVisit<CharSequence>( n );
+
+		m = visit.numberOfVertices;
+		mMinus1 = m - 1;
+		mMinus2 = m - 2;
+		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
+		bits = bitVector.asLongBigList( 2 );
+		bits.size( m );
+		array = bitVector.bits();
+
+		final Object2ObjectFunction<CharSequence,int[]> hyperedge = new AbstractObject2ObjectFunction<CharSequence,int[]>() {
+			private static final long serialVersionUID = 1L;
+			final int[] h = new int[3];
+			public int[] get( Object key ) {
+				MinimalPerfectHash.this.hash( (CharSequence)key, h );
+				return h;
+			}
+
+			public boolean containsKey( Object key ) { return true;	}
+			public int size() { return -1; }
+		};
 		
-		count = new int[ 2 * m / BITS_PER_BLOCK ];
+		
+		do {
+			LOGGER.info( "Generating random hypergraph..." );
+			
+			init[ 0 ] = r.nextInt();
+			init[ 1 ] = r.nextInt();
+			init[ 2 ] = r.nextInt();
+			
+			/* We choose the random weights for the three intermediate hash functions. */
+			for ( int i = 0; i < weightLength; i++ ) {
+				weight0[ i ] = r.nextInt();
+				weight1[ i ] = r.nextInt();
+				weight2[ i ] = r.nextInt();
+			}
+		} while ( ! visit.visit( terms, hyperedge ) );
+		
+		/* We assign values. */
+		/** Whether a specific node has already been used as perfect hash value for an item. */
+		final BitVector used = LongArrayBitVector.getInstance( m ).length( m );
+		int value;
+		
+		final int[] stack = visit.stack;
+		final int[][] edge = visit.edge;
+		int top = n, k, s, v = 0;
+		while( top > 0 ) {
+			k = stack[ --top ];
+
+			s = 0;
+
+			for ( int j = 0; j < 3; j++ ) {
+				if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
+				else s += bits.getLong( edge[ j ][ k ] );
+				used.set( edge[ j ][ k ] );
+			}
+			
+			value = ( v - s + 9 ) % 3;
+			bits.set( edge[ v ][ k ], value == 0 ? 3 : value );
+		}
+
+		LOGGER.info( "Completed." );
+
+		
+		count = new int[ ( 2 * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ];
 		int c = 0;
 		
 		for( int i = 0; i < 2 * m / Long.SIZE; i++ ) {
@@ -550,7 +558,7 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		}
 		
 		if ( DEBUG ) {
-			int k = 0;
+			k = 0;
 			for( int i = 0; i < m; i++ ) {
 				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( 2 * i ); 
 				if ( bits.getLong( i ) != 0 ) k++;
@@ -677,265 +685,6 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		this.bits = mph.bits;
 		this.array = mph.array;
 		this.count = mph.count;
-		this.n4 = mph.n4;
-		this.t = mph.t;
-	}
-
-	/** The internal state of a visit. */
-	
-	private class Visit {
-		/** An 3&times;n array recording the triple of vertices involved in each hyperedge. It is *reversed*
-		   w.r.t. what you would expect to reduce object creation. */
-		final int[][] edge = new int[ 3 ][ n ];
-		/** Whether a hyperedge has been already removed. */
-		final boolean[] removed = new boolean[ n ];
-		/** For each vertex of the intermediate hypergraph, the vector of incident hyperedges. */
-		final int[] inc = new int[ m * 3 ];
-		/** The next position to fill in the respective incidence vector. 
-		 * Used also to store the hyperedge permutation and speed up permute(). */
-		final int[] last = new int[ m ]; 
-		/** For each vertex of the intermediate hypergraph, the offset into 
-		 * the vector of incident hyperedges. Used also to speed up permute(). */
-		final int[] incOffset = new int[ m ];
-		/** The hyperedge stack. Used also to invert the hyperedge permutation. */
-		final int[] stack = new int[ n ];
-		/** The degree of each vertex of the intermediate hypergraph. */
-		final int[] d = new int[ m ];
-		/** Initial top of the hyperedge stack. */
-		int top;
-
-		public Visit( final Iterable<? extends CharSequence> terms ) {
-			// We cache all variables for faster access
-			final int[][] edge = this.edge;
-			final int[] last = this.last;
-			final int[] inc = this.inc;
-			final int[] incOffset = this.incOffset;
-			final int[] stack = this.stack;
-			final int[] d = this.d;
-
-			final MersenneTwister r = new MersenneTwister( new Date() );
-
-			int i, j, k, s, v = -1;
-			final int[] h = new int[ 3 ];
-			
-			do {
-				
-				LOGGER.info( "Generating random hypergraph..." );
-				top = 0;
-				
-				init[ 0 ] = r.nextInt();
-				init[ 1 ] = r.nextInt();
-				init[ 2 ] = r.nextInt();
-				
-				/* We choose the random weights for the three intermediate hash functions. */
-				for ( i = 0; i < weightLength; i++ ) {
-					weight0[ i ] = r.nextInt();
-					weight1[ i ] = r.nextInt();
-					weight2[ i ] = r.nextInt();
-				}
-					 
-					 
-				/* We build the hyperedge list, checking that we do not create a degenerate hyperedge. */
-				i = 0;
-				CharSequence cs = null;
-				IntArrays.fill( d, 0 );
-
-				for( Iterator<? extends CharSequence> w = terms.iterator(); w.hasNext(); ) {
-					hash( cs = w.next(), h );
-					if ( h[ 0 ] == h[ 1 ] || h[ 1 ] == h[ 2 ] || h[ 2 ] == h[ 0 ] ) break;
-
-					edge[ 0 ][ i ] = h[ 0 ];
-					edge[ 1 ][ i ] = h[ 1 ];
-					edge[ 2 ][ i ] = h[ 2 ];
-
-					i++;
-				}
-					 
-				if ( i < n ) {
-					LOGGER.info( "Hypergraph generation interrupted by degenerate hyperedge " + i + " (string: \"" + cs + "\")." );
-					continue;
-				} 
-
-				/* We compute the degree of each vertex. */
-				for( j = 0; j < 3; j++ ) {
-					i = n;
-					while( i-- != 0 ) d[ edge[ j ][ i ] ]++; 
-				}
-
-				LOGGER.info( "Checking for duplicate hyperedges..." );
-		
-				/* Now we quicksort hyperedges lexicographically, keeping into last their permutation. */
-				i = n;
-				while( i-- != 0 ) last[ i ] = i;
-				
-				GenericSorting.quickSort( 0, n, new IntComparator() {
-					public int compare( final int x, final int y ) {
-						int r;
-						if ( ( r = edge[ 0 ][ x ] - edge[ 0 ][ y ] ) != 0 ) return r;
-						if ( ( r = edge[ 1 ][ x ] - edge[ 1 ][ y ] ) != 0 ) return r;
-						return edge[ 2 ][ x ] - edge[ 2 ][ y ];
-					}
-				},
-				new Swapper() {
-					public void swap( final int x, final int y ) {
-						int e0 = edge[ 0 ][ x ], e1 = edge[ 1 ][ x ], e2 = edge[ 2 ][ x ], p = last[ x ];
-						edge[ 0 ][ x ] = edge[ 0 ][ y ];
-						edge[ 1 ][ x ] = edge[ 1 ][ y ];
-						edge[ 2 ][ x ] = edge[ 2 ][ y ];
-						edge[ 0 ][ y ] = e0;
-						edge[ 1 ][ y ] = e1;
-						edge[ 2 ][ y ] = e2;
-						last[ x ] = last[ y ];
-						last[ y ] = p;
-					}
-				}
-				);
-				
-				i = n - 1;
-				while( i-- != 0 ) if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ]) break;
-
-				if ( i != -1 ) {
-					LOGGER.info( "Found double hyperedge for terms " + last[ i + 1 ] + " and " + last[ i ] + "." );
-					continue;
-				}
-				
-				/* We now invert last and permute all hyperedges back into their place. Note that
-				 * we use last and incOffset to speed up the process. */
-				i = n;
-				while( i-- != 0 ) stack[ last[ i ] ] = i;
-				
-				GenericPermuting.permute( stack, new Swapper() {
-					public void swap( final int x, final int y ) {
-						int e0 = edge[ 0 ][ x ], e1 = edge[ 1 ][ x ], e2 = edge[ 2 ][ x ];
-						edge[ 0 ][ x ] = edge[ 0 ][ y ];
-						edge[ 1 ][ x ] = edge[ 1 ][ y ];
-						edge[ 2 ][ x ] = edge[ 2 ][ y ];
-						edge[ 0 ][ y ] = e0;
-						edge[ 1 ][ y ] = e1;
-						edge[ 2 ][ y ] = e2;
-					}
-				}, last, incOffset
-				);
-				
-				LOGGER.info( "Visiting hypergraph..." );
-					 
-				/* We set up the offset of each vertex in the incidence
-				   vector. This is necessary to avoid creating m incidence vectors at
-				   each round. */
-				IntArrays.fill( last, 0 );
-				incOffset[ 0 ] = 0;
-
-				for( i = 1; i < m; i++ ) incOffset[ i ] = incOffset[ i - 1 ] + d[ i - 1 ];
-					 
-				/* We fill the vector. */
-				for( i = 0; i < n; i++ ) 
-					for( j = 0; j < 3; j++ ) {
-						v = edge[ j ][ i ];
-						inc[ incOffset[ v ] + last[ v ]++ ] = i;
-					}
-					 
-				/* We visit the hypergraph. */
-				BooleanArrays.fill( removed, false );
-
-				for( i = 0; i < m; i++ ) if ( d[ i ] == 1 ) visit( i );
-					 
-				if ( top == n ) LOGGER.info( "Visit completed." );
-				else LOGGER.info( "Visit failed: stripped " + top + " hyperedges out of " + n + "." );
-			} while ( top != n );
-				
-			LOGGER.info( "Assigning values..." );
-
-			/* We assign values. */
-			/** Whether a specific node has already been used as perfect hash value for an item. */
-			final BitVector used = LongArrayBitVector.getInstance( m );
-			used.length( m );
-			int value;
-			
-			while( top > 0 ) {
-				k = stack[ --top ];
-
-				s = 0;
-
-				for ( j = 0; j < 3; j++ ) {
-					if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-					else s += bits.getLong( edge[ j ][ k ] );
-					used.set( edge[ j ][ k ] );
-				}
-				
-				value = ( v - s + 9 ) % 3;
-				bits.set( edge[ v ][ k ], value == 0 ? 3 : value );
-			}
-
-			LOGGER.info( "Completed." );
-		}
-
-		final int[] recStackI = new int[ n ]; // The stack for i.
-		final int[] recStackK = new int[ n ]; // The stack for k.
-
-		private void visit( int x ) {
-			// We cache all variables for faster access
-			final int[] recStackI = this.recStackI;
-			final int[] recStackK = this.recStackK;
-			final int[][] edge = this.edge;
-			final int[] last = this.last;
-			final int[] inc = this.inc;
-			final int[] incOffset = this.incOffset;
-			final int[] stack = this.stack;
-			final int[] d = this.d;
-			final boolean[] removed = this.removed;			
-
-			int i, k = -1;
-			boolean inside;
-
-			// Stack initialization
-			int recTop = 0; // Initial top of the recursion stack.
-			inside = false;
-			
-			while ( true ) {
-				if ( ! inside ) {
-					for ( i = 0; i < last[ x ]; i++ ) 
-						if ( !removed[ k = inc[ incOffset[ x ] + i ] ] ) break; // The only hyperedge incident on x in the current configuration.
-
-					// TODO: k could be wrong if the graph is regular and cyclic.
-					stack[ top++ ] = k;
-					
-					/* We update the degrees and the incidence lists. */
-					removed[ k ] = true;
-					for ( i = 0; i < 3; i++ ) d[ edge[ i ][ k ] ]--;
-				}
-				
-				/* We follow recursively the other vertices of the hyperedge, if they have degree one in the current configuration. */
-				for( i = 0; i < 3; i++ ) 
-					if ( edge[ i ][ k ] != x && d[ edge[ i ][ k ] ] == 1 ) {
-						recStackI[ recTop ] = i + 1;
-						recStackK[ recTop ] = k;
-						recTop++;
-						x = edge[ i ][ k ];
-						inside = false;
-						break;
-					}
-				if ( i < 3 ) continue;
-				
-				if ( --recTop < 0 ) return;
-				i = recStackI[ recTop ];
-				k = recStackK[ recTop ];
-				inside = true;
-			}
-		}
-	}
-
-
-
-	private void writeObject( final ObjectOutputStream s ) throws IOException {
-		s.defaultWriteObject();
-		if ( n < STRING_THRESHOLD ) s.writeObject( t );
-	}
-
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException, IllegalArgumentException, SecurityException {
-		s.defaultReadObject();
-		n4 = n * 4;
-		bits = LongArrayBitVector.wrap( array, m * 2 ).asLongBigList( 2 );
-		if ( n < STRING_THRESHOLD ) t = (CharSequence[])s.readObject();
 	}
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {

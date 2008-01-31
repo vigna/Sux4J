@@ -1,5 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -21,42 +22,20 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-public class Hashes {
+import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
 
-	private Hashes() {}
-	
-	/** Computes Paul Hsieh's SuperFastHash.
-	 * 
-	 * @param data an array of characters.
-	 * @param init an initialisation value for the hash.
-	 * @param len the number of characters to digest.
-	 * @return the hash.
-	 */
-	
-    public static int superFastHash( char[] data, int init, int len ) {
-		int hash = init, tmp;
+/** A very minimal abstract hash implementation. With respect to {@link AbstractObject2IntFunction},
+ * it simply returns -1 for {@link #size()} and true for {@link #containsKey(Object)}.
+ */
 
-		for ( int i = 0; i < len - 1; i += 2 ) {
-			hash += data[ i ];
-			tmp = ( data[ i + 1 ] << 11 ) ^ hash;
-			hash = ( hash << 16 ) ^ tmp;
-			hash += hash >>> 11;
-		}
+public abstract class AbstractHash<K> extends AbstractObject2IntFunction<K> {
 
-		if ( ( len & 1 ) != 0 ) {
-			hash += data[ len - 1 ];
-			hash ^= hash << 11;
-			hash += hash >>> 17;
-		}
+	public boolean containsKey( Object key ) {
+		return true;
+	}
 
-		hash ^= hash << 3;
-		hash += hash >>> 5;
-		hash ^= hash << 4;
-		hash += hash >>> 17;
-		hash ^= hash << 25;
-		hash += hash >>> 6;
-
-		return hash;
+	public int size() {
+		return -1;
 	}
 
 }
