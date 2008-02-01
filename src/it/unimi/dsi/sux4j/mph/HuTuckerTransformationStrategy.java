@@ -15,9 +15,14 @@ import java.util.Iterator;
 public class HuTuckerTransformationStrategy implements TransformationStrategy<CharSequence> {
 	private static final long serialVersionUID = 1;
 	
-	private cern.colt.bitvector.BitVector[] codeWord;
-	private Char2IntOpenHashMap char2symbol;
+	private final cern.colt.bitvector.BitVector[] codeWord;
+	private final Char2IntOpenHashMap char2symbol;
 
+	protected HuTuckerTransformationStrategy( HuTuckerTransformationStrategy huTuckerTransformationStrategy ) {
+		this.codeWord = huTuckerTransformationStrategy.codeWord;
+		this.char2symbol = huTuckerTransformationStrategy.char2symbol;
+	}
+	
 	/** Creates a Hu-Tucker transformation strategy for the character sequences returned by the given iterable. The
 	 * strategy will map a string to its Hu-Tucker encoding.
 	 * 
@@ -71,6 +76,7 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 			
 		}
 		public boolean getBoolean( long index ) {
+			//System.err.println( "String: " + s + " index: " + index + " complength:" + length());
 			final cern.colt.bitvector.BitVector[] codeWord = strategy.codeWord;
 			final Char2IntMap char2symbol = strategy.char2symbol;
 			// Optimise this for linear scans
@@ -82,6 +88,7 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 				bits += incr;
 			}
 			if ( pos == length ) {
+				//System.err.println( s + ": Returning " + codeWord[ 0 ].get( (int)( index - bits ) ) );
 				if ( index - bits < codeWord[ 0 ].size() ) return codeWord[ 0 ].get( (int)( index - bits ) );
 				else throw new IllegalArgumentException();
 			}
@@ -115,5 +122,9 @@ public class HuTuckerTransformationStrategy implements TransformationStrategy<Ch
 		long numBits = 0;
 		for( int i = codeWord.length; i-- != 0; ) numBits += codeWord[ i ].size();
 		return numBits;
+	}
+
+	public HuTuckerTransformationStrategy copy() {
+		return new HuTuckerTransformationStrategy( this );
 	}
 }

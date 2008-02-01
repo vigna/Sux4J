@@ -295,22 +295,22 @@ public class HollowTrie<T> implements Serializable {
 		
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String trieName = jsapResult.getString( "trie" );
-		final String termFile = jsapResult.getString( "termFile" );
+		final String stringFile = jsapResult.getString( "termFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 		
-		if ( huTucker && termFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
+		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 		
 		final HollowTrie<CharSequence> hollowTrie;
 		
 		LOGGER.info( "Building trie..." );
 
-		if ( termFile == null ) {
+		if ( stringFile == null ) {
 			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), new Utf16TransformationStrategy() );
 		}
 		else {
-			FileLinesCollection collection = new FileLinesCollection( termFile, encoding.toString(), zipped );
+			FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : new Utf16TransformationStrategy() );
 		}
 		

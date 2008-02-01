@@ -27,6 +27,13 @@ public class Hashes {
 
 	private Hashes() {}
 	
+	/** Jenkins 64-bit hashing.
+	 * 
+	 * @param bv a bit vector.
+	 * @param init a seed for the hash.
+	 * @param h a triple of long values in which the three generated hashes will be saved.
+	 */
+	
 	public static void jenkins( final BitVector bv, final long init, final long[] h )  {
 		final long length = bv.length();
 		long a, b, c, from = 0;
@@ -35,10 +42,10 @@ public class Hashes {
 		a = b = init;
 		c = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value */
 
-		while ( length - from >= Long.SIZE * 3 ) {
+		while ( length - from > Long.SIZE * 2 ) {
 			a += bv.getLong( from, from + Long.SIZE );
 			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, from + 3 * Long.SIZE );
+			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, length ) );
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -57,15 +64,14 @@ public class Hashes {
 		}
 
 		c += length << 3;
-
-		switch( (int)( ( length - from ) / Long.SIZE ) )  {/* all the case statements fall through */
-		case  2: b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-		case  1: a += bv.getLong( from, from + Long.SIZE );
-		/* case 0: nothing left to add */
+		long residual = length - from;
+		if ( residual > 0 ) {
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
+				residual -= Long.SIZE;
+			}
+			if ( residual != 0 ) b += bv.getLong( length - residual, length );
 		}
-		
-		final long residual = length % Long.SIZE;
-		if ( residual != 0 ) c += bv.getLong( length - residual, length );
 
 		a -= b; a -= c; a ^= (c >>> 43);
 		b -= c; b -= a; b ^= (a << 9);

@@ -150,6 +150,11 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
+		/*BitVector[] l = lcp.clone();
+		Arrays.sort( l );
+		for( int i = l.length- 1; i-- != 0 ; ) if ( l[ i ].equals( l[ i + 1 ] ))throw new AssertionError();*/
+		
+		
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new HypergraphFunction<BitVector>( Arrays.asList( lcp ), BitVectors.identity(), null, Fast.ceilLog2( numBuckets ) );
 
@@ -192,10 +197,13 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			}
 		}
 		
-		final int logLogN = (int)Math.ceil( Fast.log2( 1 + Fast.log2( n ) ) );
+		System.err.println( offsetLcpLength.numBits()/100000.0+ "-" + ( HypergraphVisit.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) ) );
+		
+		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphVisit.GAMMA + logLogN + Fast.log2( 1 + Fast.log2( maxLength ) - logLogN ) ) );
-		LOGGER.debug( "Actual bit cost per element: " + 0 );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphVisit.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
+		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphVisit.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
+		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 
@@ -205,6 +213,14 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	 */
 	public int size() {
 		return n;
+	}
+
+	/** Returns the number of bits used by this structure.
+	 * 
+	 * @return the number of bits used by this structure.
+	 */
+	public long numBits() {
+		return offsetLcpLength.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {
@@ -217,6 +233,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
@@ -230,6 +247,9 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
+
+		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
 		final LcpMinimalPerfectMonotoneHash<CharSequence> lcpMinimalPerfectMonotoneHash;
 
@@ -248,7 +268,8 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash table..." );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), new Utf16TransformationStrategy() );
+			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc ) : new Utf16TransformationStrategy() );
 		}
 
 		LOGGER.info( "Writing to file..." );		

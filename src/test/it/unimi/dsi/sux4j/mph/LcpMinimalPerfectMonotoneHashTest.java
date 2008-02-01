@@ -1,7 +1,7 @@
 package test.it.unimi.dsi.sux4j.mph;
 
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.sux4j.mph.HuTuckerTransformationStrategy;
 import it.unimi.dsi.sux4j.mph.LcpMinimalPerfectMonotoneHash;
 import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
@@ -28,8 +28,6 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 
 		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash( Arrays.asList( s ), new Utf16TransformationStrategy() );
 		
-		int[] check = new int[ s.length ];
-		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
@@ -37,6 +35,18 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		BinIO.storeObject( mph, temp );
 		mph = (LcpMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+	
+		mph = new LcpMinimalPerfectMonotoneHash( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ) ) );
+		
+		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+		
+		temp = File.createTempFile( getClass().getSimpleName(), "test" );
+		temp.deleteOnExit();
+		BinIO.storeObject( mph, temp );
+		mph = (LcpMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
 	}
 	
 }

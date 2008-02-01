@@ -7,6 +7,7 @@ import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.Hashes;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -95,13 +96,16 @@ public class HypergraphVisit<T> {
 		final long[] h = new long[ 3 ];
 		final int[] e = new int[ 3 ];
 
-		/* We build the hyperedge list, checking that we do not create a degenerate hyperedge. */
+		/* We build the hyperedge list. */
 		int k = 0;
 		BitVector bv = null;
 		IntArrays.fill( d, 0 );
 		
+		BitVector tmp[] = new BitVector[numEdges];
+		
 		while( iterator.hasNext() ) {
 			bv = transform.toBitVector( iterator.next() );
+			tmp[k] = bv.copy();
 			Hashes.jenkins( bv, init, h );
 			hashesToEdge( h, e, numVertices );
 			edge[ 0 ][ k ] = e[ 0 ];
@@ -145,9 +149,13 @@ public class HypergraphVisit<T> {
 		}
 		);
 
+		//for( int i = 0; i < numEdges; i++ ){ for( int j = 0; j < 3; j++ ) System.err.print( edge[ j ][i ]+ " "); System.err.print( tmp[last[i ]] );
+		//Hashes.jenkins( tmp[last[i ] ], init, h ); System.err.print( Arrays.toString(h));
+		//System.err.println(); }
+		
 		for( int i = numEdges - 1; i-- != 0; ) 
 			if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
-				LOGGER.info( "Found double hyperedge for terms " + last[ i ] + " and " + last[ i + 1 ] + "." );
+				LOGGER.info( "Found double hyperedge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
 				return false;
 			}
 

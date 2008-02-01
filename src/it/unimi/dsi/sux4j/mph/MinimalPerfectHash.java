@@ -152,8 +152,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	/** Initialisation value for {@link Hashes#jenkins(BitVector, long, long[]) Jenkins's hash}. */
 	final protected long init;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
-	final protected LongBigList bits;
-	/** The bit array supporting {@link #bits}. */
+	final protected LongBigList values;
+	/** The bit array supporting {@link #values}. */
 	final protected long[] array;
 	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
 	final protected int count[];
@@ -184,8 +184,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		HypergraphVisit<T> visit = new HypergraphVisit<T>( n );
 		m = visit.numVertices;
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
-		bits = bitVector.asLongBigList( 2 );
-		bits.size( m );
+		values = bitVector.asLongBigList( 2 );
+		values.size( m );
 		array = bitVector.bits();
 
 		final Random r = new Random();
@@ -214,16 +214,14 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 
 			for ( int j = 0; j < 3; j++ ) {
 				if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-				else s += bits.getLong( edge[ j ][ k ] );
+				else s += values.getLong( edge[ j ][ k ] );
 				used.set( edge[ j ][ k ] );
 			}
 			
 			value = ( v - s + 9 ) % 3;
-			bits.set( edge[ v ][ k ], value == 0 ? 3 : value );
+			values.set( edge[ v ][ k ], value == 0 ? 3 : value );
 		}
 
-		LOGGER.info( "Completed." );
-		
 		count = new int[ ( 2 * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ];
 		int c = 0;
 		
@@ -236,10 +234,22 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 			k = 0;
 			for( int i = 0; i < m; i++ ) {
 				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( 2 * i ); 
-				if ( bits.getLong( i ) != 0 ) k++;
+				if ( values.getLong( i ) != 0 ) k++;
 			}
 			
 		}
+
+		LOGGER.info( "Completed." );
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphVisit.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
+		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+	}
+
+	/** Returns the number of bits used by this structure.
+	 * 
+	 * @return the number of bits used by this structure.
+	 */
+	public long numBits() {
+		return values.length() * 2 + count.length * Integer.SIZE;
 	}
 
 
@@ -252,7 +262,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		this.n = mph.n;
 		this.m = mph.m;
 		this.init = mph.init;
-		this.bits = mph.bits;
+		this.values = mph.values;
 		this.array = mph.array;
 		this.count = mph.count;
 		this.transform = mph.transform.copy();
@@ -292,7 +302,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		final int[] e = new int[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), init, h );
 		HypergraphVisit.hashesToEdge( h, e, m );
-		return rank( e[ (int)( bits.getLong( e[ 0 ] ) + bits.getLong( e[ 1 ] ) + bits.getLong( e[ 2 ] ) % 3 ) ] );
+		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) % 3 ) ] );
 	}
 
 	public boolean containsKey( Object key ) {

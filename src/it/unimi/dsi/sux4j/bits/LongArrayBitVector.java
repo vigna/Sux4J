@@ -313,7 +313,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 
 	public LongArrayBitVector append( long value, int width ) {
 		if ( width == 0 ) return this;
-		if ( CHECKS && width < Long.SIZE && value >= 1L << width ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
+		if ( CHECKS && width < Long.SIZE && ( value & 1L << width ) != 0 ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
 		final long length = length();
 		final long start = length;
 		final long end = length + width - 1;
