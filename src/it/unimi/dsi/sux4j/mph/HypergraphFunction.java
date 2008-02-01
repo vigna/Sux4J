@@ -59,115 +59,17 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 import test.it.unimi.dsi.sux4j.mph.HypergraphVisit;
 import cern.jet.random.engine.MersenneTwister;
 
-/** Minimal perfect hash.
- *
- * <P>Given a list of strings without duplicates, 
- * the constructors of this class finds a minimal perfect hash function for
- * the list. Subsequent calls to the {@link #getInt(CharSequence)} method will return a distinct
- * number for each string in the list (for strings out of the list, the resulting number is undefined). The class
- * can then be saved by serialisation and reused later.
- *
- * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
- * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
- * an embedded ranking scheme that increases space 
- * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
- * At construction time, however, about 15<var>n</var> integers (i.e., 60<var>n</var> bytes) are necessary. 
+/** A read-only function stored using hypergraph techniques.
  * 
- * <P>This class is very scalable, and if you have enough memory it will handle
- * efficiently hundreds of millions of strings: in particular, the 
- * {@linkplain #MinimalPerfectHash(Iterable, int) offline constructor}
- * can build a map without loading the strings in memory.
- * 
- * <P>To do its job, the class must store three vectors of weights that are used to compute
- * certain hash functions. By default, the vectors are long as the longest string, but if
- * your collection is sorted you can ask (passing {@link #WEIGHT_UNKNOWN_SORTED_STRINGS} to a constructor)
- * for the shortest possible vector length. This optimisation does not change the
- * memory footprint, but it can improve performance.
- * 
- * <P>As a commodity, this class provides a main method that reads from
- * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
- * writes a serialised minimal perfect hash for the given list.
- * 
- * <P>For efficiency, there are also method that access a minimal perfect hash
- * {@linkplain #getInt(byte[], int, int) using byte arrays interpreted as ISO-8859-1} characters.
- *
- * <h3>How it Works</h3>
- * 
- * <p>The technique used is very similar (but developed independently) to that described by Botelho, Pagh and Ziviani
- * in &ldquo;Simple and Efficient Minimal Perfect Hashing Functions&rdquo;, <i>Proc. WADS 2007</i>, number
- * 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping technique describe
- * therein was actually first proposed by Chazelle, Kilian, Rubinfeld and Tal in 
- * &ldquo;The Bloomier Filter: an Efficient Data Structure for Static Support Lookup 
- * Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the steps to implement a mutable table.
- * 
- * <p>The basic ingredient is a stripping procedure to be applied to an acyclic 3-hypergraph. The  
- * idea is due to Havas, Majewski, Wormald and Czech (&ldquo;A Family of Perfect Hashing Methods&rdquo;,
- * <i>Computer J.</i>, 39(6):547&minus;554, 1996).
- * First, a triple of intermediate hash functions (generated via universal hashing) define for each
- * string a 3-hyperedge in a hypergraph with 1.23<var>n</var> vertices. Each intermediate hash function
- * uses a vector of random weights; the length of the vector is by default the length of the longest
- * string, but if the collection is sorted it is possible to compute the minimum length of a prefix that will
- * distinguish any pair of strings. 
- * 
- * <P>Then, by successively stripping 3-hyperedges with one vertex of 
- * degree one, we create an ordering on the hyperedges.
- * Finally, we assign (in reverse order) to each vertex of a 3-hyperedge a two-bit number 
- * in such a way that the sum of the three numbers modulo 3 gives, for each hyperedge, the index of the hash
- * function generating the vertex of degree one found during the stripping procedure. This vertex is distinct for
- * each 3-hyperedge, and as a result we obtain a perfect hash of the original string set (one just has to compute
- * the three hash functions, collect the three two-bit values, add them modulo 3 and take the corresponding hash function value).
- * 
- * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value to a vertex,
- * we can take care of using the number 3 instead of 0 if the vertex is actually the output value for some string. As
- * a result, the final value of the minimal perfect hash function is the number of nonzero pairs of bits that precede
- * the perfect hash value for the string. 
- * To compute this number, we use a simple table-free ranking scheme, recording the number
- * of nonzero pairs each {@link #BITS_PER_BLOCK} bits and modifying the
- * standard broadword algorithm for computing the number of ones
- * in a word into an algorithm that {@linkplain #countNonzeroPairs(long) counts
- * the number of nonzero pairs of bits in a word}.
- * 
- * <P>Note that the mathematical results guaranteeing that it is possible to find a
- * function in expected constant time are <em>asymptotic</em>. 
- * Thus, when the number of strings is less than {@link #STRING_THRESHOLD}, an instance
- * of this class just stores the strings in a vector and scans them linearly. This behaviour,
- * however, is completely transparent to the user.
- *
- * <h3>Rounds and Logging</h3>
- * 
- * <P>Building a minimal perfect hash map may take hours. As it happens with all probabilistic algorithms,
- * one can just give estimates of the expected time.
- * 
- * <P>There are two probabilistic sources of problems: duplicate hyperedges and non-acyclic hypergraphs.
- * However, the probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity,
- * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
- * of trials that tends to 1 as <var>n</var> approaches infinity.
- *  
- * <P>To help diagnosing problem with the generation process
- * class, this class will log at {@link org.apache.log4j.Level#INFO INFO} level
- * what's happening. In particular, it will signal whenever a degenerate
- * hyperedge is generated, and the various construction phases.
- *
- * <P>Note that if during the generation process the log warns more than once about duplicate hyperedges, you should
- * suspect that there are duplicates in the string list, as duplicate hyperedges are <em>extremely</em> unlikely.
- *
  * @author Sebastiano Vigna
- * @since 0.1
+ * @since 0.2
  */
 
 public class HypergraphFunction<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 
-	/** The number of bits per block in the rank structure. */
-	public static final int BITS_PER_BLOCK = 512;
-
 	private static final Logger LOGGER = Fast.getLogger( HypergraphFunction.class );
-	
-	private static final long ONES_STEP_4 = 0x1111111111111111L;
-	private static final long ONES_STEP_8 = 0x0101010101010101L;
-
-	private static final boolean DEBUG = true;
-	
+		
 	/** A special value denoting that the weight length is unknown, and should be computed using
 	 * the maximum length of a string. */
 	public static final int WEIGHT_UNKNOWN = -1;
@@ -200,63 +102,6 @@ public class HypergraphFunction<T> extends AbstractHash<T> implements Serializab
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	private TransformationStrategy<? super T> transform;
     
-	/*
-	 * The following four methods MUST be kept synchronised. The reason why we duplicate code is
-	 * that we do not want the overhead of allocating an array when searching for a string.
-	 * 
-	 * Note that we don't use shift-add-xor hash functions (as in BloomFilter). They are
-	 * significantly slower, and in this case (in which we certainly have enough weights to
-	 * disambiguate any pair of strings) they are not particularly advantageous.
-	 */
-
-	/** Hashes a given strings using the intermediate hash functions.
-	 *
-	 * @param key a term to hash.
-	 * @param h a three-element vector that will be filled with the three intermediate hash values.
-	 */
-
-	protected void hash( final T key, final int[] h ) {
-		BitVector bv = transform.toBitVector( key );
-		long h0 = init[ 0 ], h1 = init[ 1 ], h2 = init[ 2 ]; // We need three these values to map correctly the empty string
-		long c;
-		int end = (int)( bv.length() / Long.SIZE );
-		if ( weightLength < end ) end = weightLength;
-		int i;
-
-		for( i = 0; i < end; i++ ) {
-			c = bv.getLong( i * Long.SIZE, i * Long.SIZE + Long.SIZE );
-			h0 ^= ( h0 << 5 ) + weight0[ i ] + c + ( h0 >>> 2 );
-			h1 ^= ( h1 << 5 ) + weight1[ i ] + c + ( h1 >>> 2 );
-			h2 ^= ( h2 << 5 ) + weight2[ i ] + c + ( h2 >>> 2 );
-		}
-		
-		final int residual = (int)( bv.length() % Long.SIZE ); 
-		
-		if ( residual != 0 && i < weightLength ) {
-			c = bv.getLong( bv.length() - residual, bv.length() );
-
-			h0 ^= ( h0 << 5 ) + weight0[ i ] + c + ( h0 >>> 2 );
-			h1 ^= ( h1 << 5 ) + weight1[ i ] + c + ( h1 >>> 2 );
-			h2 ^= ( h2 << 5 ) + weight2[ i ] + c + ( h2 >>> 2 );
-		}
-		
-		h0 ^= ( h0 << 5 ) + ( h0 >>> 2 );
-		h1 ^= ( h1 << 5 ) + ( h1 >>> 2 );
-		h2 ^= ( h2 << 5 ) + ( h2 >>> 2 );
-
-		h0 = ( h0 & 0x7FFFFFFFFFFFFFFFL ) % m;
-		h1 = h0 + ( h1 & 0x7FFFFFFFFFFFFFFFL ) % mMinus1 + 1;
-		h2 = h0 + ( h2 & 0x7FFFFFFFFFFFFFFFL ) % mMinus2 + 1;
-		if ( h2 >= h1 ) h2++;
-		h1 %= m;
-		h2 %= m;
-					
-		h[ 0 ] = (int)h0;
-		h[ 1 ] = (int)h1;
-		h[ 2 ] = (int)h2;
-	}
-
-
 	@SuppressWarnings("unchecked")
 	public int getInt( final Object o ) {
 		final long[] h = new long[ 3 ];

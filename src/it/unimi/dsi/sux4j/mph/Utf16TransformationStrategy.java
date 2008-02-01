@@ -2,7 +2,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.sux4j.bits.AbstractBitVector;
 import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.Serializable;
 
@@ -32,26 +31,28 @@ public class Utf16TransformationStrategy implements BitVector.TransformationStra
 		public boolean getBoolean( long index ) {
 			if ( index > length ) throw new IndexOutOfBoundsException();
 			if ( index >= actualEnd ) return false;
-			return ( s.charAt( (int)( index / Character.SIZE ) ) & 0x8000 >>> index % Character.SIZE ) != 0; 
+			final int charIndex = (int)( index / Character.SIZE );
+			return ( s.charAt( charIndex ) & 0x8000 >>> index % Character.SIZE ) != 0; 
 		}
 
 		public long getLong( final long from, final long to ) {
 			if ( from % Long.SIZE == 0 && to % Character.SIZE == 0 ) {
 				long l;
 				int pos = (int)( from / Character.SIZE );
-				if ( to == from + Long.SIZE ) l = (long)s.charAt( pos ) << 48 | (long)s.charAt( pos + 1 ) << 32 | (long)s.charAt( pos + 2 ) << 16 | ( to > actualEnd ? 0 : s.charAt( pos + 3 ) );
+				if ( to == from + Long.SIZE ) l = ( ( to > actualEnd ? 0 : (long)s.charAt( pos + 3 ) ) << 48 | (long)s.charAt( pos + 2 ) << 32 | (long)s.charAt( pos + 1 ) << 16 | s.charAt( pos ) );
 				else {
 					l = 0;
-					final int residual = (int)( to - from );
-					for( int i = residual / Character.SIZE - 1; i-- != 0; ) l |= s.charAt( pos + i ) << residual - ( i + 1 ) * Character.SIZE; 
+					final int residual = (int)( Math.min( actualEnd, to ) - from );
+					for( int i = residual / Character.SIZE; i-- != 0; ) 
+						l |= (long)s.charAt( pos + i ) << i * Character.SIZE; 
 				}
-					
+
 				l = ( l & 0x5555555555555555L ) << 1 | ( l >>> 1 ) & 0x5555555555555555L;
 				l = ( l & 0x3333333333333333L ) << 2 | ( l >>> 2 ) & 0x3333333333333333L;
 				l = ( l & 0x0f0f0f0f0f0f0f0fL ) << 4 | ( l >>> 4 ) & 0x0f0f0f0f0f0f0f0fL;
 				return ( l & 0x00ff00ff00ff00ffL ) << 8 | ( l >>> 8 ) & 0x00ff00ff00ff00ffL;
 			}
-			
+
 			return super.getLong( from, to );
 		}
 		
