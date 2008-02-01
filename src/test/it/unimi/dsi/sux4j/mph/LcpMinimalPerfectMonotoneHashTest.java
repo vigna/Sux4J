@@ -16,13 +16,13 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 	
 	public static String binary(int l) {
 		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString( l );
-		return s.substring( s.length() - 4 );
+		return s.substring( s.length() - 32 );
 	}
 
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 		
-		String[] s = new String[ 10 ];
+		String[] s = new String[ 1000 ];
 		int[] v = new int[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
@@ -30,13 +30,13 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( mph, temp );
 		mph = (LcpMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 	}
 	
 }

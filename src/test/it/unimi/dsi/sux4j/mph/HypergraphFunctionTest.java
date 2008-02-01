@@ -2,6 +2,7 @@ package test.it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.sux4j.mph.HypergraphFunction;
 import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
@@ -17,20 +18,21 @@ public class HypergraphFunctionTest extends TestCase {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		
 		String[] s = new String[ 1000 ];
-		int[] v = new int[ 1000 ];
-		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = Integer.toString( i );
+		long[] v = new long[ 1000 ];
+		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = Integer.toString( i );
 		
-		HypergraphFunction<String> mph = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), v, 12, HypergraphFunction.WEIGHT_UNKNOWN );
+		HypergraphFunction<String> function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
 		
-		int[] check = new int[ s.length ];
-		IntArrays.fill( check, -1 );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (HypergraphFunction<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		BinIO.storeObject( function, temp );
+		function = (HypergraphFunction<String>)BinIO.loadObject( temp );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
+		
+		function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), null, 12 );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 	}
 	
 	public static String binary(int l) {
@@ -42,20 +44,20 @@ public class HypergraphFunctionTest extends TestCase {
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 		
 		String[] s = new String[ 10 ];
-		int[] v = new int[ s.length ];
-		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
+		long[] v = new long[ s.length ];
+		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = binary( i );
 		
-		HypergraphFunction<String> mph = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), v, 12, HypergraphFunction.WEIGHT_UNKNOWN_SORTED_STRINGS );
+		HypergraphFunction<String> function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (HypergraphFunction<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getInt( s[ i ] ) );
+		BinIO.storeObject( function, temp );
+		function = (HypergraphFunction<String>)BinIO.loadObject( temp );
+		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 	}
 	
 }

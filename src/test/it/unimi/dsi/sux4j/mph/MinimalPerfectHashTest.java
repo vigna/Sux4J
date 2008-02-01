@@ -3,6 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,29 +14,30 @@ import static it.unimi.dsi.sux4j.mph.MinimalPerfectHash.countNonzeroPairs;
 
 public class MinimalPerfectHashTest extends TestCase {
 	
+	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		
 		String[] s = new String[ 1000 ];
 		for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 		
-		MinimalPerfectHash mph = new MinimalPerfectHash( Arrays.asList( s ) );
+		MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), new Utf16TransformationStrategy() );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) {
-			assertEquals( Integer.toString( i ), -1, check[ mph.getInt( s[ i ] ) ] );
-			check[ mph.getInt( s[ i ] ) ] = i;
+			assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
+			check[ (int)mph.getLong( s[ i ] ) ] = i;
 		}
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( mph, temp );
-		mph = (MinimalPerfectHash)BinIO.loadObject( temp );
+		mph = (MinimalPerfectHash<CharSequence>)BinIO.loadObject( temp );
 
 		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) {
-			assertEquals( Integer.toString( i ), -1, check[ mph.getInt( s[ i ] ) ] );
-			check[ mph.getInt( s[ i ] ) ] = i;
+			assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
+			check[ (int)mph.getLong( s[ i ] ) ] = i;
 		}
 	}
 	

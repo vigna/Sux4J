@@ -86,6 +86,12 @@ public interface BitVector extends RandomAccess, BooleanList {
 		 * @return the (approximate) number of bits occupied by this transformation.
 		 */
 		public long numBits();
+		
+		/** Returns a copy of this transformation strategy.
+		 * 
+		 * @return a copy of this transformation strategy.
+		 */
+		public TransformationStrategy<T> copy();
 	}
 	
 	

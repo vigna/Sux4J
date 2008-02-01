@@ -2,13 +2,10 @@ package test.it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrays;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
-import it.unimi.dsi.fastutil.objects.AbstractObject2ObjectFunction;
-import it.unimi.dsi.fastutil.objects.Object2IntFunction;
-import it.unimi.dsi.fastutil.objects.Object2ObjectFunction;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+import it.unimi.dsi.sux4j.mph.Hashes;
 
 import java.util.Iterator;
 
@@ -47,37 +44,45 @@ public class HypergraphVisit<T> {
 	/** Initial top of the hyperedge stack. */
 	int top;
 	/** The stack for i. */
-	final int[] recStackI;
+	final private int[] recStackI;
 	/** The stack for k. */
-	final int[] recStackK;
+	final private int[] recStackK;
+	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
+	final public int numVertices;
+	/** The number of edges in the hypergraph. */
+	final public int numEdges;
 
-	public int numberOfVertices;
-	private int n;
 
-
-	public HypergraphVisit( final int n ) {
-		this.n = n;
-		numberOfVertices = (int)Math.ceil( GAMMA * n ) + 1;
-		edge = new int[ 3 ][ n ];
-		last = new int[ numberOfVertices ];
-		inc = new int[ numberOfVertices * 3 ];
-		incOffset = new int[ numberOfVertices ];
-		stack = new int[ n ];
-		d = new int[ numberOfVertices ];
-		removed = new boolean[ n ];
-		recStackI = new int[ n ];
-		recStackK = new int[ n ];
+	public HypergraphVisit( final int numEdges ) {
+		this.numEdges = numEdges;
+		numVertices = (int)Math.ceil( GAMMA * numEdges ) + 1;
+		edge = new int[ 3 ][ numEdges ];
+		last = new int[ numVertices ];
+		inc = new int[ numVertices * 3 ];
+		incOffset = new int[ numVertices ];
+		stack = new int[ numEdges ];
+		d = new int[ numVertices ];
+		removed = new boolean[ numEdges ];
+		recStackI = new int[ numEdges ];
+		recStackK = new int[ numEdges ];
 	}
 
-	public static void hashesToEdge( final long h[], final int e[], int m ) {
-		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % m );
-		h[ 1 ] = (int)( e[ 0 ] + ( h[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( m - 1 ) + 1 );
-		h[ 2 ] = (int)( e[ 0 ] + ( h[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( m - 2 ) + 1 );
-		if ( h[ 2 ] >= h[ 1 ] ) h[ 2 ]++;
-		e[ 1 ] = (int)( h[ 1 ] % m );
-		e[ 2 ] = (int)( h[ 2 ] % m );
+	/** Turns a triple of long hash values into a 3-hyperedge, guaranteeing not to return a degenerate edge.
+	 * 
+	 * @param h a triple of hashes
+	 * @param e an array to store the resulting hyperedge.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
+	 */
+	public static void hashesToEdge( final long h[], final int e[], final int numVertices ) {
+		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( e[ 0 ] + ( h[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
+		e[ 2 ] = (int)( e[ 0 ] + ( h[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
+		if ( e[ 2 ] >= e[ 1 ] ) e[ 2 ]++;
+		e[ 1 ] %= numVertices;
+		e[ 2 ] %= numVertices;
 	}
-	public boolean visit( final Iterator<? extends T> iterator, Object2ObjectFunction<? extends T,long[]> threeHashes ) {
+	
+	public boolean visit( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long init ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] last = this.last;
@@ -87,45 +92,37 @@ public class HypergraphVisit<T> {
 		final int[] d = this.d;
 		BooleanArrays.fill( removed, false );
 		
-		int i, j, v = -1;
-		int[] e = new int[ 3 ];
+		final long[] h = new long[ 3 ];
+		final int[] e = new int[ 3 ];
 
 		/* We build the hyperedge list, checking that we do not create a degenerate hyperedge. */
-		i = 0;
-		T bv = null;
+		int k = 0;
+		BitVector bv = null;
 		IntArrays.fill( d, 0 );
-
+		
 		while( iterator.hasNext() ) {
-			bv = iterator.next();
-			hashesToEdge( threeHashes.get( bv ), e, numberOfVertices );
-			
-			if ( e[ 0 ] == e[ 1 ] || e[ 1 ] == e[ 2 ] || e[ 2 ] == e[ 0 ] ) break;
+			bv = transform.toBitVector( iterator.next() );
+			Hashes.jenkins( bv, init, h );
+			hashesToEdge( h, e, numVertices );
+			edge[ 0 ][ k ] = e[ 0 ];
+			edge[ 1 ][ k ] = e[ 1 ];
+			edge[ 2 ][ k ] = e[ 2 ];
 
-			edge[ 0 ][ i ] = e[ 0 ];
-			edge[ 1 ][ i ] = e[ 1 ];
-			edge[ 2 ][ i ] = e[ 2 ];
-
-			i++;
+			k++;
 		}
-
-		if ( i < n ) {
-			LOGGER.info( "Hypergraph generation interrupted by degenerate hyperedge " + i + " (string: \"" + bv + "\")." );
-			return false;
-		} 
 
 		/* We compute the degree of each vertex. */
-		for( j = 0; j < 3; j++ ) {
-			i = n;
-			while( i-- != 0 ) d[ edge[ j ][ i ] ]++; 
-		}
+		for( int j = 0; j < 3; j++ ) 
+			for( int i = numEdges; i-- != 0; ) 
+				d[ edge[ j ][ i ] ]++; 
+
 
 		LOGGER.info( "Checking for duplicate hyperedges..." );
 
 		/* Now we quicksort hyperedges lexicographically, keeping into last their permutation. */
-		i = n;
-		while( i-- != 0 ) last[ i ] = i;
+		for( int i = numEdges; i-- != 0; ) last[ i ] = i;
 
-		GenericSorting.quickSort( 0, n, new IntComparator() {
+		GenericSorting.quickSort( 0, numEdges, new IntComparator() {
 			public int compare( final int x, final int y ) {
 				int r;
 				if ( ( r = edge[ 0 ][ x ] - edge[ 0 ][ y ] ) != 0 ) return r;
@@ -148,18 +145,15 @@ public class HypergraphVisit<T> {
 		}
 		);
 
-		i = n - 1;
-		while( i-- != 0 ) if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ]) break;
-
-		if ( i != -1 ) {
-			LOGGER.info( "Found double hyperedge for terms " + last[ i ] + " and " + last[ i + 1 ] + "." );
-			return false;
-		}
+		for( int i = numEdges - 1; i-- != 0; ) 
+			if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
+				LOGGER.info( "Found double hyperedge for terms " + last[ i ] + " and " + last[ i + 1 ] + "." );
+				return false;
+			}
 
 		/* We now invert last and permute all hyperedges back into their place. Note that
 		 * we use last and incOffset to speed up the process. */
-		i = n;
-		while( i-- != 0 ) stack[ last[ i ] ] = i;
+		for( int i = numEdges; i-- != 0; ) stack[ last[ i ] ] = i;
 
 		GenericPermuting.permute( stack, new Swapper() {
 			public void swap( final int x, final int y ) {
@@ -182,12 +176,12 @@ public class HypergraphVisit<T> {
 		IntArrays.fill( last, 0 );
 		incOffset[ 0 ] = 0;
 
-		for( i = 1; i < numberOfVertices; i++ ) incOffset[ i ] = incOffset[ i - 1 ] + d[ i - 1 ];
+		for( int i = 1; i < numVertices; i++ ) incOffset[ i ] = incOffset[ i - 1 ] + d[ i - 1 ];
 
 		/* We fill the vector. */
-		for( i = 0; i < n; i++ ) 
-			for( j = 0; j < 3; j++ ) {
-				v = edge[ j ][ i ];
+		for( int i = 0; i < numEdges; i++ ) 
+			for( int j = 0; j < 3; j++ ) {
+				final int v = edge[ j ][ i ];
 				inc[ incOffset[ v ] + last[ v ]++ ] = i;
 			}
 
@@ -195,39 +189,14 @@ public class HypergraphVisit<T> {
 		BooleanArrays.fill( removed, false );
 
 		top = 0;
-		for( i = 0; i < numberOfVertices; i++ ) if ( d[ i ] == 1 ) visit( i );
+		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) visit( i );
 
-		if ( top == n ) LOGGER.info( "Visit completed." );
-		else LOGGER.info( "Visit failed: stripped " + top + " hyperedges out of " + n + "." );
+		if ( top == numEdges ) LOGGER.info( "Visit completed." );
+		else {
+			LOGGER.info( "Visit failed: stripped " + top + " hyperedges out of " + numEdges + "." );
+			return false;
+		}
 
-		if ( top != n ) return false;
-
-			
-		LOGGER.info( "Assigning values..." );
-
-		/* We assign values. */
-		/** Whether a specific node has already been used as perfect hash value for an item. */
-		final BitVector used = LongArrayBitVector.getInstance( numberOfVertices );
-		used.length( numberOfVertices );
-		int value;
-
-		/*while( top > 0 ) {
-			k = stack[ --top ];
-
-			s = 0;
-
-			for ( j = 0; j < 3; j++ ) {
-				if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-				else s += bits.getLong( edge[ j ][ k ] );
-				used.set( edge[ j ][ k ] );
-			}
-
-			value = ( v - s + 9 ) % 3;
-			bits.set( edge[ v ][ k ], value == 0 ? 3 : value );
-		}*/
-
-		LOGGER.info( "Completed." );
-		
 		return true;
 	}
 

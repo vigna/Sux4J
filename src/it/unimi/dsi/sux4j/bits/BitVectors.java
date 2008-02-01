@@ -43,6 +43,10 @@ public class BitVectors {
 		}
 		
 		public long numBits() { return 0; }
+
+		public TransformationStrategy<BitVector> copy() {
+			return this;
+		}
 	};
 	
 	

@@ -22,13 +22,13 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
+import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 
-/** A very minimal abstract hash implementation. With respect to {@link AbstractObject2IntFunction},
+/** A very minimal abstract hash implementation. With respect to {@link AbstractObject2LongFunction},
  * it simply returns -1 for {@link #size()} and true for {@link #containsKey(Object)}.
  */
 
-public abstract class AbstractHash<K> extends AbstractObject2IntFunction<K> {
+public abstract class AbstractHash<K> extends AbstractObject2LongFunction<K> {
 
 	public boolean containsKey( Object key ) {
 		return true;

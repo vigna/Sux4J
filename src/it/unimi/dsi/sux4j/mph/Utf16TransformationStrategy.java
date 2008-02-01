@@ -2,6 +2,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.sux4j.bits.AbstractBitVector;
 import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.Serializable;
 
@@ -60,6 +61,7 @@ public class Utf16TransformationStrategy implements BitVector.TransformationStra
 			return length;
 		}
 		
+		
 	}
 
 	public BitVector toBitVector( final CharSequence s ) {
@@ -67,4 +69,8 @@ public class Utf16TransformationStrategy implements BitVector.TransformationStra
 	}
 
 	public long numBits() { return 0; }
+
+	public TransformationStrategy<CharSequence> copy() {
+		return new Utf16TransformationStrategy();
+	}
 }
