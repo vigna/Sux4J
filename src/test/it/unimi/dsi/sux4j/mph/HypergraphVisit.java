@@ -22,7 +22,7 @@ import cern.colt.function.IntComparator;
 public class HypergraphVisit<T> {
 	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
 	 * are acyclic with positive probability if the ratio hyperedges/vertices exceeds this constant. */
-	private static final double GAMMA = 1.23;
+	public static final double GAMMA = 1.23;
 
 	/** The internal state of a visit. */
 	private final static Logger LOGGER = Fast.getLogger( HypergraphVisit.class );
@@ -57,7 +57,7 @@ public class HypergraphVisit<T> {
 
 	public HypergraphVisit( final int n ) {
 		this.n = n;
-		numberOfVertices = (int)Math.ceil( GAMMA * n );
+		numberOfVertices = (int)Math.ceil( GAMMA * n ) + 1;
 		edge = new int[ 3 ][ n ];
 		last = new int[ numberOfVertices ];
 		inc = new int[ numberOfVertices * 3 ];
@@ -68,8 +68,16 @@ public class HypergraphVisit<T> {
 		recStackI = new int[ n ];
 		recStackK = new int[ n ];
 	}
-		
-	public boolean visit( final Iterable<? extends T> terms, Object2ObjectFunction<? extends T,int[]> hyperedge ) {
+
+	public static void hashesToEdge( final long h[], final int e[], int m ) {
+		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % m );
+		h[ 1 ] = (int)( e[ 0 ] + ( h[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( m - 1 ) + 1 );
+		h[ 2 ] = (int)( e[ 0 ] + ( h[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( m - 2 ) + 1 );
+		if ( h[ 2 ] >= h[ 1 ] ) h[ 2 ]++;
+		e[ 1 ] = (int)( h[ 1 ] % m );
+		e[ 2 ] = (int)( h[ 2 ] % m );
+	}
+	public boolean visit( final Iterator<? extends T> iterator, Object2ObjectFunction<? extends T,long[]> threeHashes ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] last = this.last;
@@ -80,21 +88,22 @@ public class HypergraphVisit<T> {
 		BooleanArrays.fill( removed, false );
 		
 		int i, j, v = -1;
-		int[] h;
+		int[] e = new int[ 3 ];
 
 		/* We build the hyperedge list, checking that we do not create a degenerate hyperedge. */
 		i = 0;
 		T bv = null;
 		IntArrays.fill( d, 0 );
 
-		for( Iterator<? extends T> w = terms.iterator(); w.hasNext(); ) {
-			bv = w.next();
-			h = hyperedge.get( bv );
-			if ( h[ 0 ] == h[ 1 ] || h[ 1 ] == h[ 2 ] || h[ 2 ] == h[ 0 ] ) break;
+		while( iterator.hasNext() ) {
+			bv = iterator.next();
+			hashesToEdge( threeHashes.get( bv ), e, numberOfVertices );
+			
+			if ( e[ 0 ] == e[ 1 ] || e[ 1 ] == e[ 2 ] || e[ 2 ] == e[ 0 ] ) break;
 
-			edge[ 0 ][ i ] = h[ 0 ];
-			edge[ 1 ][ i ] = h[ 1 ];
-			edge[ 2 ][ i ] = h[ 2 ];
+			edge[ 0 ][ i ] = e[ 0 ];
+			edge[ 1 ][ i ] = e[ 1 ];
+			edge[ 2 ][ i ] = e[ 2 ];
 
 			i++;
 		}
@@ -143,7 +152,7 @@ public class HypergraphVisit<T> {
 		while( i-- != 0 ) if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ]) break;
 
 		if ( i != -1 ) {
-			LOGGER.info( "Found double hyperedge for terms " + last[ i + 1 ] + " and " + last[ i ] + "." );
+			LOGGER.info( "Found double hyperedge for terms " + last[ i ] + " and " + last[ i + 1 ] + "." );
 			return false;
 		}
 

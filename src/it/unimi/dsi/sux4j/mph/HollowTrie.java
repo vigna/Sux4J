@@ -17,6 +17,7 @@ import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
+import it.unimi.dsi.sux4j.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.IOException;
@@ -307,11 +308,11 @@ public class HollowTrie<T> implements Serializable {
 		LOGGER.info( "Building trie..." );
 
 		if ( termFile == null ) {
-			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), BitVectors.utf16() );
+			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), new Utf16TransformationStrategy() );
 		}
 		else {
 			FileLinesCollection collection = new FileLinesCollection( termFile, encoding.toString(), zipped );
-			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : BitVectors.utf16() );
+			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : new Utf16TransformationStrategy() );
 		}
 		
 		LOGGER.info( "Writing to file..." );		

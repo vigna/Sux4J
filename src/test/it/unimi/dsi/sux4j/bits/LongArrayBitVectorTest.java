@@ -1,9 +1,11 @@
 package test.it.unimi.dsi.sux4j.bits;
 
+import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.LongBigList;
 
 import java.io.IOException;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -78,6 +80,11 @@ public class LongArrayBitVectorTest extends TestCase {
 	public void testSerialisation() throws IOException, ClassNotFoundException {
 		BitVectorTestCase.testSerialisation( LongArrayBitVector.getInstance() );
 	}
+	
+	public void testReplace() {
+		BitVectorTestCase.testReplace( LongArrayBitVector.getInstance() );
+	}
+
 	
 	public void testTrim() {
 		assertTrue( LongArrayBitVector.getInstance( 100 ).trim() );
@@ -164,5 +171,27 @@ public class LongArrayBitVectorTest extends TestCase {
 		l.set( 0, 511 );
 		assertEquals( 511, v.bits[ 0 ] );
 		System.err.println( Long.toHexString( v.bits[ 0 ] ) );
+	}
+	
+	public void testCopyAnotherVector() {
+		Random r = new Random( 1 );
+		LongArrayBitVector bv = LongArrayBitVector.getInstance( 200 );
+		for( int i = 0; i < 100; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bv ), bv );
+		bv = LongArrayBitVector.getInstance( 256 );
+		for( int i = 0; i < 256; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bv ), bv );
+		bv = LongArrayBitVector.getInstance( 10 );
+		for( int i = 0; i < 10; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bv ), bv );
+		BooleanListBitVector bbv = BooleanListBitVector.getInstance( 200 );
+		for( int i = 0; i < 100; i++ ) bbv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bbv ), bbv );
+		bbv = BooleanListBitVector.getInstance( 256 );
+		for( int i = 0; i < 256; i++ ) bbv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bbv ), bbv );
+		bbv = BooleanListBitVector.getInstance( 10 );
+		for( int i = 0; i < 10; i++ ) bbv.add( r.nextBoolean() );
+		assertEquals( LongArrayBitVector.copy( bbv ), bbv );
 	}
 }

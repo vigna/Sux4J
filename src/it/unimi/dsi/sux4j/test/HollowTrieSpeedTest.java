@@ -6,6 +6,7 @@ import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BitVectors;
+import it.unimi.dsi.sux4j.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
@@ -33,7 +34,6 @@ public class HollowTrieSpeedTest {
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
-					//new FlaggedOption( "class", MG4JClassParser.getParser(), klass.getName(), JSAP.NOT_REQUIRED, 'c', "class", "A subclass of MinimalPerfectHash to be used when creating the table." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
 					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
@@ -57,7 +57,7 @@ public class HollowTrieSpeedTest {
 		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
 		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
 		ObjectArrayList<BitVector> bitVectors = new ObjectArrayList<BitVector>();
-		TransformationStrategy<CharSequence> transform = BitVectors.utf16();
+		TransformationStrategy<CharSequence> transform = new Utf16TransformationStrategy();
 		while( i.hasNext() ) bitVectors.add( transform.toBitVector( i.next() ) );
 		
 		long time = -System.currentTimeMillis();

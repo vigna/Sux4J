@@ -71,4 +71,7 @@ public class BooleanListBitVectorTest extends TestCase {
 		BitVectorTestCase.testSerialisation( BooleanListBitVector.getInstance() );
 	}
 
+	public void testReplace() {
+		BitVectorTestCase.testReplace( BooleanListBitVector.getInstance() );
+	}
 }

@@ -12,6 +12,7 @@ import it.unimi.dsi.sux4j.bits.LongBigList;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -408,4 +409,19 @@ public abstract class BitVectorTestCase extends TestCase {
 		BinIO.storeObject( b, file );
 		assertEquals( b, BinIO.loadObject( file ) );
 	}
+
+	public static void testReplace( BitVector b ) {
+		Random r = new Random( 1 );
+		LongArrayBitVector bv = LongArrayBitVector.getInstance( 200 );
+		for( int i = 0; i < 100; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( b.replace( bv ), bv );
+		bv = LongArrayBitVector.getInstance( 256 );
+		for( int i = 0; i < 256; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( b.replace( bv ), bv );
+		bv = LongArrayBitVector.getInstance( 10 );
+		for( int i = 0; i < 10; i++ ) bv.add( r.nextBoolean() );
+		assertEquals( b.replace( bv ), bv );
+		
+	}
+
 }

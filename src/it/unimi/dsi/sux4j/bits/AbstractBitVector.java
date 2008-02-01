@@ -168,6 +168,14 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 	public void clear() {
 		length( 0 );
 	}
+	
+	public BitVector replace( final BitVector bv ) {
+		clear();
+		final long fullBits = bv.length() - bv.length() % Long.SIZE;
+		for( long i = 0; i < fullBits; i += Long.SIZE ) append( bv.getLong( i, i + Long.SIZE ), Long.SIZE );
+		if ( bv.length() % Long.SIZE != 0 ) append( bv.getLong( fullBits, bv.length() ), (int)( bv.length() - fullBits ) );
+		return this;
+	}
 
 	public boolean equals( final Object o ) {
 		if ( ! ( o instanceof BitVector ) ) return false;

@@ -226,6 +226,20 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return copy;
 	}
 
+	/** Returns a copy of the given bit vector.
+	 * 
+	 * <p>This method uses {@link BitVector#getLong(long, long)} on {@link Long#SIZE} boundaries to copy at high speed.
+	 * 
+	 * @param bv a bit vector.
+	 * @return an instance of this class containing a copy of the given vector.
+	 */
+	public static LongArrayBitVector copy( final BitVector bv ) {
+		final LongArrayBitVector copy = new LongArrayBitVector( bv.length() ).length( bv.length() );
+		final long fullBits = bv.length() - bv.length() % Long.SIZE;
+		for( long i = 0; i < fullBits; i += Long.SIZE ) copy.bits[ (int)( i / Long.SIZE ) ] = bv.getLong( i, i + Long.SIZE );
+		if ( bv.length() % Long.SIZE != 0 ) copy.bits[ (int)( fullBits / Long.SIZE ) ] = bv.getLong( fullBits, bv.length() );
+		return copy;
+	}
 	
 	public boolean getBoolean( final long index ) {
 		if ( CHECKS ) ensureRestrictedIndex( index );
@@ -298,7 +312,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	}
 
 	public LongArrayBitVector append( long value, int width ) {
-		if ( value >= 1L << width ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
+		if ( width == 0 ) return this;
+		if ( CHECKS && width < Long.SIZE && value >= 1L << width ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
 		final long length = length();
 		final long start = length;
 		final long end = length + width - 1;
@@ -317,6 +332,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	}
 
 	public long getLong( long from, long to ) {
+		if ( CHECKS && to > length ) throw new IllegalArgumentException();
+		if ( from % Long.SIZE == 0 && to == from + Long.SIZE ) return bits[ (int)( from / Long.SIZE ) ];
 		if ( from == to ) return 0;
 		to--;
 		final int startWord = word( from );

@@ -133,6 +133,12 @@ public interface BitVector extends RandomAccess, BooleanList {
 	/** Flips all bits in this bit vector (optional operation). */
 	public void flip();
 
+	/** Replaces the content of this bit vector with another bit vector.
+	 * 
+	 * @param bitVector a bit vector.
+	 * @return this bit vector.
+	 */
+	public BitVector replace( final BitVector bitVector );
 	
 	/** Returns a view on a subvector of this vector. 
 	 * 
@@ -185,6 +191,12 @@ public interface BitVector extends RandomAccess, BooleanList {
 	 * 
 	 * <P>Note that bit 0 of the returned long will be bit <code>from</code>
 	 * of this bit vector.
+	 * 
+	 * <P>Implementations are invited to provide high-speed implementations for
+	 * the case in which <code>from</code> is a multiple of {@link Long#SIZE}
+	 * and <code>to</code> is <code>from</code> + {@link Long#SIZE} (or less,
+	 * in case the vector length is exceeded). This behaviour make it possible to
+	 * implement high-speed hashing, copies, etc.
 	 * 
 	 * @param from the starting bit (inclusive).
 	 * @param to the ending bit (exclusive).
@@ -270,7 +282,8 @@ public interface BitVector extends RandomAccess, BooleanList {
 	/** Sets the number of bits in this bit vector.
 	 *
 	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
-	 * method is semantically equivalent to {@link BooleanList#size(int)}. 
+	 * method is semantically equivalent to {@link BooleanList#size(int)}.
+	 *  
 	 * @return this bit vector.
 	 */
 	public BitVector length( long newLength );

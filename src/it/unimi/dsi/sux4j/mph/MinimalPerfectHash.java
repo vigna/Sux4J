@@ -495,11 +495,12 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 		bits.size( m );
 		array = bitVector.bits();
 
-		final Object2ObjectFunction<CharSequence,int[]> hyperedge = new AbstractObject2ObjectFunction<CharSequence,int[]>() {
+		final Object2ObjectFunction<CharSequence,long[]> hyperedge = new AbstractObject2ObjectFunction<CharSequence,long[]>() {
 			private static final long serialVersionUID = 1L;
-			final int[] h = new int[3];
-			public int[] get( Object key ) {
-				MinimalPerfectHash.this.hash( (CharSequence)key, h );
+			final long[] h = new long[3];
+			public long[] get( Object key ) {
+				// ALERT
+				//MinimalPerfectHash.this.hash( (CharSequence)key, h );
 				return h;
 			}
 
@@ -521,7 +522,7 @@ public class MinimalPerfectHash extends AbstractObject2IntFunction<CharSequence>
 				weight1[ i ] = r.nextInt();
 				weight2[ i ] = r.nextInt();
 			}
-		} while ( ! visit.visit( terms, hyperedge ) );
+		} while ( ! visit.visit( terms.iterator(), hyperedge ) );
 		
 		/* We assign values. */
 		/** Whether a specific node has already been used as perfect hash value for an item. */
