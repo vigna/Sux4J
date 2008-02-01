@@ -302,7 +302,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		final int[] e = new int[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), init, h );
 		HypergraphVisit.hashesToEdge( h, e, m );
-		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) % 3 ) ] );
+		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
 	}
 
 	public boolean containsKey( Object key ) {
