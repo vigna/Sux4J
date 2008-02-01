@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.Serializable;
 import java.util.List;

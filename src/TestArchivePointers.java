@@ -15,7 +15,6 @@ public class TestArchivePointers {
 		final long n = Long.parseLong( a[ 1 ] );
 		final long m = Long.parseLong( a[ 2 ] );
 		final long[] doc = new long[ (int)m ];
-		final int[] currDoc = new int[ 1 ];
 		final int[] p = new int[ 1 ];
 		
 		SparseSelect sparse = new SparseSelect( n, m, new AbstractLongIterator() {

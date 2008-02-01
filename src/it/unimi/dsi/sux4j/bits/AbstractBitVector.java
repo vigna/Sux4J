@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.longs.LongComparator;
 import it.unimi.dsi.fastutil.longs.LongListIterator;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.Serializable;
 import java.util.NoSuchElementException;
@@ -413,6 +414,11 @@ public abstract class AbstractBitVector extends AbstractBooleanList implements B
 
 		public long getLong( int index ) {
 			return getLong( (long)index );
+		}
+
+		// TODO
+		public long removeLong( final long index ) {
+			throw new UnsupportedOperationException();
 		}
 
 		public long set( long index, long value ) {

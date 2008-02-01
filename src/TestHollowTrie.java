@@ -21,7 +21,7 @@ public class TestHollowTrie {
 			start = -System.currentTimeMillis();
 			
 			Iterator<MutableString> s = c.iterator();
-			for( int i = trie.size(); i-- != 0; ) trie.getLeafIndex( s.next() ); 
+			for( int i = trie.size(); i-- != 0; ) trie.getLong( s.next() ); 
 			
 			start += System.currentTimeMillis();
 			

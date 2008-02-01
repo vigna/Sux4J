@@ -1,5 +1,7 @@
 package it.unimi.dsi.sux4j.bits;
 
+import it.unimi.dsi.sux4j.util.LongBigList;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *

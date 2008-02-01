@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -521,6 +522,11 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 			return bitVector.getLong( start, start + width );
 		}
 
+		@Override
+		public void clear() {
+			bitVector.clear();
+		}
+		
 		@Override
 		public long set( long index, long value ) {
 			if ( value > maxValue ) throw new IllegalArgumentException();

@@ -7,7 +7,6 @@ import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.Hashes;
 
-import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;

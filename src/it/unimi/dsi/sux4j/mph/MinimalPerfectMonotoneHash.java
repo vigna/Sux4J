@@ -33,7 +33,7 @@ import it.unimi.dsi.mg4j.util.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.LongBigList;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;

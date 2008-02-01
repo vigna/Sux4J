@@ -2,7 +2,7 @@ package test.it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.LongBigList;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.IOException;
 import java.util.Random;

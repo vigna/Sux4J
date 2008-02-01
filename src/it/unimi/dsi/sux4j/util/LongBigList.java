@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.bits;
+package it.unimi.dsi.sux4j.util;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -28,7 +28,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 /** A list of longs with long indices.
  * 
  * <p>Unfortunately, {@link List} is limited to positions smaller than or equal to {@link Integer#MAX_VALUE}.
- * Since bits in a not-so-large array need to be indexed with longs, the {@linkplain BitVector#asLongBigList(int) list view over a bit vector}
+ * Since bits in a not-so-large array need to be indexed with longs, the {@linkplain it.unimi.dsi.sux4j.bits.BitVector#asLongBigList(int) list view over a bit vector}
  * requires a more powerful interface. The naming follows the <A HREF="http://fastutil.dsi.unimi.it/"><samp>fastutil</samp></A>
  * conventions (actually, this class extends {@link LongList}).
  */
@@ -41,6 +41,14 @@ public interface LongBigList extends LongList {
 	 * @see List#get(int)
 	 */
 	public long getLong( long index );
+
+	/** Removes the long at the given position.
+	 * 
+	 * @param index a position in the list.
+	 * @return the long previously at the specified position.
+	 * @see List#remove(int)
+	 */
+	public long removeLong( long index );
 
 	/** Sets the long at the given position.
 	 * 

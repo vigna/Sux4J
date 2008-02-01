@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 /** An opportunistic select implementation for sparse arrays. 
  * 

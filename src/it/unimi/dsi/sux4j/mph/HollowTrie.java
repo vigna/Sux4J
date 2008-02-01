@@ -17,6 +17,7 @@ import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -45,7 +46,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	private LongArrayBitVector skips;
+	private TwoSizesLongBigList skips;
 	private final BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
@@ -74,7 +75,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		int s = 0;
 		
 		for(;;) {
-			if ( ( s += (int)skips.getLong( skipLocator.select( r ), skipLocator.select( r + 1 ) ) ) >= length ) return -1;
+			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
 
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
@@ -221,7 +222,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
-		this.skips = LongArrayBitVector.getInstance( skipsLength );
+		/*this.skips = LongArrayBitVector.getInstance( skipsLength );
 		final LongArrayBitVector borders = LongArrayBitVector.getInstance( skipsLength );
 		int s = skips.size();
 		int x;
@@ -233,28 +234,20 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		
 		borders.append( 1, 1 ); // Sentinel
 		if ( this.skips.trim() ) throw new AssertionError();
-		if ( borders.trim() ) throw new AssertionError();
+		if ( borders.trim() ) throw new AssertionError();*/
+		
+		this.skips = new TwoSizesLongBigList( skips, skipWidth );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );
 			System.err.println( this.skips );
-			System.err.println( borders );
+			//System.err.println( borders );
 		}
 		
 		//TODO: try with SDArray
 		//skipLocator = new SparseSelect( borders );
 		
-		//LOGGER.info( "Bits for skips: " +(  this.skips.length() + skipLocator.numBits() ));
-		
-		
-		final int[] count = new int[ maxSkip + 1 ];
-		for( int i = 0; i < size; i++ ) count[ (int)this.skips.getLong( skipLocator.select( i ), skipLocator.select( i + 1 ) ) ]++;
-		for( int i = 1; i <= 16; i++ ) {
-			long c = 0;
-			for( int j = 0;  j < ( 1 << i ) - 1; j++ ) c += count[ i ] * ( i + 1 );
-			for( int j = ( 1 << i ) - 1; j <= maxSkip; j++ ) c += count[ j ] * skipWidth;
-			LOGGER.info( "Bits for 2-level " + i + "-bit skips: " + (double)c/size );
-		}
+		//LOGGER.info( "Bits for skips: " +(  this.skips.length() + skipLocator.numBits() ))
 		
 		
 		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.length() + /*skipLocator.numBits() +*/ transform.numBits();

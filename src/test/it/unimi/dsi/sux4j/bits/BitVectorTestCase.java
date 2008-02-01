@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.BooleanListBitVector;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.LongBigList;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
