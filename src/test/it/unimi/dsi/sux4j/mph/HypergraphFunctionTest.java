@@ -2,8 +2,8 @@ package test.it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.HypergraphFunction;
+import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
 import java.io.IOException;

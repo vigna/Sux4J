@@ -17,7 +17,6 @@ import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.sux4j.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.io.IOException;
