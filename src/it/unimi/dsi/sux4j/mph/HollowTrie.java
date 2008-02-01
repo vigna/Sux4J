@@ -1,6 +1,5 @@
 package it.unimi.dsi.sux4j.mph;
 
-import static it.unimi.dsi.sux4j.bits.Fast.ceilLog2;
 import static it.unimi.dsi.sux4j.bits.Fast.length;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -39,7 +38,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-public class HollowTrie<T> implements Serializable {
+public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final Logger LOGGER = Fast.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
 
@@ -47,10 +46,10 @@ public class HollowTrie<T> implements Serializable {
 	private static final boolean DEBUG = false;
 	
 	private LongArrayBitVector skips;
-	private transient BitVector trie;
+	private final BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
-	private final SparseSelect skipLocator;
+	//private final SparseSelect skipLocator;
 	private final TransformationStrategy<? super T> transform;
 	private int size;
 	
@@ -67,9 +66,10 @@ public class HollowTrie<T> implements Serializable {
 	}
 	
 	
-	public long getLeafIndex( final T object ) {
+	@SuppressWarnings("unchecked")
+	public long getLong( final Object object ) {
 		if ( size == 0 ) return -1;
-		final BitVector bitVector = transform.toBitVector( object );
+		final BitVector bitVector = transform.toBitVector( (T)object );
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
 		
@@ -124,7 +124,8 @@ public class HollowTrie<T> implements Serializable {
 		if ( ! iterator.hasNext() ) {
 			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
 			select = new SimpleSelect( LongArrays.EMPTY_ARRAY, 0 );
-			skipLocator = null;
+			//skipLocator = null;
+			trie = BitVectors.EMPTY_VECTOR;
 			return;
 		}
 		
@@ -215,7 +216,7 @@ public class HollowTrie<T> implements Serializable {
 		trie = bitVector;
 		rank9 = new Rank9( bitVector );
 		select = new SimpleSelect( bitVector );
-		final int skipWidth = ceilLog2( maxSkip );
+		final int skipWidth = Fast.ceilLog2( maxSkip );
 
 		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
@@ -241,9 +242,22 @@ public class HollowTrie<T> implements Serializable {
 		}
 		
 		//TODO: try with SDArray
-		skipLocator = new SparseSelect( borders );
+		//skipLocator = new SparseSelect( borders );
 		
-		final long numBits = rank9.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + borders.length() + transform.numBits();
+		//LOGGER.info( "Bits for skips: " +(  this.skips.length() + skipLocator.numBits() ));
+		
+		
+		final int[] count = new int[ maxSkip + 1 ];
+		for( int i = 0; i < size; i++ ) count[ (int)this.skips.getLong( skipLocator.select( i ), skipLocator.select( i + 1 ) ) ]++;
+		for( int i = 1; i <= 16; i++ ) {
+			long c = 0;
+			for( int j = 0;  j < ( 1 << i ) - 1; j++ ) c += count[ i ] * ( i + 1 );
+			for( int j = ( 1 << i ) - 1; j <= maxSkip; j++ ) c += count[ j ] * skipWidth;
+			LOGGER.info( "Bits for 2-level " + i + "-bit skips: " + (double)c/size );
+		}
+		
+		
+		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.length() + /*skipLocator.numBits() +*/ transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
@@ -267,16 +281,6 @@ public class HollowTrie<T> implements Serializable {
 		path.delete( path.length() - 1, path.length() ); 
 		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
 	}
-	
-	private void writeObject( final ObjectOutputStream s ) throws IOException {
-		s.defaultWriteObject();
-	}
-
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
-		s.defaultReadObject();
-		trie = LongArrayBitVector.wrap( rank9.bits(), rank9.length() );
-	}
-
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 

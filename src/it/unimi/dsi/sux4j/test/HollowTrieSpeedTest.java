@@ -56,17 +56,15 @@ public class HollowTrieSpeedTest {
 		Iterator<? extends CharSequence> i;
 		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
 		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
-		ObjectArrayList<BitVector> bitVectors = new ObjectArrayList<BitVector>();
-		TransformationStrategy<CharSequence> transform = new Utf16TransformationStrategy();
-		while( i.hasNext() ) bitVectors.add( transform.toBitVector( i.next() ) );
 		
 		long time = -System.currentTimeMillis();
-		for( int j = Math.min( 200000, bitVectors.size() ); j-- != 0; ) {
-			hollowTrie.getLeafIndex( bitVectors.get( j ) );
-			if ( j % 1000 == 0 ) System.err.print('.');
+		int j = 0;
+		while( i.hasNext() ) {
+			hollowTrie.getLong( i.next() );
+			if ( j++ % 1000 == 0 ) System.err.print('.');
 		}
 		System.err.println();
 		time += System.currentTimeMillis();
-		System.err.println( time + "ms, " + ( Math.min( 200000, bitVectors.size() ) * 1000.0 ) / time + " vectors/s" );
+		System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/vector" );
 	}
 }

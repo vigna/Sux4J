@@ -25,8 +25,8 @@ public class HollowTrieTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testEmpty() {
 		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] {} ), BitVectors.identity() );
-		assertEquals( -1, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0 ) ) );
-		assertEquals( -1, hollowTrie.getLeafIndex( LongArrayBitVector.of( 1 ) ) );
+		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
+		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -34,20 +34,20 @@ public class HollowTrieTest extends TestCase {
 		HollowTrie hollowTrie = new HollowTrie( 
 				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), BitVectors.identity()  );
 
-		assertEquals( 0, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0 ) ) );
-		assertEquals( 1, hollowTrie.getLeafIndex( LongArrayBitVector.of( 1, 0, 0, 0, 0 ) ) );
-		assertEquals( 2, hollowTrie.getLeafIndex( LongArrayBitVector.of( 1, 0, 0, 0, 1 ) ) );
-		assertEquals( 3, hollowTrie.getLeafIndex( LongArrayBitVector.of( 1, 0, 0, 1 ) ) );
+		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
+		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 0 ) ) );
+		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 1 ) ) );
+		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 1 ) ) );
 
 
 		hollowTrie = new HollowTrie( 
 				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), BitVectors.identity()  );
 
-		assertEquals( 0, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
-		assertEquals( 1, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 0, 0 ) ) );
-		assertEquals( 2, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 1, 0, 0 ) ) );
-		assertEquals( 3, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 0, 1, 0, 1 ) ) );
-		assertEquals( 4, hollowTrie.getLeafIndex( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
+		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
+		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 0, 0 ) ) );
+		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 0 ) ) );
+		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 1 ) ) );
+		assertEquals( 4, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -66,7 +66,7 @@ public class HollowTrieTest extends TestCase {
 		
 		HollowTrie<LongArrayBitVector> hollowTrie = new HollowTrie<LongArrayBitVector>( Arrays.asList( bitVector ), BitVectors.identity() );
 		
-		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
+		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 
 		// Test serialisation
 		final File temp = File.createTempFile( getClass().getSimpleName(), "test" );
@@ -74,7 +74,7 @@ public class HollowTrieTest extends TestCase {
 		BinIO.storeObject( hollowTrie, temp );
 		hollowTrie = (HollowTrie<LongArrayBitVector>)BinIO.loadObject( temp );
 
-		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLeafIndex( bitVector[ i ] ) );
+		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 
 		// Test that random inquiries do not break the trie
 		for( int i = 0; i < 10; i++ ) {
