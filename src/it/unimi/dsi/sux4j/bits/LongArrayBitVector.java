@@ -529,7 +529,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		
 		@Override
 		public long set( long index, long value ) {
-			if ( value > maxValue ) throw new IllegalArgumentException();
+			if ( value > maxValue ) throw new IllegalArgumentException( "Value too large:" + value );
 			final long bits[] = bitVector.bits;
 			final long start = index * width;
 			final int startWord = word( start );

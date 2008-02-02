@@ -50,7 +50,9 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	private final LongArrayBitVector marker;
 	/** A ranking structure to index {@link #small} and {@link #large}. */
 	private final Rank9 rank;
-
+	/** The number of bits used by this structure. */
+	private final long numBits;
+	
 	/** Builds a new two-sizes long bit list using a given list of integers.
 	 * 
 	 * @param list a list of integers.
@@ -77,7 +79,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		int width = 0;
 		for( long x: list ) {
-			width = Math.max( width, Fast.ceilLog2( x ) );
+			width = Math.max( width, Fast.mostSignificantBit( x ) + 1 );
 			counts.put( x, counts.get( x ) + 1 );
 		}
 		final long[] keys = counts.keySet().toLongArray();
@@ -129,7 +131,8 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		}
 
 		rank = new Rank9( marker );
-		
+
+		numBits = rank.numBits() + marker.length() + small.length() * minIndex + large.length() * width;
 		if ( ASSERTS ) {
 			for( int i = 0; i < length; i++ ) assert list.getLong( i ) == getLong( i ) : "At " + i + ": " + list.getLong( i ) + " != " + getLong( i ); 
 		}
@@ -142,5 +145,9 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 
 	public long length() {
 		return length;
+	}
+	
+	public long numBits() {
+		return numBits;
 	}
 }
