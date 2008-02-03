@@ -90,7 +90,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return the number of words that are necessary to hold the given number of bits.
 	 */
 	
-	private static int numWords( final long size ) {
+	protected final static int numWords( final long size ) {
 		if ( CHECKS && ( size + WORD_MASK ) >>> LOG2_BITS_PER_WORD > Integer.MAX_VALUE ) throw new IllegalArgumentException();
 		return (int)( ( size + WORD_MASK ) >>> LOG2_BITS_PER_WORD );
 	}
@@ -100,7 +100,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param index the index of a bit.
 	 * @return the index of the word that holds the bit of given index.
 	 */
-	private static int word( final long index ) {
+	protected final static int word( final long index ) {
 		if ( CHECKS && index >>> LOG2_BITS_PER_WORD > Integer.MAX_VALUE ) throw new IllegalArgumentException();
 		return (int)( index >>> LOG2_BITS_PER_WORD );
 	}
@@ -114,7 +114,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @param index the index of a bit.
 	 * @return the inside-word index of the bit that would hold the bit of specified index.
 	 */
-	private static int bit( final long index ) {
+	protected final static int bit( final long index ) {
 		return (int)( index & WORD_MASK );
 	}
 
@@ -124,7 +124,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
 	 */
 	
-	private static long mask( final long index ) {
+	protected final static long mask( final long index ) {
 		return 1L << ( index & WORD_MASK );
 	}
 
@@ -555,6 +555,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		
 		@Override
 		public long set( long index, long value ) {
+			if ( width == 0 ) return 0;
 			if ( value > maxValue ) throw new IllegalArgumentException( "Value too large:" + value );
 			final long bits[] = bitVector.bits;
 			final long start = index * width;
