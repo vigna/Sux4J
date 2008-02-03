@@ -27,8 +27,6 @@ import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -49,7 +47,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	/** The storage for large elements. */
 	private final LongBigList large;
 	/** A bit array marking whether an element is stored in the small or large storage. */
-	private transient LongArrayBitVector marker;
+	private final LongArrayBitVector marker;
 	/** A ranking structure to index {@link #small} and {@link #large}. */
 	private final Rank9 rank;
 	/** The number of bits used by this structure. */
@@ -104,7 +102,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 				costSmall += c * ( i + 1 );
 				j++;
 			}
-			//System.err.println( "At " + i + ":" + costSmall + " -> " + costLarge );
+			System.err.println( "At " + i + ":" + costSmall + " -> " + costLarge );
 			if ( costLarge + costSmall < minCostLarge + minCostSmall ) {
 				minIndex = i;
 				minCostLarge = costLarge;
@@ -113,13 +111,20 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		}
 		
 		if ( ASSERTS ) assert minCostSmall / ( minIndex + 1 ) + minCostLarge / width == length;
-		//System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
+		System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
 		final long numSmall = minCostSmall / ( minIndex + 1 );
 		final long numLarge = minCostLarge / width;
-		
-		small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
-		large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
-		marker = LongArrayBitVector.getInstance().length( length );
+		System.err.println( numSmall );
+		if ( minIndex != width ) {
+			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
+			marker = LongArrayBitVector.getInstance().length( length );
+			large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
+		}
+		else {
+			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( length );
+			marker = null;
+			large = null;
+		}
 		
 		final int maxSmall = ( 1 << minIndex );
 		
@@ -132,24 +137,20 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 			}
 		}
 
-		rank = new Rank9( marker );
+		rank = marker != null ? new Rank9( marker ) : null;
 
-		numBits = rank.numBits() + marker.length() + small.length() * minIndex + large.length() * width;
+		numBits = small.length() * minIndex + ( marker != null ? rank.numBits() + marker.length() + + large.length() * width : 0 );
 		if ( ASSERTS ) {
 			for( int i = 0; i < length; i++ ) assert list.getLong( i ) == getLong( i ) : "At " + i + ": " + list.getLong( i ) + " != " + getLong( i ); 
 		}
 	}
 
 	public long getLong( long index ) {
+		if ( marker == null ) return small.getLong( index );
 		if ( marker.getBoolean( index ) ) return large.getLong( rank.rank( index ) );
 		return small.getLong( index - rank.rank( index ) );
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
-		s.defaultReadObject();
-		marker = (LongArrayBitVector)rank.bitVector();
-	}
-	
 	public long length() {
 		return length;
 	}
