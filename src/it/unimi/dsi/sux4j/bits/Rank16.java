@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.bits;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -33,24 +36,24 @@ public class Rank16 extends AbstractRank implements Rank {
 	private static final long serialVersionUID = 0L;
 	private static final int BLOCK_LENGTH = 1024;
 	
-	final protected long length;
-	final protected long[] bits;
+	protected transient long[] bits;
 	final protected long[] superCount;
 	final protected short[] count;
 	final protected int numWords;
 	final protected long numOnes;
 	final protected long lastOne;
+	final protected BitVector bitVector;
 	
-	public Rank16( final BitVector bitVector ) {
-		this( bitVector.bits(), bitVector.length() );
+	public Rank16( long[] bits, long length ) {
+		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 		
-	public Rank16( long[] bits, long length ) {
-		this.bits = bits;
-		this.length = length;
-		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
+	public Rank16( final BitVector bitVector ) {
+		this.bitVector = bitVector;
+		this.bits = bitVector.bits();
+		numWords = (int)( ( bitVector.length() + Long.SIZE - 1 ) / Long.SIZE );
 
-		final int numSuperCounts = (int)( ( length + BLOCK_LENGTH - 1 ) / BLOCK_LENGTH );
+		final int numSuperCounts = (int)( ( bitVector.length() + BLOCK_LENGTH - 1 ) / BLOCK_LENGTH );
 		final int numCounts = ( numWords + 1 ) / 2;
 		// Init rank/select structure
 		count = new short[ numCounts ];
@@ -71,7 +74,7 @@ public class Rank16 extends AbstractRank implements Rank {
 	
 	public long rank( long pos ) {
 		if ( ASSERTS ) assert pos >= 0;
-		if ( ASSERTS ) assert pos <= length;
+		if ( ASSERTS ) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
@@ -84,14 +87,6 @@ public class Rank16 extends AbstractRank implements Rank {
 				superCount[ block ] + count[ offset ] + Fast.count( bits[ word - 1 ] ) + Fast.count( bits[ word ] & ( 1L << pos % 64 ) - 1 );
 	}
 
-	public long[] bits() {
-		return bits;
-	}
-	
-	public long length() {
-		return length;
-	}
-	
 	public long numBits() {
 		return count.length * Short.SIZE + superCount.length * Long.SIZE;
 	}
@@ -106,5 +101,14 @@ public class Rank16 extends AbstractRank implements Rank {
 
 	public long lastOne() {
 		return lastOne;
+	}
+
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		bits = bitVector.bits();
+	}
+
+	public BitVector bitVector() {
+		return bitVector;
 	}
 }

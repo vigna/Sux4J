@@ -65,20 +65,12 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 		this( rank, select, null );
 	}
 
-	public long[] bits() {
-		return rank.bits();
-	}
-
 	public long count() {
 		return rank.count();
 	}
 
-	public long length() {
-		return rank.length();
-	}
-
 	public long numBits() {
-		return rank.numBits();
+		return ( rank != null ? rank.numBits() : 0 ) + ( select != null ? select.numBits() : 0 )+ ( selectZero != null ? selectZero.numBits() : 0 );
 	}
 
 	public long rank( final long from, final long to ) {
@@ -103,6 +95,13 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 
 	public long selectZero( final long rank ) {
 		return selectZero.selectZero( rank );
+	}
+
+	public BitVector bitVector() {
+		if ( rank != null ) return rank.bitVector();
+		if ( select != null ) return select.bitVector();
+		if ( selectZero != null ) return selectZero.bitVector();
+		throw new UnsupportedOperationException( "All fields are nulls" );
 	}
 
 }

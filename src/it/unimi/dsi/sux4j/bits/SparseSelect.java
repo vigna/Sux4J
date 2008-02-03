@@ -106,7 +106,7 @@ public class SparseSelect implements Select {
 		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
-		final BitVector upperBits = LongArrayBitVector.getInstance( this.m * 2 ).length( this.m * 2 );
+		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.m * 2 );
 		long last = 0;
 		for( long i = 0; i < this.m; i++ ) {
 			pos = iterator.nextLong();
@@ -131,33 +131,29 @@ public class SparseSelect implements Select {
 		m = sparseRank.m;
 		l = sparseRank.l;
 		lowerBits = sparseRank.lowerBits;
-		selectUpper = new SimpleSelect( sparseRank.upperBits, sparseRank.selectZeroUpper.length() );
+		selectUpper = new SimpleSelect( sparseRank.upperBits );
 	}
 	
 
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.length() + lowerBits.size() * l;
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
 	}
 
-	/** Returns the bit indexed as an array of longs; since the bits are not stored in this data structure,
-	 * a copy is built on purpose and returned.
-	 * 
-	 * @return a copy of the underlying bit vector.
-	 */
 	
-	public long[] bits() {
-		final LongArrayBitVector result = LongArrayBitVector.getInstance( n ).length( n );
-		for( long i = m; i-- != 0; ) result.set( select( i ) );
-		return result.bits();
-	}
-
-	public long length() {
-		return n;
-	}
-
 	public long select( final long rank ) {
 		if ( rank >= m ) return -1;
 		if ( l == 0 ) return ( selectUpper.select( rank ) - rank );
 		return ( selectUpper.select( rank ) - rank ) << l | lowerBits.getLong( rank );
+	}
+
+	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
+	 * a copy is built on purpose and returned.
+	 * 
+	 * @return a copy of the underlying bit vector.
+	 */
+	public BitVector bitVector() {
+		final LongArrayBitVector result = LongArrayBitVector.getInstance( n ).length( n );
+		for( long i = m; i-- != 0; ) result.set( select( i ) );
+		return result;
 	}
 }

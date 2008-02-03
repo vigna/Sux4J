@@ -102,4 +102,16 @@ public class BooleanListBitVector extends AbstractBitVector implements Serializa
 	public BitVector copy() {
 		return new BooleanListBitVector( new BooleanArrayList( list ) );
 	}
+
+	public BitVector ensureCapacity( final long numBits ) {
+		if ( numBits > Integer.MAX_VALUE ) throw new IllegalArgumentException( "This BitVector implementation accepts integer indices only" );
+		list.size( (int)numBits );
+		return this;
+	}
+
+	public BitVector length( final long numBits ) {
+		if ( numBits > Integer.MAX_VALUE ) throw new IllegalArgumentException( "This BitVector implementation accepts integer indices only" );
+		list.size( (int)numBits );
+		return this;
+	}
 }

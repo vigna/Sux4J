@@ -93,13 +93,13 @@ public class LongArrayBitVectorTest extends TestCase {
 	}
 	
 	public void testClone() throws CloneNotSupportedException {
-		LongArrayBitVector v = LongArrayBitVector.getInstance( 100 ).length( 100 );
+		LongArrayBitVector v = LongArrayBitVector.getInstance().length( 100 );
 		for( int i = 0; i < 50; i++ ) v.set( i * 2 );
 		assertEquals( v, v.clone() );
 	}
 
 	public void testEquals() {
-		LongArrayBitVector v = LongArrayBitVector.getInstance( 100 ).length( 100 );
+		LongArrayBitVector v = LongArrayBitVector.getInstance().length( 100 );
 		for( int i = 0; i < 50; i++ ) v.set( i * 2 );
 		LongArrayBitVector w = v.copy();
 		assertEquals( v, w );

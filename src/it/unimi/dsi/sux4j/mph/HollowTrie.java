@@ -2,7 +2,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.sux4j.bits.Fast.length;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -15,14 +14,12 @@ import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -47,10 +44,9 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean DEBUG = false;
 	
 	private TwoSizesLongBigList skips;
-	private final BitVector trie;
+	private transient BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
-	//private final SparseSelect skipLocator;
 	private final TransformationStrategy<? super T> transform;
 	private int size;
 	
@@ -275,6 +271,11 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
 	}
 	
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		trie = rank9.bitVector();
+	}
+
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",

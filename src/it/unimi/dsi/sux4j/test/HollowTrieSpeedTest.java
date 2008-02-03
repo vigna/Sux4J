@@ -1,14 +1,10 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BitVectors;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
-import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.FileInputStream;
 import java.io.IOException;

@@ -288,7 +288,11 @@ public interface BitVector extends RandomAccess, BooleanList {
 	
 	/** Sets the number of bits in this bit vector.
 	 *
-	 * <p>If the number of bits in this vector is smaller than or equal to {@link Integer#MAX_VALUE}, this
+	 * <p>It is expected that this method will try to allocate exactly
+	 * the necessary space. 
+	 *
+	 * <p>If the number of bits in this vector is smaller than 
+	 * or equal to {@link Integer#MAX_VALUE}, this
 	 * method is semantically equivalent to {@link BooleanList#size(int)}.
 	 *  
 	 * @return this bit vector.

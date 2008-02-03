@@ -194,7 +194,7 @@ public class SparseTest extends RankSelectTestCase {
 		SparseRank sparseRank;
 		SparseSelect bsearch;
 		for( int size = 0; size <= 4096; size++ ) {
-			v = LongArrayBitVector.getInstance( size ).length( size );
+			v = LongArrayBitVector.getInstance().length( size );
 			for( int i = ( size + 1 ) / 2; i-- != 0; ) v.set( i * 2 );
 			bsearch = new SparseSelect( sparseRank = new SparseRank( v ) );
 			for( int i = size + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, sparseRank.rank( i ) );

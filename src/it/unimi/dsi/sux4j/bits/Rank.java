@@ -48,12 +48,6 @@ import java.io.Serializable;
  */
 public interface Rank extends Serializable {
 
-	/** Returns the number of bits in the bit vector indexed by this class.
-	 * 
-	 * @return number of bits in the bit vector indexed by this class.
-	 */
-	public long length();
-
 	/** Returns the number of ones in the bit vector indexed by this class.
 	 * 
 	 * @return number of ones in the bit vector indexed by this class.
@@ -92,18 +86,18 @@ public interface Rank extends Serializable {
 	 */
 	public long rankZero( long from, long to );
 
-	/** Returns the bits indexed as an array of longs (not to be modified).
+	/** Returns the bit vector indexed by this structure.
 	 * 
-	 * <p>The returned array must follow the {@link LongArrayBitVector} conventions.
+	 * <p>Note that you are not supposed to modify the returned vector.
 	 * 
-	 * @return an array of longs whose first {@link #length()} bits contain the bits of
-	 * this bit vector. The array cannot be modified.
+	 * @return the bit vector indexed by this structure.
 	 */
-	public long[] bits();
+	public BitVector bitVector();
 	
 	/** Returns the overall number of bits allocated by this structure. 
 	 * 
-	 * @return the overall number of bits allocated by this structure (not including {@link #bits()}).
+	 * @return the overall number of bits allocated by this structure (not including the bits
+	 * of the {@linkplain #bitVector() indexed vector}). 
 	 */
 
 	public long numBits();

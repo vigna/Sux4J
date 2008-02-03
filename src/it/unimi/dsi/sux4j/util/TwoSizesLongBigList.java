@@ -27,6 +27,8 @@ import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -47,7 +49,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	/** The storage for large elements. */
 	private final LongBigList large;
 	/** A bit array marking whether an element is stored in the small or large storage. */
-	private final LongArrayBitVector marker;
+	private transient LongArrayBitVector marker;
 	/** A ranking structure to index {@link #small} and {@link #large}. */
 	private final Rank9 rank;
 	/** The number of bits used by this structure. */
@@ -115,9 +117,9 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		final long numSmall = minCostSmall / ( minIndex + 1 );
 		final long numLarge = minCostLarge / width;
 		
-		small = LongArrayBitVector.getInstance( numSmall * minIndex ).asLongBigList( minIndex ).length( numSmall );
-		large = LongArrayBitVector.getInstance( numLarge ).asLongBigList( width ).length( numLarge );
-		marker = LongArrayBitVector.getInstance( length ).length( length );
+		small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
+		large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
+		marker = LongArrayBitVector.getInstance().length( length );
 		
 		final int maxSmall = ( 1 << minIndex );
 		
@@ -143,6 +145,11 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		return small.getLong( index - rank.rank( index ) );
 	}
 
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		marker = (LongArrayBitVector)rank.bitVector();
+	}
+	
 	public long length() {
 		return length;
 	}

@@ -43,7 +43,7 @@ public class TestArchivePointers {
 		long numDocs = doc[ p[0] - 1 ] + 1;
 
 //		SimpleSelectZero sparse2 = new SimpleSelectZero( currDoc[ 0 ] + 1, p[0], it.unimi.dsi.fastutil.longs.LongArrayList.wrap( doc, p[0] ).iterator() );
-		LongArrayBitVector v = LongArrayBitVector.getInstance( numDocs ).length( numDocs );
+		LongArrayBitVector v = LongArrayBitVector.getInstance().length( numDocs );
 		for( int i = p[0]; i-- != 0; ) v.set( doc[ i ] );
 		v.flip();
 		SparseRank sparse2 = new SparseRank( v );

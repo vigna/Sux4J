@@ -26,7 +26,7 @@ package it.unimi.dsi.sux4j.bits;
 public abstract class AbstractRank implements Rank {
 
 	public long count() {
-		return rank( length() );
+		return rank( bitVector().length() );
 	}
 	
 	public long rank( final long from, final long to ) {

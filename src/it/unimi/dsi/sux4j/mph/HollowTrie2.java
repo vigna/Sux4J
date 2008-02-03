@@ -46,7 +46,7 @@ public class HollowTrie2<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean DEBUG = false;
 	
 	private LongArrayBitVector skips;
-	private final BitVector trie;
+	private transient BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
 	private final SparseSelect skipLocator;
@@ -256,6 +256,19 @@ public class HollowTrie2<T> extends AbstractHash<T> implements Serializable {
 		
 		
 		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.length() + skipLocator.numBits() + transform.numBits();
+		
+		try {
+			System.err.println( rank9.numBits() +" "+ select.numBits() + " "+ trie.length() + " " +this.skips.length() + " " + skipLocator.numBits() );
+			BinIO.storeObject( rank9, "rank9" );
+			BinIO.storeObject( select, "select" );
+			BinIO.storeObject( trie, "trie" );
+			BinIO.storeObject( this.skips, "skips ");
+			BinIO.storeObject( skipLocator, "locator" );
+		}
+		catch ( IOException e ) {
+			// TODO Auto-generated catch block
+			throw new RuntimeException( e );
+		}
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
@@ -280,6 +293,11 @@ public class HollowTrie2<T> extends AbstractHash<T> implements Serializable {
 		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
 	}
 	
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		trie = rank9.bitVector();
+	}
+
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie2.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",

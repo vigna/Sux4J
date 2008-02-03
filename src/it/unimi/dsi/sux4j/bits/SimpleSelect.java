@@ -22,11 +22,11 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
-import it.unimi.dsi.fastutil.longs.LongArrays;
-import it.unimi.dsi.sux4j.util.LongBigList;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
+
+import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.sux4j.util.LongBigList;
 
 /** A simple select implementation based on a two-level inventory and broadword bit search.
  *  
@@ -49,11 +49,10 @@ public class SimpleSelect implements Select {
 
 	private final long[] inventory;
 	private final long[] subinventory;
-	private final LongBigList subinventory16;
+	private transient LongBigList subinventory16;
 	private final long numOnes;
-	private final long length;
 	private final int numWords;
-	private final long[] bits;
+	private transient long[] bits;
 	private final int onesPerInventory;
 	private final int log2OnesPerInventory;
 	private final int onesPerInventoryMask;
@@ -64,14 +63,16 @@ public class SimpleSelect implements Select {
 	private final int onesPerSub16;
 	private final int onesPerSub16Mask;
 	private final long[] exactSpill;
+	private final BitVector bitVector;
 	
-	public SimpleSelect( final BitVector bitVector ) {
-		this( bitVector.bits(), bitVector.length() );
+	public SimpleSelect( long[] bits, long length ) {
+		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 		
-	public SimpleSelect( long[] bits, long length ) {
-		this.length = length;
-		this.bits = bits;
+	public SimpleSelect( final BitVector bitVector ) {
+		this.bitVector = bitVector;
+		this.bits = bitVector.bits();
+		final long length = bitVector.length();
 
 		numWords = (int)( ( length + 63 ) / 64 );
 		
@@ -140,7 +141,7 @@ public class SimpleSelect implements Select {
 			final int exactSpillSize = spilled;
 			subinventory = new long[ subinventorySize ];
 			exactSpill = new long[ exactSpillSize ];
-			subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( 16 );
+			subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
 
 			int offset = 0;
 			spilled = 0;
@@ -185,7 +186,7 @@ public class SimpleSelect implements Select {
 			subinventory16 = null;
 		}
 
-}
+	}
 
 	public long select( long rank ) {
 		if ( rank >= numOnes ) return -1;
@@ -246,19 +247,18 @@ public class SimpleSelect implements Select {
         return wordIndex * 64 + byteOffset + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 );
 	}
 
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
+		bits = bitVector.bits();
+	}
+
+	
 	public long numBits() {
 		return (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE + (long)exactSpill.length * Long.SIZE;
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
-		s.defaultReadObject();
-	}
-
-	public long[] bits() {
-		return bits;
-	}
-
-	public long length() {
-		return length; 
+	public BitVector bitVector() {
+		return bitVector;
 	}
 }

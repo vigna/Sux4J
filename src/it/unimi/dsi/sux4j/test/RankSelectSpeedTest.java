@@ -41,7 +41,7 @@ public class RankSelectSpeedTest {
 		final int numPos = jsapResult.getInt( "numPos" );
 
 		Random random = new Random( 42 );
-		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance( numBits ).length( numBits );
+		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( numBits );
 		long c = 0;
 		for( long i = numBits; i-- != 0; ) 
 			if ( random.nextDouble() < density ) {

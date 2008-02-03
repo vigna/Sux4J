@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.bits;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -43,7 +46,7 @@ public class HintedBsearchSelect implements Select {
 	final private int log2OnesPerInventory;
 	private final long numOnes;
 	private final int numWords;
-	private final long[] bits;
+	private transient long[] bits;
 	private final long[] count;
 	final private Rank9 rank9;
 
@@ -54,7 +57,7 @@ public class HintedBsearchSelect implements Select {
 		bits = rank9.bits;
 		count = rank9.count;
 		
-		log2OnesPerInventory = rank9.length == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + rank9.length - 1 ) / rank9.length );
+		log2OnesPerInventory = rank9.bitVector.length() == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + rank9.bitVector.length() - 1 ) / rank9.bitVector.length() );
 		onesPerInventory = 1 << log2OnesPerInventory;
 		final int inventorySize = (int)( ( numOnes + onesPerInventory - 1 ) / onesPerInventory );
 
@@ -109,12 +112,14 @@ public class HintedBsearchSelect implements Select {
 		return rank9.numBits() + inventory.length * Integer.SIZE;
 	}
 
-	public long[] bits() {
-		return rank9.bits;
+	
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		bits = rank9.bitVector.bits();
 	}
 
-	public long length() {
-		return rank9.length;
+	public BitVector bitVector() {
+		return rank9.bitVector();
 	}
 
 }

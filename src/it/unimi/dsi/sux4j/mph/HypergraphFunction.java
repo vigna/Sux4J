@@ -120,7 +120,7 @@ public class HypergraphFunction<T> extends AbstractHash<T> implements Serializab
 		
 		/* We assign values. */
 		/** Whether a specific node has already been used as perfect hash value for an item. */
-		final BitVector used = LongArrayBitVector.getInstance( m ).length( m );
+		final BitVector used = LongArrayBitVector.getInstance().length( m );
 		
 		final int[] stack = visit.stack;
 		final int[][] edge = visit.edge;

@@ -43,6 +43,13 @@ import java.io.Serializable;
  * {@link #asLongBigList(int)} provide access as a list of longs, whereas
  * {@link #asLongSet()} provides access in setwise form.
  * 
+ * <p>When enlarging the underlying array (e.g., for {@link #append(long, int)} operations or
+ * add operations on the {@linkplain #asLongBigList(int) big list view}), or when
+ * invoking {@link #ensureCapacity(long)}, this class calls
+ * {@link LongArrays#grow(long[], int, int)}, which could enlarge the array more than
+ * expected. On the contrary, {@link #length(long)} (and the corresponding method in the
+ * {@linkplain #asLongBigList(int) big list view}) size the underlying array in an exact manner.
+ * 
  * <p><strong>Warning</strong>: A few optional methods have still to be implemented (e.g.,
  * adding an element at an arbitrary position using the list view).
  *
@@ -131,7 +138,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * 
 	 * <P>Note that this constructor creates an <em>empty</em> bit vector.
 	 * If you want a cleared bit vector of a specified size, use
-	 * {@link #size(int)} after creation.
+	 * {@link #length(long)} after creation with {@link #getInstance()}.
 	 * 
 	 * @param capacity the size (number of bits) of the new bit vector.
 	 */
@@ -139,12 +146,15 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return new LongArrayBitVector( capacity );
 	}
 
-	/** Creates a new empty bit vector. */
+	/** Creates a new empty bit vector. No allocation is actually performed. */
 	public static LongArrayBitVector getInstance() {
 		return new LongArrayBitVector( 0 );
 	}
 	
-	/** Creates a new bit vector with given bits. */
+	/** Creates a new bit vector with given bits. 
+	 * 
+	 * @param bit a list of bits that will be set in the newly created bit vector. 
+	 */
 	public static LongArrayBitVector of( final int... bit ) {
 		final LongArrayBitVector bitVector = new LongArrayBitVector( bit.length );
 		for( int b : bit ) bitVector.add( b );
@@ -159,8 +169,24 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return length;
 	}
 	
+	/** Ensures that this bit vector can hold the specified number of bits.
+	 * 
+	 * <p>This method uses {@link LongArrays#grow(long[], int, int)} to
+	 * ensure that there is enough space for the given number of bits. As a
+	 * consequence, the actual length of the long array allocated might be
+	 * larger than expected.
+	 * 
+	 * @param numBits the number of bits that this vector must be able to contain. 
+	 * @return this bit vector.
+	 */
+	
+	public LongArrayBitVector ensureCapacity( final long numBits ) {
+		bits = LongArrays.grow( bits, numWords( numBits ), numWords( length ) );
+		return this;
+	}
+
 	public LongArrayBitVector length( final long newLength ) {
-		bits = LongArrays.grow( bits, numWords( newLength ), numWords( length ) );
+		bits = LongArrays.ensureCapacity( bits, numWords( newLength ), numWords( length ) );
 		final long oldLength = length;
 		length = newLength;
 		if ( newLength > oldLength ) fill( oldLength, newLength, false );
@@ -235,7 +261,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	 * @return an instance of this class containing a copy of the given vector.
 	 */
 	public static LongArrayBitVector copy( final BitVector bv ) {
-		final LongArrayBitVector copy = new LongArrayBitVector( bv.length() ).length( bv.length() );
+		final LongArrayBitVector copy = new LongArrayBitVector( 0 ).length( bv.length() );
 		final long fullBits = bv.length() - bv.length() % Long.SIZE;
 		for( long i = 0; i < fullBits; i += Long.SIZE ) copy.bits[ (int)( i / Long.SIZE ) ] = bv.getLong( i, i + Long.SIZE );
 		if ( bv.length() % Long.SIZE != 0 ) copy.bits[ (int)( fullBits / Long.SIZE ) ] = bv.getLong( fullBits, bv.length() );
@@ -321,7 +347,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		final int startWord = word( start );
 		final int endWord = word( end );
 		
-		length( length + width );
+		ensureCapacity( length + width );
 
 		if ( startWord == endWord ) bits[ startWord ] |= value << bit( start );
 		else {

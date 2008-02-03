@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.bits;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
 import it.unimi.dsi.sux4j.util.LongBigList;
 
 /*		 
@@ -47,11 +50,11 @@ public class Select9 implements Select {
 	
 	private final long[] inventory;
 	private final long[] subinventory;
-	private final LongBigList subinventoryAsShorts;
-	private final LongBigList subinventoryasInts;
+	private transient LongBigList subinventoryAsShorts;
+	private transient LongBigList subinventoryasInts;
 	private final long numOnes;
 	private final int numWords;
-	private final long[] bits;
+	private transient long[] bits;
 	private final long[] count;
 	private final Rank9 rank9;
 	
@@ -270,11 +273,15 @@ public class Select9 implements Select {
 		return rank9.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
 	}
 
-	public long[] bits() {
-		return bits;
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		bits = rank9.bitVector.bits();
+		final BitVector v = LongArrayBitVector.wrap( subinventory );
+		subinventoryAsShorts = v.asLongBigList( Short.SIZE );
+		subinventoryasInts = v.asLongBigList( Integer.SIZE );
 	}
 
-	public long length() {
-		return rank9.length(); 
+	public BitVector bitVector() {
+		return rank9.bitVector();
 	}
 }

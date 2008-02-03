@@ -46,7 +46,7 @@ public class SparseRank extends AbstractRank {
 	/** The list of lower bits of the position of each one, stored explicitly. */
 	protected final LongBigList lowerBits;
 	/** The upper bits. */
-	protected final long[] upperBits;
+	protected final BitVector upperBits;
 	/** The rank structure used to extract the upper bits. */ 
 	protected final SimpleSelectZero selectZeroUpper;
 
@@ -95,21 +95,20 @@ public class SparseRank extends AbstractRank {
 		this.l = l;
 		lowerLBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
-		final BitVector upperBitsBitVector = LongArrayBitVector.getInstance( this.m * 2 ).length( this.m * 2 );
+		upperBits = LongArrayBitVector.getInstance().length( this.m * 2 );
 		long last = 0;
 		for( long i = 0; i < this.m; i++ ) {
 			pos = iterator.nextLong();
 			if ( pos >= n ) throw new IllegalArgumentException( "Position too large for " + n + " bits: " + pos );
 			if ( pos < last ) throw new IllegalArgumentException( "Positions are not nondecreasing: " + pos + " < " + last );
 			if ( l != 0 ) lowerBits.set( i, pos & lowerLBitsMask );
-			upperBitsBitVector.set( ( pos >> l ) + i );
+			upperBits.set( ( pos >> l ) + i );
 			last = pos;
 		}
 		
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.m + " positions in the provided iterator" );
 		
-		upperBits = upperBitsBitVector.bits();
-		selectZeroUpper = new SimpleSelectZero( upperBitsBitVector );
+		selectZeroUpper = new SimpleSelectZero( upperBits );
 	}
 
 	
@@ -122,9 +121,9 @@ public class SparseRank extends AbstractRank {
 		m = sparseSelect.m;
 		l = sparseSelect.l;
 		lowerLBitsMask = ( 1L << l ) - 1;
-		upperBits = sparseSelect.selectUpper.bits();
+		upperBits = sparseSelect.selectUpper.bitVector();
 		lowerBits = sparseSelect.lowerBits;
-		selectZeroUpper = new SimpleSelectZero( upperBits, sparseSelect.selectUpper.length() );
+		selectZeroUpper = new SimpleSelectZero( upperBits );
 	}
 	
 
@@ -136,21 +135,20 @@ public class SparseRank extends AbstractRank {
 		long upperPos = selectZeroUpper.selectZero( posShiftrL );
 	    long rank = upperPos - ( posShiftrL );
 	    final long posLowerBits = pos & lowerLBitsMask;
-	    final long[] upperBits = this.upperBits;
 	    
 	    do {
 	    	rank--; 
 	    	upperPos--; 
-	    } while( upperPos >= 0 && ( upperBits[ (int)( upperPos / 64 ) ] & 1L << upperPos % 64 ) != 0 && lowerBits.getLong( rank ) >= posLowerBits );
+	    } while( upperPos >= 0 && upperBits.getBoolean( upperPos ) && lowerBits.getLong( rank ) >= posLowerBits );
 
 	    return ++rank;
 	}
 
 	public long numBits() {
-		return selectZeroUpper.numBits() + selectZeroUpper.length() + lowerBits.size() * l;
+		return selectZeroUpper.numBits() + upperBits.length() + lowerBits.size() * l;
 	}
 
-	/** Returns the bit indexed as an array of longs; since the bits are not stored in this data structure,
+	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
 	 * a copy is built on purpose and returned.
 	 * 
 	 * <p><strong>Warning</strong>: this method is very slow, as the only way to recover the original bit
@@ -158,19 +156,14 @@ public class SparseRank extends AbstractRank {
 	 * 
 	 * @return a copy of the underlying bit vector.
 	 */
-	
-	public long[] bits() {
-		final LongArrayBitVector result = LongArrayBitVector.getInstance( n ).length( n );
+	public BitVector bitVector() {
+		final LongArrayBitVector result = LongArrayBitVector.getInstance().length( n );
 		long prev = 0, rank;
 		for( long i = 1; i <= n; i++ ) {
 			if ( ( rank = rank( i ) ) != prev ) result.set( i - 1 );
 			prev = rank;
 		}
-		return result.bits();
-	}
-
-	public long length() {
-		return n;
+		return result;
 	}
 
 }

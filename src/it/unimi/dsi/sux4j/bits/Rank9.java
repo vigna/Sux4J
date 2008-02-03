@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.bits;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -34,20 +37,22 @@ public class Rank9 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 0L;
 
-	final protected long length;
-	final protected long[] bits;
+	protected transient long[] bits;
+	final protected BitVector bitVector;
 	final protected long[] count;
 	final protected int numWords;
 	final protected long numOnes;
 	final protected long lastOne;
 	
-	public Rank9( final BitVector bitVector ) {
-		this( bitVector.bits(), bitVector.length() );
-	}
-		
 	public Rank9( long[] bits, long length ) {
-		this.bits = bits;
-		this.length = length;
+		this( LongArrayBitVector.wrap( bits, length ) );
+	}
+
+	public Rank9( final BitVector bitVector ) {
+		this.bitVector = bitVector;
+		this.bits = bitVector.bits();
+		final long length = bitVector.length();
+		
 		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 
 		final int numCounts = (int)( ( length + 8 * Long.SIZE - 1 ) / ( 8 * Long.SIZE ) ) * 2;
@@ -77,7 +82,7 @@ public class Rank9 extends AbstractRank implements Rank {
 	
 	public long rank( long pos ) {
 		if ( ASSERTS ) assert pos >= 0;
-		if ( ASSERTS ) assert pos <= length;
+		if ( ASSERTS ) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
@@ -88,14 +93,6 @@ public class Rank9 extends AbstractRank implements Rank {
 		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
 	}
 
-	public long[] bits() {
-		return bits;
-	}
-	
-	public long length() {
-		return length;
-	}
-	
 	public long numBits() {
 		return count.length * Long.SIZE;
 	}
@@ -110,5 +107,14 @@ public class Rank9 extends AbstractRank implements Rank {
 
 	public long lastOne() {
 		return lastOne;
+	}
+
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		bits = bitVector.bits();
+	}
+
+	public BitVector bitVector() {
+		return bitVector;
 	}
 }

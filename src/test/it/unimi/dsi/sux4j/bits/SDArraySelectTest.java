@@ -196,12 +196,12 @@ public class SDArraySelectTest extends RankSelectTestCase {
 		LongArrayBitVector v;
 		SparseSelect r;
 		for( int size = 0; size <= 4096; size++ ) {
-			v = LongArrayBitVector.getInstance( size ).length( size );
+			v = LongArrayBitVector.getInstance().length( size );
 			for( int i = ( size + 1 ) / 2; i-- != 0; ) v.set( i * 2 );
 			r = new SparseSelect( v );
 			for( int i = size / 2; i-- != 0; ) assertEquals( i * 2, r.select( i ) );
 			
-			v = LongArrayBitVector.getInstance( size ).length( size );
+			v = LongArrayBitVector.getInstance().length( size );
 			v.fill( true );
 			r = new SparseSelect( v );
 			for( int i = size; i-- != 0; ) assertEquals( i, r.select( i ) );

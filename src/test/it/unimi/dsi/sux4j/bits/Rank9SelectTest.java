@@ -193,7 +193,7 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		Rank9 rank9;
 		Select9 bsearch;
 		for( int size = 0; size <= 4096; size++ ) {
-			v = LongArrayBitVector.getInstance( size ).length( size );
+			v = LongArrayBitVector.getInstance().length( size );
 			for( int i = ( size + 1 ) / 2; i-- != 0; ) v.set( i * 2 );
 			bsearch = new Select9( rank9 = new Rank9( v ) );
 			for( int i = size + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rank9.rank( i ) );
