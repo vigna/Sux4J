@@ -26,7 +26,7 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		int[] v = new int[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash( Arrays.asList( s ), new Utf16TransformationStrategy() );
+		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
@@ -37,7 +37,7 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 	
-		mph = new LcpMinimalPerfectMonotoneHash( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ) ) );
+		mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ) ) );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
@@ -49,4 +49,13 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 
 	}
 	
+	public void testThis() {
+		String[] s = new String[] {
+			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethTUS.htm",
+			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethWERS.htm",
+			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethYCS.htm",
+			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethYLS.htm" 
+		};
+		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+	}
 }
