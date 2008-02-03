@@ -118,10 +118,10 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		return (int)( index & WORD_MASK );
 	}
 
-	/** Returns a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
+	/** Returns a mask having a 1 exactly at the bit {@link #bit(long) bit(index)}.
 	 * 
 	 * @param index the index of a bit
-	 * @return a mask having a 1 exactly at the bit {@link #bit(int) bit(index)}.
+	 * @return a mask having a 1 exactly at the bit {@link #bit(long) bit(index)}.
 	 */
 	
 	protected final static long mask( final long index ) {
@@ -341,7 +341,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	public LongArrayBitVector append( long value, int width ) {
 		if ( width == 0 ) return this;
 		if ( CHECKS && width < Long.SIZE && ( value & 1L << width ) != 0 ) throw new IllegalArgumentException( "The specified value (" + value + ") is larger than the maximum value for the given width (" + width + ")" );
-		final long length = length();
+		final long length = this.length;
 		final long start = length;
 		final long end = length + width - 1;
 		final int startWord = word( start );
@@ -355,6 +355,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 			bits[ startWord ] |= value << startBit;
 			bits[ endWord ] = value >>> BITS_PER_WORD - startBit;
 		}
+		
+		this.length += width;
 		return this;
 	}
 
@@ -496,6 +498,16 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		LongArrayBitVector copy = (LongArrayBitVector)super.clone();
 		copy.bits = bits.clone();
 		return copy;
+	}
+
+	public LongArrayBitVector replace( final LongArrayBitVector bv ) {
+		clear();
+		ensureCapacity( bv.length() );
+		final long[] bits = this.bits;
+		final long[] bvBits = bv.bits;
+		for( int i = word( bv.length - 1 ); i-- != 0; ) bits[ i ] = bvBits[ i ];
+		this.length = bv.length;
+		return this;
 	}
 
 	public boolean equals( final Object o ) {

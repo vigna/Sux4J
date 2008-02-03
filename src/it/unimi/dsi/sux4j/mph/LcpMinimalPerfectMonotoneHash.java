@@ -150,6 +150,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
+		
 		/*BitVector[] l = lcp.clone();
 		Arrays.sort( l );
 		for( int i = l.length- 1; i-- != 0 ; ) if ( l[ i ].equals( l[ i + 1 ] ))throw new AssertionError();*/
@@ -196,8 +197,6 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 				}
 			}
 		}
-		
-		System.err.println( offsetLcpLength.numBits()/100000.0+ "-" + ( HypergraphVisit.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) ) );
 		
 		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
 		LOGGER.debug( "Bucket size: " + bucketSize );

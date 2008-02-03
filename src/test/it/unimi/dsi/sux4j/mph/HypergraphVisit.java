@@ -100,11 +100,8 @@ public class HypergraphVisit<T> {
 		BitVector bv = null;
 		IntArrays.fill( d, 0 );
 		
-		BitVector tmp[] = new BitVector[numEdges];
-		
 		while( iterator.hasNext() ) {
 			bv = transform.toBitVector( iterator.next() );
-			tmp[k] = bv.copy();
 			Hashes.jenkins( bv, init, h );
 			hashesToEdge( h, e, numVertices );
 			edge[ 0 ][ k ] = e[ 0 ];

@@ -38,6 +38,8 @@ public class Hashes {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
+		if ( bv.length() == 0 ) throw new AssertionError();
+		
 		/* Set up the internal state */
 		a = b = init;
 		c = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value */
@@ -85,7 +87,7 @@ public class Hashes {
 		a -= b; a -= c; a ^= (c >>> 12);
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
-		
+
 		h[ 0 ] = a;
 		h[ 1 ] = b;
 		h[ 2 ] = c;
