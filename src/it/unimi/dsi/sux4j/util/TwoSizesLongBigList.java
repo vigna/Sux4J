@@ -102,7 +102,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 				costSmall += c * ( i + 1 );
 				j++;
 			}
-			System.err.println( "At " + i + ":" + costSmall + " -> " + costLarge );
+			//System.err.println( "At " + i + ":" + costSmall + " -> " + costLarge );
 			if ( costLarge + costSmall < minCostLarge + minCostSmall ) {
 				minIndex = i;
 				minCostLarge = costLarge;
@@ -111,10 +111,10 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		}
 		
 		if ( ASSERTS ) assert minCostSmall / ( minIndex + 1 ) + minCostLarge / width == length;
-		System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
+		//System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
 		final long numSmall = minCostSmall / ( minIndex + 1 );
 		final long numLarge = minCostLarge / width;
-		System.err.println( numSmall );
+		//System.err.println( numSmall );
 		if ( minIndex != width ) {
 			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
 			marker = LongArrayBitVector.getInstance().length( length );
