@@ -35,7 +35,7 @@ import java.io.ObjectInputStream;
 
 public class Rank9 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 1L;
 
 	protected transient long[] bits;
 	final protected BitVector bitVector;

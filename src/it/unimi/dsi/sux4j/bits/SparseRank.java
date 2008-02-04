@@ -33,7 +33,7 @@ import it.unimi.dsi.sux4j.util.LongBigList;
  */
 
 public class SparseRank extends AbstractRank {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	
 	/** The length of the underlying bit array. */
 	protected final long n;

@@ -36,7 +36,7 @@ import it.unimi.dsi.sux4j.util.LongBigList;
 
 public class Select9 implements Select {
 	private static final boolean ASSERTS = false;
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 1L;
 
 	private final static long ONES_STEP_16 = 1L << 0 | 1L << 16 | 1L << 32 | 1L << 48;
 	private final static long MSBS_STEP_16 = 0x8000L * ONES_STEP_16;

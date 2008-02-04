@@ -37,7 +37,7 @@ import it.unimi.dsi.sux4j.util.LongBigList;
 public class SimpleSelect implements Select {
 	@SuppressWarnings("unused")
 	private static final boolean ASSERTS = false;
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 1L;
 
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
 	private static final long ONES_STEP_4 = 0x1111111111111111L;

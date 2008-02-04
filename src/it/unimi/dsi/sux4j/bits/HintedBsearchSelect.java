@@ -36,7 +36,7 @@ import java.io.ObjectInputStream;
 public class HintedBsearchSelect implements Select {
 	@SuppressWarnings("unused")
 	private static final boolean ASSERTS = false;
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 1L;
 
 	private static final long ONES_STEP_9 = 1L << 0 | 1L << 9 | 1L << 18 | 1L << 27 | 1L << 36 | 1L << 45 | 1L << 54;
 	private static final long MSBS_STEP_9 = 0x100L * ONES_STEP_9;
