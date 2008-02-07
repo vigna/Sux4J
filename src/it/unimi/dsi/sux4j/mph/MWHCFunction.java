@@ -39,7 +39,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import it.unimi.dsi.sux4j.mph.HypergraphVisit;
+import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -51,7 +51,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A read-only function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphVisit 3-hypergraph technique}.
+/** A read-only function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
  * 
  * @author Sebastiano Vigna
  * @since 0.2
@@ -104,7 +104,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 			n = c;
 		}
 		
-		HypergraphVisit<T> visit = new HypergraphVisit<T>( n );
+		HypergraphSorter<T> visit = new HypergraphSorter<T>( n );
 
 		m = visit.numVertices;
 		// Candidate data; might be discarded for compaction.
@@ -179,8 +179,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
-				HypergraphVisit.GAMMA * width :
-				HypergraphVisit.GAMMA + width + 0.126 ) );
+				HypergraphSorter.GAMMA * width :
+				HypergraphSorter.GAMMA + width + 0.126 ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
@@ -190,7 +190,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		final long[] h = new long[ 3 ];
 		final int[] e = new int[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), init, h );
-		HypergraphVisit.hashesToEdge( h, e, m );
+		HypergraphSorter.hashesToEdge( h, e, m );
 		return rank == null ?
 				data.getLong( e[ 0 ] ) ^ data.getLong( e[ 1 ] ) ^ data.getLong( e[ 2 ] ) :
 				( marker.getBoolean( e[ 0 ] ) ? data.getLong( rank.rank( e[ 0 ] ) ) : 0 ) ^

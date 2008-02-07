@@ -44,13 +44,13 @@ import cern.colt.function.IntComparator;
  */
 
 
-public class HypergraphVisit<T> {
+public class HypergraphSorter<T> {
 	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
 	 * are acyclic with positive probability if the ratio hyperedges/vertices exceeds this constant. */
 	public static final double GAMMA = 1.23;
 
 	/** The internal state of a visit. */
-	private final static Logger LOGGER = Fast.getLogger( HypergraphVisit.class );
+	private final static Logger LOGGER = Fast.getLogger( HypergraphSorter.class );
 
 	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
 	final public int numVertices;
@@ -81,7 +81,7 @@ public class HypergraphVisit<T> {
 	final private int[] recStackK;
 
 
-	public HypergraphVisit( final int numEdges ) {
+	public HypergraphSorter( final int numEdges ) {
 		this.numEdges = numEdges;
 		numVertices = (int)Math.ceil( GAMMA * numEdges ) + 1;
 		edge = new int[ 3 ][ numEdges ];

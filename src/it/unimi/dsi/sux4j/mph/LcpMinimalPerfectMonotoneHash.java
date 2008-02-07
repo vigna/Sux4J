@@ -113,7 +113,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			return;
 		}
 
-		bucketSize = (int)Math.ceil( 1 + HypergraphVisit.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		bucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( bucketSize );
 		bucketSizeMask = ( 1 << log2BucketSize ) - 1;
 		
@@ -198,8 +198,8 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		
 		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphVisit.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
-		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphVisit.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
+		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 

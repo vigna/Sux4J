@@ -179,7 +179,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		
 		this.transform = transform;
 
-		HypergraphVisit<T> visit = new HypergraphVisit<T>( n );
+		HypergraphSorter<T> visit = new HypergraphSorter<T>( n );
 		m = visit.numVertices;
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
 		values = bitVector.asLongBigList( 2 );
@@ -238,7 +238,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		}
 
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphVisit.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
@@ -299,7 +299,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		final long[] h = new long[ 3 ];
 		final int[] e = new int[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), init, h );
-		HypergraphVisit.hashesToEdge( h, e, m );
+		HypergraphSorter.hashesToEdge( h, e, m );
 		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
 	}
 
