@@ -45,8 +45,6 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import test.it.unimi.dsi.sux4j.mph.HypergraphVisit;
-
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;

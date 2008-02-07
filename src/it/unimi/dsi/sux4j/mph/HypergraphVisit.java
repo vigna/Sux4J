@@ -1,4 +1,4 @@
-package test.it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrays;
 import it.unimi.dsi.fastutil.ints.IntArrays;

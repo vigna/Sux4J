@@ -39,7 +39,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
-import test.it.unimi.dsi.sux4j.mph.HypergraphVisit;
+import it.unimi.dsi.sux4j.mph.HypergraphVisit;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
