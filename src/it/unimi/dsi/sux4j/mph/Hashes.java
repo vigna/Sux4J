@@ -23,11 +23,17 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.sux4j.bits.BitVector;
 
+/** Basic hash functions.
+ * 
+ */
 public class Hashes {
 
 	private Hashes() {}
 	
 	/** Jenkins 64-bit hashing.
+	 * 
+	 * <p>This code is based on the <samp><a href="http://www.burtleburtle.net/bob/c/lookup8.c">lookup8.c</a></samp>, and in particular
+	 * on the version consuming 64 bits at a time, but it has been slightly modified to work correctly with any bit vector length (not just multiples of 64).
 	 * 
 	 * @param bv a bit vector.
 	 * @param init a seed for the hash.

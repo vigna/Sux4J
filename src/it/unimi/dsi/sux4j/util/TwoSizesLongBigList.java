@@ -34,7 +34,8 @@ import java.util.Arrays;
  * 
  * <p>Instances of this class store elements in two different {@link LongArrayBitVector}-based lists&mdash;one
  * for large values and one for small values. The threshold between large and small is established by
- * measuring at construction time the most proficuous choice.
+ * measuring at construction time the most proficuous choice. A ranking structure built on a marker array (recording
+ * which elements are stored in the large list) provides access of the correct element in each array.
  * 
  */
 public class TwoSizesLongBigList extends AbstractLongBigList implements Serializable {

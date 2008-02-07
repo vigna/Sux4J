@@ -16,6 +16,34 @@ import cern.colt.GenericSorting;
 import cern.colt.Swapper;
 import cern.colt.function.IntComparator;
 
+/** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
+ * Majewski-Wormald-Havas-Czech technique.
+ * 
+ * <p>Bohdan S. Majewski, Nicholas C. Wormald, George Havas, and Zbigniew J. Czech. have
+ * described in &ldquo;A family of perfect hashing methods&rdquo;, 
+ * <i>Comput. J.</i>, 39(6):547&minus;554, 1996,
+ * a 3-hypergraph based technique to store functions
+ * (actually, the paper uses the technique just to store a permutation of the key set, but
+ * it is clear it can be used to store any function). More generally, the procedure sorts
+ * the hyperedges of a random 3-hypergraph so that for each edge at least one vertex never
+ * appeared before (this happens with positive probability if the number of vertices is at
+ * least {@link #GAMMA} times the number of 3-hyperedges).
+ * 
+ * <p>Instances of this class contain the data necessary to generate the random hypergraph
+ * and apply the sorting procedure. At construction time, you provide just the desired number
+ * of edges; then, each call to {@link #visit(Iterator, TransformationStrategy, long) visit()}
+ * will generate a new 3-hypergraph using a 64-bit seed, an iterator returning the key set,
+ * and a corresponding {@link TransformationStrategy}. If the method returns true, the visit was
+ * successful and in the public field {@link #stack} you can retrieve the <em>opposite</em>
+ * of the desired order (so enumerating edges starting from the last in {@link #stack} you
+ * are guaranteed to find each time a vertex that never appeared before). The public fields
+ * {@link #edge}, {@link #numEdges} and {@link #numVertices} expose the structure of the generated
+ * 3-hypergraph.
+ * 
+ * @author Sebastiano Vigna
+ */
+
+
 public class HypergraphVisit<T> {
 	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
 	 * are acyclic with positive probability if the ratio hyperedges/vertices exceeds this constant. */
@@ -24,6 +52,10 @@ public class HypergraphVisit<T> {
 	/** The internal state of a visit. */
 	private final static Logger LOGGER = Fast.getLogger( HypergraphVisit.class );
 
+	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
+	final public int numVertices;
+	/** The number of edges in the hypergraph. */
+	final public int numEdges;
 	/** An 3&times;n array recording the triple of vertices involved in each hyperedge. It is *reversed*
 		   w.r.t. what you would expect to reduce object creation. */
 	final public int[][] edge;
@@ -47,10 +79,6 @@ public class HypergraphVisit<T> {
 	final private int[] recStackI;
 	/** The stack for k. */
 	final private int[] recStackK;
-	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
-	final public int numVertices;
-	/** The number of edges in the hypergraph. */
-	final public int numEdges;
 
 
 	public HypergraphVisit( final int numEdges ) {
@@ -82,7 +110,7 @@ public class HypergraphVisit<T> {
 		e[ 2 ] %= numVertices;
 	}
 	
-	public boolean visit( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long init ) {
+	public boolean visit( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] last = this.last;
@@ -102,7 +130,7 @@ public class HypergraphVisit<T> {
 		
 		while( iterator.hasNext() ) {
 			bv = transform.toBitVector( iterator.next() );
-			Hashes.jenkins( bv, init, h );
+			Hashes.jenkins( bv, seed, h );
 			hashesToEdge( h, e, numVertices );
 			edge[ 0 ][ k ] = e[ 0 ];
 			edge[ 1 ][ k ] = e[ 1 ];

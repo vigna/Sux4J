@@ -27,6 +27,10 @@ import it.unimi.dsi.fastutil.longs.LongListIterator;
 
 import java.util.NoSuchElementException;
 
+/** An abstract implementation of a {@link LongBigList}. Concrete subclasses must provide just
+ * {@link LongBigList#length() length()} and {@link LongBigList#getLong(long) getLong()}.
+ */
+
 public abstract class AbstractLongBigList extends AbstractLongList implements LongBigList {
 
 	 protected void ensureIndex( final long index ) {
@@ -65,7 +69,7 @@ public abstract class AbstractLongBigList extends AbstractLongList implements Lo
 		return (int)length;
 	}
 
-	public static class LongSubBigList extends AbstractLongBigList implements java.io.Serializable {
+	protected static class LongSubBigList extends AbstractLongBigList implements java.io.Serializable {
 		public static final long serialVersionUID = -7046029254386353129L;
 		/** The list this sublist restricts. */
 		protected final LongBigList l;

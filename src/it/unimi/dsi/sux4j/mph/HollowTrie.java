@@ -65,7 +65,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object object ) {
-		if ( size == 0 ) return -1;
+		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object );
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
@@ -73,6 +73,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		for(;;) {
 			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
 
+			System.out.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
 
@@ -92,6 +93,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 			s++;
 		}
 		
+		System.out.println();
 		// Complete computation of leaf index
 		
 		for(;;) {
@@ -118,75 +120,83 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	public HollowTrie( final Iterator<? extends T> iterator, final BitVector.TransformationStrategy<? super T> transform ) {
 
 		this.transform = transform;
-		if ( ! iterator.hasNext() ) {
-			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
-			select = new SimpleSelect( LongArrays.EMPTY_ARRAY, 0 );
-			//skipLocator = null;
-			trie = BitVectors.EMPTY_VECTOR;
-			return;
-		}
+
+		int size = 0;
 		
-		BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
-		int prefix, size = 0, numNodes = 0;
 		Node root = null, node, parent;
-	
-		while( iterator.hasNext() ) {
+		int prefix, numNodes = 0, cmp;
+
+		if ( iterator.hasNext() ) {
+			BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
 			size++;
-			curr = transform.toBitVector( iterator.next() );
-			if ( prev.compareTo( curr ) >= 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-			prefix = (int)curr.maximumCommonPrefixLength( prev );
-			if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
-			
-			node = root;
-			parent = null;
-			Node n = null;
-			while( node != null ) {
-				if ( prefix < node.skip ) {
-					n = new Node( node, null, prefix );
+
+			while( iterator.hasNext() ) {
+				size++;
+				curr = transform.toBitVector( iterator.next() );
+				cmp = prev.compareTo( curr );
+				if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+				if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+				prefix = (int)curr.maximumCommonPrefixLength( prev );
+				if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+
+				node = root;
+				parent = null;
+				Node n = null;
+				while( node != null ) {
+					if ( prefix < node.skip ) {
+						n = new Node( node, null, prefix );
+						numNodes++;
+						if ( parent == null ) {
+							root.skip -= prefix + 1;
+							if ( ASSERTS ) assert root.skip >= 0;
+							root = n;
+						}
+						else {
+							parent.right = n;
+							node.skip -= prefix + 1;
+							if ( ASSERTS ) assert node.skip >= 0;
+						}
+						break;
+					}
+
+					prefix -= node.skip + 1;
+					parent = node;
+					node = node.right;
+				}
+
+				if ( node == null ) {
+					if ( parent == null ) root = new Node( null, null, prefix );
+					else parent.right = new Node( null, null, prefix );
 					numNodes++;
-					if ( parent == null ) {
-						root.skip -= prefix + 1;
-						if ( ASSERTS ) assert root.skip >= 0;
-						root = n;
-					}
-					else {
-						parent.right = n;
-						node.skip -= prefix + 1;
-						if ( ASSERTS ) assert node.skip >= 0;
-					}
-					break;
 				}
-			
-				prefix -= node.skip + 1;
-				parent = node;
-				node = node.right;
-			}
-			
-			if ( node == null ) {
-				if ( parent == null ) root = new Node( null, null, prefix );
-				else parent.right = new Node( null, null, prefix );
-				numNodes++;
-			}
-			
-			if ( ASSERTS ) {
-				long s = 0;
-				Node m = root;
-				while( m != null ) {
-					s += m.skip;
-					if ( curr.getBoolean( s ) ) {
-						if ( m.right == null ) break;
+
+				if ( ASSERTS ) {
+					long s = 0;
+					Node m = root;
+					while( m != null ) {
+						s += m.skip;
+						if ( curr.getBoolean( s ) ) {
+							if ( m.right == null ) break;
+						}
+						else if ( m.left == null ) break;
+						m = curr.getBoolean( s ) ? m.right : m.left;
+						s++;
 					}
-					else if ( m.left == null ) break;
-					m = curr.getBoolean( s ) ? m.right : m.left;
-					s++;
+					assert parent == null || ( node == null ? m == parent.right : m == n );
 				}
-				assert parent == null || ( node == null ? m == parent.right : m == n );
+
+				prev = curr.copy();
 			}
-			
-			prev = curr.copy();
 		}
 		
 		this.size = size;
+
+		if ( size <= 1 ) {
+			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
+			select = new SimpleSelect( LongArrays.EMPTY_ARRAY, 0 );
+			trie = BitVectors.EMPTY_VECTOR;
+			return;
+		}
 
 		final BitVector bitVector = LongArrayBitVector.getInstance( 2 * numNodes + 1 );
 		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
@@ -195,6 +205,11 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		long skipsLength = 0;
 		bitVector.add( 1 );
 		queue.add( root );
+
+		/*StringBuilder result = new StringBuilder();
+		recToString( root, new StringBuilder(), result, new StringBuilder(), 0 );
+		System.out.println( result );*/
+		
 		root = null;
 		Node n;
 		
@@ -244,7 +259,6 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		//skipLocator = new SparseSelect( borders );
 		
 		//LOGGER.info( "Bits for skips: " +(  this.skips.length() + skipLocator.numBits() ))
-		
 		
 		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );

@@ -79,9 +79,9 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	final protected int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
 	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected HypergraphFunction<T> offsetLcpLength;
+	final protected MWHCFunction<T> offsetLcpLength;
 	/** A function mapping each longest common prefix to its bucket. */
-	final protected HypergraphFunction<BitVector> lcp2Bucket;
+	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
 	
@@ -157,7 +157,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		
 		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new HypergraphFunction<BitVector>( Arrays.asList( lcp ), BitVectors.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), BitVectors.identity(), null, Fast.ceilLog2( numBuckets ) );
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -172,7 +172,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		}
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new HypergraphFunction<T>( iterable, transform, new AbstractLongList() {
+		offsetLcpLength = new MWHCFunction<T>( iterable, transform, new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
 			}

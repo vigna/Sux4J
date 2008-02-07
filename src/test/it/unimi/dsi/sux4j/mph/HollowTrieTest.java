@@ -27,8 +27,18 @@ public class HollowTrieTest extends TestCase {
 		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] {} ), BitVectors.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
+		assertEquals( 0, hollowTrie.size() );
 	}
 
+	@SuppressWarnings("unchecked")
+	public void testSingleton() {
+		HollowTrie hollowTrie = new HollowTrie( 
+				listOf( new int[][] { { 0 } } ).iterator(), BitVectors.identity()  );
+
+		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
+		assertEquals( 1, hollowTrie.size() );
+	}
+	
 	@SuppressWarnings("unchecked")
 	public void testSimple() {
 		HollowTrie hollowTrie = new HollowTrie( 
@@ -38,6 +48,7 @@ public class HollowTrieTest extends TestCase {
 		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 0 ) ) );
 		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 1 ) ) );
 		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 1 ) ) );
+		assertEquals( 4, hollowTrie.size() );
 
 
 		hollowTrie = new HollowTrie( 
@@ -48,6 +59,7 @@ public class HollowTrieTest extends TestCase {
 		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 0 ) ) );
 		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 1 ) ) );
 		assertEquals( 4, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
+		assertEquals( 5, hollowTrie.size() );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -67,6 +79,7 @@ public class HollowTrieTest extends TestCase {
 		HollowTrie<LongArrayBitVector> hollowTrie = new HollowTrie<LongArrayBitVector>( Arrays.asList( bitVector ), BitVectors.identity() );
 		
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
+		assertEquals( n, hollowTrie.size() );
 
 		// Test serialisation
 		final File temp = File.createTempFile( getClass().getSimpleName(), "test" );
@@ -82,5 +95,7 @@ public class HollowTrieTest extends TestCase {
 			int l = 8;
 			while( l-- != 0 ) bitVector[ i ].add( r.nextBoolean() );
 		}
+		assertEquals( n, hollowTrie.size() );
+
 	}
 }

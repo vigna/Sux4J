@@ -51,15 +51,15 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A read-only function stored using hypergraph techniques.
+/** A read-only function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphVisit 3-hypergraph technique}.
  * 
  * @author Sebastiano Vigna
  * @since 0.2
  */
 
-public class HypergraphFunction<T> extends AbstractHash<T> implements Serializable {
+public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = Fast.getLogger( HypergraphFunction.class );
+    private static final Logger LOGGER = Fast.getLogger( MWHCFunction.class );
 		
 	/** The number of elements. */
 	final protected int n;
@@ -89,9 +89,11 @@ public class HypergraphFunction<T> extends AbstractHash<T> implements Serializab
 	 */
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public HypergraphFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform, final LongList values, final int width ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
 		this.width = width;
+
+		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );
 		
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( elements instanceof Collection ) n = ((Collection<? extends T>)elements).size();
@@ -216,7 +218,7 @@ public class HypergraphFunction<T> extends AbstractHash<T> implements Serializab
 	 * 
 	 * @param function the function to be copied.
 	 */
-	protected HypergraphFunction( final HypergraphFunction<T> function ) {
+	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
 		this.m = function.m;
 		this.width = function.width;
@@ -246,14 +248,14 @@ public class HypergraphFunction<T> extends AbstractHash<T> implements Serializab
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 
-		final HypergraphFunction<CharSequence> function;
+		final MWHCFunction<CharSequence> function;
 
 		LOGGER.info( "Building function..." );
 		//new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, "UTF-8" ) ) )
 		
 		final FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final int size = flc.size();
-		function = new HypergraphFunction<CharSequence>( flc, new Utf16TransformationStrategy(), null, Fast.ceilLog2( size ) );
+		function = new MWHCFunction<CharSequence>( flc, new Utf16TransformationStrategy(), null, Fast.ceilLog2( size ) );
 
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( function, tableName );

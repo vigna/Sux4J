@@ -42,7 +42,7 @@ public class LongArrayBitVectorTest extends TestCase {
 		v.size( 65 );
 		v.set( 64 );
 		v.removeBoolean( 0 );
-		assertEquals( 0, v.bits[ 1 ] );
+		assertEquals( 0, v.bits()[ 1 ] );
 	}
 
 	public void testAdd() {
@@ -169,8 +169,8 @@ public class LongArrayBitVectorTest extends TestCase {
 		LongArrayBitVector v =  LongArrayBitVector.getInstance( 16 * 1024 );
 		LongBigList l = v.asLongBigList( Short.SIZE );
 		l.set( 0, 511 );
-		assertEquals( 511, v.bits[ 0 ] );
-		System.err.println( Long.toHexString( v.bits[ 0 ] ) );
+		assertEquals( 511, v.bits()[ 0 ] );
+		System.err.println( Long.toHexString( v.bits()[ 0 ] ) );
 	}
 	
 	public void testCopyAnotherVector() {

@@ -50,9 +50,6 @@ import java.io.Serializable;
  * expected. On the contrary, {@link #length(long)} (and the corresponding method in the
  * {@linkplain #asLongBigList(int) big list view}) size the underlying array in an exact manner.
  * 
- * <p><strong>Warning</strong>: A few optional methods have still to be implemented (e.g.,
- * adding an element at an arbitrary position using the list view).
- *
  * <P>Bit numbering follows the right-to-left convention: bit <var>k</var> (counted from the
  * right) of word <var>w</var> is bit 64<var>w</var> + <var>k</var> of the overall bit vector.
  *
@@ -60,6 +57,16 @@ import java.io.Serializable;
  * will be compiled in. For maximum speed, you may want to recompile this class with {@link #CHECKS}
  *  set to false. {@link #CHECKS} is public, so you can check from your code whether you're
  * being provided a version with checks or not.
+ * 
+ * <p><strong>Warning</strong>: A few optional methods have still to be implemented (e.g.,
+ * adding an element at an arbitrary position using the list view).
+ * 
+ * <p><strong>Warning</strong>: In some cases, you might want to cache locally the result
+ * of {@link #bits()} to speed up computations on immutable bit vectors (this is what happens, for instance,
+ * in {@linkplain Rank static ranking structures}). This class, however, does its own serialisation
+ * of the bit vector: as a result, all cached references to the result of {@link #bits()}
+ * must be marked as transient and rebuilt at deserialisation
+ * time, or you will end up saving the bits twice. 
  */
 
 // TODO: take care that unused bits are zeroes
@@ -82,7 +89,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	private long length;
 	/** The backing array of this vector. Bit 0 of the first element contains bit 0 of the bit vector, 
 	 * bit 1 of the second element contains bit {@link #BITS_PER_WORD} of the bit vector and so on. */
-	public transient long[] bits;
+	private transient long[] bits;
 
 	/** Returns the number of words that are necessary to hold the given number of bits.
 	 * 

@@ -3,7 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.sux4j.mph.HypergraphFunction;
+import it.unimi.dsi.sux4j.mph.MWHCFunction;
 import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
@@ -21,17 +21,17 @@ public class HypergraphFunctionTest extends TestCase {
 		long[] v = new long[ 1000 ];
 		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = Integer.toString( i );
 		
-		HypergraphFunction<String> function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
+		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( function, temp );
-		function = (HypergraphFunction<String>)BinIO.loadObject( temp );
+		function = (MWHCFunction<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
-		function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), null, 12 );
+		function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), null, 12 );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 	}
 	
@@ -47,7 +47,7 @@ public class HypergraphFunctionTest extends TestCase {
 		long[] v = new long[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = binary( i );
 		
-		HypergraphFunction<String> function = new HypergraphFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
+		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
@@ -56,7 +56,7 @@ public class HypergraphFunctionTest extends TestCase {
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( function, temp );
-		function = (HypergraphFunction<String>)BinIO.loadObject( temp );
+		function = (MWHCFunction<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 	}
 	
