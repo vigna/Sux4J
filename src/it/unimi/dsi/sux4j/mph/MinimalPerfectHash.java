@@ -55,20 +55,20 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** Minimal perfect hash.
  *
- * <P>Given a list of strings without duplicates, 
+ * <P>Given a list of elements without duplicates, 
  * the constructors of this class finds a minimal perfect hash function for
  * the list. Subsequent calls to the {@link #getLong(Object)} method will return a distinct
- * number for each string in the list (for strings out of the list, the resulting number is undefined). The class
+ * number for each elements in the list (for elements out of the list, the resulting number is undefined). The class
  * can then be saved by serialisation and reused later.
  *
- * <P>The theoretical memory requirements are 2.46 + o(<var>n</var>) bits per string, plus the bits
+ * <P>The theoretical memory requirements are 2{@link HypergraphSorter#GAMMA GAMMA}=2.46 + o(<var>n</var>) bits per element, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
  * an embedded ranking scheme that increases space 
- * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per string.
+ * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per element.
  * At construction time, however, about 15<var>n</var> integers (i.e., 60<var>n</var> bytes) are necessary. 
  * 
  * <P>This class is very scalable, and if you have enough memory it will handle
- * efficiently hundreds of millions of strings.
+ * efficiently hundreds of millions of elements.
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
@@ -78,55 +78,28 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>The technique used is very similar (but developed independently) to that described by Botelho, Pagh and Ziviani
  * in &ldquo;Simple and Efficient Minimal Perfect Hashing Functions&rdquo;, <i>Proc. WADS 2007</i>, number
- * 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping technique describe
+ * 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping technique described
  * therein was actually first proposed by Chazelle, Kilian, Rubinfeld and Tal in 
  * &ldquo;The Bloomier Filter: an Efficient Data Structure for Static Support Lookup 
  * Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the steps to implement a mutable table.
  * 
- * <p>The basic ingredient is a stripping procedure to be applied to an acyclic 3-hypergraph. The  
- * idea is due to Havas, Majewski, Wormald and Czech (&ldquo;A Family of Perfect Hashing Methods&rdquo;,
- * <i>Computer J.</i>, 39(6):547&minus;554, 1996).
- * First, a triple of intermediate hash functions (generated via universal hashing) define for each
- * string a 3-hyperedge in a hypergraph with 1.23<var>n</var> vertices. Each intermediate hash function
- * uses a vector of random weights; the length of the vector is by default the length of the longest
- * string, but if the collection is sorted it is possible to compute the minimum length of a prefix that will
- * distinguish any pair of strings. 
- * 
- * <P>Then, by successively stripping 3-hyperedges with one vertex of 
- * degree one, we create an ordering on the hyperedges.
- * Finally, we assign (in reverse order) to each vertex of a 3-hyperedge a two-bit number 
- * in such a way that the sum of the three numbers modulo 3 gives, for each hyperedge, the index of the hash
- * function generating the vertex of degree one found during the stripping procedure. This vertex is distinct for
- * each 3-hyperedge, and as a result we obtain a perfect hash of the original string set (one just has to compute
- * the three hash functions, collect the three two-bit values, add them modulo 3 and take the corresponding hash function value).
+ * <p>The basic ingredient is the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+ * After generating a random 3-hypergraph with suitably sorted edges,
+ * we assign to each vertex a two-bit number in such a way that for each 3-hyperedge the sum of the values
+ * associated to its vertices modulo 3 gives the index of the hash function generating the hinge.
+ * The hinge is distinct for each 3-hyperedge, and as a result we obtain a perfect hash 
+ * of the original set (one just has to compute the three hash functions, 
+ * collect the three two-bit values, add them modulo 3 and take the corresponding hash function value).
  * 
  * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value to a vertex,
- * we can take care of using the number 3 instead of 0 if the vertex is actually the output value for some string. As
+ * we can take care of using the number 3 instead of 0 if the vertex is actually the output value for some element. As
  * a result, the final value of the minimal perfect hash function is the number of nonzero pairs of bits that precede
- * the perfect hash value for the string. 
+ * the perfect hash value for the element. 
  * To compute this number, we use a simple table-free ranking scheme, recording the number
  * of nonzero pairs each {@link #BITS_PER_BLOCK} bits and modifying the
  * standard broadword algorithm for computing the number of ones
  * in a word into an algorithm that {@linkplain #countNonzeroPairs(long) counts
  * the number of nonzero pairs of bits in a word}.
-
- *
- * <h3>Rounds and Logging</h3>
- * 
- * <P>Building a minimal perfect hash map may take hours. As it happens with all probabilistic algorithms,
- * one can just give estimates of the expected time.
- * 
- * <P>There are two probabilistic sources of problems: duplicate hyperedges and non-acyclic hypergraphs.
- * However, the probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity,
- * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
- * of trials that tends to 1 as <var>n</var> approaches infinity.
- *  
- * <P>To help diagnosing problem with the generation process
- * class, this class will log at {@link org.apache.log4j.Level#INFO INFO} level
- * what's happening.
- *
- * <P>Note that if during the generation process the log warns more than once about duplicate hyperedges, you should
- * suspect that there are duplicates in the string list, as duplicate hyperedges are <em>extremely</em> unlikely.
  *
  * @author Sebastiano Vigna
  * @since 0.1
@@ -147,8 +120,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	final protected int n;
 	/** The number of vertices of the intermediate hypergraph. */
 	final protected int m;
-	/** Initialisation value for {@link Hashes#jenkins(BitVector, long, long[]) Jenkins's hash}. */
-	final protected long init;
+	/** The seed of the underlying 3-hypergraph. */
+	final protected long seed;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	final protected LongBigList values;
 	/** The bit array supporting {@link #values}. */
@@ -179,8 +152,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		
 		this.transform = transform;
 
-		HypergraphSorter<T> visit = new HypergraphSorter<T>( n );
-		m = visit.numVertices;
+		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
+		m = sorter.numVertices;
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
 		values = bitVector.asLongBigList( 2 );
 		values.size( m );
@@ -192,9 +165,9 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		do {
 			LOGGER.info( "Generating random hypergraph..." );
 			seed = r.nextLong();
-		} while ( ! visit.visit( elements.iterator(), transform, seed ) );
+		} while ( ! sorter.generateAndSort( elements.iterator(), transform, seed ) );
 		
-		init = seed;
+		this.seed = seed;
 		
 		/* We assign values. */
 		
@@ -202,8 +175,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		final BitVector used = LongArrayBitVector.getInstance().length( m );
 		int value;
 		
-		final int[] stack = visit.stack;
-		final int[][] edge = visit.edge;
+		final int[] stack = sorter.stack;
+		final int[][] edge = sorter.edge;
 		int top = n, k, s, v = 0;
 		while( top > 0 ) {
 			k = stack[ --top ];
@@ -259,7 +232,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	protected MinimalPerfectHash( final MinimalPerfectHash<T> mph ) {
 		this.n = mph.n;
 		this.m = mph.m;
-		this.init = mph.init;
+		this.seed = mph.seed;
 		this.values = mph.values;
 		this.array = mph.array;
 		this.count = mph.count;
@@ -296,10 +269,8 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 
 	@SuppressWarnings("unchecked")
 	public long getLong( Object key ) {
-		final long[] h = new long[ 3 ];
 		final int[] e = new int[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)key ), init, h );
-		HypergraphSorter.hashesToEdge( h, e, m );
+		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)key ), seed, m, e );
 		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
 	}
 
@@ -307,9 +278,9 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		return true;
 	}
 
-	/** Returns the number of terms hashed.
+	/** Returns the number of elements hashed.
 	 *
-	 * @return the number of terms hashed.
+	 * @return the number of elements hashed.
 	 */
 
 	public int size() {
@@ -322,7 +293,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect hash table reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),

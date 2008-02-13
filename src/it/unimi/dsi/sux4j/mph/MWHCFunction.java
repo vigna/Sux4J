@@ -53,6 +53,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A read-only function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
  * 
+ * <p>After generating a random 3-hypergraph with suitably sorted edges,
+ * we assign to each vertex a value in such a way that for each 3-hyperedge the 
+ * xor of the three values associated to its vertices is the required value for the corresponding
+ * element of the function domain.
+ * 
  * @author Sebastiano Vigna
  * @since 0.2
  */
@@ -67,8 +72,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	final protected int m;
 	/** The data width. */
 	final protected int width;
-	/** Initialisation value for {@link Hashes#jenkins(BitVector, long, long[]) Jenkins's hash}. */
-	final protected long init;
+	/** The seed of the underlying 3-hypergraph. */
+	final protected long seed;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	final protected LongBigList data;
 	/** Optionally, a {@link #rank} structure built on this bit array is used to mark positions containing non-zero value; indexing in {@link #data} is
@@ -104,9 +109,9 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 			n = c;
 		}
 		
-		HypergraphSorter<T> visit = new HypergraphSorter<T>( n );
+		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
 
-		m = visit.numVertices;
+		m = sorter.numVertices;
 		// Candidate data; might be discarded for compaction.
 		final LongBigList data = LongArrayBitVector.getInstance().asLongBigList( width );
 		data.size( m );
@@ -116,16 +121,16 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		do {
 			LOGGER.info( "Generating random hypergraph..." );
 			seed = r.nextLong();
-		} while ( ! visit.visit( elements.iterator(), transform, seed ) );
+		} while ( ! sorter.generateAndSort( elements.iterator(), transform, seed ) );
 		
-		init = seed;
+		this.seed = seed;
 		
 		/* We assign values. */
 		/** Whether a specific node has already been used as perfect hash value for an item. */
 		final BitVector used = LongArrayBitVector.getInstance().length( m );
 		
-		final int[] stack = visit.stack;
-		final int[][] edge = visit.edge;
+		final int[] stack = sorter.stack;
+		final int[][] edge = sorter.edge;
 		int top = n, k, s, v = 0;
 		while( top > 0 ) {
 			k = stack[ --top ];
@@ -187,10 +192,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final long[] h = new long[ 3 ];
 		final int[] e = new int[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)o ), init, h );
-		HypergraphSorter.hashesToEdge( h, e, m );
+		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)o ), seed, m, e );
 		return rank == null ?
 				data.getLong( e[ 0 ] ) ^ data.getLong( e[ 1 ] ) ^ data.getLong( e[ 2 ] ) :
 				( marker.getBoolean( e[ 0 ] ) ? data.getLong( rank.rank( e[ 0 ] ) ) : 0 ) ^
@@ -222,7 +225,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		this.n = function.n;
 		this.m = function.m;
 		this.width = function.width;
-		this.init = function.init;
+		this.seed = function.seed;
 		this.data = function.data;
 		this.rank = function.rank;
 		this.marker = function.marker;
