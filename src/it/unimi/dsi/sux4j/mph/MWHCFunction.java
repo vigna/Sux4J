@@ -83,7 +83,16 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	final protected Rank16 rank;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
-    
+
+	/** Creates a new function for the given elements, assigning to each element its ordinal position.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform ) {
+		this( elements, transform, null, -1 );
+	}
+
 	/** Creates a new function for the given elements and values.
 	 * 
 	 * @param elements the elements in the domain of the function.
@@ -96,7 +105,6 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public MWHCFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
-		this.width = width;
 
 		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );
 		
@@ -108,7 +116,9 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 			for( T o: elements ) c++;
 			n = c;
 		}
-		
+
+		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
+
 		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
 
 		m = sorter.numVertices;

@@ -23,13 +23,40 @@ package it.unimi.dsi.sux4j.util;
 
 
 import it.unimi.dsi.fastutil.Function;
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
+import it.unimi.dsi.mg4j.io.FastBufferedReader;
+import it.unimi.dsi.mg4j.io.FileLinesCollection;
+import it.unimi.dsi.mg4j.io.LineIterator;
+import it.unimi.dsi.mg4j.util.MutableString;
+import it.unimi.dsi.mg4j.util.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.Fast;
 import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.mph.MWHCFunction;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A string map based on a minimal perfect hash signed using Shift-Add-Xor hashes. 
  * 
@@ -50,6 +77,7 @@ import java.util.List;
 
 public class ShiftAddXorSignedStringMap<S extends CharSequence> extends AbstractObject2LongFunction<S> implements StringMap<S>, Serializable {
 	private static final long serialVersionUID = 0L;
+	private static final Logger LOGGER = Fast.getLogger( ShiftAddXorSignedStringMap.class );
 
 	/** The underlying map. */
 	protected final Object2LongFunction<S> hash;
@@ -135,5 +163,59 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 
 	public List<S> list() {
 		return null;
+	}
+
+	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+
+		final SimpleJSAP jsap = new SimpleJSAP( ShiftAddXorSignedStringMap.class.getName(), "Builds a shift-add-xor signed string map reading a newline-separated list of strings.",
+				new Parameter[] {
+			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
+			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
+			new FlaggedOption( "width", JSAP.INTEGER_PARSER, Integer.toString( Integer.SIZE ), JSAP.NOT_REQUIRED, 'w', "width", "The signature width in bits." ),
+			new FlaggedOption( "preserveOrder", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'p', "preserve-order", "The value assigned to each string will be exactly its ordinal position in the list." ),
+			new UnflaggedOption( "map", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised signed string map." )
+		});
+
+		JSAPResult jsapResult = jsap.parse( arg );
+		if ( jsap.messagePrinted() ) return;
+
+		final int bufferSize = jsapResult.getInt( "bufferSize" );
+		final String tableName = jsapResult.getString( "table" );
+		final String stringFile = jsapResult.getString( "stringFile" );
+		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final int width = jsapResult.getInt( "width" );
+		final boolean preserveOrder = jsapResult.getBoolean( "preserveOrder" );
+		final boolean zipped = jsapResult.getBoolean( "zipped" );
+
+		final Object2LongFunction<MutableString> hash;
+		final Collection<MutableString> collection;
+
+		if ( stringFile == null ) { // TODO: replace with new LineIterator
+			collection = new ArrayList<MutableString>();
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.itemsName = "strings";
+			final LineIterator stringIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
+
+			pl.start( "Reading strings..." );
+			while( stringIterator.hasNext() ) collection.add( stringIterator.next().copy() );
+			pl.done();
+
+			LOGGER.info( "Building minimal perfect hash table..." );
+		}
+		else collection = new FileLinesCollection( stringFile, "UTF-8", zipped );
+
+		LOGGER.info( "Building minimal perfect hash table..." );
+		hash = preserveOrder ? 
+				new MWHCFunction<MutableString>( collection, new Utf16TransformationStrategy() ) :
+				new MinimalPerfectHash<MutableString>( collection, new Utf16TransformationStrategy() );
+
+		LOGGER.info( "Signing..." );
+		ShiftAddXorSignedStringMap<?> map = new ShiftAddXorSignedStringMap<MutableString>( collection.iterator(), hash, width );
+		
+		LOGGER.info( "Writing to file..." );		
+		BinIO.storeObject( map, tableName );
+		LOGGER.info( "Completed." );
 	}
 }
