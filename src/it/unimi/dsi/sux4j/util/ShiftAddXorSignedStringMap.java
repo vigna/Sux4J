@@ -35,7 +35,8 @@ import java.util.List;
  * 
  * <p>A minimal perfect hash maps a set of string to an initial segment of the natural
  * numbers, but will actually map <em>any</em> string to that segment. By signing
- * each output value with a hash of the string, we get a set-like functionality with 
+ * each output value with a hash of the string, we get a set-like functionality with a rate
+ * error that can be balanced with space occupancy (signatures can go from 1 to {@link Long#SIZE} bits). 
  * 
  * <p>See &ldquo;Performance in practice of string hashing functions&rdquo;, by
  * M.V. Ramakrishna and Justin Zobel, <i>Proc. of the Fifth International Conference on 
