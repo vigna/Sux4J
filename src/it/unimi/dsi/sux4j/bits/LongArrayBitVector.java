@@ -368,7 +368,8 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 	}
 
 	public long getLong( long from, long to ) {
-		if ( CHECKS && to > length ) throw new IllegalArgumentException();
+		if ( CHECKS && to > length ) throw new IndexOutOfBoundsException( Long.toString( to ) );
+		if ( CHECKS && from < 0 ) throw new IndexOutOfBoundsException( Long.toString( from ) );
 		if ( from % Long.SIZE == 0 && to == from + Long.SIZE ) return bits[ (int)( from / Long.SIZE ) ];
 		if ( from == to ) return 0;
 		to--;
@@ -575,7 +576,7 @@ public class LongArrayBitVector extends AbstractBitVector implements Cloneable, 
 		@Override
 		public long set( long index, long value ) {
 			if ( width == 0 ) return 0;
-			if ( value > maxValue ) throw new IllegalArgumentException( "Value too large:" + value );
+			if ( width != Long.SIZE && value > maxValue ) throw new IllegalArgumentException( "Value too large:" + value );
 			final long bits[] = bitVector.bits;
 			final long start = index * width;
 			final int startWord = word( start );

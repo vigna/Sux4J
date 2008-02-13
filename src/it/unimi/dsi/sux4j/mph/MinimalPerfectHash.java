@@ -39,6 +39,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
@@ -58,7 +59,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <P>Given a list of elements without duplicates, 
  * the constructors of this class finds a minimal perfect hash function for
  * the list. Subsequent calls to the {@link #getLong(Object)} method will return a distinct
- * number for each elements in the list (for elements out of the list, the resulting number is undefined). The class
+ * number for each elements in the list. For elements out of the list, the resulting number is undefined, and
+ * might be -1 for the very few cases in which it is possible to establish this fact. The class
  * can then be saved by serialisation and reused later.
  *
  * <P>The theoretical memory requirements are 2{@link HypergraphSorter#GAMMA GAMMA}=2.46 + o(<var>n</var>) bits per element, plus the bits
@@ -107,8 +109,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializable {
 	private static final Logger LOGGER = Fast.getLogger( MinimalPerfectHash.class );
-	private static final boolean DEBUG = false;
-    public static final long serialVersionUID = 1L;
+	private static final boolean ASSERTS = true;
+	public static final long serialVersionUID = 1L;
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;
@@ -150,6 +152,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 			n = c;
 		}
 		
+		defRetValue = -1; // For the very few cases in which we can decide
 		this.transform = transform;
 
 		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
@@ -201,13 +204,16 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 			c += countNonzeroPairs( array[ i ] );
 		}
 		
-		if ( DEBUG ) {
+		if ( ASSERTS ) {
 			k = 0;
 			for( int i = 0; i < m; i++ ) {
 				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( 2 * i ); 
 				if ( values.getLong( i ) != 0 ) k++;
+				assert k <= n;
 			}
 			
+			final Iterator<? extends T> iterator = elements.iterator();
+			for( int i = 0; i < n; i++ ) assert getLong( iterator.next() ) < n;
 		}
 
 		LOGGER.info( "Completed." );
@@ -271,7 +277,9 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	public long getLong( Object key ) {
 		final int[] e = new int[ 3 ];
 		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)key ), seed, m, e );
-		return rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
+		final long result = rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
+		// Out-of-set strings can generate bizarre 3-hyperedges.
+		return result < n ? result : defRetValue;
 	}
 
 	public boolean containsKey( Object key ) {

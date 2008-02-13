@@ -169,7 +169,7 @@ public class HypergraphSorter<T> {
 		e[ 2 ] %= numVertices;
 	}
 	
-	
+		
 	/** Generates a random 3-hypergraph and tries to sort its edges.
 	 * 
 	 * @param iterator an iterator returning {@link #numEdges} keys.
