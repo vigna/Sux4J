@@ -48,7 +48,6 @@ public final class Fast {
 	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
 
-
 	public static double log2( final double x ) {
 		return Math.log( x ) / Math.log( 2 );
 	}
@@ -99,7 +98,7 @@ public final class Fast {
 	 * <p>This method implements a new broadword algorithm. 
 	 * 
 	 * @param x a long.
-	 * @param rank a rank.
+	 * @param rank a rank (smaller than 128).
 	 * @return the position in <code>x</code> of the bit of rank <code>k</code> ones; if no such
 	 * bit exists, returns 72.
 	 */

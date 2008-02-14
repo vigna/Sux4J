@@ -2,6 +2,7 @@ package test.it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.sux4j.mph.MWHCFunction;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
 import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 import it.unimi.dsi.sux4j.util.ShiftAddXorSignedStringMap;
@@ -21,13 +22,14 @@ public class ShiftAddXorSignedStringMapTest extends TestCase {
 			String[] s = new String[ 1000 ];
 			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 
+			// Test with mph
 			MinimalPerfectHash<String> mph = new MinimalPerfectHash<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
 			ShiftAddXorSignedStringMap<String> map = new ShiftAddXorSignedStringMap<String>( Arrays.asList( s ).iterator(), mph, width );
 
 			int[] check = new int[ s.length ];
 			IntArrays.fill( check, -1 );
 			for( int i = s.length; i-- != 0; ) {
-				assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
+				assertEquals( Integer.toString( i ), -1, check[ (int)map.getLong( s[ i ] ) ] );
 				check[ (int)mph.getLong( s[ i ] ) ] = i;
 			}
 
@@ -46,6 +48,22 @@ public class ShiftAddXorSignedStringMapTest extends TestCase {
 			}
 
 			for( int i = s.length + 100; i-- != s.length; ) assertEquals( -1, map.getLong( Integer.toString( i ) ) );
+
+			// Test with function
+			MWHCFunction<String> f = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+			map = new ShiftAddXorSignedStringMap<String>( Arrays.asList( s ).iterator(), f, width );
+
+			IntArrays.fill( check, -1 );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, map.getLong( Integer.toString( i ) ) );
+			for( int i = s.length + 100; i-- != s.length; ) assertEquals( -1, map.getLong( Integer.toString( i ) ) );
+
+			BinIO.storeObject( map, temp );
+			map = (ShiftAddXorSignedStringMap<String>)BinIO.loadObject( temp );
+
+			IntArrays.fill( check, -1 );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, map.getLong( Integer.toString( i ) ) );
+			for( int i = s.length + 100; i-- != s.length; ) assertEquals( -1, map.getLong( Integer.toString( i ) ) );
+		
 		}
 	}
 }

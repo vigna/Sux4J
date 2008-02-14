@@ -141,7 +141,7 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 	public long getLong( Object o ) {
 		final S s = (S)o;
 		final long index = hash.getLong( s );
-		return index != -1 && checkSignature( s, index ) ? index : defRetValue;
+		return index != -1 && index < hash.size() && checkSignature( s, index ) ? index : defRetValue;
 	}
 
 	@SuppressWarnings("unchecked")

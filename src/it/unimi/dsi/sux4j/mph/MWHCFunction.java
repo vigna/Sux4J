@@ -123,7 +123,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 		m = sorter.numVertices;
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = LongArrayBitVector.getInstance().asLongBigList( width );
+		final LongBigList data = LongArrayBitVector.getInstance().asLongBigList( this.width );
 		data.size( m );
 
 		final Random r = new Random();
@@ -161,9 +161,9 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		for( long x: data ) if ( x != 0 ) c++;
 		
 		// We estimate size using Rank16
-		if ( c * width + m * 1.126 < m * width ) {
+		if ( c * this.width + m * 1.126 < m * this.width ) {
 			marker = LongArrayBitVector.getInstance( m ).length( m );
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( width ).length( c );
+			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( c );
 			c = 0;
 			for( int i = 0; i < data.size(); i++ ) {
 				final long value = data.getLong( i ); 
@@ -194,8 +194,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
-				HypergraphSorter.GAMMA * width :
-				HypergraphSorter.GAMMA + width + 0.126 ) );
+				HypergraphSorter.GAMMA * this.width :
+				HypergraphSorter.GAMMA + this.width + 0.126 ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
