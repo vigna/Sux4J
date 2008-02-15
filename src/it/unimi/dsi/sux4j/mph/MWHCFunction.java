@@ -108,8 +108,6 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
 
-		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );
-		
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( elements instanceof Collection ) n = ((Collection<? extends T>)elements).size();
 		else {
@@ -121,6 +119,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
+		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );
+		
 		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
 
 		m = sorter.numVertices;
