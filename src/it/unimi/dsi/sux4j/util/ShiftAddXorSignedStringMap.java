@@ -184,7 +184,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		if ( jsap.messagePrinted() ) return;
 
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
-		final String tableName = jsapResult.getString( "table" );
+		final String mapName = jsapResult.getString( "map" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final int width = jsapResult.getInt( "width" );
@@ -217,7 +217,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( collection.iterator(), hash, width );
 		
 		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( map, tableName );
+		BinIO.storeObject( map, mapName );
 		LOGGER.info( "Completed." );
 	}
 }
