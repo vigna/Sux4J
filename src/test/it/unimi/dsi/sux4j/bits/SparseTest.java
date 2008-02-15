@@ -2,7 +2,7 @@ package test.it.unimi.dsi.sux4j.bits;
 
 import java.util.Random;
 
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
 

@@ -1,6 +1,6 @@
 package test.it.unimi.dsi.sux4j.bits;
 
-import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Select;
 import junit.framework.TestCase;
