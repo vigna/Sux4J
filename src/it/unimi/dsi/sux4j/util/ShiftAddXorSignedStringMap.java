@@ -176,7 +176,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new FlaggedOption( "width", JSAP.INTEGER_PARSER, Integer.toString( Integer.SIZE ), JSAP.NOT_REQUIRED, 'w', "width", "The signature width in bits." ),
-			new FlaggedOption( "preserveOrder", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'p', "preserve-order", "The value assigned to each string will be exactly its ordinal position in the list." ),
+			new Switch( "preserveOrder", 'p', "preserve-order", "The value assigned to each string will be exactly its ordinal position in the list." ),
 			new UnflaggedOption( "map", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised signed string map." )
 		});
 

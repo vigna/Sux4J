@@ -76,7 +76,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		for(;;) {
 			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
 
-			System.out.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
+			//System.out.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
 
@@ -96,7 +96,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 			s++;
 		}
 		
-		System.out.println();
+		// System.out.println();
 		// Complete computation of leaf index
 		
 		for(;;) {
