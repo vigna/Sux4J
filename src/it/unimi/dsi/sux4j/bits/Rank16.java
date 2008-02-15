@@ -87,8 +87,8 @@ public class Rank16 extends AbstractRank implements Rank {
 		final int offset = word / 2;
         
 		return word % 2 == 0 ?
-				superCount[ block ] + count[ offset ] + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) ) :
-				superCount[ block ] + count[ offset ] + Fast.count( bits[ word - 1 ] ) + Fast.count( bits[ word ] & ( 1L << pos % 64 ) - 1 );
+				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) ) :
+				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Fast.count( bits[ word - 1 ] ) + Fast.count( bits[ word ] & ( 1L << pos % 64 ) - 1 );
 	}
 
 	public long numBits() {
