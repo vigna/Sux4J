@@ -24,7 +24,7 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.mg4j.io.FileLinesCollection;
+import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;

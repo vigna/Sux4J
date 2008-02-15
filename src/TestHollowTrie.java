@@ -1,6 +1,6 @@
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.mg4j.io.FileLinesCollection;
-import it.unimi.dsi.mg4j.util.MutableString;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.io.IOException;

@@ -23,11 +23,11 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.mg4j.io.FastBufferedReader;
-import it.unimi.dsi.mg4j.io.FileLinesCollection;
-import it.unimi.dsi.mg4j.io.LineIterator;
-import it.unimi.dsi.mg4j.util.MutableString;
-import it.unimi.dsi.mg4j.util.ProgressLogger;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
