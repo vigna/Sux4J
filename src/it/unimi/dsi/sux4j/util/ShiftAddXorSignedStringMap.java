@@ -123,7 +123,6 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 
 		for( int i = 0; i < n; i++ ) {
 			s = iterator.next();
-			System.out.println( map.getLong(s ) );
 			signatures.set( map.getLong( s ), signature( s ) );
 		}
 	}

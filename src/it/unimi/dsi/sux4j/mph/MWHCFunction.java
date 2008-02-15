@@ -119,7 +119,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
-		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );
+		LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
 		
 		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
 
@@ -164,7 +164,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		// We estimate size using Rank16
 		if ( c * this.width + m * 1.126 < m * this.width ) {
-			marker = LongArrayBitVector.getInstance( m ).length( m );
+			marker = LongArrayBitVector.ofLength( m );
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( c );
 			c = 0;
 			for( int i = 0; i < data.size(); i++ ) {
