@@ -1,16 +1,16 @@
 package test.it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.sux4j.mph.MinimalPerfectHash.countNonzeroPairs;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
-import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
 import junit.framework.TestCase;
-import static it.unimi.dsi.sux4j.mph.MinimalPerfectHash.countNonzeroPairs;
 
 public class MinimalPerfectHashTest extends TestCase {
 	

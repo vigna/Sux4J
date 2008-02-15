@@ -1,10 +1,10 @@
 package test.it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BitVectors;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.io.File;

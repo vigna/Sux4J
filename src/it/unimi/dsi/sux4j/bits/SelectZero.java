@@ -22,6 +22,8 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 
+import it.unimi.dsi.bits.BitVector;
+
 import java.io.Serializable;
 
 /** A data structure providing zero selection over a bit array.

@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
@@ -28,11 +29,13 @@ import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.mg4j.util.MutableString;
 import it.unimi.dsi.mg4j.util.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BitVectors;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -63,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Fast.getLogger( LcpMinimalPerfectMonotoneHash.class );
+	private static final Logger LOGGER = Util.getLogger( LcpMinimalPerfectMonotoneHash.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	
@@ -91,7 +94,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public LcpMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final BitVector.TransformationStrategy<? super T> transform ) {
+	public LcpMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( iterable instanceof Collection ) n = ((Collection<? extends T>)iterable).size();
@@ -266,7 +269,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash table..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc ) : new Utf16TransformationStrategy() );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : new Utf16TransformationStrategy() );
 		}
 
 		LOGGER.info( "Writing to file..." );		

@@ -1,10 +1,10 @@
 package test.it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
-import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
 import java.io.IOException;

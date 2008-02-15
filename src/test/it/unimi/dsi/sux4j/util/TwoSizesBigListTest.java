@@ -1,8 +1,8 @@
 package test.it.unimi.dsi.sux4j.util;
 
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.util.LongBigList;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
+import it.unimi.dsi.util.LongBigList;
 import junit.framework.TestCase;
 
 public class TwoSizesBigListTest extends TestCase {

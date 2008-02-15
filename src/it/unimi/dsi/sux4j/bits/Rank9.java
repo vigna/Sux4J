@@ -1,5 +1,9 @@
 package it.unimi.dsi.sux4j.bits;
 
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 

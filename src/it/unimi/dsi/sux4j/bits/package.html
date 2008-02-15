@@ -1,19 +1,11 @@
 <html>
+<head><title>Main classes manipulating bits</title></head>
 <body>
 Main classes manipulating bits.
 
-<h2>Implementations of bit vectors</h2>
-
-<p>The first building block of Sux4J is the {@link it.unimi.dsi.sux4j.bits.BitVector} interface and the {@link it.unimi.dsi.sux4j.bits.LongArrayBitVector} implementation.
-The idea is to offer an efficent but easy-to-use bit-vector class by allowing access under many different <em>views</em>. For instance,
-a bit vector can be seen as a {@link it.unimi.dsi.sux4j.bits.LongBigList} of integers of fixed width. Or as a sorted set of
-integers, where the positions of the bits set to one represent elements.
-
-<p><strong>Warning</strong>: implementing all features of {@link it.unimi.dsi.sux4j.bits.LongArrayBitVector} has not been easy. There may be bugs.
-
 <h2>Rank and select</h2>
 
-<p>The second building block is a numbr of implementations of <em>rank/select queries</em> for bits vectors represented by arrays of longs. <em>Ranking</em> is 
+<p>This package provides a number of implementations of <em>rank/select queries</em> for bits vectors. <em>Ranking</em> is 
 counting the number of ones in an initial segment of a bit vector. <em>Selection</em> is finding the position of the
 <var>r</var>-th one. Both operation can be performed in constant time on an array of <var>n</var> bits
 using <i>o</i>(<var>n</var>) additional bits, but in practise linear data structures with small constants and theoretically non-constant

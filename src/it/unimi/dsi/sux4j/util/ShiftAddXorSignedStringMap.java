@@ -22,20 +22,22 @@ package it.unimi.dsi.sux4j.util;
  */
 
 
+import it.unimi.dsi.Util;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.mg4j.io.FastBufferedReader;
-import it.unimi.dsi.mg4j.io.FileLinesCollection;
-import it.unimi.dsi.mg4j.io.LineIterator;
-import it.unimi.dsi.mg4j.util.MutableString;
-import it.unimi.dsi.mg4j.util.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
-import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
+import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.util.StringMap;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -75,12 +77,12 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 
 
-public class ShiftAddXorSignedStringMap<S extends CharSequence> extends AbstractObject2LongFunction<S> implements StringMap<S>, Serializable {
+public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<CharSequence> implements StringMap<CharSequence>, Serializable {
 	private static final long serialVersionUID = 0L;
-	private static final Logger LOGGER = Fast.getLogger( ShiftAddXorSignedStringMap.class );
+	private static final Logger LOGGER = Util.getLogger( ShiftAddXorSignedStringMap.class );
 
 	/** The underlying map. */
-	protected final Object2LongFunction<S> hash;
+	protected final Object2LongFunction<CharSequence> hash;
 	/** Signatures. */
 	protected final LongBigList signatures;
 	/** The width in bits of each signature. */
@@ -97,7 +99,7 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 	 * and have default return value -1.
 	 */
 	
-	public ShiftAddXorSignedStringMap( final Iterator<S> iterator, final Object2LongFunction<S> map ) {
+	public ShiftAddXorSignedStringMap( final Iterator<? extends CharSequence> iterator, final Object2LongFunction<CharSequence> map ) {
 		this( iterator, map, 32 );
 	}
 
@@ -109,8 +111,8 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 	 * @param signatureWidth the width, in bits, of the signature of each string.
 	 */
 	
-	public ShiftAddXorSignedStringMap( final Iterator<S> iterator, final Object2LongFunction<S> map, final int signatureWidth ) {
-		S s;
+	public ShiftAddXorSignedStringMap( final Iterator<? extends CharSequence> iterator, final Object2LongFunction<CharSequence> map, final int signatureWidth ) {
+		CharSequence s;
 		this.hash = map;
 		this.width = signatureWidth;
 		this.defRetValue = -1;
@@ -125,7 +127,7 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 		}
 	}
 
-	private long signature( final S s ) {
+	private long signature( final CharSequence s ) {
 		int i, l = s.length();
 		long h = 42;
 		
@@ -133,27 +135,27 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 		return ( h >>> shift ) ^ ( h & mask );
 	}
 	
-	private boolean checkSignature( final S s, final long index ) {
+	private boolean checkSignature( final CharSequence s, final long index ) {
 		return signatures.getLong( index ) == signature( s );
 	}
 
 	@SuppressWarnings("unchecked")
 	public long getLong( Object o ) {
-		final S s = (S)o;
+		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return index != -1 && index < hash.size() && checkSignature( s, index ) ? index : defRetValue;
 	}
 
 	@SuppressWarnings("unchecked")
 	public Long get( Object o ) {
-		final S s = (S)o;
+		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return checkSignature( s, index ) ? Long.valueOf( index ) : null;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean containsKey( Object o ) {
-		final S s = (S)o;
+		final CharSequence s = (CharSequence)o;
 		return checkSignature( s, hash.getLong( s ) );
 	}
 
@@ -161,7 +163,7 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 		return hash.size();
 	}
 
-	public List<S> list() {
+	public List<CharSequence> list() {
 		return null;
 	}
 
@@ -189,7 +191,7 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 		final boolean preserveOrder = jsapResult.getBoolean( "preserveOrder" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 
-		final Object2LongFunction<MutableString> hash;
+		final Object2LongFunction<CharSequence> hash;
 		final Collection<MutableString> collection;
 
 		if ( stringFile == null ) { // TODO: replace with new LineIterator
@@ -208,11 +210,11 @@ public class ShiftAddXorSignedStringMap<S extends CharSequence> extends Abstract
 
 		LOGGER.info( "Building minimal perfect hash table..." );
 		hash = preserveOrder ? 
-				new MWHCFunction<MutableString>( collection, new Utf16TransformationStrategy() ) :
-				new MinimalPerfectHash<MutableString>( collection, new Utf16TransformationStrategy() );
+				new MWHCFunction<CharSequence>( collection, new Utf16TransformationStrategy() ) :
+				new MinimalPerfectHash<CharSequence>( collection, new Utf16TransformationStrategy() );
 
 		LOGGER.info( "Signing..." );
-		ShiftAddXorSignedStringMap<?> map = new ShiftAddXorSignedStringMap<MutableString>( collection.iterator(), hash, width );
+		ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( collection.iterator(), hash, width );
 		
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( map, tableName );

@@ -23,6 +23,8 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 
+import it.unimi.dsi.bits.BitVector;
+
 import java.io.Serializable;
 
 /** A serialisation-oriented container for associated rank/select(zero) structures.

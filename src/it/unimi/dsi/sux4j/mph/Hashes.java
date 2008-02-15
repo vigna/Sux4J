@@ -21,7 +21,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.sux4j.bits.BitVector;
+import it.unimi.dsi.bits.BitVector;
 
 /** Basic hash functions.
  * 

@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.LineIterator;
-import it.unimi.dsi.sux4j.bits.BitVector;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.io.FileInputStream;

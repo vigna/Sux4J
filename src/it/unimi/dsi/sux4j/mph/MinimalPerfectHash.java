@@ -21,17 +21,19 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
 import it.unimi.dsi.mg4j.util.MutableString;
 import it.unimi.dsi.mg4j.util.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.util.LongBigList;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.bits.TransformationStrategy;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -108,7 +110,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializable {
-	private static final Logger LOGGER = Fast.getLogger( MinimalPerfectHash.class );
+	private static final Logger LOGGER = Util.getLogger( MinimalPerfectHash.class );
 	private static final boolean ASSERTS = true;
 	public static final long serialVersionUID = 1L;
 

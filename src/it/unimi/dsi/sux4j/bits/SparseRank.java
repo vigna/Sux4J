@@ -21,8 +21,10 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.sux4j.util.LongBigList;
+import it.unimi.dsi.util.LongBigList;
 
 /** An opportunistic rank implementation for sparse arrays. 
  * 

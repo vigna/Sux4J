@@ -1,4 +1,4 @@
-import it.unimi.dsi.sux4j.bits.Fast;
+import it.unimi.dsi.bits.Fast;
 
 import java.util.Random;
 

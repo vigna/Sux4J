@@ -11,6 +11,7 @@ else
 fi
 
 export CLASSPATH=$CLASSPATH:/usr/share/java/colt.jar
+export CLASSPATH=$CLASSPATH:/usr/share/java/dsiutils.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/fastutil5.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jsap.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/junit.jar

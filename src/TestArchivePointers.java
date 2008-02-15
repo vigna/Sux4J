@@ -1,8 +1,9 @@
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.io.*;
 import it.unimi.dsi.mg4j.io.InputBitStream;
+import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.sux4j.bits.*;
 
 import java.io.IOException;
 

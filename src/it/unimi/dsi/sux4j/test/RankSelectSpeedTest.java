@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.HintedBsearchSelect;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.Select9;
@@ -10,13 +10,13 @@ import it.unimi.dsi.sux4j.bits.SparseSelect;
 
 import java.util.Random;
 
+import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.FlaggedOption;
 
 public class RankSelectSpeedTest {
 

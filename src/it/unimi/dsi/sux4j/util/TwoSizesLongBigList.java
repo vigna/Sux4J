@@ -21,11 +21,13 @@ package it.unimi.dsi.sux4j.util;
  *
  */
 
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
+import it.unimi.dsi.util.AbstractLongBigList;
+import it.unimi.dsi.util.LongBigList;
 
 import java.io.Serializable;
 import java.util.Arrays;

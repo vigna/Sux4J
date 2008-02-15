@@ -1,9 +1,9 @@
 package test.it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.HuTuckerTransformationStrategy;
 import it.unimi.dsi.sux4j.mph.LcpMinimalPerfectMonotoneHash;
-import it.unimi.dsi.sux4j.mph.Utf16TransformationStrategy;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 	
-		mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ) ) );
+		mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
@@ -47,15 +47,5 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		mph = (LcpMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
-	}
-	
-	public void testThis() {
-		String[] s = new String[] {
-			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethTUS.htm",
-			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethWERS.htm",
-			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethYCS.htm",
-			"http://neighbourhood.statistics.gov.uk/dissemination/Info.do?page=ethYLS.htm" 
-		};
-		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
 	}
 }

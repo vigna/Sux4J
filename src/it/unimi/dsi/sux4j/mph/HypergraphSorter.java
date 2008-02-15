@@ -21,11 +21,11 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.booleans.BooleanArrays;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 
 import java.util.Iterator;
 
@@ -101,7 +101,7 @@ public class HypergraphSorter<T> {
 	public static final double GAMMA = 1.23;
 
 	/** The internal state of a visit. */
-	private final static Logger LOGGER = Fast.getLogger( HypergraphSorter.class );
+	private final static Logger LOGGER = Util.getLogger( HypergraphSorter.class );
 
 	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
 	final public int numVertices;

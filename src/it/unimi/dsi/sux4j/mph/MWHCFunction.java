@@ -21,15 +21,17 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.util.LongBigList;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.util.LongBigList;
 import it.unimi.dsi.sux4j.bits.Rank16;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategy;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -64,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = Fast.getLogger( MWHCFunction.class );
+    private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 		
 	/** The number of elements. */
 	final protected int n;
@@ -89,7 +91,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	 * @param elements the elements in the domain of the function.
 	 * @param transform a transformation strategy for the elements.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
 		this( elements, transform, null, -1 );
 	}
 
@@ -103,7 +105,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	 */
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public MWHCFunction( final Iterable<? extends T> elements, final BitVector.TransformationStrategy<? super T> transform, final LongList values, final int width ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
 
 		LOGGER.debug( "Generating MWHC function with " + width + " output bits..." );

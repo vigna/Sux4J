@@ -1,6 +1,14 @@
 package it.unimi.dsi.sux4j.mph;
 
-import static it.unimi.dsi.sux4j.bits.Fast.length;
+import static it.unimi.dsi.bits.Fast.length;
+import it.unimi.dsi.Util;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
@@ -8,13 +16,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.mg4j.io.FastBufferedReader;
 import it.unimi.dsi.mg4j.io.FileLinesCollection;
 import it.unimi.dsi.mg4j.io.LineIterator;
-import it.unimi.dsi.sux4j.bits.BitVector;
-import it.unimi.dsi.sux4j.bits.BitVectors;
-import it.unimi.dsi.sux4j.bits.Fast;
-import it.unimi.dsi.sux4j.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.sux4j.bits.BitVector.TransformationStrategy;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
@@ -37,7 +40,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
-	private static final Logger LOGGER = Fast.getLogger( HollowTrie.class );
+	private static final Logger LOGGER = Util.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
 
 	private static final boolean ASSERTS = false;
@@ -113,11 +116,11 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		return index;
 	}
 	
-	public HollowTrie( final Iterable<? extends T> iterable, final BitVector.TransformationStrategy<? super T> transform ) {
+	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 		this( iterable.iterator(), transform );
 	}
 		
-	public HollowTrie( final Iterator<? extends T> iterator, final BitVector.TransformationStrategy<? super T> transform ) {
+	public HollowTrie( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform ) {
 
 		this.transform = transform;
 
@@ -323,7 +326,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		}
 		else {
 			FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection ) : new Utf16TransformationStrategy() );
+			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : new Utf16TransformationStrategy() );
 		}
 		
 		LOGGER.info( "Writing to file..." );		
