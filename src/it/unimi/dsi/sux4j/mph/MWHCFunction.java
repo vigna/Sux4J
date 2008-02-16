@@ -67,7 +67,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 		
 	/** The number of elements. */
 	final protected int n;
@@ -157,6 +157,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 			}
 			
 			data.set( edge[ v ][ k ], ( values == null ? k : values.getLong( k ) ) ^ s );
+			if ( ASSERTS ) assert ( values == null ? k : values.getLong( k ) ) == ( data.getLong( edge[ 0 ][ k ] ) ^ data.getLong( edge[ 1 ][ k ] ) ^ data.getLong( edge[ 2 ][ k ] ) );
 		}
 
 		// Check for compaction
@@ -182,7 +183,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 				for( int i = 0; i < data.size(); i++ ) {
 					final long value = data.getLong( i ); 
 					assert ( value != 0 ) == marker.getBoolean( i );
-					if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) );
+					if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) ) : value + " != " + newData.getLong( rank.rank( i ) );
 				}
 			}
 			this.data = newData;
