@@ -83,7 +83,7 @@ public class Rank16 extends AbstractRank implements Rank {
 		if ( pos > lastOne ) return numOnes;
 		
 		final int word = (int)( pos / Long.SIZE );
-		final int block = word / ( 2 * BLOCK_LENGTH );
+		final int block = word / BLOCK_LENGTH;
 		final int offset = word / 2;
         
 		return word % 2 == 0 ?
