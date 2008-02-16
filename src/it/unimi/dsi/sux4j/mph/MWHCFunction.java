@@ -140,7 +140,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		/* We assign values. */
 		/** Whether a specific node has already been used as perfect hash value for an item. */
-		final BitVector used = LongArrayBitVector.getInstance().length( m );
+		final BitVector used = LongArrayBitVector.ofLength( m );
 		
 		final int[] stack = sorter.stack;
 		final int[][] edge = sorter.edge;

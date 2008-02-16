@@ -130,18 +130,28 @@ public class Rank16Test extends RankSelectTestCase {
 		 rank16 = new Rank16( bitVector ) ;
 		assertRank( rank16 );
 	}
-	
+
 	public void testAllSizes() {
 		LongArrayBitVector v;
 		Rank16 rank16;
-		
+
 		for( int size = 0; size <= 4096; size++ ) {
 			v = LongArrayBitVector.getInstance().length( size );
 			for( int i = ( size + 1 ) / 2; i-- != 0; ) v.set( i * 2 );
-			 rank16 = new Rank16( v ) ;
+			rank16 = new Rank16( v ) ;
 			for( int i = size + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rank16.rank( i ) );
-			
+
 		}
 	}
-	
+
+	public void testLarge() {
+		LongArrayBitVector v;
+		Rank16 rank16;
+
+		v = LongArrayBitVector.getInstance().length( 100000 );
+		for( int i = 100000 / 2; i-- != 0; ) v.set( i * 2 );
+		rank16 = new Rank16( v ) ;
+		for( int i = 100000 + 1; i-- != 0; ) assertEquals( ( i + 1 ) / 2, rank16.rank( i ) );
+
+	}
 }

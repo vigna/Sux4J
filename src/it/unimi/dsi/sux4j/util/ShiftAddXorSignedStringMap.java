@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -46,8 +47,6 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
-
 import org.apache.log4j.Logger;
 
 import com.martiansoftware.jsap.FlaggedOption;
@@ -163,7 +162,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		return hash.size();
 	}
 
-	public List<CharSequence> list() {
+	public ObjectList<CharSequence> list() {
 		return null;
 	}
 
