@@ -135,14 +135,14 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 	}
 	
 	private boolean checkSignature( final CharSequence s, final long index ) {
-		return signatures.getLong( index ) == signature( s );
+		return index >= 0 && index < hash.size() && signatures.getLong( index ) == signature( s );
 	}
 
 	@SuppressWarnings("unchecked")
 	public long getLong( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
-		return index != -1 && index < hash.size() && checkSignature( s, index ) ? index : defRetValue;
+		return checkSignature( s, index ) ? index : defRetValue;
 	}
 
 	@SuppressWarnings("unchecked")
