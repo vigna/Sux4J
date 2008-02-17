@@ -139,7 +139,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 				cmp = prev.compareTo( curr );
 				if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-				prefix = (int)curr.maximumCommonPrefixLength( prev );
+				prefix = (int)curr.longestCommonPrefixLength( prev );
 				if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 
 				node = root;

@@ -141,7 +141,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted" );
 				if ( cmp == 0 ) throw new IllegalArgumentException( "The list contains duplicates" );
 				
-				currLcp = (int)Math.min( curr.maximumCommonPrefixLength( prev ), currLcp );
+				currLcp = (int)Math.min( curr.longestCommonPrefixLength( prev ), currLcp );
 				prev.replace( curr );
 				
 				maxLength = Math.max( maxLength, prev.length() );
