@@ -1,13 +1,5 @@
 package it.unimi.dsi.sux4j.bits;
 
-import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
-
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -28,6 +20,14 @@ import java.io.ObjectInputStream;
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  */
+
+
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
 
 
 /** A <code>rank16</code> implementation. 

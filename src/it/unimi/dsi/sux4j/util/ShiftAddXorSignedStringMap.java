@@ -44,9 +44,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+
 import org.apache.log4j.Logger;
 
 import com.martiansoftware.jsap.FlaggedOption;
@@ -193,17 +193,11 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		final Object2LongFunction<CharSequence> hash;
 		final Collection<MutableString> collection;
 
-		if ( stringFile == null ) { // TODO: replace with new LineIterator
-			collection = new ArrayList<MutableString>();
+		if ( stringFile == null ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.itemsName = "strings";
-			final LineIterator stringIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
-
 			pl.start( "Reading strings..." );
-			while( stringIterator.hasNext() ) collection.add( stringIterator.next().copy() );
+			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl ).allLines();
 			pl.done();
-
-			LOGGER.info( "Building minimal perfect hash table..." );
 		}
 		else collection = new FileLinesCollection( stringFile, "UTF-8", zipped );
 

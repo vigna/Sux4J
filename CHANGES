@@ -1,6 +1,12 @@
-0.2
+0.3
 
 - New rank/select structures.
+
+- Restructuring following release of the DSI utilities: bit vectors
+  implementations have been moved there.
+
+- New signing classes that implement StringMap and make it possible to
+  mimick the old MG4J SignedMinimalPerfectHash behaviour.
 
 0.1
 
