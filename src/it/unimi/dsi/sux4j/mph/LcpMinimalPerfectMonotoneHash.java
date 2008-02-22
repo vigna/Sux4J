@@ -116,9 +116,10 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			return;
 		}
 
-		bucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
-		log2BucketSize = Fast.ceilLog2( bucketSize );
-		bucketSizeMask = ( 1 << log2BucketSize ) - 1;
+		int t = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		log2BucketSize = Fast.ceilLog2( t );
+		bucketSize = 1 << log2BucketSize;
+		bucketSizeMask = bucketSize - 1;
 		
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
