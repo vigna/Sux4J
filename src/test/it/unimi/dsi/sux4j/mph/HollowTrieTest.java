@@ -1,7 +1,7 @@
 package test.it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.BitVectors;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -24,7 +24,7 @@ public class HollowTrieTest extends TestCase {
 
 	@SuppressWarnings("unchecked")
 	public void testEmpty() {
-		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] {} ), BitVectors.identity() );
+		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
 		assertEquals( 0, hollowTrie.size() );
@@ -33,7 +33,7 @@ public class HollowTrieTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testSingleton() {
 		HollowTrie hollowTrie = new HollowTrie( 
-				listOf( new int[][] { { 0 } } ).iterator(), BitVectors.identity()  );
+				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( 1, hollowTrie.size() );
@@ -42,7 +42,7 @@ public class HollowTrieTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testSimple() {
 		HollowTrie hollowTrie = new HollowTrie( 
-				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), BitVectors.identity()  );
+				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 0 ) ) );
@@ -52,7 +52,7 @@ public class HollowTrieTest extends TestCase {
 
 
 		hollowTrie = new HollowTrie( 
-				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), BitVectors.identity()  );
+				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
 		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 0, 0 ) ) );
@@ -76,7 +76,7 @@ public class HollowTrieTest extends TestCase {
 		// Sort lexicographically
 		Arrays.sort( bitVector );
 		
-		HollowTrie<LongArrayBitVector> hollowTrie = new HollowTrie<LongArrayBitVector>( Arrays.asList( bitVector ), BitVectors.identity() );
+		HollowTrie<LongArrayBitVector> hollowTrie = new HollowTrie<LongArrayBitVector>( Arrays.asList( bitVector ), TransformationStrategies.identity() );
 		
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 		assertEquals( n, hollowTrie.size() );

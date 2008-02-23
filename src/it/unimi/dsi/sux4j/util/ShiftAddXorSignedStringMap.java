@@ -24,7 +24,7 @@ package it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
@@ -203,8 +203,8 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 
 		LOGGER.info( "Building minimal perfect hash table..." );
 		hash = preserveOrder ? 
-				new MWHCFunction<CharSequence>( collection, new Utf16TransformationStrategy() ) :
-				new MinimalPerfectHash<CharSequence>( collection, new Utf16TransformationStrategy() );
+				new MWHCFunction<CharSequence>( collection, TransformationStrategies.utf16() ) :
+				new MinimalPerfectHash<CharSequence>( collection, TransformationStrategies.utf16() );
 
 		LOGGER.info( "Signing..." );
 		ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( collection.iterator(), hash, width );

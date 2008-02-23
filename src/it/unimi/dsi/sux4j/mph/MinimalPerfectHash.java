@@ -31,7 +31,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.util.LongBigList;
 import it.unimi.dsi.bits.TransformationStrategy;
 
@@ -334,11 +334,11 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( stringList, new Utf16TransformationStrategy() );
+			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( stringList, TransformationStrategies.utf16() );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), new Utf16TransformationStrategy() );
+			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), TransformationStrategies.utf16() );
 		}
 
 		LOGGER.info( "Writing to file..." );		

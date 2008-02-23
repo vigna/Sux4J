@@ -30,12 +30,11 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -159,7 +158,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		
 		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), BitVectors.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -265,12 +264,12 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect monotone hash table..." );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, new Utf16TransformationStrategy() );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, TransformationStrategies.prefixFreeUtf16() );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash table..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : new Utf16TransformationStrategy() );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : TransformationStrategies.prefixFreeUtf16() );
 		}
 
 		LOGGER.info( "Writing to file..." );		

@@ -1,6 +1,6 @@
 package test.it.unimi.dsi.sux4j.mph;
 
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -21,7 +21,7 @@ public class HypergraphFunctionTest extends TestCase {
 		long[] v = new long[ 1000 ];
 		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = Integer.toString( i );
 		
-		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
+		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
@@ -31,7 +31,7 @@ public class HypergraphFunctionTest extends TestCase {
 		function = (MWHCFunction<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 		
-		function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), null, 12 );
+		function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), null, 12 );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
 	}
 	
@@ -47,7 +47,7 @@ public class HypergraphFunctionTest extends TestCase {
 		long[] v = new long[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = binary( i );
 		
-		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), new Utf16TransformationStrategy(), LongArrayList.wrap( v ), 12 );
+		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );

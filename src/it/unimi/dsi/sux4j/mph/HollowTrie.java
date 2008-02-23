@@ -7,8 +7,8 @@ import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
@@ -322,11 +322,11 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Building trie..." );
 
 		if ( stringFile == null ) {
-			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), new Utf16TransformationStrategy() );
+			hollowTrie = new HollowTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), TransformationStrategies.prefixFreeUtf16() );
 		}
 		else {
 			FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : new Utf16TransformationStrategy() );
+			hollowTrie = new HollowTrie<CharSequence>( collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : TransformationStrategies.prefixFreeUtf16() );
 		}
 		
 		LOGGER.info( "Writing to file..." );		

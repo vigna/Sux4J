@@ -1,7 +1,7 @@
 package test.it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.sux4j.mph.MinimalPerfectHash.countNonzeroPairs;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
@@ -20,7 +20,7 @@ public class MinimalPerfectHashTest extends TestCase {
 		String[] s = new String[ 1000 ];
 		for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 		
-		MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+		MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );

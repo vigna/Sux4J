@@ -1,7 +1,7 @@
 package test.it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.LcpMinimalPerfectMonotoneHash;
 
@@ -26,7 +26,7 @@ public class LcpMinimalPerfectMonotoneHashTest extends TestCase {
 		int[] v = new int[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+		LcpMinimalPerfectMonotoneHash<String> mph = new LcpMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		

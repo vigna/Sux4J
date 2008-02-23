@@ -1,6 +1,6 @@
 package test.it.unimi.dsi.sux4j.util;
 
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
@@ -23,7 +23,7 @@ public class ShiftAddXorSignedStringMapTest extends TestCase {
 			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 
 			// Test with mph
-			MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+			MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16() );
 			ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( Arrays.asList( s ).iterator(), mph, width );
 
 			int[] check = new int[ s.length ];
@@ -50,7 +50,7 @@ public class ShiftAddXorSignedStringMapTest extends TestCase {
 			for( int i = s.length + 100; i-- != s.length; ) assertEquals( -1, map.getLong( Integer.toString( i ) ) );
 
 			// Test with function
-			MWHCFunction<CharSequence> f = new MWHCFunction<CharSequence>( Arrays.asList( s ), new Utf16TransformationStrategy() );
+			MWHCFunction<CharSequence> f = new MWHCFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16() );
 			map = new ShiftAddXorSignedStringMap( Arrays.asList( s ).iterator(), f, width );
 
 			IntArrays.fill( check, -1 );

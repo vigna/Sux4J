@@ -28,7 +28,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.util.LongBigList;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -270,7 +270,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		final FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final int size = flc.size();
-		function = new MWHCFunction<CharSequence>( flc, new Utf16TransformationStrategy(), null, Fast.ceilLog2( size ) );
+		function = new MWHCFunction<CharSequence>( flc, TransformationStrategies.utf16(), null, Fast.ceilLog2( size ) );
 
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( function, tableName );

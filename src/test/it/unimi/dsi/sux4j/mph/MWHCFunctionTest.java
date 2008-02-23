@@ -1,6 +1,6 @@
 package test.it.unimi.dsi.sux4j.mph;
 
-import it.unimi.dsi.bits.Utf16TransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
@@ -20,7 +20,7 @@ public class MWHCFunctionTest extends TestCase {
 			String[] s = new String[ 1000 ];
 			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 
-			MWHCFunction<CharSequence> mph = new MWHCFunction<CharSequence>( Arrays.asList( s ), new Utf16TransformationStrategy(), null, width );
+			MWHCFunction<CharSequence> mph = new MWHCFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16(), null, width );
 
 			int[] check = new int[ s.length ];
 			IntArrays.fill( check, -1 );
