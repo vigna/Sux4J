@@ -144,7 +144,6 @@ public class SparseSelect implements Select {
 	
 	public long select( final long rank ) {
 		if ( rank >= m ) return -1;
-		if ( l == 0 ) return ( selectUpper.select( rank ) - rank );
 		return ( selectUpper.select( rank ) - rank ) << l | lowerBits.getLong( rank );
 	}
 
