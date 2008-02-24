@@ -15,12 +15,12 @@ public class TestGraphPointers {
 		
 		SparseSelect sparse = new SparseSelect( n, m, new AbstractLongIterator() {
 			int i = 0;
-			long curr = -1;
+			long curr = 0;
 			
 			public long nextLong() {
 				i++;
 				try {
-					return curr += skips.readDelta() + 1; 
+					return curr += skips.readGamma() ; 
 				}
 				catch ( IOException e ) {
 					throw new RuntimeException( e );
