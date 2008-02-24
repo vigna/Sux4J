@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.util.AbstractLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
 /** An opportunistic select implementation for sparse arrays. 
@@ -107,7 +108,23 @@ public class SparseSelect implements Select {
 		}
 		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
+		lowerBits = //LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
+			new AbstractLongBigList() {
+				final byte[] a = new byte[ (int)SparseSelect.this.m ];
+				public long getLong( long index ) {
+					return a[ (int)index ];
+				}
+
+				public long set( long index, long value ) {
+					a[ (int)index ] = (byte)value;
+					return 0;
+				}
+				public long length() {
+					// TODO Auto-generated method stub
+					return 0;
+				}
+			
+		};
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.m * 2 );
 		long last = 0;
 		for( long i = 0; i < this.m; i++ ) {
