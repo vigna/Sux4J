@@ -13,6 +13,11 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.Reference2LongMap;
+import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -26,6 +31,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
+import java.util.ListIterator;
 
 import org.apache.log4j.Logger;
 
@@ -46,8 +52,8 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	private TwoSizesLongBigList skips;
-	private transient BitVector trie;
+	protected TwoSizesLongBigList skips;
+	protected transient BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
 	private final TransformationStrategy<? super T> transform;
@@ -110,8 +116,10 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 			
 			index += p - a + 1 - rank9.rank( a, p + 1 );
 			
-			//System.err.println( a + " " + b + " " + p + " " + index );
+			//System.err.println( "Scanning; " + a + " " + b + " " + p + " " + index );
 		}
+
+		//System.err.println( "Returning " + index );
 
 		return index;
 	}
@@ -267,8 +275,156 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
+	
+	
+	public HollowTrie( final Iterator<T> iterator, final Iterator<T> endsIterator, TransformationStrategy<T> transformationStrategy ) {
+		this.transform = transformationStrategy;
+		ObjectArrayList<BitVector> elements = new ObjectArrayList<BitVector>();
+		while( iterator.hasNext() ) elements.add( transformationStrategy.toBitVector( iterator.next() ).copy() );
+		ObjectArrayList<BitVector> ends = new ObjectArrayList<BitVector>();
+		while( endsIterator.hasNext() ) ends.add( transformationStrategy.toBitVector( endsIterator.next() ).copy() );
+
+		Reference2LongOpenHashMap<BitVector> original = new Reference2LongOpenHashMap<BitVector>();
+		original.defaultReturnValue( -1 );
+		for( int i = 0; i < elements.size() - 1; i++ ) original.put( elements.get( i ), i );
+
+		assert ends.size() == elements.size();
+		
+		// Move last end to the elements list
+		elements.add( ends.remove( ends.size() - 1 ) );
+		
+		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
+		Node root = buildTrie( elements, ends, 0, original );
+		queue.add( root );
+		
+		final BitVector bitVector = LongArrayBitVector.getInstance( 4 * elements.size() + 1 );
+		final IntArrayList skips = new IntArrayList();
+		int p = 0, maxSkip = Integer.MIN_VALUE;
+		long skipsLength = 0;
+		bitVector.add( 1 );
+
+		Node n;
+
+		for( int i = 0; i < elements.size(); i++ ) getVector( root, elements.get( i ) );
+		
+		while( p < queue.size() ) {
+			n = queue.get( p );
+			if ( maxSkip < n.skip ) maxSkip = n.skip;
+			skips.add( n.skip );
+			skipsLength += length( n.skip );
+			bitVector.add( n.left != null );
+			bitVector.add( n.right != null );
+			if ( n.left != null ) queue.add( n.left );
+			else size++;
+			if ( n.right != null ) queue.add( n.right );
+			else size++;
+			p++;
+		}
+		
+		LOGGER.info( "Trie size:" + size );
+		
+		trie = bitVector;
+		rank9 = new Rank9( bitVector );
+		select = new SimpleSelect( bitVector );
+		final int skipWidth = Fast.ceilLog2( maxSkip );
+
+		LOGGER.info( "Max skip: " + maxSkip );
+		LOGGER.info( "Max skip width: " + skipWidth );
+		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( elements.size() - 1 ) );
+		
+		this.skips = new TwoSizesLongBigList( skips );
+				
+		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
+		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
+	}
+		
+	
+	protected int getVector( Node n, BitVector bv ) {
+		int pos = 0;
+		
+		for(;;) {
+			pos += n.skip;
+			
+			System.err.print( "Skipping " + n.skip + " bits... " );
+			if ( bv.getBoolean( pos++ ) ) {
+				System.err.print( "Turning right... " );
+				n = n.right;
+			}
+			else {
+				n = n.left;
+				System.err.print( "Turning left... " );
+			}
+			if ( n == null ) {
+				System.err.println();
+				return 0;
+			}
+		}
+	}
+	
+	/** Builds a trie recursively. 
+	 * 
+	 * <p>The trie will contain the suffixes of words in <code>words</code> starting at <code>pos</code>.
+	 * 
+	 * @param elements a list of elements.
+	 * @param pos a starting position.
+	 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
+	 */
+		
+	protected Node buildTrie( final ObjectList<BitVector> elements, final ObjectList<BitVector> ends, final int pos, final Reference2LongMap<BitVector> original ) {
+		// TODO: on-the-fly check for lexicographical order
+		
+		for( int i = 0; i < elements.size() - 1; i++ ) assert elements.get( i ).compareTo( elements.get( i + 1 ) ) < 0;
+		
+		if ( elements.size() == 1 ) return null;
+
+		//System.err.println( elements );
+		
+		BitVector first = elements.get( 0 ), curr;
+		int prefix = first.size(), change = -1, j;
+
+		// 	Find maximum common prefix. change records the point of change (for splitting the word set).
+		for( ListIterator<BitVector> i = elements.listIterator( 1 ); i.hasNext(); ) {
+			curr = i.next();
+			assert ! curr.equals( first );
+			assert curr.longestCommonPrefixLength( first ) != curr.length();
+			assert curr.longestCommonPrefixLength( first ) != first.length();
+			
+			if ( curr.size() < prefix ) prefix = curr.size(); 
+			for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+			if ( j < prefix ) {
+				change = i.previousIndex();
+				prefix = j;
+			}
+		}
+		
+		assert change >= 0;
+
+		ObjectArrayList<BitVector> leftList = new ObjectArrayList<BitVector>( elements.subList( 0, change ) );
+		assert ! ends.isEmpty();
+		assert ! leftList.isEmpty();
+		
+		//assert elements.get( change - 1 ).subVector( 0, prefix ).equals( elements.get( change ).subVector( 0, prefix ) );
+		assert ! elements.get( change - 1 ).subVector( 0, prefix + 1 ).equals( elements.get( change ).subVector( 0, prefix + 1 ) );
+		
+		System.err.println( "prefix: " + prefix );
+		
+		int index = (int)original.removeLong( elements.get( change - 1 ) ); 
+		if ( index >= 0 ) leftList.add( ends.get( index ) );
+		
+		if ( index >= 0 ) System.err.println( "Adding end of index " + index );
+		
+		assert index == -1 || ends.get( index ).longestCommonPrefixLength( leftList.get( 0 ) ) >= prefix;
+		
+		return new Node( buildTrie( leftList, ends, prefix + 1, original ), 
+				buildTrie( elements.subList( change, elements.size() ), ends, prefix + 1, original ), prefix - pos );
+	}
+
 	public int size() {
 		return size;
+	}
+
+	public long numBits() {
+		return rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
 	}
 	
 	private void recToString( final Node n, final StringBuilder printPrefix, final StringBuilder result, final StringBuilder path, final int level ) {

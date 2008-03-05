@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
@@ -47,20 +47,22 @@ public class HollowTrieSpeedTest {
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		
 		@SuppressWarnings("unchecked")
-		final HollowTrie<BitVector> hollowTrie = (HollowTrie)BinIO.loadObject( trieName );
+		final Object2LongFunction<? extends CharSequence> hollowTrie = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( trieName );
 		
 		Iterator<? extends CharSequence> i;
-		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
-		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
-		
-		long time = -System.currentTimeMillis();
-		int j = 0;
-		while( i.hasNext() ) {
-			hollowTrie.getLong( i.next() );
-			if ( j++ % 1000 == 0 ) System.err.print('.');
+
+		for( int k = 10; k-- != 0; ) {
+			if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
+			else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
+			long time = -System.currentTimeMillis();
+			int j = 0;
+			while( i.hasNext() ) {
+				hollowTrie.getLong( i.next() );
+				if ( j++ % 1000 == 0 ) System.err.print('.');
+			}
+			System.err.println();
+			time += System.currentTimeMillis();
+			System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/vector" );
 		}
-		System.err.println();
-		time += System.currentTimeMillis();
-		System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/vector" );
 	}
 }

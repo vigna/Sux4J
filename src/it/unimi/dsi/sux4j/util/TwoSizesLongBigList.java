@@ -115,10 +115,10 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		
 		if ( ASSERTS ) assert minCostSmall / ( minIndex + 1 ) + minCostLarge / width == length;
 		//System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
-		final long numSmall = minCostSmall / ( minIndex + 1 );
-		final long numLarge = minCostLarge / width;
 		//System.err.println( numSmall );
-		if ( minIndex != width ) {
+		if ( width != 0 && minIndex != width ) {
+			final long numSmall = minCostSmall / ( minIndex + 1 );
+			final long numLarge = minCostLarge / width;
 			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
 			marker = LongArrayBitVector.getInstance().length( length );
 			large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
