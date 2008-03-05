@@ -70,8 +70,8 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final T key = (T)o;
-		final LongArrayBitVector bv = LongArrayBitVector.copy( transform.toBitVector( key ) );
+		final BitVector bitVector = transform.toBitVector( (T)o );
+		final LongArrayBitVector bv = bitVector instanceof LongArrayBitVector ? (LongArrayBitVector)bitVector : LongArrayBitVector.copy( bitVector ); 
 		int bucket = (int)trie.getLong( bv ); 
 		return ( bucket << log2BucketSize ) + getLong( bv, tinyTrie[ 2 * bucket ], tinyTrie[ 2 * bucket + 1 ], bucket * ( bucketSize - 1 ) );
 	}
