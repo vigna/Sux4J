@@ -108,17 +108,20 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		ObjectArrayList<BitVector> vectors = new ObjectArrayList<BitVector>();
 		
 		long maxLength = 0;
+		long totalLength = 0;
 		BitVector bv;
 		while( iterator.hasNext() ) {
 			bv = transform.toBitVector( iterator.next() ).copy();
 			maxLength = Math.max( maxLength, bv.length() );
+			totalLength += bv.length();
 			vectors.add( bv );
 		}
 		
 		n = vectors.size();
-
-		int t = (int)Math.ceil( maxLength - Math.log( n ) - Math.log( maxLength - Math.log( n ) ) - 1 );
-		log2BucketSize = Fast.ceilLog2( t ) - 6;
+		long averageLength = totalLength / n;
+		
+		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
+		log2BucketSize = t <= 6 ? t : t - 3;
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
 		
@@ -138,6 +141,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast distributor bit cost: " + ( n / bucketSize ) * ( maxLength + log2BucketSize - Math.log( n ) ) );
+		LOGGER.debug( "Empirical forecast distributor bit cost: " + ( n / bucketSize ) * ( averageLength + log2BucketSize - Math.log( n ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( n ) ) ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
@@ -173,14 +177,14 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
-			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
-		final String tableName = jsapResult.getString( "table" );
+		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
@@ -200,17 +204,17 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 			while( stringIterator.hasNext() ) stringList.add( stringIterator.next().copy() );
 			pl.done();
 
-			LOGGER.info( "Building minimal perfect monotone hash table..." );
+			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( stringList, TransformationStrategies.prefixFreeUtf16() );
 		}
 		else {
-			LOGGER.info( "Building minimal perfect monotone hash table..." );
+			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
 			minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : TransformationStrategies.prefixFreeUtf16() );
 		}
 
 		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( minimalPerfectMonotoneHash, tableName );
+		BinIO.storeObject( minimalPerfectMonotoneHash, functionName );
 		LOGGER.info( "Completed." );
 	}
 }

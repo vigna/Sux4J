@@ -28,6 +28,7 @@ public class FunctionSpeedTest {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
+					new Switch( "check", 'c', "check", "Check that the term list is mapped to its ordinal positiona." ),
 					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
 					new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised function." )
 		});
@@ -39,6 +40,7 @@ public class FunctionSpeedTest {
 		final String termFile = jsapResult.getString( "termFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean check = jsapResult.getBoolean( "check" );
 		
 		@SuppressWarnings("unchecked")
 		final Object2LongFunction<? extends CharSequence> function = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName );
@@ -49,8 +51,10 @@ public class FunctionSpeedTest {
 			
 			long time = -System.currentTimeMillis();
 			int j = 0;
+			long index;
 			while( i.hasNext() ) {
-				function.getLong( i.next() );
+				index = function.getLong( i.next() );
+				if ( check && index != j ) throw new AssertionError( index + " != " + j ); 
 				if ( j++ % 10000 == 0 ) System.err.print('.');
 			}
 			System.err.println();
