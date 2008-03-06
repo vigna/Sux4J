@@ -3,20 +3,18 @@ package it.unimi.dsi.sux4j.scratch;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.HollowTrie;
 import it.unimi.dsi.util.ImmutableBinaryTrie;
 
@@ -24,7 +22,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
-import java.util.ListIterator;
 
 import org.apache.log4j.Logger;
 
@@ -42,6 +39,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 	private final static Logger LOGGER = Util.getLogger( BitStreamImmutableBinaryTrie.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
+	private static final boolean DDEBUG = false;
 	private byte[] trie;
 	private int size;
 	private final TransformationStrategy<T> transformationStrategy;
@@ -105,18 +103,15 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		 * distinct, lexicographically increasing (in iteration order) binary words.
 		 */
 		
-		public BitstreamTrie( final Iterable<? extends T> elements, final Iterable<? extends T> ends, final TransformationStrategy<T> transformationStrategy ) {
+		public BitstreamTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<T> transformationStrategy ) {
 			this.transformationStrategy = transformationStrategy;
 			// Check order
 			final Iterator<? extends T> iterator = elements.iterator();
-			final Iterator<? extends T> endsIterator = ends.iterator();
 			final ObjectList<LongArrayBitVector> words = new ObjectArrayList<LongArrayBitVector>();
-			final ObjectList<LongArrayBitVector> endsList = new ObjectArrayList<LongArrayBitVector>();
 			int cmp;
 			if ( iterator.hasNext() ) {
 				final LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
 				words.add( prev.copy() );
-				endsList.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( endsIterator.next() ) ) );
 				BitVector curr;
 
 				while( iterator.hasNext() ) {
@@ -126,10 +121,10 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 					if ( cmp > 0 ) throw new IllegalArgumentException( "The trie elements are not sorted" );
 					prev.replace( curr );
 					words.add( prev.copy() );
-					endsList.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( endsIterator.next() ) ) );
 				}
 			}
-			root = buildTrie( words, endsList, 0 );
+			
+			root = buildTrie( words, bucketSize, Math.min( words.size(), bucketSize ) - 1, 0 );
 			LOGGER.info( "Gain: " + gain );
 		}
 
@@ -144,43 +139,91 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		
 		protected int gain;
 			
-		protected Node buildTrie( final ObjectList<LongArrayBitVector> elements, final ObjectList<LongArrayBitVector> ends, final int pos ) {
-			// TODO: on-the-fly check for lexicographical order
+		protected Node buildTrie( final ObjectList<LongArrayBitVector> elements, final int bucketSize, final int firstIndex, final int pos ) {
+			final int numElements = elements.size();
+			//System.err.println( "Size:" + numElements + " First delimiter: " + firstIndex );
 			
-			if ( elements.size() == 0 ) return null;
+			if ( numElements == 0 ) return null;
 
-			BitVector first = elements.get( 0 ), curr;
-			int prefix = first.size(), change = -1, j;
-
-			// We rule out the case of a single word (it would work anyway, but it's faster)
-			if ( elements.size() == 1 ) {
-				long lcp = elements.get( 0 ).longestCommonPrefixLength( ends.get( 0 ) );
-				if ( lcp + 1 < prefix ) gain += prefix - Math.max( pos, lcp + 1 );
-				
-				return new Node( pos < Math.min( prefix, lcp + 1 ) ? LongArrayBitVector.copy( first.subVector( pos, Math.min( prefix, lcp + 1 ) ) ) : null, prefix - pos );
-			}
+			final BitVector first = elements.get( firstIndex );
+			int prefix = first.size(), change = 0, j = -1, lastIndex = firstIndex, middleIndex = firstIndex;
+			BitVector curr;
 			
-			// 	Find maximum common prefix. change records the point of change (for splitting the word set).
-			for( ListIterator<LongArrayBitVector> i = elements.listIterator( 1 ); i.hasNext(); ) {
-				curr = i.next();
+			if ( firstIndex + bucketSize < numElements ) {
+				// 	Find maximum common prefix. change records the point of change (for splitting the delimiter set).
+				for( int i = firstIndex + bucketSize; i < numElements; i += bucketSize ) {
+					curr = elements.get( i );
+					lastIndex = i;
+					// TODO: use longestCommonPrefix
+					for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+					if ( j < prefix ) {
+						middleIndex = i;
+						prefix = j;
+					}
+				}
+
+				if ( ASSERTS ) assert middleIndex > firstIndex;
 				
-				if ( curr.size() < prefix ) prefix = curr.size(); 
-				for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
-				if ( j < prefix ) {
-					change = i.previousIndex();
-					prefix = j;
+				// Find exact change point
+				for( change = middleIndex - bucketSize + 1; change <= middleIndex; change++ ) if ( elements.get( change ).getBoolean( prefix ) ) break;
+
+				if ( ASSERTS ) {
+					assert change < middleIndex + 1;
+					assert ! elements.get( change - 1 ).getBoolean( prefix );
+					assert elements.get( change ).getBoolean( prefix );
 				}
 			}
 			
-			long lcp = elements.get( change ).longestCommonPrefixLength( ends.get( change ) );
-			assert lcp < elements.get( change ).length();
-			assert lcp < ends.get( change ).length();
-			if ( lcp + 1 < prefix ) gain += prefix - Math.max( pos, lcp + 1 );
+			int startElement = firstIndex;
+			int startPrefix = prefix;
+			while( --startElement >= 0 ) {
+				curr = elements.get( startElement );
+				// TODO: use longestCommonPrefix
+				for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+				if ( j < prefix ) {
+					j++;
+					startPrefix = j;
+					break;
+				}
+			}
+
+			startElement++;
+			
+			int endElement = lastIndex;
+			int endPrefix = prefix;
+			while( ++endElement < numElements ) {
+				curr = elements.get( endElement );
+				// TODO: use longestCommonPrefix
+				for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+				if ( j < prefix ) {
+					j++;
+					endPrefix = j;
+					break;
+				}
+			}
+			
 			
 			final Node n;
-			n = new Node( pos < Math.min( prefix, lcp + 1 ) ? LongArrayBitVector.copy( first.subVector( pos, Math.min( prefix, lcp + 1 ) ) ) : null, prefix - pos ); // There's some common prefix
-			n.left = buildTrie( elements.subList( 0, change ), ends.subList( 0, change ), prefix + 1 );
-			n.right = buildTrie( elements.subList( change, elements.size() ), ends.subList( change, elements.size() ), prefix + 1 );
+
+			int k;
+			
+			if ( ASSERTS ) {
+				for( k = 0; k < startElement; k++ ) assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, elements.get( k ).length() ) ) < startPrefix; 
+
+				for( k = startElement; k < endElement; k++ ) 
+					assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, prefix ) ) >= prefix - pos :
+						"At " + k + " out of " + numElements + ": " + first.longestCommonPrefixLength( elements.get( k ) ) + " < " + prefix;
+
+					for( k = endElement; k < numElements; k++ ) assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, elements.get( k ).length() ) ) < endPrefix;
+
+			}
+
+			if ( pos < Math.max( startPrefix, endPrefix ) ) gain += prefix - Math.max( startPrefix, endPrefix );
+			n = new Node( pos < j ? LongArrayBitVector.copy( first.subVector( pos, Math.max( startPrefix, endPrefix ) ) ) : null, prefix - pos ); // There's some common prefix
+			if ( firstIndex + bucketSize < numElements ) {
+				n.left = buildTrie( elements.subList( startElement, change ), bucketSize, firstIndex - startElement, prefix + 1 );
+				n.right = buildTrie( elements.subList( change, endElement ), bucketSize, middleIndex - change, prefix + 1 );
+			}
 			return n;
 		}
 
@@ -231,10 +274,10 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		}
 	}
 	
-	public BitStreamImmutableBinaryTrie( Iterable<? extends T> elements, Iterable<? extends T> ends, TransformationStrategy<T> transformationStrategy ) throws IOException {
+	public BitStreamImmutableBinaryTrie( Iterable<? extends T> elements, int bucketSize, TransformationStrategy<T> transformationStrategy ) throws IOException {
 
 		this.transformationStrategy = transformationStrategy;
-		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, ends, transformationStrategy );
+		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, bucketSize, transformationStrategy );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
 		int numLeaves = immutableBinaryTrie.toStream( trie );
@@ -242,14 +285,14 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		
 		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
 		
-		if ( DEBUG ) System.err.println( new ImmutableBinaryTrie<T>( elements, transformationStrategy ) );
+		if ( DDEBUG ) System.err.println( new ImmutableBinaryTrie<T>( elements, transformationStrategy ) );
 		trie.flush();
 		fbStream.trim();
 		this.trie = fbStream.array;
 
 		MutableString s = new MutableString();
-		if ( DEBUG ) recToString( new InputBitStream( this.trie ), new MutableString(), s, new MutableString(), 0 );
-		if ( DEBUG ) System.err.println( s );
+		if ( DDEBUG ) recToString( new InputBitStream( this.trie ), new MutableString(), s, new MutableString(), 0 );
+		if ( DDEBUG ) System.err.println( s );
 
 	}
 	
@@ -259,8 +302,8 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		try {
 			if ( DEBUG ) System.err.println( "Getting " + o + "...");
 			BitVector v = transformationStrategy.toBitVector( (T)o );
+			long length = v.length();
 			final InputBitStream trie = new InputBitStream( this.trie );
-			trie.position( 0 );
 
 			int pos = 0;
 			int leaf = 0;
@@ -276,9 +319,14 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 				
 				long readBits = trie.readBits();
 				
+				//System.err.println( v.subVector(  pos, v.length() ) );
+				
 				for( i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
 					int size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
-					xor = v.getLong( pos, Math.min( v.length(), pos += size ) ) ^ ( t = trie.readLong( size ) );
+					xor = v.getLong( pos, Math.min( length, pos += size ) ) ^ ( t = trie.readLong( size ) );
+					
+					//System.err.println( "Checking with " + LongArrayBitVector.wrap( new long[] { t }, size ) );
+					
 					if ( xor != 0 ) {
 						lcp += Fast.leastSignificantBit( xor );
 						break;
@@ -287,14 +335,18 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 				}
 
 				if ( xor != 0 ) {
-					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path" );
-					if ( ( ( xor & -xor ) & t ) != 0 ) return leaf - 1;
+					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at " + lcp + " (leaf = " + leaf + ")" );
+					if ( ( ( xor & -xor ) & t ) != 0 ) return leaf;
 					else {
-						if ( skip == 0 ) return leaf;
+						if ( skip == 0 ) {
+							if ( DEBUG ) System.err.println( "Leaf node" );
+							return leaf + 1;
+						}
+						if ( DEBUG ) System.err.println( "Non-leaf node" );
 						// Skip remaining path, if any and missing bits count
 						trie.skip( pathLength - ( trie.readBits() - readBits ) );
 						trie.readDelta();
-						return leaf + trie.readDelta() + trie.readDelta() - 1;
+						return leaf + trie.readDelta() + trie.readDelta();
 					}
 				}
 
@@ -302,7 +354,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 				if ( DEBUG ) System.err.println( "Missing bits: " + missing );
 				
 				if ( skip == 0 ) {
-					if ( DEBUG ) System.err.println( "Exact match" );
+					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leaf + ")" + pos+ " " + missing + " " + length );
 					return leaf;
 				}
 				
@@ -409,7 +461,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		} 
 		else {*/
 			FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-			hollowTrie = new BitStreamImmutableBinaryTrie<CharSequence>( collection, collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : TransformationStrategies.prefixFreeUtf16() );
+			hollowTrie = null;//new BitStreamImmutableBinaryTrie<CharSequence>( collection, collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : TransformationStrategies.prefixFreeUtf16() );
 		//}
 		
 		LOGGER.info( "Writing to file..." );		

@@ -167,35 +167,21 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
-		ObjectArrayList<BitVector> bucket = new ObjectArrayList<BitVector>();
+		ObjectArrayList<BitVector> vectors = new ObjectArrayList<BitVector>();
 		ObjectArrayList<HollowTrie<BitVector>> tinyTries = new ObjectArrayList<HollowTrie<BitVector>>();
 		ObjectArrayList<BitVector> delims = new ObjectArrayList<BitVector>();
-		ObjectArrayList<BitVector> ends = new ObjectArrayList<BitVector>();
-		Iterator<? extends T> iterator = iterable.iterator();
 		BitVector l = null;
+		int[] ends = new int[ ( n + bucketSize - 1 ) / bucketSize ];
+		Iterator<? extends T> iterator = iterable.iterator();
 		IntList skips = new IntArrayList( n );
 		tinyTrie = new long[ 2 * ( ( n + bucketSize - 1 ) / bucketSize ) ];
 		for( int i = 0; i < ( n + bucketSize - 1 ) / bucketSize; i++ ) {
 			final int b = Math.min( bucketSize, n - i * bucketSize );
-			bucket.clear();
 			long maxPref = 0, pref;
 			int pos = -1;
-			for( int j = 0; j < b; j++ ) {
-				bucket.add( LongArrayBitVector.copy( transform.toBitVector( iterator.next() ) ) );
-				if ( j == 0 ) maxPref = bucket.get( j ).size();
-				else {
-					pref = bucket.get( j - 1 ).longestCommonPrefixLength( bucket.get( j ) );
-					if ( pref < maxPref ) {
-						pos = j;
-						maxPref = pref;
-					}
-				}
-			}
+			for( int j = 0; j < b; j++ ) vectors.add( LongArrayBitVector.copy( transform.toBitVector( iterator.next() ) ) );
 			
-			delims.add( bucket.get( 0 ) );
-			ends.add( l == null ? bucket.get( 0 ) : l );
-			l = bucket.get( bucket.size() - 1 );
-			HollowTrie<BitVector> t = new HollowTrie<BitVector>( bucket, TransformationStrategies.identity() );
+			HollowTrie<BitVector> t = new HollowTrie<BitVector>( vectors.subList( i * bucketSize, i * bucketSize + b ), TransformationStrategies.identity() );
 			if ( DEBUG ) tinyTries.add( t );
 			assert t.trie.length() == b * 2 - 1 : t.trie.length() + " != " + ( b * 2 - 1 );
 			tinyTrie[ i * 2 ] = t.trie.getLong( 0, Long.SIZE );
@@ -206,7 +192,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		
 		this.skips = new TwoSizesLongBigList( skips );
 		
-		trie = new BitStreamImmutableBinaryTrie<BitVector>( delims, ends, TransformationStrategies.identity() );
+		trie = new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
 		this.size = n;
 
 		if ( DEBUG ) {
@@ -229,14 +215,15 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		long last = -1, r;
 		int c = 0;
 		while( iterator.hasNext() ) {
+			//System.err.println( "Checking item " + c );
 			T e = iterator.next();
 			//System.err.print( "Mapping " + c + " = " + e );
 			r = trie.getLong( transform.toBitVector( e ) );
 			//System.err.println( " to " + r );
-			assert r >= 0 : r + " < 0";
+			assert r >= 0 : "At " + c + ": " +  r + " < 0";
 			//if( r < last ) throw new AssertionError( "" + last );
 			last = r;
-			assert r == c / bucketSize : r + " != " + c / bucketSize;
+			assert r == c / bucketSize : "At " + c + ": " + r + " != " + c / bucketSize;
 			c++;
 		}
 		
