@@ -95,6 +95,8 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public LcpMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
+
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( iterable instanceof Collection ) n = ((Collection<? extends T>)iterable).size();
 		else {
@@ -128,15 +130,20 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		final BitVector[] lcp = new BitVector[ numBuckets ];
 		int maxLcp = 0;
 		long maxLength = 0;
+
+		pl.expectedUpdates = n;
+		pl.start( "Scanning collection..." );
 		
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
+			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr = transform.toBitVector( iterator.next() );
+				pl.lightUpdate();
 				final int cmp = prev.compareTo( curr );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted" );
 				if ( cmp == 0 ) throw new IllegalArgumentException( "The list contains duplicates" );
@@ -151,11 +158,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
-		
-		/*BitVector[] l = lcp.clone();
-		Arrays.sort( l );
-		for( int i = l.length- 1; i-- != 0 ; ) if ( l[ i ].equals( l[ i + 1 ] ))throw new AssertionError();*/
-		
+		pl.done();
 		
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
