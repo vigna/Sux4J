@@ -58,7 +58,7 @@ public class HollowTrieSpeedTest {
 			int j = 0;
 			while( i.hasNext() ) {
 				hollowTrie.getLong( i.next() );
-				if ( j++ % 1000 == 0 ) System.err.print('.');
+				if ( j++ % 10000 == 0 ) System.err.print('.');
 			}
 			System.err.println();
 			time += System.currentTimeMillis();

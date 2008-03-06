@@ -199,7 +199,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl ).allLines();
 			pl.done();
 		}
-		else collection = new FileLinesCollection( stringFile, "UTF-8", zipped );
+		else collection = new FileLinesCollection( stringFile, encoding.name(), zipped );
 
 		LOGGER.info( "Building minimal perfect hash table..." );
 		hash = preserveOrder ? 

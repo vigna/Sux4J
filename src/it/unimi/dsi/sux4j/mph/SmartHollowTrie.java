@@ -92,7 +92,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		return Long.SIZE + Fast.select( y, rank - count );
 	}
 
-	public long getLong( final LongArrayBitVector bitVector, final long x, final long y, final long offset ) {
+	public long getLong( final BitVector bitVector, final long x, final long y, final long offset ) {
 		int p = 0, r = 0, length = (int)bitVector.length(), index = 0;
 		int a = 0, b = 0, t;
 		int s = 0;
