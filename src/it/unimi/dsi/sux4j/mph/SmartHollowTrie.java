@@ -233,11 +233,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		LOGGER.info( "Testing speed..." );
 		long time = -System.currentTimeMillis();
 		int j = 0;
-		for( T e : iterable ) {
-			if ( getLong( e ) != j++ ) throw new AssertionError(  getLong( e ) + " != " + Integer.toString( j - 1 ) );
-			if ( ( j & 0x3FF ) == 0 ) System.err.print('.');
-		}
-		System.err.println();
+		for( T e : iterable ) if ( getLong( e ) != j++ ) throw new AssertionError(  getLong( e ) + " != " + Integer.toString( j - 1 ) );
 		time += System.currentTimeMillis();
 		System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/vector" );
 

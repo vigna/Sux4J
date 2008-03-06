@@ -45,7 +45,11 @@ public class Hashes {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( bv.length() == 0 ) throw new AssertionError();
+		if ( bv.length() == 0 ) {
+			h[ 0 ] = seed ^ 0x8de6a918d6538324L;
+			h[ 1 ] = seed ^ 0x6bda2aef21654e7dL;
+			h[ 2 ] = seed ^ 0x36071e726d0ba0c5L;
+		}
 		
 		/* Set up the internal state */
 		a = b = seed;
