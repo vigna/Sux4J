@@ -229,21 +229,21 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect monotone hash table reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
-			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final int bufferSize = jsapResult.getInt( "bufferSize" );
-		final String tableName = jsapResult.getString( "table" );
+		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
@@ -263,17 +263,17 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			while( stringIterator.hasNext() ) stringList.add( stringIterator.next().copy() );
 			pl.done();
 
-			LOGGER.info( "Building minimal perfect monotone hash table..." );
+			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, TransformationStrategies.prefixFreeUtf16() );
 		}
 		else {
-			LOGGER.info( "Building minimal perfect monotone hash table..." );
+			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
 			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : TransformationStrategies.prefixFreeUtf16() );
 		}
 
 		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( lcpMinimalPerfectMonotoneHash, tableName );
+		BinIO.storeObject( lcpMinimalPerfectMonotoneHash, functionName );
 		LOGGER.info( "Completed." );
 	}
 }
