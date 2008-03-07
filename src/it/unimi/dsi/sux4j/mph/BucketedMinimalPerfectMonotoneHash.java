@@ -79,7 +79,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
 	/** A distributor assigning keys to buckets. */
-	private BitStreamImmutableBinaryTrie<BitVector> distributor;
+	private final BitStreamImmutableBinaryTrie<BitVector> distributor;
 	/** The offset of each vector into his bucket. */
 	final private MWHCFunction<BitVector> offset;
 	
@@ -121,10 +121,18 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		long averageLength = totalLength / n;
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
-		log2BucketSize = t <= 6 ? t : t - 3;
+		LOGGER.debug( "First bucket size estimate: " +  ( 1 << t ) );
+		
+		final BitStreamImmutableBinaryTrie<BitVector> firstDistributor = new BitStreamImmutableBinaryTrie<BitVector>( vectors, 1 << t, TransformationStrategies.identity() );
+
+		// Reassign bucket size based on empirical estimation
+		
+		log2BucketSize = t - Fast.ceilLog2( (int)Math.ceil( n / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
-		
+
+		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
+
 		distributor = new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
 
 		vectors = null;
@@ -141,7 +149,6 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast distributor bit cost: " + ( n / bucketSize ) * ( maxLength + log2BucketSize - Math.log( n ) ) );
-		LOGGER.debug( "Empirical forecast distributor bit cost: " + ( n / bucketSize ) * ( averageLength + log2BucketSize - Math.log( n ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( n ) ) ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
