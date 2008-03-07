@@ -210,7 +210,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
 		final BucketedMinimalPerfectMonotoneHash<CharSequence> minimalPerfectMonotoneHash;
-		TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
+		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		if ( stringFile == null ) {
 			ArrayList<MutableString> stringList = new ArrayList<MutableString>();

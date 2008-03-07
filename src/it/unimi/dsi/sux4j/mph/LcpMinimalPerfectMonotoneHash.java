@@ -237,6 +237,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
@@ -250,11 +251,13 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 
 		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
 		final LcpMinimalPerfectMonotoneHash<CharSequence> lcpMinimalPerfectMonotoneHash;
+		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		if ( stringFile == null ) {
 			ArrayList<MutableString> stringList = new ArrayList<MutableString>();
@@ -267,12 +270,12 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, TransformationStrategies.prefixFreeUtf16() );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, transformationStrategy );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : TransformationStrategies.prefixFreeUtf16() );
+			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
 		}
 
 		LOGGER.info( "Writing to file..." );		
