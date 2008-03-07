@@ -271,7 +271,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			FileLinesCollection flc = new FileLinesCollection( stringFile, "UTF-8", zipped );
+			FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
 			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : TransformationStrategies.prefixFreeUtf16() );
 		}
 
