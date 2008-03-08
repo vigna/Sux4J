@@ -30,19 +30,15 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.io.FileLinesList;
 import it.unimi.dsi.sux4j.scratch.BitStreamImmutableBinaryTrie;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -91,39 +87,35 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public BucketedMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
+	public BucketedMinimalPerfectMonotoneHash( final List<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 
-		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		this.transform = transform;
 
-		Iterator<? extends T> iterator = iterable.iterator();
-		
-		if ( ! iterator.hasNext() )	{
-			n = bucketSize = bucketSizeMask = log2BucketSize = 0;
+		n = elements.size();
+		if ( n == 0 )	{
+			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
 			return;
 		}
 
-		ObjectArrayList<BitVector> vectors = new ObjectArrayList<BitVector>();
-		
 		long maxLength = 0;
 		long totalLength = 0;
 		BitVector bv;
-		while( iterator.hasNext() ) {
-			bv = transform.toBitVector( iterator.next() ).copy();
+		for( T s: elements ) {
+			bv = transform.toBitVector( s );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
-			vectors.add( bv );
 		}
 		
-		n = vectors.size();
 		long averageLength = totalLength / n;
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
 		LOGGER.debug( "First bucket size estimate: " +  ( 1 << t ) );
 		
-		final BitStreamImmutableBinaryTrie<BitVector> firstDistributor = new BitStreamImmutableBinaryTrie<BitVector>( vectors, 1 << t, TransformationStrategies.identity() );
+		final List<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
+		
+		final BitStreamImmutableBinaryTrie<BitVector> firstDistributor = new BitStreamImmutableBinaryTrie<BitVector>( bitVectors, 1 << t, TransformationStrategies.identity() );
 
 		// Reassign bucket size based on empirical estimation
 		
@@ -133,7 +125,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
-		distributor = new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
+		distributor = new BitStreamImmutableBinaryTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 /*
 		
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
@@ -141,10 +133,8 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 1 ) );
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
 	*/	
-		vectors = null;
 		
-		
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
 			}
@@ -191,8 +181,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
+			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
 		});
 
@@ -203,33 +192,17 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 
 		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
-		final BucketedMinimalPerfectMonotoneHash<CharSequence> minimalPerfectMonotoneHash;
+		final BucketedMinimalPerfectMonotoneHash<? extends CharSequence> minimalPerfectMonotoneHash;
 		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
-		if ( stringFile == null ) {
-			ArrayList<MutableString> stringList = new ArrayList<MutableString>();
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.itemsName = "strings";
-			final LineIterator stringIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
-
-			pl.start( "Reading strings..." );
-			while( stringIterator.hasNext() ) stringList.add( stringIterator.next().copy() );
-			pl.done();
-
-			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( stringList, transformationStrategy );
-		}
-		else {
-			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
-			minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
-		}
+		LOGGER.info( "Building minimal perfect monotone hash function..." );
+		FileLinesList fileLinesList = new FileLinesList( stringFile, encoding.name(), bufferSize );
+		minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( fileLinesList, huTucker ? new HuTuckerTransformationStrategy( fileLinesList, true ) : transformationStrategy );
 
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( minimalPerfectMonotoneHash, functionName );

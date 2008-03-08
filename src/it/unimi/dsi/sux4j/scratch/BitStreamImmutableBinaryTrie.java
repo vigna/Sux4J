@@ -4,6 +4,7 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -42,7 +44,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 	private static final boolean DDEBUG = false;
 	private byte[] trie;
 	private int size;
-	private final TransformationStrategy<T> transformationStrategy;
+	private final TransformationStrategy<? super T> transformationStrategy;
 	
 	private final static class BitstreamTrie<T> {
 		private final static boolean ASSERTS = false;
@@ -94,7 +96,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		/** The root of the trie. */
 		protected final Node root;
 		/** The number of words in this trie. */
-		private final TransformationStrategy<T> transformationStrategy;
+		private final TransformationStrategy<? super T> transformationStrategy;
 		
 		/** Creates a trie from a set of elements.
 		 * 
@@ -103,28 +105,25 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		 * distinct, lexicographically increasing (in iteration order) binary words.
 		 */
 		
-		public BitstreamTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<T> transformationStrategy ) {
+		public BitstreamTrie( final List<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
 			this.transformationStrategy = transformationStrategy;
 			// Check order
-			final Iterator<? extends T> iterator = elements.iterator();
-			final ObjectList<LongArrayBitVector> words = new ObjectArrayList<LongArrayBitVector>();
-			int cmp;
+			final List<BitVector> bitVectors = TransformationStrategies.wrap( elements, transformationStrategy );
+			final Iterator<BitVector> iterator = bitVectors.iterator();
 			if ( iterator.hasNext() ) {
-				final LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
-				words.add( prev.copy() );
+				final LongArrayBitVector prev = LongArrayBitVector.copy( iterator.next() );
 				BitVector curr;
 
 				while( iterator.hasNext() ) {
-					curr = transformationStrategy.toBitVector( iterator.next() );
-					cmp = prev.compareTo( curr );
+					curr = iterator.next();
+					final int cmp = prev.compareTo( curr );
 					if ( cmp == 0 ) throw new IllegalArgumentException( "The trie elements are not unique" );
 					if ( cmp > 0 ) throw new IllegalArgumentException( "The trie elements are not sorted" );
 					prev.replace( curr );
-					words.add( prev.copy() );
 				}
 			}
 			
-			root = buildTrie( words, bucketSize, Math.min( words.size(), bucketSize ) - 1, 0 );
+			root = buildTrie( bitVectors, bucketSize, Math.min( elements.size(), bucketSize ) - 1, 0 );
 			LOGGER.info( "Gain: " + gain );
 		}
 
@@ -139,7 +138,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		
 		protected int gain;
 			
-		protected Node buildTrie( final ObjectList<LongArrayBitVector> elements, final int bucketSize, final int firstIndex, final int pos ) {
+		protected Node buildTrie( final List<BitVector> elements, final int bucketSize, final int firstIndex, final int pos ) {
 			final int numElements = elements.size();
 			//System.err.println( "Size:" + numElements + " First delimiter: " + firstIndex );
 			
@@ -274,7 +273,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		}
 	}
 	
-	public BitStreamImmutableBinaryTrie( Iterable<? extends T> elements, int bucketSize, TransformationStrategy<T> transformationStrategy ) throws IOException {
+	public BitStreamImmutableBinaryTrie( List<? extends T> elements, int bucketSize, TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 
 		this.transformationStrategy = transformationStrategy;
 		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, bucketSize, transformationStrategy );
