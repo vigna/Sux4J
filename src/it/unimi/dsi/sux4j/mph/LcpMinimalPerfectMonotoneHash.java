@@ -79,7 +79,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	final protected int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
 	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected MWHCFunction<T> offsetLcpLength;
+	final protected MWHCFunction<BitVector> offsetLcpLength;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
@@ -87,9 +87,15 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final T key = (T)o;
-		final long value = offsetLcpLength.getLong( key );
-		return lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask );
+		final BitVector bitVector = transform.toBitVector( (T)o );
+		final long value = offsetLcpLength.getLong( bitVector );
+		return lcp2Bucket.getLong( bitVector.subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask );
+	}
+
+	@SuppressWarnings("unchecked")
+	public long getByBitVector( final BitVector bitVector ) {
+		final long value = offsetLcpLength.getLong( bitVector );
+		return lcp2Bucket.getLong( bitVector.subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask );
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
@@ -176,7 +182,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 		}
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<T>( iterable, transform, new AbstractLongList() {
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
 			}

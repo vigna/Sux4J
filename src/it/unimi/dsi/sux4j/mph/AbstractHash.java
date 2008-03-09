@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 
 /** A very minimal abstract hash implementation. With respect to {@link AbstractObject2LongFunction},
@@ -38,4 +39,5 @@ public abstract class AbstractHash<K> extends AbstractObject2LongFunction<K> {
 		return -1;
 	}
 
+	public abstract long getByBitVector( BitVector key );
 }

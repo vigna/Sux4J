@@ -86,6 +86,11 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
 
+	public long getByBitVector( final BitVector bv ) {
+		final long bucket = distributor.getLong( bv );
+		return ( bucket << log2BucketSize ) + offset.getLong( bv );
+	}
+
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public BucketedMinimalPerfectMonotoneHash( final List<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 

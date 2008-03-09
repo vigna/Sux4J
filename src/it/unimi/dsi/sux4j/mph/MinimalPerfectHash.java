@@ -284,6 +284,11 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		return result < n ? result : defRetValue;
 	}
 
+	@Override
+	public long getByBitVector( BitVector key ) {
+		throw new UnsupportedOperationException();
+	}
+	
 	public boolean containsKey( Object key ) {
 		return true;
 	}

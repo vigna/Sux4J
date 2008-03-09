@@ -122,6 +122,57 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		return index;
 	}
 	
+	@SuppressWarnings("unchecked")
+	public long getByBitVector( final BitVector bitVector ) {
+		if ( size <= 1 ) return size - 1;
+		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
+		int s = 0;
+		
+		for(;;) {
+			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
+
+			//System.out.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
+			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
+			else p = 2 * r + 1;
+
+			t = 2 * rank9.rank( a, b + 1 );
+			a = b + 1;
+			b += t;
+			
+			index += p - a - rank9.rank( a, p );
+
+			//System.err.println( a + " " + b + " " + p + " " + index );
+			
+			if ( ASSERTS ) assert p < trie.length();
+			if ( ! trie.getBoolean( p ) ) break;
+
+			r = rank9.rank( p + 1 ) - 1;
+			
+			s++;
+		}
+		
+		// System.out.println();
+		// Complete computation of leaf index
+		
+		for(;;) {
+			p = select.select( ( r = rank9.rank( p + 1 ) ) - 1 );
+			if ( p < a ) break;
+			p = r * 2;
+			
+			t = 2 * rank9.rank( a, b + 1 );
+			a = b + 1;
+			b += t;
+			
+			index += p - a + 1 - rank9.rank( a, p + 1 );
+			
+			//System.err.println( "Scanning; " + a + " " + b + " " + p + " " + index );
+		}
+
+		//System.err.println( "Returning " + index );
+
+		return index;
+	}
+	
 	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 		this( iterable.iterator(), transform );
 	}

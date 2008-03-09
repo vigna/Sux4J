@@ -294,4 +294,10 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		BinIO.storeObject( hollowTrie, trieName );
 		LOGGER.info( "Completed." );
 	}
+
+
+	@Override
+	public long getByBitVector( BitVector key ) {
+		throw new UnsupportedOperationException();
+	}
 }

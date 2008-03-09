@@ -213,6 +213,17 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 				( marker.getBoolean( e[ 2 ] ) ? data.getLong( rank.rank( e[ 2 ] ) ) : 0 );
 	}
 	
+	@SuppressWarnings("unchecked")
+	public long getByBitVector( final BitVector bitVector ) {
+		final int[] e = new int[ 3 ];
+		HypergraphSorter.bitVectorToEdge( bitVector, seed, m, e );
+		return rank == null ?
+				data.getLong( e[ 0 ] ) ^ data.getLong( e[ 1 ] ) ^ data.getLong( e[ 2 ] ) :
+				( marker.getBoolean( e[ 0 ] ) ? data.getLong( rank.rank( e[ 0 ] ) ) : 0 ) ^
+				( marker.getBoolean( e[ 1 ] ) ? data.getLong( rank.rank( e[ 1 ] ) ) : 0 ) ^
+				( marker.getBoolean( e[ 2 ] ) ? data.getLong( rank.rank( e[ 2 ] ) ) : 0 );
+	}
+	
 	/** Returns the number of elements in the function domain.
 	 *
 	 * @return the number of the elements in the function domain.
