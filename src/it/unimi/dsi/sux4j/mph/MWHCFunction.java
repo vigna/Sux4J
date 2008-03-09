@@ -251,6 +251,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
 		});
@@ -261,6 +262,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		final String tableName = jsapResult.getString( "table" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 
 		final MWHCFunction<CharSequence> function;
@@ -270,7 +272,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		
 		final FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final int size = flc.size();
-		function = new MWHCFunction<CharSequence>( flc, TransformationStrategies.utf16(), null, Fast.ceilLog2( size ) );
+		function = new MWHCFunction<CharSequence>( flc, iso ? TransformationStrategies.iso() : TransformationStrategies.utf16(), null, Fast.ceilLog2( size ) );
 
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( function, tableName );
