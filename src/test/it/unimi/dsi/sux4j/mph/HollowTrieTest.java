@@ -81,6 +81,14 @@ public class HollowTrieTest extends TestCase {
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 		assertEquals( n, hollowTrie.size() );
 
+		// Exercise code for negative results
+		for( int i = 1000; i-- != 0; ) {
+			int l = r.nextInt( 30 );
+			final BitVector bv = LongArrayBitVector.getInstance( l );
+			while( l-- != 0 ) bv.add( r.nextBoolean() );
+			hollowTrie.getLong( bv );
+		}
+		
 		// Test serialisation
 		final File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();

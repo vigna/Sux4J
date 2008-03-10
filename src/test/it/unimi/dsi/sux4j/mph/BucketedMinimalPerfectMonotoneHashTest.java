@@ -29,6 +29,9 @@ public class BucketedMinimalPerfectMonotoneHashTest extends TestCase {
 		BucketedMinimalPerfectMonotoneHash<String> mph = new BucketedMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+		// Exercise code for negative results
+		for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + 1000 ) );
 		
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();

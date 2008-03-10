@@ -2,16 +2,12 @@ package it.unimi.dsi.sux4j.scratch;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
@@ -127,6 +123,8 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			LOGGER.info( "Gain: " + gain );
 		}
 
+		protected int gain;
+		
 		/** Builds a trie recursively. 
 		 * 
 		 * <p>The trie will contain the suffixes of words in <code>words</code> starting at <code>pos</code>.
@@ -135,8 +133,6 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		 * @param pos a starting position.
 		 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
 		 */
-		
-		protected int gain;
 			
 		protected Node buildTrie( final List<BitVector> elements, final int bucketSize, final int firstIndex, final int pos ) {
 			final int numElements = elements.size();
@@ -304,37 +300,32 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			long length = v.length();
 			final InputBitStream trie = new InputBitStream( this.trie );
 
-			int pos = 0;
+			long pos = 0;
 			int leaf = 0;
 			for( ;; ) {
 				long skip = trie.readLongDelta();
 
 				int pathLength = trie.readDelta();
 				if ( DEBUG ) System.err.println( "Path length: " + pathLength );
-				int lcp = 0;
-
+				
 				long xor = 0, t = 0;
-				int i;
+				int i, size;
 				
 				long readBits = trie.readBits();
 				
 				//System.err.println( v.subVector(  pos, v.length() ) );
 				
 				for( i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
-					int size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
+					size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
 					xor = v.getLong( pos, Math.min( length, pos += size ) ) ^ ( t = trie.readLong( size ) );
 					
 					//System.err.println( "Checking with " + LongArrayBitVector.wrap( new long[] { t }, size ) );
 					
-					if ( xor != 0 ) {
-						lcp += Fast.leastSignificantBit( xor );
-						break;
-					}
-					else lcp += size;
+					if ( xor != 0 || pos >= length ) break;
 				}
 
-				if ( xor != 0 ) {
-					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at " + lcp + " (leaf = " + leaf + ")" );
+				if ( xor != 0 || pos > length ) {
+					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at (leaf = " + leaf + ")" );
 					if ( ( ( xor & -xor ) & t ) != 0 ) return leaf;
 					else {
 						if ( skip == 0 ) {
@@ -363,9 +354,6 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 				int leavesLeft = trie.readDelta();
 				trie.readDelta(); // Skip number of right leaves
 				
-				if ( DEBUG ) System.err.println( "Path coincides for " + lcp + " bits " );
-				if ( lcp != pathLength ) throw new AssertionError();
-
 				if ( pos >= v.length() ) return leaf;
 				
 				if ( v.getBoolean( pos++ ) ) {

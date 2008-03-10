@@ -29,6 +29,9 @@ public class MWHCFunctionTest extends TestCase {
 				check[ (int)mph.getLong( s[ i ] ) ] = i;
 			}
 
+			// Exercise code for negative results
+			for( int i = 1000; i-- != 0; ) mph.getLong( Integer.toString( i * i + 1000 ) );
+
 			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 			temp.deleteOnExit();
 			BinIO.storeObject( mph, temp );

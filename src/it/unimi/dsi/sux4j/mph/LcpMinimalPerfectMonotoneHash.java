@@ -89,12 +89,15 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o );
 		final long value = offsetLcpLength.getLong( bitVector );
-		return lcp2Bucket.getLong( bitVector.subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask );
+		final long prefix = value >>> log2BucketSize; 
+		if ( prefix > bitVector.length() ) return -1;
+		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + ( value & bucketSizeMask );
 	}
 
 	@SuppressWarnings("unchecked")
 	public long getByBitVector( final BitVector bitVector ) {
 		final long value = offsetLcpLength.getLong( bitVector );
+		if ( value > bitVector.length() ) return -1;
 		return lcp2Bucket.getLong( bitVector.subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask );
 	}
 
