@@ -5,33 +5,19 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.mph.HollowTrie;
 import it.unimi.dsi.util.ImmutableBinaryTrie;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( BitStreamImmutableBinaryTrie.class );
@@ -43,7 +29,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 	private final TransformationStrategy<? super T> transformationStrategy;
 	
 	private final static class BitstreamTrie<T> {
-		private final static boolean ASSERTS = false;
+		private final static boolean ASSERTS = true;
 		
 		/** A node in the trie. */
 		protected static class Node implements Serializable {
@@ -140,17 +126,17 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			
 			if ( numElements == 0 ) return null;
 
-			final BitVector first = elements.get( firstIndex );
+			final LongArrayBitVector first = LongArrayBitVector.copy( elements.get( firstIndex ).subVector( pos ) );
 			int prefix = first.size(), change = 0, j = -1, lastIndex = firstIndex, middleIndex = firstIndex;
 			BitVector curr;
-			
+
 			if ( firstIndex + bucketSize < numElements ) {
 				// 	Find maximum common prefix. change records the point of change (for splitting the delimiter set).
 				for( int i = firstIndex + bucketSize; i < numElements; i += bucketSize ) {
 					curr = elements.get( i );
 					lastIndex = i;
-					// TODO: use longestCommonPrefix
-					for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+					j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
+					System.err.println( "Round " + i + ": prefix " + j );
 					if ( j < prefix ) {
 						middleIndex = i;
 						prefix = j;
@@ -160,12 +146,12 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 				if ( ASSERTS ) assert middleIndex > firstIndex;
 				
 				// Find exact change point
-				for( change = middleIndex - bucketSize + 1; change <= middleIndex; change++ ) if ( elements.get( change ).getBoolean( prefix ) ) break;
+				for( change = middleIndex - bucketSize + 1; change <= middleIndex; change++ ) if ( elements.get( change ).getBoolean( pos + prefix ) ) break;
 
 				if ( ASSERTS ) {
 					assert change < middleIndex + 1;
-					assert ! elements.get( change - 1 ).getBoolean( prefix );
-					assert elements.get( change ).getBoolean( prefix );
+					assert ! elements.get( change - 1 ).getBoolean( pos + prefix );
+					assert elements.get( change ).getBoolean( pos + prefix );
 				}
 			}
 			
@@ -174,7 +160,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			while( --startElement >= 0 ) {
 				curr = elements.get( startElement );
 				// TODO: use longestCommonPrefix
-				for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+				j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
 				if ( j < prefix ) {
 					j++;
 					startPrefix = j;
@@ -189,7 +175,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			while( ++endElement < numElements ) {
 				curr = elements.get( endElement );
 				// TODO: use longestCommonPrefix
-				for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
+				j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
 				if ( j < prefix ) {
 					j++;
 					endPrefix = j;
@@ -203,21 +189,23 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			int k;
 			
 			if ( ASSERTS ) {
-				for( k = 0; k < startElement; k++ ) assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, elements.get( k ).length() ) ) < startPrefix; 
+				for( k = 0; k < startElement; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < startPrefix; 
 
 				for( k = startElement; k < endElement; k++ ) 
-					assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, prefix ) ) >= prefix - pos :
-						"At " + k + " out of " + numElements + ": " + first.longestCommonPrefixLength( elements.get( k ) ) + " < " + prefix;
+					assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) >= prefix :
+						"At " + k + " out of " + numElements + ": " + first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) + " < " + prefix;
 
-					for( k = endElement; k < numElements; k++ ) assert first.subVector( pos, first.length() ).longestCommonPrefixLength( elements.get( k ).subVector( pos, elements.get( k ).length() ) ) < endPrefix;
-
+				for( k = endElement; k < numElements; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < endPrefix;
+					
 			}
 
-			if ( pos < Math.max( startPrefix, endPrefix ) ) gain += prefix - Math.max( startPrefix, endPrefix );
-			n = new Node( pos < j ? LongArrayBitVector.copy( first.subVector( pos, Math.max( startPrefix, endPrefix ) ) ) : null, prefix - pos ); // There's some common prefix
+			final int reducedPrefix = Math.max( startPrefix, endPrefix );
+			if ( reducedPrefix < prefix ) gain += prefix - reducedPrefix;
+
+			n = new Node( reducedPrefix > 0 ? LongArrayBitVector.copy( first.subVector( 0, reducedPrefix ) ) : null, prefix ); // There's some common prefix
 			if ( firstIndex + bucketSize < numElements ) {
-				n.left = buildTrie( elements.subList( startElement, change ), bucketSize, firstIndex - startElement, prefix + 1 );
-				n.right = buildTrie( elements.subList( change, endElement ), bucketSize, middleIndex - change, prefix + 1 );
+				n.left = buildTrie( elements.subList( startElement, change ), bucketSize, firstIndex - startElement, pos + prefix + 1 );
+				n.right = buildTrie( elements.subList( change, endElement ), bucketSize, middleIndex - change, pos + prefix + 1 );
 			}
 			return n;
 		}
@@ -415,48 +403,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		path.delete( path.length() - pathLength, path.length() );
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
-
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
-				new Parameter[] {
-					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
-					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
-					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
-					new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
-					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
-					new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised hollow trie." )
-		});
-		
-		JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
-		
-		final int bufferSize = jsapResult.getInt( "bufferSize" );
-		final String trieName = jsapResult.getString( "trie" );
-		final String stringFile = jsapResult.getString( "termFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
-		
-		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
-		
-		final BitStreamImmutableBinaryTrie<CharSequence> hollowTrie;
-		
-		LOGGER.info( "Building trie..." );
-
-		/*if ( stringFile == null ) {
-			hollowTrie = new BitStreamImmutableBinaryTrie<CharSequence>( new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) ), TransformationStrategies.prefixFreeUtf16() );
-		} 
-		else {*/
-			FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-			hollowTrie = null;//new BitStreamImmutableBinaryTrie<CharSequence>( collection, collection, huTucker ? new HuTuckerTransformationStrategy( collection, true ) : TransformationStrategies.prefixFreeUtf16() );
-		//}
-		
-		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( hollowTrie, trieName );
-		LOGGER.info( "Completed." );
-	}
-
-	public boolean containsKey( Object arg0 ) {
+	public boolean containsKey( Object o ) {
 		return true;
 	}
 
@@ -467,5 +414,4 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 	public int size() {
 		return size;
 	}
-
 }
