@@ -1,5 +1,26 @@
 package it.unimi.dsi.sux4j.mph;
 
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
+
 import static it.unimi.dsi.bits.Fast.length;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -293,32 +314,13 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
-		/*this.skips = LongArrayBitVector.getInstance( skipsLength );
-		final LongArrayBitVector borders = LongArrayBitVector.getInstance( skipsLength );
-		int s = skips.size();
-		int x;
-		for( IntIterator i = skips.iterator(); s-- != 0; ) {
-			x = i.nextInt();
-			this.skips.append( x, length( x ) );
-			borders.append( 1, length( x ) );
-		}
-		
-		borders.append( 1, 1 ); // Sentinel
-		if ( this.skips.trim() ) throw new AssertionError();
-		if ( borders.trim() ) throw new AssertionError();*/
 		
 		this.skips = new TwoSizesLongBigList( skips );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );
 			System.err.println( this.skips );
-			//System.err.println( borders );
 		}
-		
-		//TODO: try with SDArray
-		//skipLocator = new SparseSelect( borders );
-		
-		//LOGGER.info( "Bits for skips: " +(  this.skips.length() + skipLocator.numBits() ))
 		
 		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );

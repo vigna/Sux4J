@@ -28,17 +28,13 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.io.FileLinesList;
 import it.unimi.dsi.sux4j.scratch.BitStreamImmutableBinaryTrie;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
