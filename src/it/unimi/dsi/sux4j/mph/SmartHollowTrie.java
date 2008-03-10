@@ -12,7 +12,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.sux4j.scratch.BitStreamImmutableBinaryTrie;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
@@ -48,9 +47,8 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 	
 	private int size;
 	private int n;
-	private MWHCFunction<T> offsetLcpLength;
 	private int bucketSize;
-	private BitStreamImmutableBinaryTrie<BitVector> trie;
+	private BitstreamImmutableBinaryPartialTrie<BitVector> trie;
 	private int log2BucketSize;
 	private TransformationStrategy<? super T> transform;
 	private TwoSizesLongBigList skips;
@@ -192,7 +190,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		
 		this.skips = new TwoSizesLongBigList( skips );
 		
-		trie = new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
+		trie = new BitstreamImmutableBinaryPartialTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
 		this.size = n;
 
 		if ( DEBUG ) {

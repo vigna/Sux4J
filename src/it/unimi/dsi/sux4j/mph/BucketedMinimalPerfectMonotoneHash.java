@@ -30,7 +30,6 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.sux4j.io.FileLinesList;
-import it.unimi.dsi.sux4j.scratch.BitStreamImmutableBinaryTrie;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -72,7 +71,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
 	/** A distributor assigning keys to buckets. */
-	private final BitStreamImmutableBinaryTrie<BitVector> distributor;
+	private final BitstreamImmutableBinaryPartialTrie<BitVector> distributor;
 	/** The offset of each vector into his bucket. */
 	final private MWHCFunction<BitVector> offset;
 	
@@ -117,7 +116,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		
 		final List<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
-		final BitStreamImmutableBinaryTrie<BitVector> firstDistributor = new BitStreamImmutableBinaryTrie<BitVector>( bitVectors, 1 << t, TransformationStrategies.identity() );
+		final BitstreamImmutableBinaryPartialTrie<BitVector> firstDistributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, 1 << t, TransformationStrategies.identity() );
 
 		// Reassign bucket size based on empirical estimation
 		
@@ -127,7 +126,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
-		distributor = new BitStreamImmutableBinaryTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		distributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 /*
 		
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );

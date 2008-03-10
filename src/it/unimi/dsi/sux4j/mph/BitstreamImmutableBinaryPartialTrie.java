@@ -1,4 +1,25 @@
-package it.unimi.dsi.sux4j.scratch;
+package it.unimi.dsi.sux4j.mph;
+
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *
+ */
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -19,13 +40,43 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction<T> {
-	private final static Logger LOGGER = Util.getLogger( BitStreamImmutableBinaryTrie.class );
+/** A succinct implementation of a binary partial trie based on a recursive bitstream.
+ * 
+ * <p>Instances of this class represent a <em>partial compacted trie</em>. In such a trie,
+ * just a prefix of the path at each node is actually stored: then, we just store the number of missing bits.
+ * 
+ * <p>The main purpose of partial tries is to serve as <em>distributors</em> for other data structures:
+ * given a set of delimiters <var>D</var> of a set <var>S</var>, a partial trie will {@linkplain #getLong(Object) <em>rank</em>}
+ * an elements <var>x</var> of <var>S</var> over <var>D</var>, that is, it will return how many elements of
+ * <var>D</var> strictly precede <var>x</var>. To do so, a partial trie records at each node the smallest possible
+ * prefix that make it possible to rank correctly the whole of <var>S</var>: depending on the strings in
+ * <var>S</var>, the savings in space can be more or less significant.
+ * 
+ * <p>An instance of this class stores a trie as a <em>recursive bitstream</em>: a node <var>x</var> with
+ * subtrees <var>A</var> and <var>B</var> is stored as
+ *  <div style="text-align: center">
+ *  <var>skip</var> <var>pathlen</var> <var>path</var> <var>missing</var> <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var> <var>A</var> <var>B</var>,
+ *  </div>
+ * where except for <var>path</var>, which is the path at <var>x</var> represented literally,
+ * all other components are numbers in {@linkplain OutputBitStream#writeDelta(int) &delta; coding}, and the
+ * last two components are the recursive encodings of <var>A</var> and <var>B</var>. Leaves are
+ * distinguished by having <var>skip</var> equal to zero. <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var>
+ * are the number of leaves of <var>A</var> and <var>B</var>, respectively.
+ * 
+ * @author Sebastiano Vigna
+ */
+
+public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongFunction<T> {
+	private final static Logger LOGGER = Util.getLogger( BitstreamImmutableBinaryPartialTrie.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
+	
+	/** The bitstream representing the partial trie. */
 	private byte[] trie;
+	/** The number of leaves in the trie. */
 	private int size;
+	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	
 	private final static class BitstreamTrie<T> {
@@ -39,17 +90,18 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			final public long[] path;
 			/** The length of the path compacted in this node (0 if there is no compaction at this node). */
 			final public int pathLength;
+			/** The number of missing bits at this node. */
+			final public int missing;
 			
-			final public int skip;
-			
-			/** Creates a node representing a word. 
+			/** Creates a node. 
 			 * 
 			 * <p>Note that the long array contained in <code>path</code> will be stored inside the node.
 			 * 
 			 * @param path the path compacted in this node, or <code>null</code> for the empty path.
+			 * @param missing the number of bits missing from <code>path</code>.
 			 */
 			
-			public Node( final BitVector path, final int skip ) {
+			public Node( final BitVector path, final int missing ) {
 				if ( path == null ) {
 					this.path = null;
 					this.pathLength = 0;
@@ -58,27 +110,25 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 					this.path = path.bits();
 					this.pathLength = path.size();
 				}
-				this.skip = skip;
+				this.missing = missing;
 			}
 
 			/** Returns true if this node is a leaf.
 			 * 
-			 * @return  true if this node is a leaf.
+			 * @return true if this node is a leaf.
 			 */
 			public boolean isLeaf() {
 				return right == null && left == null;
 			}
 			
 			public String toString() {
-				return "[" + path + ", " + skip + "]";
+				return "[" + path + ", " + missing + "]";
 			}
 			
 		}
 			
 		/** The root of the trie. */
 		protected final Node root;
-		/** The number of words in this trie. */
-		private final TransformationStrategy<? super T> transformationStrategy;
 		
 		/** Creates a trie from a set of elements.
 		 * 
@@ -88,7 +138,6 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		 */
 		
 		public BitstreamTrie( final List<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
-			this.transformationStrategy = transformationStrategy;
 			// Check order
 			final List<BitVector> bitVectors = TransformationStrategies.wrap( elements, transformationStrategy );
 			final Iterator<BitVector> iterator = bitVectors.iterator();
@@ -216,7 +265,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		private static int toStream( Node n, OutputBitStream trie ) throws IOException {
 			if ( n == null ) return 0;
 			
-			if ( ( n.left != null ) != ( n.right != null ) ) throw new IllegalStateException();
+			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
 			
 			// We recursively create the stream of the left and right trees
 			final FastByteArrayOutputStream leftStream = new FastByteArrayOutputStream();
@@ -231,14 +280,14 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 			long rightBits = right.writtenBits();
 			right.flush();
 			
-			trie.writeLongDelta( n.left == null ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
+			trie.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
 			
 			trie.writeDelta( n.pathLength );
 			final long wb = trie.writtenBits();
 			if ( n.pathLength > 0 ) for( int i = 0; i < n.path.length; i++ ) trie.writeLong( n.path[ i ], Math.min( Long.SIZE, n.pathLength - i * Long.SIZE ) );
 			assert trie.writtenBits() == wb + n.pathLength;
 
-			trie.writeDelta( n.skip - n.pathLength );
+			trie.writeDelta( n.missing - n.pathLength );
 			
 			if ( n.left != null ) {
 				trie.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
@@ -256,7 +305,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 		}
 	}
 	
-	public BitStreamImmutableBinaryTrie( List<? extends T> elements, int bucketSize, TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public BitstreamImmutableBinaryPartialTrie( List<? extends T> elements, int bucketSize, TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 
 		this.transformationStrategy = transformationStrategy;
 		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, bucketSize, transformationStrategy );
