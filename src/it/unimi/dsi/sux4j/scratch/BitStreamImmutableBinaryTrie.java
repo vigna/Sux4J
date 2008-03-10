@@ -29,7 +29,7 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 	private final TransformationStrategy<? super T> transformationStrategy;
 	
 	private final static class BitstreamTrie<T> {
-		private final static boolean ASSERTS = true;
+		private final static boolean ASSERTS = false;
 		
 		/** A node in the trie. */
 		protected static class Node implements Serializable {
@@ -136,7 +136,6 @@ public class BitStreamImmutableBinaryTrie<T> extends AbstractObject2LongFunction
 					curr = elements.get( i );
 					lastIndex = i;
 					j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
-					System.err.println( "Round " + i + ": prefix " + j );
 					if ( j < prefix ) {
 						middleIndex = i;
 						prefix = j;
