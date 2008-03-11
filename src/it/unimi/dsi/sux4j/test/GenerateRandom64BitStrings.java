@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
@@ -43,22 +44,27 @@ public class GenerateRandom64BitStrings {
 		pl.expectedUpdates = n;
 		pl.start( "Generating... " );
 		
-		double l = 0, t;
-		double limit = Math.pow( 224, 8 );
-		long incr = (long)Math.floor( 1.99 * ( limit / n ) ) - 1;
+		BigInteger l = BigInteger.ZERO, t;
+		BigInteger limit = BigInteger.valueOf( 224 ).pow( 8 );
+		long incr = (long)Math.floor( 1.99 * ( limit.divide( BigInteger.valueOf( n ) ).longValue() ) ) - 1;
 		
 		final MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
+		final BigInteger divisor = BigInteger.valueOf( 224 );
 		
 		LOGGER.info( "Increment: " + incr );
 		
+		BigInteger a[];
+		
 		for( int i = 0; i < n; i++ ) {
-			t = ( l += ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 );
-			if ( l >= limit ) throw new AssertionError( Integer.toString( i ) );
+			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
+			t = l; 
+			if ( l.compareTo( limit ) >= 0 ) throw new AssertionError( Integer.toString( i ) );
 			s.length( 0 );
 			for( int j = 8; j-- != 0; ) {
-				s.append( (char)( (int)(t % 224) + 32 ) );
-				t = Math.floor( t / 224 );
+				a = t.divideAndRemainder( divisor );
+				s.append( (char)( a[ 1 ].longValue() + 32 ) );
+				t = a[ 0 ];
 			}
 			
 			s.reverse().println( pw );
@@ -69,6 +75,6 @@ public class GenerateRandom64BitStrings {
 		pl.done();
 		pw.close();
 		
-		LOGGER.info( "Last/limit: " + ( l / limit ) );
+		LOGGER.info( "Last/limit: " + ( l.doubleValue() / limit.doubleValue() ) );
 	}
 }
