@@ -57,11 +57,10 @@ public class GenerateRandom32BitStrings {
 			s.length( 0 );
 			for( int j = 4; j-- != 0; ) {
 				s.append( (char)( t % 224 + 32 ) );
-				t /= 224;
+				t = Math.floor( t / 224 );
 			}
 			
-			s.reverse();
-			s.println( pw );
+			s.reverse().println( pw );
 			
 			pl.lightUpdate();
 		}
