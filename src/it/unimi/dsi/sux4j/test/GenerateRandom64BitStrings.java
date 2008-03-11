@@ -47,25 +47,19 @@ public class GenerateRandom64BitStrings {
 		double limit = Math.pow( 224, 8 );
 		long incr = (long)Math.floor( 1.9999999999 * ( limit / n ) );
 		
-		MutableString s = new MutableString();
+		final MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
-		
-		MutableString prev = new MutableString();
 		
 		for( int i = 0; i < n; i++ ) {
 			t = ( l += ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 );
 			if ( l >= limit ) throw new AssertionError( Integer.toString( i ) );
 			s.length( 0 );
 			for( int j = 8; j-- != 0; ) {
-				s.append( (char)( t % 224 + 32 ) );
-				t /= 224;
+				s.append( (char)( (int)(t % 224) + 32 ) );
+				t = Math.floor( t / 224 );
 			}
 			
-			s.reverse();
-			if ( prev.equals( s ) ) throw new IllegalStateException( Integer.toString( i ) );
-			s.println( pw );
-			
-			prev.replace( s );
+			s.reverse().println( pw );
 			pl.lightUpdate();
 		}
 		
