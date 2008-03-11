@@ -1,19 +1,16 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
-import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.Util;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 
-import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.Random;
+
+import org.apache.log4j.Logger;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -23,10 +20,11 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
 
 public class GenerateRandom64BitStrings {
-
+	public static final Logger LOGGER = Util.getLogger( GenerateRandom64BitStrings.class );
+	
 	public static void main( final String[] arg ) throws JSAPException, IOException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates random strings",
+		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates 64-bit random strings",
 				new Parameter[] {
 					new UnflaggedOption( "n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
@@ -40,50 +38,38 @@ public class GenerateRandom64BitStrings {
 		
 		@SuppressWarnings("unchecked")
 		Random r = new Random();
-		LongOpenHashSet strings = new LongOpenHashSet( n );
-		int t;
 	
-		ProgressLogger pl = new ProgressLogger();
+		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.expectedUpdates = n;
 		pl.start( "Generating... " );
 		
-		for( int i = 0; i < n; i++ ) {
-			long l;
-			do {
-				l = 0;
-				for( int j = 0; j < 8; j++ ) {
-					t = r.nextInt( 224 ) + 32;
-					l |= l << 8 | t;
-				}
-			} while( ! strings.add( l ) );
-			pl.lightUpdate();
-		}
+		double l = 0, t;
+		double limit = Math.pow( 224, 8 );
+		long incr = (long)Math.floor( 1.9999999999 * ( limit / n ) );
 		
-		pl.done();
-
-		DataOutputStream dos = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( output ) ) );
-		for( LongIterator i = strings.iterator(); i.hasNext(); ) dos.writeLong( i.nextLong() );
-		dos.close();
-		strings = null;
-		
-		final long[] a = new long[ n ];
-		BinIO.loadLongs( output, a );
-		Arrays.sort( a );
 		MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
-		int p = Arrays.binarySearch( a, 0 );
-		if ( p < 0 ) p = -p - 1;
 		
-		pl.expectedUpdates = n;
-		pl.start( "Saving..." );
+		
 		for( int i = 0; i < n; i++ ) {
+			t = ( l += ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 );
+			if ( l >= limit ) throw new AssertionError( Integer.toString( i ) );
 			s.length( 0 );
-			for( int j = 8; j-- != 0; ) s.append( (char)( ( a[ p ] >>> j * 8 ) & 0xFF ) );
+			for( int j = 8; j-- != 0; ) {
+				s.append( (char)( t % 224 + 32 ) );
+				t /= 224;
+			}
+			
+			s.reverse();
 			s.println( pw );
-			if ( ++p == n ) p = 0;
+			
 			pl.lightUpdate();
 		}
+		
+		
 		pl.done();
 		pw.close();
+		
+		LOGGER.info( "Last/limit: " + ( l / limit ) );
 	}
 }
