@@ -50,6 +50,7 @@ public class GenerateRandom64BitStrings {
 		MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
 		
+		MutableString prev = new MutableString();
 		
 		for( int i = 0; i < n; i++ ) {
 			t = ( l += ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 );
@@ -61,8 +62,10 @@ public class GenerateRandom64BitStrings {
 			}
 			
 			s.reverse();
+			if ( prev.equals( s ) ) throw new IllegalStateException( Integer.toString( i ) );
 			s.println( pw );
 			
+			prev.replace( s );
 			pl.lightUpdate();
 		}
 		
