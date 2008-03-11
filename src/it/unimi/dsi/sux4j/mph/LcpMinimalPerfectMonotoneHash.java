@@ -154,8 +154,8 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 				curr = transform.toBitVector( iterator.next() );
 				pl.lightUpdate();
 				final int cmp = prev.compareTo( curr );
-				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted" );
-				if ( cmp == 0 ) throw new IllegalArgumentException( "The list contains duplicates" );
+				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted at position " + i );
+				if ( cmp == 0 ) throw new IllegalArgumentException( "The list contains duplicates at position " + i );
 				
 				currLcp = (int)Math.min( curr.longestCommonPrefixLength( prev ), currLcp );
 				prev.replace( curr );
