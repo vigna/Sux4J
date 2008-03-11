@@ -45,10 +45,12 @@ public class GenerateRandom64BitStrings {
 		
 		double l = 0, t;
 		double limit = Math.pow( 224, 8 );
-		long incr = (long)Math.floor( 1.999999 * ( limit / n ) );
+		long incr = (long)Math.floor( 1.99 * ( limit / n ) ) - 1;
 		
 		final MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
+		
+		LOGGER.info( "Increment: " + incr );
 		
 		for( int i = 0; i < n; i++ ) {
 			t = ( l += ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 );
