@@ -45,7 +45,9 @@ public class GenerateRandom32BitStrings {
 		
 		double l = 0, t;
 		double limit = Math.pow( 224, 4 );
-		int incr = (int)Math.floor( 1.9999999999 * ( limit / n ) );
+		int incr = (int)Math.floor( 1.9999 * ( limit / n ) ) - 1;
+		
+		LOGGER.info( "Increment: " + incr );
 		
 		MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );

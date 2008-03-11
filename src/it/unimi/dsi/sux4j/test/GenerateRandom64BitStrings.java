@@ -45,7 +45,7 @@ public class GenerateRandom64BitStrings {
 		
 		double l = 0, t;
 		double limit = Math.pow( 224, 8 );
-		long incr = (long)Math.floor( 1.9999999999 * ( limit / n ) );
+		long incr = (long)Math.floor( 1.999999 * ( limit / n ) );
 		
 		final MutableString s = new MutableString();
 		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
