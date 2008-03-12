@@ -32,6 +32,7 @@ public class FunctionSpeedTest {
 		final SimpleJSAP jsap = new SimpleJSAP( FunctionSpeedTest.class.getName(), "Test the speed of a function",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
+					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
 					new Switch( "random", 'r', "random", "Do a random test on at most 1 million strings." ),
@@ -49,6 +50,7 @@ public class FunctionSpeedTest {
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean check = jsapResult.getBoolean( "check" );
 		final boolean random = jsapResult.getBoolean( "random" );
+		final int maxStrings = jsapResult.getInt( "n" );
 		
 		@SuppressWarnings("unchecked")
 		final Object2LongFunction<? extends CharSequence> function = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName );
@@ -57,7 +59,7 @@ public class FunctionSpeedTest {
 		if ( random ) {
 			final FileLinesList fll = new FileLinesList( termFile, encoding.name() );
 			final int size = fll.size();
-			int n = Math.min( 1000000, size );
+			int n = Math.min( maxStrings, size );
 			final MutableString[] test = new MutableString[ n ];
 			final int step = size / n;
 			for( int i = 0; i < n; i++ ) test[ i ] = fll.get( i * step );
