@@ -112,11 +112,12 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		long averageLength = totalLength / n;
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
-		LOGGER.debug( "First bucket size estimate: " +  ( 1 << t ) );
+		final int firstbucketSize = 1 << t;
+		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
 		final List<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
-		final BitstreamImmutableBinaryPartialTrie<BitVector> firstDistributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, 1 << t, TransformationStrategies.identity() );
+		BitstreamImmutableBinaryPartialTrie<BitVector> firstDistributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
 		// Reassign bucket size based on empirical estimation
 		
@@ -126,7 +127,11 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
-		distributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
+		else {
+			firstDistributor = null;
+			distributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		}
 /*
 		
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );

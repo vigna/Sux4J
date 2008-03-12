@@ -202,42 +202,34 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 					assert elements.get( change ).getBoolean( pos + prefix );
 				}
 			}
-			
-			int startElement = firstIndex;
-			int startPrefix = prefix;
-			while( --startElement >= 0 ) {
-				curr = elements.get( startElement );
-				// TODO: use longestCommonPrefix
-				j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
-				if ( j < prefix ) {
-					j++;
-					startPrefix = j;
-					break;
-				}
-			}
 
-			startElement++;
+			// We do both searches forward, as we are most likely scanning a file
+			
+			int startElement = -1;
+			int startPrefix = prefix;
+			while( ++startElement < firstIndex ) {
+				j = (int)first.longestCommonPrefixLength( elements.get( startElement ).subVector( pos ) );
+				if ( j >= prefix ) break;
+				else startPrefix = j + 1;
+			}
 			
 			int endElement = lastIndex;
 			int endPrefix = prefix;
 			while( ++endElement < numElements ) {
-				curr = elements.get( endElement );
-				// TODO: use longestCommonPrefix
-				j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
+				j = (int)first.longestCommonPrefixLength( elements.get( endElement ).subVector( pos ) );
 				if ( j < prefix ) {
-					j++;
-					endPrefix = j;
+					endPrefix = j + 1;
 					break;
 				}
 			}
-			
 			
 			final Node n;
 
 			int k;
 			
 			if ( ASSERTS ) {
-				for( k = 0; k < startElement; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < startPrefix; 
+				for( k = 0; k < startElement; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < startPrefix :
+					first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) + " >= " + startPrefix;
 
 				for( k = startElement; k < endElement; k++ ) 
 					assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) >= prefix :
