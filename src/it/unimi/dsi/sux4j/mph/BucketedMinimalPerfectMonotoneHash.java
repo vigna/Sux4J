@@ -77,7 +77,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final BitVector bv = transform.toBitVector( (T)o );
+		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}

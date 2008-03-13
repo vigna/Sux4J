@@ -116,7 +116,7 @@ public class Select9 implements Select {
 						else if ( span >= 128 ) state = 2;
 						else if ( span >= 16 ) {
 							if ( ASSERTS ) assert ( blockSpan + 8 & -8L ) + 8 <= span * 4;
-							s = subinventoryAsShorts.subList( subinventoryPosition * 4, Long.MAX_VALUE );
+							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.length() );
 
 							int k;
 							for( k = 0; k < blockSpan; k++ ) {
@@ -143,7 +143,7 @@ public class Select9 implements Select {
 						}
 						else if ( span >= 2 ) {
 							if ( ASSERTS ) assert ( blockSpan + 8 & -8L ) <= span * 4;
-							s = subinventoryAsShorts.subList( subinventoryPosition * 4, Long.MAX_VALUE );
+							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.length() );
 
 							int k;
 							for( k = 0; k < blockSpan; k++ ) {

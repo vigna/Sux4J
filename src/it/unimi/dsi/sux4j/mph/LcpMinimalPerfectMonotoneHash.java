@@ -87,7 +87,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final BitVector bitVector = transform.toBitVector( (T)o );
+		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long value = offsetLcpLength.getLong( bitVector );
 		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return -1;

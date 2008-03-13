@@ -1,7 +1,6 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;

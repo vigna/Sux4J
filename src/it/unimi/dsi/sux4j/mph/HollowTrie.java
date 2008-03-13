@@ -94,7 +94,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object object ) {
 		if ( size <= 1 ) return size - 1;
-		final BitVector bitVector = transform.toBitVector( (T)object );
+		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
 		

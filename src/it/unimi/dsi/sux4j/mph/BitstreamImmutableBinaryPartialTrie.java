@@ -324,7 +324,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 	public long getLong( Object o ) {
 		try {
 			if ( DEBUG ) System.err.println( "Getting " + o + "...");
-			BitVector v = transformationStrategy.toBitVector( (T)o );
+			BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
 			long length = v.length();
 			final InputBitStream trie = new InputBitStream( this.trie );
 
