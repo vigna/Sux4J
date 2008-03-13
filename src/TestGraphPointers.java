@@ -13,7 +13,7 @@ public class TestGraphPointers {
 		final long n = Long.parseLong( a[ 1 ] );
 		final long m = Long.parseLong( a[ 2 ] );
 		
-		SparseSelect sparse = new SparseSelect( n, m, new AbstractLongIterator() {
+		SparseSelect sparse = new SparseSelect( m, n, new AbstractLongIterator() {
 			int i = 0;
 			long curr = 0;
 			

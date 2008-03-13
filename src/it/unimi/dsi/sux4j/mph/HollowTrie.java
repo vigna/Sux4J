@@ -42,6 +42,8 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.util.CompressedLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
@@ -323,6 +325,10 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		
 		this.skips = new TwoSizesLongBigList( skips );
+		
+		CompressedLongBigList comp = new CompressedLongBigList( skips.iterator() );
+		System.err.println( "Using " + this.skips.numBits() + ", but I could use " + comp.numBits() );
+		for( int i = 0; i < skips.size(); i++) assert comp.getLong( i ) == skips.getInt( i ) : comp.get(i ) + " != " + skips.get(i );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );

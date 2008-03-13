@@ -129,7 +129,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 		charBuffer = CharBuffer.wrap( new char[ array.length ] );
 		
 		inputStream.position( 0 );
-		select = new SparseSelect( inputStream.length() + 1, count + 1, new AbstractLongIterator() {
+		select = new SparseSelect( count + 1, inputStream.length() + 1, new AbstractLongIterator() {
 			boolean toAdvance = false;
 			long pos = 0;
 			byte[] buffer = byteBuffer.array();
