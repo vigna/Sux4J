@@ -98,6 +98,8 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
 		int s = 0;
 		
+		int depth=0;
+		
 		for(;;) {
 			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
 
@@ -105,6 +107,8 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
 			else p = 2 * r + 1;
 
+			depth++;
+			
 			t = 2 * rank9.rank( a, b + 1 );
 			a = b + 1;
 			b += t;
@@ -129,6 +133,8 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 			if ( p < a ) break;
 			p = r * 2;
 			
+			depth++;
+			
 			t = 2 * rank9.rank( a, b + 1 );
 			a = b + 1;
 			b += t;
@@ -139,7 +145,8 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		}
 
 		//System.err.println( "Returning " + index );
-
+		System.err.println( depth) ;
+		
 		return index;
 	}
 	
