@@ -82,7 +82,6 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	private EliasFanoMonotoneFunction firstInBucket;
 	private MinimalPerfectHash<BitVector> minimalPerfectHash;
 	private CompressedLongBigList offsets;
-	private int logU;
 	private int bucketShift;
 	
 	@SuppressWarnings("unchecked")
@@ -120,7 +119,6 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 			c++;
 		}
 		
-		this.logU = logU;
 		n = c;
 		
 		BitVector curr = null;
@@ -153,7 +151,6 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 		}
 
 		for( int i = 1; i < bucketSize.length; i++ ) bucketSize[ i ] += bucketSize[ i - 1 ];
-		firstInBucket = new EliasFanoMonotoneFunction( LongArrayList.wrap( bucketSize ) );
 		minimalPerfectHash = new MinimalPerfectHash<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity() );
 		int offset[] = new int[ n ];
 		
@@ -166,15 +163,17 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 			pl.lightUpdate();
 		}
 		
-		iterator = iterable.iterator();
 		offsets = new CompressedLongBigList( IntArrayList.wrap( offset ).iterator() );
+		offset = null;
+		firstInBucket = new EliasFanoMonotoneFunction( LongArrayList.wrap( bucketSize ) );
 
+/*		iterator = iterable.iterator();
 		for( int i = 0; i < n; i++ ) {
 			curr = transform.toBitVector( iterator.next() ).fast();
 			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> bucketShift;
 			if ( i != offsets.getLong( (int)minimalPerfectHash.getLong( curr  ) ) + firstInBucket.getLong( (int)bucket ) ) throw new AssertionError();
 		}
-		
+*/	
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 
 	}
