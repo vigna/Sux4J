@@ -21,6 +21,8 @@ package it.unimi.dsi.sux4j.util;
  *
  */
 
+import java.io.Serializable;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -53,7 +55,7 @@ import it.unimi.dsi.util.LongBigList;
  * 
  */
 
-public class EliasFanoMonotoneFunction extends AbstractLongBigList {
+public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 2L;
 	
 	/** The length of the underlying bit array. */

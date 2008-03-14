@@ -73,7 +73,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	protected TwoSizesLongBigList skips;
+	protected CompressedLongBigList skips;
 	protected transient BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
@@ -318,7 +318,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		
-		this.skips = new TwoSizesLongBigList( skips );
+		this.skips = new CompressedLongBigList( skips.iterator() );//new TwoSizesLongBigList( skips );
 		
 		CompressedLongBigList comp = new CompressedLongBigList( skips.iterator() );
 		System.err.println( "Using " + this.skips.numBits() + ", but I could use " + comp.numBits() );
@@ -334,68 +334,6 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	}
 	
 	
-	
-	public HollowTrie( final Iterator<T> iterator, final Iterator<T> endsIterator, TransformationStrategy<T> transformationStrategy ) {
-		this.transform = transformationStrategy;
-		ObjectArrayList<BitVector> elements = new ObjectArrayList<BitVector>();
-		while( iterator.hasNext() ) elements.add( transformationStrategy.toBitVector( iterator.next() ).copy() );
-		ObjectArrayList<BitVector> ends = new ObjectArrayList<BitVector>();
-		while( endsIterator.hasNext() ) ends.add( transformationStrategy.toBitVector( endsIterator.next() ).copy() );
-
-		Reference2LongOpenHashMap<BitVector> original = new Reference2LongOpenHashMap<BitVector>();
-		original.defaultReturnValue( -1 );
-		for( int i = 0; i < elements.size() - 1; i++ ) original.put( elements.get( i ), i );
-
-		assert ends.size() == elements.size();
-		
-		// Move last end to the elements list
-		elements.add( ends.remove( ends.size() - 1 ) );
-		
-		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
-		Node root = buildTrie( elements, ends, 0, original );
-		queue.add( root );
-		
-		final BitVector bitVector = LongArrayBitVector.getInstance( 4 * elements.size() + 1 );
-		final IntArrayList skips = new IntArrayList();
-		int p = 0, maxSkip = Integer.MIN_VALUE;
-		long skipsLength = 0;
-		bitVector.add( 1 );
-
-		Node n;
-
-		for( int i = 0; i < elements.size(); i++ ) getVector( root, elements.get( i ) );
-		
-		while( p < queue.size() ) {
-			n = queue.get( p );
-			if ( maxSkip < n.skip ) maxSkip = n.skip;
-			skips.add( n.skip );
-			skipsLength += length( n.skip );
-			bitVector.add( n.left != null );
-			bitVector.add( n.right != null );
-			if ( n.left != null ) queue.add( n.left );
-			else size++;
-			if ( n.right != null ) queue.add( n.right );
-			else size++;
-			p++;
-		}
-		
-		LOGGER.info( "Trie size:" + size );
-		
-		trie = bitVector;
-		rank9 = new Rank9( bitVector );
-		select = new SimpleSelect( bitVector );
-		final int skipWidth = Fast.ceilLog2( maxSkip );
-
-		LOGGER.info( "Max skip: " + maxSkip );
-		LOGGER.info( "Max skip width: " + skipWidth );
-		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( elements.size() - 1 ) );
-		
-		this.skips = new TwoSizesLongBigList( skips );
-				
-		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
-		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
-	}
-		
 	
 	protected int getVector( Node n, BitVector bv ) {
 		int pos = 0;

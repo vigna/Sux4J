@@ -31,12 +31,11 @@ import it.unimi.dsi.util.AbstractLongBigList;
 
 import java.io.Serializable;
 
-/** A two-sizes immutable list implementation.
+/** A compressed big list of longs.
  * 
- * <p>Instances of this class store elements in two different {@link LongArrayBitVector}-based lists&mdash;one
- * for large values and one for small values. The threshold between large and small is established by
- * measuring at construction time the most proficuous choice. A ranking structure built on a marker array (recording
- * which elements are stored in the large list) provides access of the correct element in each array.
+ * <p>Instances of this class store elements by ensuring (adding a suitable offset) that they are strictly positive. Then,
+ * the bits of each element, excluding the most significant one, are concatenated in a bit array, and the positions
+ * of the initial bit of each element are stored as an {@linkplain EliasFanoMonotoneFunction Elias&ndash;Fano monotone function}.
  * 
  */
 public class CompressedLongBigList extends AbstractLongBigList implements Serializable {
