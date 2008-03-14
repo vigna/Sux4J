@@ -114,7 +114,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 		this.l = l;
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.size );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.size * 2 );
+		final BitVector upperBits = LongArrayBitVector.getInstance().length( l > 0 ? this.size * 2 : this.size + upperBound );
 		long last = 0;
 		for( long i = 0; i < this.size; i++ ) {
 			pos = iterator.nextLong();

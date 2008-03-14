@@ -83,17 +83,18 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	private MinimalPerfectHash<BitVector> minimalPerfectHash;
 	private CompressedLongBigList offsets;
 	private int logU;
+	private int bucketShift;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
-		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >> Long.SIZE - ( logU - log2BucketSize );
+		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >>> bucketShift;
 		return firstInBucket.getLong( bucket ) + offsets.getLong( minimalPerfectHash.getLong( bitVector ) );
 	}
 
 	@SuppressWarnings("unchecked")
 	public long getByBitVector( final BitVector bitVector ) {
-		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >> Long.SIZE - ( logU - log2BucketSize );
+		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >>> bucketShift;
 		return firstInBucket.getLong( bucket ) + offsets.getLong( minimalPerfectHash.getLong( bitVector ) );
 	}
 
@@ -141,14 +142,14 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 		pl.start( "Scanning collection..." );
 
 		long bucket, prevBucket = -1;
+		bucketShift = Long.SIZE - ( logU - log2BucketSize );
 		for( int i = 0; i < n; i++ ) {
-			
-			
 			curr = transform.toBitVector( iterator.next() );
-			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> Long.SIZE - ( logU - log2BucketSize );
+			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> bucketShift;
 			if ( bucket < prevBucket ) throw new IllegalArgumentException( "Keys are not sorted" );
 			bucketSize[ (int)bucket + 1 ]++;
 			pl.lightUpdate();
+			prevBucket = bucket;
 		}
 
 		for( int i = 1; i < bucketSize.length; i++ ) bucketSize[ i ] += bucketSize[ i - 1 ];
@@ -160,7 +161,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 
 		for( int i = 0; i < n; i++ ) {
 			curr = transform.toBitVector( iterator.next() ).fast();
-			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >> Long.SIZE - ( logU - log2BucketSize );
+			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> bucketShift;
 			offset[ (int)minimalPerfectHash.getLong( curr ) ] = (int)( i - bucketSize[ (int)bucket ] );
 			pl.lightUpdate();
 		}
@@ -170,10 +171,12 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 
 		for( int i = 0; i < n; i++ ) {
 			curr = transform.toBitVector( iterator.next() ).fast();
-			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >> Long.SIZE - ( logU - log2BucketSize );
+			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> bucketShift;
 			if ( i != offsets.getLong( (int)minimalPerfectHash.getLong( curr  ) ) + firstInBucket.getLong( (int)bucket ) ) throw new AssertionError();
 		}
-			
+		
+		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+
 	}
 
 
@@ -190,7 +193,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return minimalPerfectHash.numBits() + offsets.numBits() + firstInBucket.numBits();
+		return minimalPerfectHash.numBits() + offsets.numBits() + firstInBucket.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {
