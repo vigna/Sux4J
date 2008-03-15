@@ -117,6 +117,14 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 			for( T o: elements ) c++;
 			n = c;
 		}
+		
+		if ( n == 0 ) {
+			data = null;
+			marker = null;
+			rank = null;
+			seed = m = this.width = 0;
+			return;
+		}
 
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
@@ -165,7 +173,8 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 		for( long x: data ) if ( x != 0 ) c++;
 		
 		// We estimate size using Rank16
-		if ( c * this.width + m * 1.126 < m * this.width ) {
+		if ( c * this.width + m * 1.126 < (long)m * this.width ) {
+			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( c );
 			c = 0;
@@ -204,6 +213,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
+		if ( n == 0 ) return -1;
 		final int[] e = new int[ 3 ];
 		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)o ), seed, m, e );
 		return rank == null ?
@@ -215,6 +225,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	
 	@SuppressWarnings("unchecked")
 	public long getByBitVector( final BitVector bitVector ) {
+		if ( n == 0 ) return -1;
 		final int[] e = new int[ 3 ];
 		HypergraphSorter.bitVectorToEdge( bitVector, seed, m, e );
 		return rank == null ?
@@ -237,7 +248,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + data.length() * width;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.length() : 0 ) * width;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

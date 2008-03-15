@@ -37,6 +37,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.util.CompressedLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction;
+import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -81,7 +82,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	final protected TransformationStrategy<? super T> transform;
 	private EliasFanoMonotoneFunction firstInBucket;
 	private MinimalPerfectHash<BitVector> minimalPerfectHash;
-	private CompressedLongBigList offsets;
+	private TwoSizesLongBigList offsets;
 	private int bucketShift;
 	
 	@SuppressWarnings("unchecked")
@@ -125,7 +126,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 
 		LOGGER.info( "Log u:" + logU );
 		
-		log2BucketSize = 4 + logU - Fast.ceilLog2( n );
+		log2BucketSize = logU - Fast.mostSignificantBit( n ) + 1;
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
 
@@ -150,11 +151,15 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 			prevBucket = bucket;
 		}
 
+		pl.done();
+		
 		for( int i = 1; i < bucketSize.length; i++ ) bucketSize[ i ] += bucketSize[ i - 1 ];
 		minimalPerfectHash = new MinimalPerfectHash<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity() );
 		int offset[] = new int[ n ];
 		
 		iterator = iterable.iterator();
+
+		pl.start( "Computing offsets..." );
 
 		for( int i = 0; i < n; i++ ) {
 			curr = transform.toBitVector( iterator.next() ).fast();
@@ -163,7 +168,9 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 			pl.lightUpdate();
 		}
 		
-		offsets = new CompressedLongBigList( IntArrayList.wrap( offset ).iterator() );
+		pl.done();
+		
+		offsets = new TwoSizesLongBigList( IntArrayList.wrap( offset ) );
 		offset = null;
 		firstInBucket = new EliasFanoMonotoneFunction( LongArrayList.wrap( bucketSize ) );
 
@@ -174,6 +181,9 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 			if ( i != offsets.getLong( (int)minimalPerfectHash.getLong( curr  ) ) + firstInBucket.getLong( (int)bucket ) ) throw new AssertionError();
 		}
 */	
+		LOGGER.debug(  "Cost per element of hashing: " + (double)minimalPerfectHash.numBits() / n );
+		LOGGER.debug(  "Cost per element of offsets: " + (double)offsets.numBits() / n );
+		LOGGER.debug(  "Cost per element of prefix sums: " + (double)firstInBucket.numBits() / n );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 
 	}
