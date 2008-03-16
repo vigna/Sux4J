@@ -29,12 +29,11 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
-import it.unimi.dsi.sux4j.io.FileLinesList;
+import it.unimi.dsi.io.FileLinesCollection;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -88,11 +87,23 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public BucketedMinimalPerfectMonotoneHash( final List<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
+	public BucketedMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
 
-		n = elements.size();
+		long maxLength = 0;
+		long totalLength = 0;
+		int c = 0;
+		BitVector bv;
+		for( T s: iterable ) {
+			bv = transform.toBitVector( s );
+			maxLength = Math.max( maxLength, bv.length() );
+			totalLength += bv.length();
+			c++;
+		}
+		
+		n = c;
+		
 		if ( n == 0 )	{
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			distributor = null;
@@ -100,22 +111,13 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 			return;
 		}
 
-		long maxLength = 0;
-		long totalLength = 0;
-		BitVector bv;
-		for( T s: elements ) {
-			bv = transform.toBitVector( s );
-			maxLength = Math.max( maxLength, bv.length() );
-			totalLength += bv.length();
-		}
-		
 		long averageLength = totalLength / n;
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
 		final int firstbucketSize = 1 << t;
 		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
-		final List<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  iterable, transform );
 		
 		BitstreamImmutableBinaryPartialTrie<BitVector> firstDistributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
@@ -140,7 +142,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
 		*/	
 		
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
 			}
@@ -183,9 +185,9 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 
 		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "4Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
+			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
 			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
@@ -194,9 +196,9 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
-		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
+		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
@@ -207,7 +209,7 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		LOGGER.info( "Building minimal perfect monotone hash function..." );
-		FileLinesList fileLinesList = new FileLinesList( stringFile, encoding.name(), bufferSize );
+		FileLinesCollection fileLinesList = new FileLinesCollection( stringFile, encoding.name(), zipped );
 		minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( fileLinesList, huTucker ? new HuTuckerTransformationStrategy( fileLinesList, true ) : transformationStrategy );
 
 		LOGGER.info( "Writing to file..." );		
