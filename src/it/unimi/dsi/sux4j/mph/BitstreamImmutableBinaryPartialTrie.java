@@ -24,19 +24,16 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.util.ImmutableBinaryTrie;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -72,6 +69,8 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	
+	private static final int MAX_PREFIX = Integer.MAX_VALUE - 1;
+	
 	/** The bitstream representing the partial trie. */
 	private byte[] trie;
 	/** The number of leaves in the trie. */
@@ -86,31 +85,22 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		protected static class Node implements Serializable {
 			private static final long serialVersionUID = 1L;
 			public Node left, right;
-			/** An array containing the path compacted in this node (<code>null</code> if there is no compaction at this node). */
-			final public long[] path;
-			/** The length of the path compacted in this node (0 if there is no compaction at this node). */
-			final public int pathLength;
-			/** The number of missing bits at this node. */
-			final public int missing;
+			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
+			public BitVector path;
+			public int prefixLeft;
+			public int prefixRight;
 			
 			/** Creates a node. 
 			 * 
 			 * <p>Note that the long array contained in <code>path</code> will be stored inside the node.
 			 * 
-			 * @param path the path compacted in this node, or <code>null</code> for the empty path.
-			 * @param missing the number of bits missing from <code>path</code>.
+			 * @param bitVector the path compacted in this node, or <code>null</code> for the empty path.
 			 */
-			
-			public Node( final BitVector path, final int missing ) {
-				if ( path == null ) {
-					this.path = null;
-					this.pathLength = 0;
-				}
-				else {
-					this.path = path.bits();
-					this.pathLength = path.size();
-				}
-				this.missing = missing;
+			public Node( final Node left, final Node right, final BitVector bitVector ) {
+				this.left = left;
+				this.right = right;
+				this.path = bitVector;
+				this.prefixLeft = this.prefixRight = MAX_PREFIX;
 			}
 
 			/** Returns true if this node is a leaf.
@@ -122,7 +112,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			}
 			
 			public String toString() {
-				return "[" + path + ", " + missing + "]";
+				return "[" + path + "]";
 			}
 			
 		}
@@ -137,25 +127,126 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		 * distinct, lexicographically increasing (in iteration order) binary words.
 		 */
 		
-		public BitstreamTrie( final List<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
-			// Check order
-			final List<BitVector> bitVectors = TransformationStrategies.wrap( elements, transformationStrategy );
-			final Iterator<BitVector> iterator = bitVectors.iterator();
+		public BitstreamTrie( final Iterable<? extends T> iterable, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
+			Iterator<? extends T> iterator = iterable.iterator(); 
+			
+			int size = 0;
+			
+			Node root = null, node;
+			BitVector curr;
+			int pos, prefix;
+
 			if ( iterator.hasNext() ) {
-				final LongArrayBitVector prev = LongArrayBitVector.copy( iterator.next() );
-				BitVector curr;
+				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
+				
+				size++;
+				int cmp, numNodes = 0;
 
 				while( iterator.hasNext() ) {
-					curr = iterator.next();
-					final int cmp = prev.compareTo( curr );
-					if ( cmp == 0 ) throw new IllegalArgumentException( "The trie elements are not unique" );
-					if ( cmp > 0 ) throw new IllegalArgumentException( "The trie elements are not sorted" );
+					// Check order
+					curr = transformationStrategy.toBitVector( iterator.next() );
+					cmp = prev.compareTo( curr );
+					if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+					if ( curr.longestCommonPrefixLength( prev ) == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+
+					if ( size % bucketSize == 0 ) {
+						if ( root == null ) {
+							root = new Node( null, null, prev.copy() );
+							//System.err.println( "Root is " + root.path );
+							prevDelimiter.replace( prev );
+						}
+						else {
+							//System.err.println( "Comparing " + prev + " against " + prevDelimiter );
+							
+							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
+							
+							//System  .err.println( "Prefix is " + prefix );
+							pos = 0;
+							node = root;
+							Node n = null;
+							while( node != null ) {
+								//System.err.println( "pos: " + pos + " prefix:" + prefix + " length:" + node.path.length());
+								if ( prefix < node.path.length() ) {
+									n = new Node( node.left, node.right, node.path.subVector( prefix + 1 ) );
+									node.path = node.path.subVector( 0, prefix );
+									node.left = n;
+									node.right = new Node( null, null, prev.subVector( pos + prefix + 1 ).copy() ); 
+									numNodes++;
+									break;
+								}
+
+								prefix -= node.path.length() + 1;
+								pos += node.path.length() + 1;
+								node = node.right;
+								if ( ASSERTS ) assert node == null || prefix >= 0 : prefix + " <= " + 0;
+							}
+
+							if ( ASSERTS ) assert node != null;
+							
+							
+						/*	MutableString s = new MutableString();
+							recToString( root, new MutableString(), s, new MutableString(), 0 );
+							System.err.println( s );
+							*/
+							
+							prevDelimiter.replace( prev );
+						}
+					}
 					prev.replace( curr );
+					size++;
 				}
 			}
 			
-			root = buildTrie( bitVectors, bucketSize, Math.min( elements.size(), bucketSize ) - 1, 0 );
-			LOGGER.info( "Gain: " + gain );
+			this.root = root;
+			
+			if ( ASSERTS ) {
+				iterator = iterable.iterator();
+				int c = 1;
+				while( iterator.hasNext() ) {
+					curr = transformationStrategy.toBitVector( iterator.next() );
+					if ( c++ % bucketSize == 0 ) {
+						if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
+						node = root;
+						pos = 0;
+						while( node != null ) {
+							prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
+							assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
+							pos += node.path.length() + 1;
+							if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+							else {
+								assert node.left == null && node.right == null;
+								break;
+							}
+						}
+					}
+				}
+			}
+			
+			iterator = iterable.iterator();
+			
+			while( iterator.hasNext() ) {
+				curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+				node = root;
+				pos = 0;
+				for(;;) {
+					prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
+					if ( prefix < node.path.length() ) {
+						if ( node.path.getBoolean( prefix ) ) node.prefixLeft = prefix;
+						else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
+						
+						break;
+					}
+
+					pos += node.path.length() + 1;
+					if ( pos > curr.length() ) {
+						assert node.left == null && node.right == null;
+						break;
+					}
+					node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+				}
+			}
 		}
 
 		protected int gain;
@@ -168,93 +259,14 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		 * @param pos a starting position.
 		 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
 		 */
-			
-		protected Node buildTrie( final List<BitVector> elements, final int bucketSize, final int firstIndex, final int pos ) {
-			final int numElements = elements.size();
-			//System.err.println( "Size:" + numElements + " First delimiter: " + firstIndex );
-			
-			if ( numElements == 0 ) return null;
-
-			final LongArrayBitVector first = LongArrayBitVector.copy( elements.get( firstIndex ).subVector( pos ) );
-			int prefix = first.size(), change = 0, j = -1, lastIndex = firstIndex, middleIndex = firstIndex;
-			BitVector curr;
-
-			if ( firstIndex + bucketSize < numElements ) {
-				// 	Find maximum common prefix. change records the point of change (for splitting the delimiter set).
-				for( int i = firstIndex + bucketSize; i < numElements; i += bucketSize ) {
-					curr = elements.get( i );
-					lastIndex = i;
-					j = (int)first.longestCommonPrefixLength( curr.subVector( pos ) );
-					if ( j < prefix ) {
-						middleIndex = i;
-						prefix = j;
-					}
-				}
-
-				if ( ASSERTS ) assert middleIndex > firstIndex;
-				
-				// Find exact change point
-				for( change = middleIndex - bucketSize + 1; change <= middleIndex; change++ ) if ( elements.get( change ).getBoolean( pos + prefix ) ) break;
-
-				if ( ASSERTS ) {
-					assert change < middleIndex + 1;
-					assert ! elements.get( change - 1 ).getBoolean( pos + prefix );
-					assert elements.get( change ).getBoolean( pos + prefix );
-				}
-			}
-
-			// We do both searches forward, as we are most likely scanning a file
-			
-			int startElement = -1;
-			int startPrefix = prefix;
-			while( ++startElement < firstIndex ) {
-				j = (int)first.longestCommonPrefixLength( elements.get( startElement ).subVector( pos ) );
-				if ( j >= prefix ) break;
-				else startPrefix = j + 1;
-			}
-			
-			int endElement = lastIndex;
-			int endPrefix = prefix;
-			while( ++endElement < numElements ) {
-				j = (int)first.longestCommonPrefixLength( elements.get( endElement ).subVector( pos ) );
-				if ( j < prefix ) {
-					endPrefix = j + 1;
-					break;
-				}
-			}
-			
-			final Node n;
-
-			int k;
-			
-			if ( ASSERTS ) {
-				for( k = 0; k < startElement; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < startPrefix :
-					first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) + " >= " + startPrefix;
-
-				for( k = startElement; k < endElement; k++ ) 
-					assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) >= prefix :
-						"At " + k + " out of " + numElements + ": " + first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) + " < " + prefix;
-
-				for( k = endElement; k < numElements; k++ ) assert first.longestCommonPrefixLength( elements.get( k ).subVector( pos ) ) < endPrefix;
-					
-			}
-
-			final int reducedPrefix = Math.max( startPrefix, endPrefix );
-			if ( reducedPrefix < prefix ) gain += prefix - reducedPrefix;
-
-			n = new Node( reducedPrefix > 0 ? LongArrayBitVector.copy( first.subVector( 0, reducedPrefix ) ) : null, prefix ); // There's some common prefix
-			if ( firstIndex + bucketSize < numElements ) {
-				n.left = buildTrie( elements.subList( startElement, change ), bucketSize, firstIndex - startElement, pos + prefix + 1 );
-				n.right = buildTrie( elements.subList( change, endElement ), bucketSize, middleIndex - change, pos + prefix + 1 );
-			}
-			return n;
-		}
 
 		public int toStream( OutputBitStream trie ) throws IOException {
-			return toStream( root, trie );
+			final int result = toStream( root, trie );
+			LOGGER.info( "Gain: " + gain );
+			return result;
 		}
 		
-		private static int toStream( Node n, OutputBitStream trie ) throws IOException {
+		private int toStream( Node n, OutputBitStream trie ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -274,12 +286,17 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			
 			trie.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
 			
-			trie.writeDelta( n.pathLength );
-			final long wb = trie.writtenBits();
-			if ( n.pathLength > 0 ) for( int i = 0; i < n.path.length; i++ ) trie.writeLong( n.path[ i ], Math.min( Long.SIZE, n.pathLength - i * Long.SIZE ) );
-			assert trie.writtenBits() == wb + n.pathLength;
+			final int pathLength = (int)Math.min( n.path.length(), Math.max( n.prefixLeft, n.prefixRight ) + 1 );
 
-			trie.writeDelta( n.missing - n.pathLength );
+			final int missing =  (int)( n.path.length() - pathLength );
+			gain += missing; 
+
+			trie.writeDelta( pathLength );
+			final long wb = trie.writtenBits();
+			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) trie.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
+			assert trie.writtenBits() == wb + pathLength;
+
+			trie.writeDelta( missing );
 			
 			if ( n.left != null ) {
 				trie.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
@@ -295,9 +312,42 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 			return 1;
 		}
+		
+		private void recToString( final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) {
+			if ( n == null ) return;
+			
+			//System.err.println( "Called with prefix " + printPrefix );
+			
+			result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
+			
+			if ( n.path != null ) {
+				path.append( n.path );
+				result.append( " path:" ).append( n.path );
+			}
+
+			result.append( '\n' );
+			
+			path.append( '0' );
+			recToString( n.left, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
+			path.charAt( path.length() - 1, '1' ); 
+			recToString( n.right, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
+			path.delete( path.length() - 1, path.length() ); 
+			printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
+			
+			//System.err.println( "Path now: " + path + " Going to delete from " + ( path.length() - n.pathLength));
+			
+			path.delete( (int)( path.length() - n.path.length() ), path.length() );
+		}
+		
+		public String toString() {
+			MutableString s = new MutableString();
+			recToString( root, new MutableString(), s, new MutableString(), 0 );
+			return s.toString();
+		}
+
 	}
 	
-	public BitstreamImmutableBinaryPartialTrie( List<? extends T> elements, int bucketSize, TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public BitstreamImmutableBinaryPartialTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 
 		this.transformationStrategy = transformationStrategy;
 		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, bucketSize, transformationStrategy );
@@ -308,15 +358,15 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		
 		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
 		
-		if ( DDEBUG ) System.err.println( new ImmutableBinaryTrie<T>( elements, transformationStrategy ) );
 		trie.flush();
 		fbStream.trim();
 		this.trie = fbStream.array;
 
-		MutableString s = new MutableString();
-		if ( DDEBUG ) recToString( new InputBitStream( this.trie ), new MutableString(), s, new MutableString(), 0 );
-		if ( DDEBUG ) System.err.println( s );
-
+		if ( DDEBUG ) {
+			MutableString s = new MutableString();
+			recToString( new InputBitStream( this.trie ), new MutableString(), s, new MutableString(), 0 );
+			System.err.println( s );
+		}
 	}
 	
 	
