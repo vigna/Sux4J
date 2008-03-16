@@ -86,7 +86,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			private static final long serialVersionUID = 1L;
 			public Node left, right;
 			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
-			public BitVector path;
+			public LongArrayBitVector path;
 			public int prefixLeft;
 			public int prefixRight;
 			
@@ -96,7 +96,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			 * 
 			 * @param bitVector the path compacted in this node, or <code>null</code> for the empty path.
 			 */
-			public Node( final Node left, final Node right, final BitVector bitVector ) {
+			public Node( final Node left, final Node right, final LongArrayBitVector bitVector ) {
 				this.left = left;
 				this.right = right;
 				this.path = bitVector;
@@ -167,18 +167,20 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 							node = root;
 							Node n = null;
 							while( node != null ) {
+								final long pathLength = node.path.length();
 								//System.err.println( "pos: " + pos + " prefix:" + prefix + " length:" + node.path.length());
-								if ( prefix < node.path.length() ) {
-									n = new Node( node.left, node.right, node.path.subVector( prefix + 1 ) );
-									node.path = node.path.subVector( 0, prefix );
+								if ( prefix < pathLength ) {
+									n = new Node( node.left, node.right, node.path.copy( prefix + 1, pathLength ) );
+									node.path = node.path.length( prefix );
+									node.path.trim();
 									node.left = n;
-									node.right = new Node( null, null, prev.subVector( pos + prefix + 1 ).copy() ); 
+									node.right = new Node( null, null, prev.copy( pos + prefix + 1, prev.length() ) ); 
 									numNodes++;
 									break;
 								}
 
-								prefix -= node.path.length() + 1;
-								pos += node.path.length() + 1;
+								prefix -= pathLength + 1;
+								pos += pathLength + 1;
 								node = node.right;
 								if ( ASSERTS ) assert node == null || prefix >= 0 : prefix + " <= " + 0;
 							}
@@ -240,10 +242,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 					}
 
 					pos += node.path.length() + 1;
-					if ( pos > curr.length() ) {
-						assert node.left == null && node.right == null;
-						break;
-					}
+					if ( pos > curr.length() ) break;
 					node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
 				}
 			}
