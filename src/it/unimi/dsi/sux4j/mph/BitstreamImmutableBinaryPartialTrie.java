@@ -57,7 +57,8 @@ import org.apache.log4j.Logger;
  * where except for <var>path</var>, which is the path at <var>x</var> represented literally,
  * all other components are numbers in {@linkplain OutputBitStream#writeDelta(int) &delta; coding}, and the
  * last two components are the recursive encodings of <var>A</var> and <var>B</var>. Leaves are
- * distinguished by having <var>skip</var> equal to zero. <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var>
+ * distinguished by having <var>skip</var> equal to zero (in which case, no information after the path is recorded). 
+ * <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var>
  * are the number of leaves of <var>A</var> and <var>B</var>, respectively.
  * 
  * @author Sebastiano Vigna
@@ -279,13 +280,13 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
 		 */
 
-		public int toStream( OutputBitStream trie ) throws IOException {
+		public int toStream( final OutputBitStream trie ) throws IOException {
 			final int result = toStream( root, trie );
 			LOGGER.info( "Gain: " + gain );
 			return result;
 		}
 		
-		private int toStream( Node n, OutputBitStream trie ) throws IOException {
+		private int toStream( final Node n, final OutputBitStream trie ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -311,13 +312,11 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			gain += missing; 
 
 			trie.writeDelta( pathLength );
-			final long wb = trie.writtenBits();
 			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) trie.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
-			assert trie.writtenBits() == wb + pathLength;
 
-			trie.writeDelta( missing );
-			
 			if ( n.left != null ) {
+				trie.writeDelta( missing );
+				
 				trie.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
 				trie.writeLongDelta( leavesRight ); // The number of leaves in the right subtree
 
@@ -437,13 +436,13 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 					}
 				}
 
-				int missing = trie.readDelta();
-				if ( DEBUG ) System.err.println( "Missing bits: " + missing );
-				
 				if ( skip == 0 ) {
-					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leaf + ")" + pos+ " " + missing + " " + length );
+					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leaf + ")" + pos + " " + length );
 					return leaf;
 				}
+				
+				int missing = trie.readDelta();
+				if ( DEBUG ) System.err.println( "Missing bits: " + missing );
 				
 				// Increment pos by missing bits
 				pos += missing;
@@ -517,7 +516,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 	}
 
 	public long numBits() {
-		return trie.length * Byte.SIZE;
+		return trie.length * Byte.SIZE + transformationStrategy.numBits();
 	}
 
 	public int size() {
