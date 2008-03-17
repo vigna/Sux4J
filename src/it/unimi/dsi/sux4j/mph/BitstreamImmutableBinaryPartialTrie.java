@@ -142,10 +142,11 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 				
 				size++;
 				int cmp, numNodes = 0;
-
+				long maxLength = prev.length();
+				
 				while( iterator.hasNext() ) {
 					// Check order
-					curr = transformationStrategy.toBitVector( iterator.next() );
+					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
 					cmp = prev.compareTo( curr );
 					if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
@@ -159,9 +160,9 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 						}
 						else {
 							//System.err.println( "Comparing " + prev + " against " + prevDelimiter );
-							
+
 							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
-							
+
 							//System  .err.println( "Prefix is " + prefix );
 							pos = 0;
 							node = root;
@@ -186,66 +187,86 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 							}
 
 							if ( ASSERTS ) assert node != null;
-							
-							
-						/*	MutableString s = new MutableString();
+
+
+							/*	MutableString s = new MutableString();
 							recToString( root, new MutableString(), s, new MutableString(), 0 );
 							System.err.println( s );
-							*/
-							
+							 */
+
 							prevDelimiter.replace( prev );
 						}
 					}
 					prev.replace( curr );
+					maxLength = Math.max( maxLength, prev.length() );
 					size++;
 				}
-			}
-			
-			this.root = root;
-			
-			if ( ASSERTS ) {
-				iterator = iterable.iterator();
-				int c = 1;
-				while( iterator.hasNext() ) {
-					curr = transformationStrategy.toBitVector( iterator.next() );
-					if ( c++ % bucketSize == 0 ) {
-						if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
-						node = root;
-						pos = 0;
-						while( node != null ) {
-							prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-							assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
-							pos += node.path.length() + 1;
-							if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-							else {
-								assert node.left == null && node.right == null;
-								break;
+
+				this.root = root;
+
+				if ( ASSERTS ) {
+					iterator = iterable.iterator();
+					int c = 1;
+					while( iterator.hasNext() ) {
+						curr = transformationStrategy.toBitVector( iterator.next() );
+						if ( c++ % bucketSize == 0 ) {
+							if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
+							node = root;
+							pos = 0;
+							while( node != null ) {
+								prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
+								assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
+								pos += node.path.length() + 1;
+								if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+								else {
+									assert node.left == null && node.right == null;
+									break;
+								}
 							}
 						}
 					}
 				}
-			}
-			
-			iterator = iterable.iterator();
-			
-			while( iterator.hasNext() ) {
-				curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-				node = root;
-				pos = 0;
-				for(;;) {
-					prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-					if ( prefix < node.path.length() ) {
-						if ( node.path.getBoolean( prefix ) ) node.prefixLeft = prefix;
-						else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
-						
-						break;
-					}
 
-					pos += node.path.length() + 1;
-					if ( pos > curr.length() ) break;
-					node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+				LOGGER.info( "Reducing paths..." );
+
+				iterator = iterable.iterator();
+
+				Node stack[] = new Node[ (int)maxLength ];
+				int[] len = new int[ (int)maxLength ];
+				int depth = 0;
+				stack[ 0 ] = root;
+				boolean first = true;
+				
+				while( iterator.hasNext() ) {
+					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+					if ( ! first )  {
+						prefix = (int)prev.longestCommonPrefixLength( curr );
+						while( depth > 0 && len[ depth ] > prefix ) depth--;
+					}
+					else first = false;
+					node = stack[ depth ];
+					pos = len[ depth ];
+					for(;;) {
+						prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
+						if ( prefix < node.path.length() ) {
+							if ( node.path.getBoolean( prefix ) ) node.prefixLeft = prefix;
+							else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
+
+							break;
+						}
+
+						pos += node.path.length() + 1;
+						if ( pos > curr.length() ) break;
+						node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+						len[ ++depth ] = pos;
+						stack[ depth ] = node;
+					}
+					
+					prev.replace( curr );
 				}
 			}
+			else this.root = null;
+
 		}
 
 		protected int gain;
