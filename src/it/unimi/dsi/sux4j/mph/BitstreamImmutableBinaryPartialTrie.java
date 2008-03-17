@@ -231,8 +231,8 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 				iterator = iterable.iterator();
 
-				Node stack[] = new Node[ (int)maxLength ];
-				int[] len = new int[ (int)maxLength ];
+				final Node stack[] = new Node[ (int)maxLength ];
+				final int[] len = new int[ (int)maxLength ];
 				int depth = 0;
 				stack[ 0 ] = root;
 				boolean first = true;
@@ -251,10 +251,9 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 						if ( prefix < node.path.length() ) {
 							if ( node.path.getBoolean( prefix ) ) node.prefixLeft = prefix;
 							else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
-
 							break;
 						}
-
+						
 						pos += node.path.length() + 1;
 						if ( pos > curr.length() ) break;
 						node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
