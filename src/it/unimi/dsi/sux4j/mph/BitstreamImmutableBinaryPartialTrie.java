@@ -32,7 +32,6 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -52,14 +51,13 @@ import org.apache.log4j.Logger;
  * <p>An instance of this class stores a trie as a <em>recursive bitstream</em>: a node <var>x</var> with
  * subtrees <var>A</var> and <var>B</var> is stored as
  *  <div style="text-align: center">
- *  <var>skip</var> <var>pathlen</var> <var>path</var> <var>missing</var> <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var> <var>A</var> <var>B</var>,
+ *  <var>skip</var> <var>pathlen</var> <var>path</var> <var>missing</var> <var>leaves<sub>A</sub></var> <var>A</var> <var>B</var>,
  *  </div>
  * where except for <var>path</var>, which is the path at <var>x</var> represented literally,
  * all other components are numbers in {@linkplain OutputBitStream#writeDelta(int) &delta; coding}, and the
  * last two components are the recursive encodings of <var>A</var> and <var>B</var>. Leaves are
  * distinguished by having <var>skip</var> equal to zero (in which case, no information after the path is recorded). 
- * <var>leaves<sub>A</sub></var> <var>leaves<sub>B</sub></var>
- * are the number of leaves of <var>A</var> and <var>B</var>, respectively.
+ * <var>leaves<sub>A</sub></var> is the number of leaves of <var>A</var>.
  * 
  * @author Sebastiano Vigna
  */
@@ -69,39 +67,46 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	
+	/** Infinity-like value for initialising node prefixes. It's one less than {@link Integer#MAX_VALUE} because we need to be able to add one
+	 * without overflowing. */
 	private static final int MAX_PREFIX = Integer.MAX_VALUE - 1;
-	
 	/** The bitstream representing the partial trie. */
-	private byte[] trie;
+	private final byte[] trie;
 	/** The number of leaves in the trie. */
-	private int size;
+	private final int numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	
-	private final static class BitstreamTrie<T> {
+	/** A class representing explicitly a partial trie. The {@link PartialTrie#toStream(OutputBitStream)} method
+	 * writes an instance of this class to a bit stream. 
+	 */
+	private final static class PartialTrie<T> {
 		private final static boolean ASSERTS = false;
-		
+
 		/** A node in the trie. */
-		protected static class Node implements Serializable {
-			private static final long serialVersionUID = 1L;
-			public Node left, right;
+		protected static class Node {
+			/** Left child. */
+			public Node left;
+			/** Right child. */
+			public Node right;
 			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
-			public LongArrayBitVector path;
+			public final LongArrayBitVector path;
+			/** The length of the minimum disambiguating prefix on the left. */
 			public int prefixLeft;
+			/** The length of the minimum disambiguating prefix on the right. */
 			public int prefixRight;
 			
 			/** Creates a node. 
 			 * 
-			 * <p>Note that the long array contained in <code>path</code> will be stored inside the node.
-			 * 
-			 * @param bitVector the path compacted in this node, or <code>null</code> for the empty path.
+			 * @param left the left child.
+			 * @param right the right child.
+			 * @param path the path compacted at this node.
 			 */
-			public Node( final Node left, final Node right, final LongArrayBitVector bitVector ) {
+			public Node( final Node left, final Node right, final LongArrayBitVector path ) {
 				this.left = left;
 				this.right = right;
-				this.path = bitVector;
-				this.prefixLeft = this.prefixRight = MAX_PREFIX;
+				this.path = path;
+				prefixLeft = prefixRight = MAX_PREFIX;
 			}
 
 			/** Returns true if this node is a leaf.
@@ -121,28 +126,29 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		/** The root of the trie. */
 		protected final Node root;
 		
-		/** Creates a trie from a set of elements.
+		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
-		 * @param elements a set of elements
-		 * @param transformationStrategy a transformation strategy that must turn <code>elements</code> into a list of
-		 * distinct, lexicographically increasing (in iteration order) binary words.
+		 * @param elements the elements among which the trie must be able to rank.
+		 * @param bucketSize the size of a bucket.
+		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
+		 * distinct, lexicographically increasing (in iteration order) bit vectors.
 		 */
 		
-		public BitstreamTrie( final Iterable<? extends T> iterable, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
-			Iterator<? extends T> iterator = iterable.iterator(); 
+		public PartialTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
+			Iterator<? extends T> iterator = elements.iterator(); 
 			
-			int size = 0;
-			
-			Node root = null, node;
+			Node node;
 			BitVector curr;
 			int pos, prefix;
 
 			if ( iterator.hasNext() ) {
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
-				size++;
-				int cmp, numNodes = 0;
+				int count = 1;
+				Node root = null;
+				int cmp;
 				long maxLength = prev.length();
 				
 				while( iterator.hasNext() ) {
@@ -153,31 +159,26 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 					if ( curr.longestCommonPrefixLength( prev ) == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 
-					if ( size % bucketSize == 0 ) {
+					if ( count % bucketSize == 0 ) {
+						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, prev.copy() );
-							//System.err.println( "Root is " + root.path );
 							prevDelimiter.replace( prev );
 						}
 						else {
-							//System.err.println( "Comparing " + prev + " against " + prevDelimiter );
-
 							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
 
-							//System  .err.println( "Prefix is " + prefix );
 							pos = 0;
 							node = root;
 							Node n = null;
 							while( node != null ) {
 								final long pathLength = node.path.length();
-								//System.err.println( "pos: " + pos + " prefix:" + prefix + " length:" + node.path.length());
 								if ( prefix < pathLength ) {
 									n = new Node( node.left, node.right, node.path.copy( prefix + 1, pathLength ) );
-									node.path = node.path.length( prefix );
+									node.path.length( prefix );
 									node.path.trim();
 									node.left = n;
 									node.right = new Node( null, null, prev.copy( pos + prefix + 1, prev.length() ) ); 
-									numNodes++;
 									break;
 								}
 
@@ -189,24 +190,18 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 							if ( ASSERTS ) assert node != null;
 
-
-							/*	MutableString s = new MutableString();
-							recToString( root, new MutableString(), s, new MutableString(), 0 );
-							System.err.println( s );
-							 */
-
 							prevDelimiter.replace( prev );
 						}
 					}
 					prev.replace( curr );
 					maxLength = Math.max( maxLength, prev.length() );
-					size++;
+					count++;
 				}
 
 				this.root = root;
 
 				if ( ASSERTS ) {
-					iterator = iterable.iterator();
+					iterator = elements.iterator();
 					int c = 1;
 					while( iterator.hasNext() ) {
 						curr = transformationStrategy.toBitVector( iterator.next() );
@@ -230,17 +225,20 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 				LOGGER.info( "Reducing paths..." );
 
-				iterator = iterable.iterator();
+				iterator = elements.iterator();
 
+				// The stack of nodes visited the last time
 				final Node stack[] = new Node[ (int)maxLength ];
+				// The length of the path compacted in the trie up to the corresponding node, excluded
 				final int[] len = new int[ (int)maxLength ];
-				int depth = 0;
 				stack[ 0 ] = root;
+				int depth = 0;
 				boolean first = true;
 				
 				while( iterator.hasNext() ) {
 					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
 					if ( ! first )  {
+						// Adjust stack using lcp between present string and previous one
 						prefix = (int)prev.longestCommonPrefixLength( curr );
 						while( depth > 0 && len[ depth ] > prefix ) depth--;
 					}
@@ -248,16 +246,20 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 					node = stack[ depth ];
 					pos = len[ depth ];
 					for(;;) {
-						prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-						if ( prefix < node.path.length() ) {
-							if ( node.path.getBoolean( prefix ) ) node.prefixLeft = prefix;
+						final LongArrayBitVector path = node.path;
+						prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( path );
+						if ( prefix < path.length() ) {
+							/* If we are at the left of the current node, we simply update prefixLeft. Otherwise,
+							 * can update prefixRight only *once*. */
+							if ( path.getBoolean( prefix ) ) node.prefixLeft = prefix;
 							else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
 							break;
 						}
 						
-						pos += node.path.length() + 1;
+						pos += path.length() + 1;
 						if ( pos > curr.length() ) break;
 						node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+						// Update stack
 						len[ ++depth ] = pos;
 						stack[ depth ] = node;
 					}
@@ -269,24 +271,21 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 		}
 
+		/** Accumulates the gain in bits w.r.t. a standard trie (just for statistical purposes). */
 		protected int gain;
 		
-		/** Builds a trie recursively. 
+		/** Writes this trie in bit stream format to the given stream.
 		 * 
-		 * <p>The trie will contain the suffixes of words in <code>words</code> starting at <code>pos</code>.
-		 * 
-		 * @param elements a list of elements.
-		 * @param pos a starting position.
-		 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
+		 * @param obs an output bit stream.
+		 * @return the number of leaves in the trie.
 		 */
-
-		public int toStream( final OutputBitStream trie ) throws IOException {
-			final int result = toStream( root, trie );
+		public int toStream( final OutputBitStream obs ) throws IOException {
+			final int result = toStream( root, obs );
 			LOGGER.info( "Gain: " + gain );
 			return result;
 		}
 		
-		private int toStream( final Node n, final OutputBitStream trie ) throws IOException {
+		private int toStream( final Node n, final OutputBitStream obs ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -304,37 +303,34 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			long rightBits = right.writtenBits();
 			right.flush();
 			
-			trie.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
+			obs.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
 			
 			final int pathLength = (int)Math.min( n.path.length(), Math.max( n.prefixLeft, n.prefixRight ) + 1 );
 
 			final int missing =  (int)( n.path.length() - pathLength );
 			gain += missing; 
 
-			trie.writeDelta( pathLength );
-			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) trie.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
+			/* For efficiency, the path is written in 64-bit blocks exactly as 
+			 * it is represented in a LongArrayBitVector. */
+			obs.writeDelta( pathLength );
+			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) obs.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
 
-			if ( n.left != null ) {
-				trie.writeDelta( missing );
-				
-				trie.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
-				trie.writeLongDelta( leavesRight ); // The number of leaves in the right subtree
+			// Nothing after the path in leaves.
+			if ( n.isLeaf() ) return 1;
+			
+			obs.writeDelta( missing );
 
+			obs.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
 
-				// Write left and right tree
-				trie.write( leftStream.array, leftBits );
-				trie.write( rightStream.array, rightBits );
-				// Concatenate right tree
-				return leavesLeft + leavesRight;
-			}
+			// Write left and right trees
+			obs.write( leftStream.array, leftBits );
+			obs.write( rightStream.array, rightBits );
 
-			return 1;
+			return leavesLeft + leavesRight;
 		}
 		
 		private void recToString( final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) {
 			if ( n == null ) return;
-			
-			//System.err.println( "Called with prefix " + printPrefix );
 			
 			result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
 			
@@ -365,14 +361,19 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 	}
 	
+	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
+	 * 
+	 * @param elements the elements among which the trie must be able to rank.
+	 * @param bucketSize the size of a bucket.
+	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
+	 * distinct, lexicographically increasing (in iteration order) bit vectors.
+	 */
 	public BitstreamImmutableBinaryPartialTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
-
 		this.transformationStrategy = transformationStrategy;
-		BitstreamTrie<T> immutableBinaryTrie = new BitstreamTrie<T>( elements, bucketSize, transformationStrategy );
+		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, bucketSize, transformationStrategy );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
-		int numLeaves = immutableBinaryTrie.toStream( trie );
-		size = numLeaves;
+		numberOfLeaves = immutableBinaryTrie.toStream( trie );
 		
 		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
 		
@@ -392,80 +393,74 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 	public long getLong( Object o ) {
 		try {
 			if ( DEBUG ) System.err.println( "Getting " + o + "...");
-			BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
-			long length = v.length();
+			final BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
+			final long length = v.length();
 			final InputBitStream trie = new InputBitStream( this.trie );
 
-			long pos = 0;
-			int leaf = 0;
+			long pos = 0, readBits, skip, xor, t;
+			int leavesOnTheLeft = 0, pathLength, size, missing, leftSubtrieLeaves, leaves = numberOfLeaves;
 			for( ;; ) {
-				long skip = trie.readLongDelta();
-
-				int pathLength = trie.readDelta();
+				skip = trie.readLongDelta();
+				pathLength = trie.readDelta();
 				if ( DEBUG ) System.err.println( "Path length: " + pathLength );
 				
-				long xor = 0, t = 0;
-				int i, size;
+				xor = t = 0;
 				
-				long readBits = trie.readBits();
+				readBits = trie.readBits();
 				
-				//System.err.println( v.subVector(  pos, v.length() ) );
-				
-				for( i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
+				for( int i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
 					size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
 					xor = v.getLong( pos, Math.min( length, pos += size ) ) ^ ( t = trie.readLong( size ) );
-					
-					//System.err.println( "Checking with " + LongArrayBitVector.wrap( new long[] { t }, size ) );
-					
 					if ( xor != 0 || pos >= length ) break;
 				}
 
 				if ( xor != 0 || pos > length ) {
-					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at (leaf = " + leaf + ")" );
-					if ( ( ( xor & -xor ) & t ) != 0 ) return leaf;
+					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at (leaf = " + leavesOnTheLeft + ")" );
+					// If we are lexicographically smaller than the trie, we just return the leaves to our left.
+					if ( ( ( xor & -xor ) & t ) != 0 ) return leavesOnTheLeft;
 					else {
 						if ( skip == 0 ) {
 							if ( DEBUG ) System.err.println( "Leaf node" );
-							return leaf + 1;
+							return leavesOnTheLeft + 1;
 						}
 						if ( DEBUG ) System.err.println( "Non-leaf node" );
 						// Skip remaining path, if any and missing bits count
 						trie.skip( pathLength - ( trie.readBits() - readBits ) );
 						trie.readDelta();
-						return leaf + trie.readDelta() + trie.readDelta();
+						return leavesOnTheLeft + leaves;
 					}
 				}
 
 				if ( skip == 0 ) {
-					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leaf + ")" + pos + " " + length );
-					return leaf;
+					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leavesOnTheLeft + ")" + pos + " " + length );
+					return leavesOnTheLeft;
 				}
 				
-				int missing = trie.readDelta();
+				missing = trie.readDelta();
 				if ( DEBUG ) System.err.println( "Missing bits: " + missing );
 				
 				// Increment pos by missing bits
 				pos += missing;
+				if ( pos >= v.length() ) return leavesOnTheLeft;
 				
-				int leavesLeft = trie.readDelta();
-				trie.readDelta(); // Skip number of right leaves
-				
-				if ( pos >= v.length() ) return leaf;
+				leftSubtrieLeaves = trie.readDelta();
 				
 				if ( v.getBoolean( pos++ ) ) {
 					// Right
 					trie.skip( skip );
-					leaf += leavesLeft;
-					if ( DEBUG ) System.err.println( "Turining right (" + leaf + " leaves on the left)..." );
+					leavesOnTheLeft += leftSubtrieLeaves;
+					leaves -= leftSubtrieLeaves;
+					if ( DEBUG ) System.err.println( "Turining right (" + leavesOnTheLeft + " leaves on the left)..." );
 				}
 				else {
-					if ( DEBUG ) System.err.println( "Turining left (" + leaf + " leaves on the left)..." );
 					// Left
+					leaves = leftSubtrieLeaves;
+					if ( DEBUG ) System.err.println( "Turining left (" + leavesOnTheLeft + " leaves on the left)..." );
 				}
 
 			} 
-		}catch( IOException e ) {
-			throw new RuntimeException( e );
+		} catch( IOException cantHappen ) {
+			throw new RuntimeException( cantHappen );
 		}
 	}
 	
@@ -485,6 +480,8 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			p.append( trie.readLong( size ), size );
 		}
 
+		if ( skip == 0 ) return; // Leaf
+
 		int missing = trie.readDelta();
 
 		path.append( p );
@@ -493,11 +490,7 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		
 		result.append( '\n' );
 
-		if ( skip == 0 ) return; // Leaf
-
 		trie.readDelta(); // Skip number of leaves in the left subtree
-		trie.readDelta(); // Skip number of leaves in the right subtree
-
 		
 		path.append( '0' );
 		recToString( trie, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
@@ -511,15 +504,23 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 		path.delete( path.length() - pathLength, path.length() );
 	}
 
-	public boolean containsKey( Object o ) {
-		return true;
-	}
-
 	public long numBits() {
 		return trie.length * Byte.SIZE + transformationStrategy.numBits();
 	}
 
+	/** Returns the number of leaves in this trie.
+	 * 
+	 * @return the number of leaves in this trie.
+	 */
+	public int numberOfLeaves() {
+		return numberOfLeaves;
+	}
+	
+	public boolean containsKey( Object o ) {
+		return true;
+	}
+
 	public int size() {
-		return size;
+		return -1;
 	}
 }
