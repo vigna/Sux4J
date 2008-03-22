@@ -29,7 +29,7 @@ import it.unimi.dsi.util.LongBigList;
 /** An opportunistic select implementation for sparse arrays. 
  * 
  * <p>The code is based on a 64-bit reimplementation of the <code>sdarray</code> structure
- * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, In <i>Proc. of the 
+ * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, in <i>Proc. of the 
  * Workshop on Algorithm Engineering and Experiments, ALENEX 2007</i>. SIAM, 2007.
  * 
  * <p>The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
