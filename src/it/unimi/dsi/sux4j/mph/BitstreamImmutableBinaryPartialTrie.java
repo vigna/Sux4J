@@ -28,6 +28,7 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
+import it.unimi.dsi.io.NullOutputStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 
@@ -273,6 +274,8 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 
 		/** Accumulates the gain in bits w.r.t. a standard trie (just for statistical purposes). */
 		protected int gain;
+
+		private final OutputBitStream bitCount = new OutputBitStream( NullOutputStream.getInstance(), 0 );
 		
 		/** Writes this trie in bit stream format to the given stream.
 		 * 
@@ -308,17 +311,20 @@ public class BitstreamImmutableBinaryPartialTrie<T> extends AbstractObject2LongF
 			final int pathLength = (int)Math.min( n.path.length(), Math.max( n.prefixLeft, n.prefixRight ) + 1 );
 
 			final int missing =  (int)( n.path.length() - pathLength );
-			gain += missing; 
-
+			// We gain one bit for each missing bit
+			gain += missing;
+			
 			/* For efficiency, the path is written in 64-bit blocks exactly as 
 			 * it is represented in a LongArrayBitVector. */
-			obs.writeDelta( pathLength );
+			
+			gain += bitCount.writeLongDelta( n.path.length() ) - obs.writeDelta( pathLength ); // We gain if the path length is written in less bits than it should be.
 			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) obs.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
 
 			// Nothing after the path in leaves.
 			if ( n.isLeaf() ) return 1;
 			
-			obs.writeDelta( missing );
+			// We count the missing bit as a gain, but of course in an internal node we must subtract the space needed to represent their cardinality.
+			gain -= obs.writeDelta( missing );
 
 			obs.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
 

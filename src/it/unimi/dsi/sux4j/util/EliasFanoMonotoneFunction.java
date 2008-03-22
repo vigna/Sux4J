@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.util;
 import java.io.Serializable;
 
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
@@ -88,6 +89,21 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 		});
 	}
 
+	public EliasFanoMonotoneFunction( final IntArrayList list, boolean dummy ) {
+		this( list.size(), list.size() == 0 ? 0 : list.getInt( list.size() - 1 ) + 1, 
+		new AbstractLongIterator() {
+			final IntIterator iterator = list.iterator();
+			
+			public boolean hasNext() {
+				return iterator.hasNext();
+			}
+			
+			public long nextLong() {
+				return iterator.nextInt();
+			}
+		}, dummy);
+	}
+
 	public EliasFanoMonotoneFunction( final LongBigList list ) {
 		this( list.length(), list.length() == 0 ? 0 : list.getLong( list.length() - 1 ) + 1, list.iterator() );
 	}
@@ -115,6 +131,38 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.size );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( l > 0 ? this.size * 2 : this.size + upperBound );
+		long last = 0;
+		for( long i = 0; i < this.size; i++ ) {
+			pos = iterator.nextLong();
+			if ( pos >= upperBound ) throw new IllegalArgumentException( "Too large value: " + pos + " >= " + upperBound );
+			if ( pos < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + pos + " < " + last );
+			if ( l != 0 ) lowerBits.set( i, pos & lowerBitsMask );
+			upperBits.set( ( pos >> l ) + i );
+			last = pos;
+		}
+		
+		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.size + " positions in the provided iterator" );
+		
+		selectUpper = new SimpleSelect( upperBits );
+	}
+	
+
+	/** Creates a new <code>sdarray</code> select structure using an {@linkplain LongIterator iterator}.
+	 * 
+	 * <p>This constructor is particularly useful if the positions of the ones are provided by
+	 * some sequential source.
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
+	 */
+	public EliasFanoMonotoneFunction( long n, final long upperBound, final LongIterator iterator, final boolean dummy ) {
+		long pos = -1;
+		this.size = n;
+		this.n = upperBound;
+		this.l = Math.max( 0, Fast.mostSignificantBit( upperBound / n ) );
+		final long lowerBitsMask = ( 1L << l ) - 1;
+		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.size );
+		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.size + ( upperBound >>> l ) );
 		long last = 0;
 		for( long i = 0; i < this.size; i++ ) {
 			pos = iterator.nextLong();
