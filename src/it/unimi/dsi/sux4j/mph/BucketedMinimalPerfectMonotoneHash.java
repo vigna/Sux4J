@@ -47,32 +47,26 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A minimal perfect monotone hash implementation based on fixed-size bucketing.
- * *
- * @author Sebastiano Vigna
- * @since 0.1
+/** A minimal perfect monotone hash implementation based on fixed-size bucketing by means of a {@linkplain BitstreamImmutableBinaryPartialTrie partial
+ * compacted binary trie (PaCo trie)}.
  */
 
 public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( BucketedMinimalPerfectMonotoneHash.class );
-	@SuppressWarnings("unused")
-	private static final boolean DEBUG = false;
 	
 	/** The number of elements. */
-	final protected int n;
+	private final int n;
 	/** The size of a bucket. */
-	final protected int bucketSize;
+	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
-	final protected int log2BucketSize;
-	/** The mask for {@link #log2BucketSize} bits. */
-	final protected int bucketSizeMask;
+	private final int log2BucketSize;
 	/** The transformation strategy. */
-	final protected TransformationStrategy<? super T> transform;
-	/** A distributor assigning keys to buckets. */
+	private final TransformationStrategy<? super T> transform;
+	/** A PaCo trie assigning keys to buckets. */
 	private final BitstreamImmutableBinaryPartialTrie<BitVector> distributor;
-	/** The offset of each vector into his bucket. */
-	final private MWHCFunction<BitVector> offset;
+	/** The offset of each element into his bucket. */
+	private final MWHCFunction<BitVector> offset;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
@@ -105,13 +99,13 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		n = c;
 		
 		if ( n == 0 )	{
-			bucketSize = bucketSizeMask = log2BucketSize = 0;
+			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
 			return;
 		}
 
-		long averageLength = totalLength / n;
+		final long averageLength = ( totalLength + n - 1 ) / n;
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
 		final int firstbucketSize = 1 << t;
@@ -122,11 +116,8 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		BitstreamImmutableBinaryPartialTrie<BitVector> firstDistributor = new BitstreamImmutableBinaryPartialTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
 		// Reassign bucket size based on empirical estimation
-		
 		log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( n / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
-		bucketSizeMask = bucketSize - 1;
-
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
@@ -161,24 +152,12 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 	}
 
 
-	/** Returns the number of terms hashed.
-	 *
-	 * @return the number of terms hashed.
-	 */
 	public int size() {
 		return n;
 	}
 
-	/** Returns the number of bits used by this structure.
-	 * 
-	 * @return the number of bits used by this structure.
-	 */
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();
-	}
-
-	public boolean hasTerms() {
-		return false;
 	}
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
@@ -209,8 +188,8 @@ public class BucketedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> imple
 		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		LOGGER.info( "Building minimal perfect monotone hash function..." );
-		FileLinesCollection fileLinesList = new FileLinesCollection( stringFile, encoding.name(), zipped );
-		minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( fileLinesList, huTucker ? new HuTuckerTransformationStrategy( fileLinesList, true ) : transformationStrategy );
+		FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
+		minimalPerfectMonotoneHash = new BucketedMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
 
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( minimalPerfectMonotoneHash, functionName );
