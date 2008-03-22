@@ -1,3 +1,1 @@
-- Important: decide whether to use [from..to] or [from..to)
-
-- Important: decide which operations to implement in a bit vector
+- Document at package level minimal perfect hashing
