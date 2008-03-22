@@ -43,7 +43,7 @@ import java.io.Serializable;
  *  	<li><code>rank(length())</code> is the number of ones in the bit vector;
  *  	<li>if <code>r &lt; rank(length())</code>, then <code>rank(select(r))==r</code>;
  *  	<li>if <code>r &ge; rank(length())</code>, then <code>select(r)=-1</code>;
- *  	<li>if <code>p &le; length()</code>, then <code>select(rank(p))&lt;=p</code>, and equality
+ *  	<li>if <code>p &le; length()</code>, then <code>p&le;select(rank(p))</code>, and equality
  *  	holds iff there is a one at position <code>p</code>.
  *  </ul>
  */
