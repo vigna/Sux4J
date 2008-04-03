@@ -22,16 +22,15 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction;
 import it.unimi.dsi.util.LongBigList;
 
-/** An opportunistic rank implementation for sparse arrays. 
+/** A rank implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneFunction Elias&ndash;Fano representation of monotone functions}. 
  * 
- * <p>Please see the {@link SparseSelect} class documentation for some reference on the inner workings of this class.
- * 
- * <p>Note that some data is shared with {@link SparseSelect}: correspondingly, a suitable {@linkplain #SparseRank(SparseSelect) constructor}
- * makes it possible to build an instance using an underlying {@link SparseSelect} instance.
+ * <p>Note that some data may be shared with {@link SparseSelect}: just use the factory method {@link SparseSelect#getRank()} to obtain an instance.
  */
 
 public class SparseRank extends AbstractRank {
@@ -52,7 +51,7 @@ public class SparseRank extends AbstractRank {
 	/** The rank structure used to extract the upper bits. */ 
 	protected final SimpleSelectZero selectZeroUpper;
 
-	/** Creates a new <code>sdarray</code> rank structure using a long array.
+	/** Creates a new rank structure using a long array.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original array.
 	 * 
@@ -63,7 +62,7 @@ public class SparseRank extends AbstractRank {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 	
-	/** Creates a new <code>sparse</code> rank structure using a bit vector.
+	/** Creates a new rank structure using a bit vector.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original bit vector.
 	 * 
@@ -74,7 +73,7 @@ public class SparseRank extends AbstractRank {
 	}
 	
 	
-	/** Creates a new <code>sparse</code> rank structure using an {@linkplain LongIterator iterator}.
+	/** Creates a new rank structure using an {@linkplain LongIterator iterator}.
 	 * 
 	 * <p>This constructor is particularly useful if the positions of the ones are provided by
 	 * some sequential source.
@@ -85,49 +84,37 @@ public class SparseRank extends AbstractRank {
 	 */
 	public SparseRank( final long n, long m, final LongIterator iterator ) {
 		long pos = -1;
-		this.m = m;
 		this.n = n;
-		int l = 0;
-		if ( m > 0 ) {
-			while( m < n ) {
-				m *= 2;
-				l++;
-			}
-		}
-		this.l = l;
+		this.m = m;
+		l = m == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( n / m ) );
 		lowerLBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
-		upperBits = LongArrayBitVector.getInstance().length( this.m * 2 );
+		
+		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( m );
+		upperBits = LongArrayBitVector.getInstance().length( m + ( n >>> l ) );
 		long last = 0;
-		for( long i = 0; i < this.m; i++ ) {
+		for( long i = 0; i < m; i++ ) {
 			pos = iterator.nextLong();
-			if ( pos >= n ) throw new IllegalArgumentException( "Position too large for " + n + " bits: " + pos );
+			if ( pos >= n ) throw new IllegalArgumentException( "Too large bit poisition: " + pos + " >= " + n );
 			if ( pos < last ) throw new IllegalArgumentException( "Positions are not nondecreasing: " + pos + " < " + last );
 			if ( l != 0 ) lowerBits.set( i, pos & lowerLBitsMask );
 			upperBits.set( ( pos >> l ) + i );
 			last = pos;
 		}
 		
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.m + " positions in the provided iterator" );
+		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + m + " positions in the provided iterator" );
 		
 		selectZeroUpper = new SimpleSelectZero( upperBits );
 	}
 
-	
-	/** Creates a new <code>sparse</code> rank structure using a {@link SparseSelect}.
-	 *
-	 * @param sparseSelect a sparse rank structure.
-	 */
-	public SparseRank( final SparseSelect sparseSelect ) {
-		n = sparseSelect.n;
-		m = sparseSelect.m;
-		l = sparseSelect.l;
-		lowerLBitsMask = ( 1L << l ) - 1;
-		upperBits = sparseSelect.selectUpper.bitVector();
-		lowerBits = sparseSelect.lowerBits;
-		selectZeroUpper = new SimpleSelectZero( upperBits );
+	protected SparseRank( long n, long m, int l, LongBigList lowerBits, BitVector upperBits ) {
+		this.n = n;
+		this.m = m;
+		this.l = l;
+		this.lowerLBitsMask = ( 1L << l ) - 1;
+		this.lowerBits = lowerBits;
+		this.upperBits = upperBits;
+		this.selectZeroUpper = new SimpleSelectZero( upperBits );
 	}
-	
 
 	public long rank( final long pos ) {
 		if ( m == 0 ) return 0;
@@ -149,6 +136,16 @@ public class SparseRank extends AbstractRank {
 	public long numBits() {
 		return selectZeroUpper.numBits() + upperBits.length() + lowerBits.size() * l;
 	}
+	
+	
+	/** Creates a new {@link SparseSelect} structure sharing data with this instance.
+	 *
+	 * @return a new {@link SparseSelect} structure sharing data with this instance.
+	 */
+	public SparseSelect getSelect() {
+		return new SparseSelect( n, m, l, lowerBits, new SimpleSelect( upperBits ) );
+	}
+	
 
 	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
 	 * a copy is built on purpose and returned.

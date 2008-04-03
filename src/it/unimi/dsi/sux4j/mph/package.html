@@ -1,0 +1,35 @@
+<html>
+<head><title>Minimal perfect hash functions</title></head>
+<body>
+Minimal perfect hash functions.
+
+<h2>Package Specification</h2>
+
+<p>This package provides a number of state-of-the-art implementations of static (i.e., immutable)
+<em>minimal perfect hash functions</em>, and, more generally, of static functions from objects to integers.
+The classes can be gathered in three broad groups:
+<ul>
+<li>Minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}); they map a set
+of <var>n</var> object to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 };
+<li>Monotone minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction},
+{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie});
+<li>General functions (e.g.,  {@link it.unimi.dsi.sux4j.mph.MWHCFunction}). They can be used to associate arbitrary values to a set of objects,
+so, in particular, they can be used to implement <em>order-preserving minimal perfect hashing</em> (elements are mapped
+to their order in which they were provided, independently of their lexicographical order).
+</ul>
+ 
+<h2>Usage</h2>
+
+<p>Functions in this package implement the {@link it.unimi.dsi.fastutil.objects.Object2LongFunction} interface. However,
+the underlying machinery manipulates {@linkplain it.unimi.dsi.bits.BitVector bit vectors} only. To bring you own data
+into the bit vector world, each contructor requires to specify a {@linkplain it.unimi.dsi.bits.TransformationStrategy transformation strategy}
+that maps your objects into bit vectors. For instance, {@link it.unimi.dsi.bits.TransformationStrategies#utf16()},
+{@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeUtf16()}, {@link it.unimi.dsi.bits.TransformationStrategies#iso()},
+and {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeIso()} are ready-made strategies that can be used with character sequences.
+
+<p>Note that if you plain to use monotone hashing, you must provide objects in an order such that the corresponding bit vectors
+are lexicographically ordered. For instance, {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeUtf16()} obtain this
+results by concatenating the <em>reversed</em> 16-bit representation of each character.
+ 
+</body>
+</html>

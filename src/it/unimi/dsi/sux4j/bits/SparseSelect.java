@@ -24,46 +24,24 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction;
 import it.unimi.dsi.util.LongBigList;
 
-/** An opportunistic select implementation for sparse arrays. 
+/** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneFunction Elias&ndash;Fano representation of monotone functions}. 
  * 
- * <p>The code is based on a 64-bit reimplementation of the <code>sdarray</code> structure
- * described by Daisuke Okanohara and Kunihiko Sadakane in &ldquo;Practical Entropy-CompressedRank/SelectDictionary&rdquo;, in <i>Proc. of the 
- * Workshop on Algorithm Engineering and Experiments, ALENEX 2007</i>. SIAM, 2007.
+ * <p>Instances of this classes to not add support to a bit vector: rather, they replace the bit vector
+ * with a succinct representation of the positions of the ones in the bit vector.
  * 
- * <p>The positions of the <var>{@linkplain #m}</var> ones in a bit array of <var>{@linkplain #n}</var> bits are stored explicitly 
- * by storing separately 
- * the lower <var>{@linkplain #l}</var> = &lceil; log <var>{@linkplain #n}</var> /  <var>{@linkplain #m} )</var> &rceil; bits
- * and the remaining upper bits.
- * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
- * of 2<var>{@linkplain #m}</var> bits by setting, if the <var>i</var>-th one is at position
- * <var>p</var>, the bit of index <var>p</var> / 2<sup><var>l</var></sup> + <var>i</var>; the value can then be recovered
- * by selecting the <var>i</var>-th bit of the resulting dense (but small) bit array and subtracting <var>i</var> (note that this will
- * work because the upper bits are nondecreasing).
- * 
- * <p>This implementation uses {@link SimpleSelect} to support selection inside the dense array. The resulting data structure uses 
- * <var>m</var> &lceil; log(<var>n</var>/<var>m</var>) &rceil; + 2.25 <var>m</var> bits, and <em>does not store the original bit vector</em>.
- * 
- * <p>Note that some data is shared with {@link SparseRank}: correspondingly, a suitable {@linkplain #SparseSelect(SparseRank) constructor}
- * makes it possible to build an instance using an underlying {@link SparseRank} instance.
+ * <p>Note that some data may be shared with {@link SparseRank}: just use the factory method {@link SparseRank#getSelect()} to obtain an instance.
  */
 
-public class SparseSelect implements Select {
+public class SparseSelect extends EliasFanoMonotoneFunction implements Select {
 	private static final long serialVersionUID = 2L;
 	
-	/** The length of the underlying bit array. */
-	protected final long n;
-	/** The number of ones in the underlying bit array. */
-	protected final long m;
-	/** The number of lower bits. */
-	protected final int l;
-	/** The list of lower bits of the position of each one, stored explicitly. */
-	protected final LongBigList lowerBits;
-	/** The select structure used to extract the upper bits. */ 
-	protected final SimpleSelect selectUpper;
+	/** The number of bits in the underlying bit array. */
+	private final long n;
 
-	/** Creates a new <code>sdarray</code> select structure using a long array.
+	/** Creates a new select structure using a long array.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original array.
 	 * 
@@ -74,7 +52,7 @@ public class SparseSelect implements Select {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 	
-	/** Creates a new <code>sdarray</code> select structure using a bit vector.
+	/** Creates a new select structure using a bit vector.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original bit vector.
 	 * 
@@ -85,7 +63,7 @@ public class SparseSelect implements Select {
 	}
 	
 	
-	/** Creates a new <code>sdarray</code> select structure using an {@linkplain LongIterator iterator}.
+	/** Creates a new select structure using an {@linkplain LongIterator iterator}.
 	 * 
 	 * <p>This constructor is particularly useful if the positions of the ones are provided by
 	 * some sequential source.
@@ -95,55 +73,34 @@ public class SparseSelect implements Select {
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
 	public SparseSelect( final long n, long m, final LongIterator iterator ) {
-		long pos = -1;
-		this.m = m;
+		super( m, n, iterator );
 		this.n = n;
-		int l = 0;
-		if ( m > 0 ) {
-			while( m < n ) {
-				m *= 2;
-				l++;
-			}
-		}
-		this.l = l;
-		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.m );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.m * 2 );
-		long last = 0;
-		for( long i = 0; i < this.m; i++ ) {
-			pos = iterator.nextLong();
-			if ( pos >= n ) throw new IllegalArgumentException( "Position too large for " + n + " bits: " + pos );
-			if ( pos < last ) throw new IllegalArgumentException( "Positions are not nondecreasing: " + pos + " < " + last );
-			if ( l != 0 ) lowerBits.set( i, pos & lowerBitsMask );
-			upperBits.set( ( pos >> l ) + i );
-			last = pos;
-		}
-		
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.m + " positions in the provided iterator" );
-		
-		selectUpper = new SimpleSelect( upperBits );
-	}
+	}	
 	
-	/** Creates a new <code>sdarray</code> select structure using a {@link SparseRank}.
-	 *
-	 * @param sparseRank a sparse rank structure.
-	 */
-	public SparseSelect( final SparseRank sparseRank ) {
-		n = sparseRank.n;
-		m = sparseRank.m;
-		l = sparseRank.l;
-		lowerBits = sparseRank.lowerBits;
-		selectUpper = new SimpleSelect( sparseRank.upperBits );
+	protected SparseSelect( long n, long m, int l, LongBigList lowerBits, SimpleSelect selectUpper ) {
+		super( m, l, lowerBits, selectUpper );
+		this.n = n;
 	}
-	
 
+	/** Creates a new {@link SparseRank} structure sharing data with this instance.
+	 *
+	 * @return a new {@link SparseRank} structure sharing data with this instance.
+	 */
+	public SparseRank getRank() {
+		return new SparseRank( n, length, l, lowerBits, selectUpper.bitVector() );
+	}
+
+	@Override
+	public long length() {
+		return n;
+	}
+	
 	public long numBits() {
 		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
 	}
 
-	
 	public long select( final long rank ) {
-		if ( rank >= m ) return -1;
+		if ( rank >= length ) return -1;
 		return ( selectUpper.select( rank ) - rank ) << l | lowerBits.getLong( rank );
 	}
 
@@ -154,7 +111,7 @@ public class SparseSelect implements Select {
 	 */
 	public BitVector bitVector() {
 		final LongArrayBitVector result = LongArrayBitVector.getInstance( n ).length( n );
-		for( long i = m; i-- != 0; ) result.set( select( i ) );
+		for( long i = length; i-- != 0; ) result.set( select( i ) );
 		return result;
 	}
 }

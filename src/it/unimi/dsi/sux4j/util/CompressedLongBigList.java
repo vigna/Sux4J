@@ -47,7 +47,7 @@ public class CompressedLongBigList extends AbstractLongBigList implements Serial
 	private final LongArrayBitVector bits;
 	
 	private final int offset;
-	private it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction borders;
+	private EliasFanoMonotoneFunction borders;
 	
 	/** Builds a new two-sizes long bit list using a given big list of long.
 	 * 

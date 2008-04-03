@@ -170,10 +170,10 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 		// Check for compaction
 		long c = 0;
-		for( long x: data ) if ( x != 0 ) c++;
+		for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) c++;
 		
 		// We estimate size using Rank16
-		if ( c * this.width + m * 1.126 < (long)m * this.width ) {
+		if (  c * this.width + m * 1.126 < (long)m * this.width ) {
 			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( c );

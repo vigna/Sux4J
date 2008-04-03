@@ -21,179 +21,240 @@ package it.unimi.dsi.sux4j.util;
  *
  */
 
-import java.io.Serializable;
-
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.bytes.ByteIterable;
+import it.unimi.dsi.fastutil.bytes.ByteIterator;
+import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongIterators;
+import it.unimi.dsi.fastutil.shorts.ShortIterable;
+import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.util.AbstractLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
-/** An implementation of Elias&ndash;Fano's representation for monotone functions.
+import java.io.Serializable;
+
+/** An implementation of Elias&ndash;Fano's representation of monotone sequences.
  * 
- * <p>Given a (nondecreasing) monotone function <var>n</var>&nbsp;&larr;&nbsp;2<sup><var>s</var></sup>,
+ * <p>Given a (nondecreasing) monotone sequence 
+ * <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub>
+ * of natural numbers smaller than <var>u</var>,
  * the Elias&ndash;Fano representation makes it possible to store it using
- * just 2 + <var>s</var> &minus; log&nbsp;<var>n</var> bits per element (which is very close
- * to the information-theoretical lower bound log <it>e</it> + <var>s</var> &minus; log&nbsp;<var>n</var>). 
+ * at most 2 + log(<var>u</var>/<var>n</var>) bits per element, which is very close
+ * to the information-theoretical lower bound &#x2248; log <i>e</i> + log(<var>u</var>/<var>n</var>). A typical example
+ * is a list of pointer into records of a large file: instead of using, for each pointer, a number of bit sufficient to express the length of
+ * the file, the Elias&ndash;Fano representation makes it possible to use, for each pointer, a number of bits roughly equal to
+ * the logarithm of the average length of a record. The representation was introduced in Peter Elias, 
+ * &ldquo;Efficient storage and retrieval by content and address of static files&rdquo;, <i>J. Assoc. Comput. Mach.</i>, 21(2):246&minus;260, 1974,
+ * and also independently by Robert Fano, &ldquo;On the number of bits required to implement an associative memory&rdquo;,
+ *  Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge, Mass., n.d., 1971. 
  * 
- * <p>The values of the function are recorded by storing separately 
- * the lower <var>s</var> &minus; log&nbsp;<var>n</var> bits
- * and the remaining upper bits.
- * The lower bits are stored in a bit array, whereas the upper bits are stored in an array
- * of 2<var>n</var> bits by setting, if the <var>i</var>-th one is at position
- * <var>p</var>, the bit of index <var>p</var> / 2<sup><var>s</var></sup> + <var>i</var>; the value can then be recovered
+ * <p>The elements of the sequence are recorded by storing separately 
+ * the lower <var>s</var> = &lfloor;log(<var>u</var>/<var>n</var>)&rfloor; bits and the remaining upper bits.
+ * The lower bits are stored contiguously, whereas the upper bits are stored in an array
+ * of <var>n</var> + <var>x</var><sub><var>n</var> &minus; 1</sub> / 2<sup><var>s</var></sup> bits by setting,
+ * for each 0 &le; <var>i</var> &lt; <var>n</var>,
+ * the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> + <var>i</var>; the value can then be recovered
  * by selecting the <var>i</var>-th bit of the resulting bit array and subtracting <var>i</var> (note that this will
  * work because the upper bits are nondecreasing).
  * 
- * <p>This implementation uses {@link SimpleSelect} to support selection inside the dense array. The resulting data structure uses 
- * <var></var> &lceil; log(<var>n</var>/<var>m</var>) &rceil; + 2.25 <var>m</var> bits.
+ * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array.
  * 
+ * <!--<h2><var>k</var>-monotone sequences</h2>
+ * 
+ * <p>We say that <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub> is
+ * <em><var>k</var>-monotone</em> if <var>x</var><sub><var>i</var></sub> &minus; <var>x</var><sub><var>i</var> &minus; 1</sub> &ge; <var>k</var>.
+ * There is a natural bijection between <var>k</var>-monotone sequences of <var>n</var> elements with upper bound <var>u</var>
+ * and monotone sequences of <var>n</var> elements with upper bound <var>u</var> &minus; <var>kn</var> that can be used to 
+ * further reduce space occupancy.
+ * -->
  */
 
 public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 2L;
 	
-	/** The length of the underlying bit array. */
-	protected final long n;
-	/** The number of ones in the underlying bit array. */
-	protected final long size;
+	/** The length of the sequence. */
+	protected final long length;
 	/** The number of lower bits. */
 	protected final int l;
-	/** The list of lower bits of the position of each one, stored explicitly. */
+	/** The list of lower bits of each element, stored explicitly. */
 	protected final LongBigList lowerBits;
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
 	
-	public EliasFanoMonotoneFunction( final LongArrayList list ) {
-		this( list.size(), list.size() == 0 ? 0 : list.getLong( list.size() - 1 ) + 1, list.iterator() );
+	protected EliasFanoMonotoneFunction( final long length, final int l, final LongBigList lowerBits, final SimpleSelect selectUpper ) {
+		this.length = length;
+		this.l = l;
+		this.lowerBits = lowerBits;
+		this.selectUpper = selectUpper;
 	}
 
-	public EliasFanoMonotoneFunction( final IntArrayList list ) {
-		this( list.size(), list.size() == 0 ? 0 : list.getInt( list.size() - 1 ) + 1, 
-		new AbstractLongIterator() {
-			final IntIterator iterator = list.iterator();
-			
-			public boolean hasNext() {
-				return iterator.hasNext();
-			}
-			
-			public long nextLong() {
-				return iterator.nextInt();
+	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	 * 
+	 * @param list an iterable object.
+	 */
+	public EliasFanoMonotoneFunction( final IntIterable list ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( list.iterator() );
 			}
 		});
 	}
 
-	public EliasFanoMonotoneFunction( final IntArrayList list, boolean dummy ) {
-		this( list.size(), list.size() == 0 ? 0 : list.getInt( list.size() - 1 ) + 1, 
-		new AbstractLongIterator() {
-			final IntIterator iterator = list.iterator();
-			
-			public boolean hasNext() {
-				return iterator.hasNext();
-			}
-			
-			public long nextLong() {
-				return iterator.nextInt();
-			}
-		}, dummy);
-	}
-
-	public EliasFanoMonotoneFunction( final LongBigList list ) {
-		this( list.length(), list.length() == 0 ? 0 : list.getLong( list.length() - 1 ) + 1, list.iterator() );
-	}
-
-	/** Creates a new <code>sdarray</code> select structure using an {@linkplain LongIterator iterator}.
+	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
 	 * 
-	 * <p>This constructor is particularly useful if the positions of the ones are provided by
-	 * some sequential source.
-	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
-	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
+	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneFunction( long n, final long upperBound, final LongIterator iterator ) {
-		long pos = -1;
-		this.size = n;
-		this.n = upperBound;
-		int l = 0;
-		if ( n > 0 ) {
-			while( n < upperBound ) {
-				n *= 2;
-				l++;
+	public EliasFanoMonotoneFunction( final ShortIterable list ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( list.iterator() );
 			}
-		}
-		this.l = l;
-		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.size );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( l > 0 ? this.size * 2 : this.size + upperBound );
-		long last = 0;
-		for( long i = 0; i < this.size; i++ ) {
-			pos = iterator.nextLong();
-			if ( pos >= upperBound ) throw new IllegalArgumentException( "Too large value: " + pos + " >= " + upperBound );
-			if ( pos < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + pos + " < " + last );
-			if ( l != 0 ) lowerBits.set( i, pos & lowerBitsMask );
-			upperBits.set( ( pos >> l ) + i );
-			last = pos;
+		});
+	}
+
+	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	 * 
+	 * @param list an iterable object.
+	 */
+	public EliasFanoMonotoneFunction( final ByteIterable list ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( list.iterator() );
+			}
+		});
+	}
+	
+	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	 * 
+	 * @param list an iterable object.
+	 */
+
+	public EliasFanoMonotoneFunction( final LongIterable list ) {
+		this( computeParameters( list.iterator() ), list.iterator() );
+	}
+
+	/** Computes the number of elements and the last element returned by the given iterator.
+	 * 
+	 * @param iterator an iterator.
+	 * @return a two-element array of longs containing the number of elements returned by
+	 * the iterator and the last returned element, respectively.
+	 */
+	private static long[] computeParameters( final LongIterator iterator ) {
+		long v = -1, c = 0;
+		while( iterator.hasNext() ) {
+			v = iterator.nextLong();
+			c++;
 		}
 		
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.size + " positions in the provided iterator" );
+		return new long[] { c, v + 1 };
+	}
+	
+
+	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
+	 * the overall number of elements and an upper bound are provided, too.
+	 * 
+	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
+	 * some sequential source.
+	 * 
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing elements.
+	 */
+	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final ByteIterator iterator ) {
+		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	}
+
+	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
+	 * the overall number of elements and an upper bound are provided, too.
+	 * 
+	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
+	 * some sequential source.
+	 * 
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing elements.
+	 */
+	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final ShortIterator iterator ) {
+		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	}
+
+	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
+	 * the overall number of elements and an upper bound are provided, too.
+	 * 
+	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
+	 * some sequential source.
+	 * 
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing elements.
+	 */
+	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final IntIterator iterator ) {
+		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	}
+
+	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
+	 * the overall number of elements and an upper bound are provided, too.
+	 * 
+	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
+	 * some sequential source.
+	 * 
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing elements.
+	 */
+	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final LongIterator iterator ) {
+		this( new long[] { n, upperBound }, iterator );
+	}
+
+	/**  Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
+	 * the overall number of elements and an upper bound are provided, too.
+	 * 
+	 * <p>This constructor is used only internally, to work around the usual problems
+	 * caused by the obligation to call <code>this()</code> before anything else.
+	 * 
+	 * @param a an array containing the number of elements returned by <code>iterator</code> and
+	 * a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing elements.
+	 */
+	protected EliasFanoMonotoneFunction( long[] a, final LongIterator iterator ) {
+		length = a[ 0 ];
+		long v = -1;
+		final long upperBound = a[ 1 ];
+		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
+		final long lowerBitsMask = ( 1L << l ) - 1;
+		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( length );
+		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) );
+		long last = 0;
+		for( long i = 0; i < length; i++ ) {
+			v = iterator.nextLong();
+			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
+			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
+			if ( l != 0 ) lowerBits.set( i, v & lowerBitsMask );
+			upperBits.set( ( v >> l ) + i );
+			last = v;
+		}
+		
+		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
 		
 		selectUpper = new SimpleSelect( upperBits );
 	}
 	
-
-	/** Creates a new <code>sdarray</code> select structure using an {@linkplain LongIterator iterator}.
-	 * 
-	 * <p>This constructor is particularly useful if the positions of the ones are provided by
-	 * some sequential source.
-	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
-	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
-	 */
-	public EliasFanoMonotoneFunction( long n, final long upperBound, final LongIterator iterator, final boolean dummy ) {
-		long pos = -1;
-		this.size = n;
-		this.n = upperBound;
-		this.l = Math.max( 0, Fast.mostSignificantBit( upperBound / n ) );
-		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( this.size );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( this.size + ( upperBound >>> l ) );
-		long last = 0;
-		for( long i = 0; i < this.size; i++ ) {
-			pos = iterator.nextLong();
-			if ( pos >= upperBound ) throw new IllegalArgumentException( "Too large value: " + pos + " >= " + upperBound );
-			if ( pos < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + pos + " < " + last );
-			if ( l != 0 ) lowerBits.set( i, pos & lowerBitsMask );
-			upperBits.set( ( pos >> l ) + i );
-			last = pos;
-		}
-		
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + this.size + " positions in the provided iterator" );
-		
-		selectUpper = new SimpleSelect( upperBits );
-	}
 	
 	public long numBits() {
 		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
 	}
 
-	
-	public long select( final long rank ) {
-		if ( rank >= size ) return -1;
-		return ( selectUpper.select( rank ) - rank ) << l | lowerBits.getLong( rank );
-	}
-
 	public long getLong( final long index ) {
-		if ( index >= size ) return -1;
 		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( index );
 	}
 
 	public long length() {
-		return size;
+		return length;
 	}
 }
