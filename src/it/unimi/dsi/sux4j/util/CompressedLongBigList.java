@@ -35,7 +35,7 @@ import java.io.Serializable;
  * 
  * <p>Instances of this class store elements by ensuring (adding a suitable offset) that they are strictly positive. Then,
  * the bits of each element, excluding the most significant one, are concatenated in a bit array, and the positions
- * of the initial bit of each element are stored as an {@linkplain EliasFanoMonotoneBigList Elias&ndash;Fano monotone function}.
+ * of the initial bit of each element are stored as an {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano monotone function}.
  * 
  */
 public class CompressedLongBigList extends AbstractLongBigList implements Serializable {
@@ -47,7 +47,7 @@ public class CompressedLongBigList extends AbstractLongBigList implements Serial
 	private final LongArrayBitVector bits;
 	
 	private final int offset;
-	private EliasFanoMonotoneBigList borders;
+	private EliasFanoMonotoneLongBigList borders;
 	
 	/** Builds a new two-sizes long bit list using a given big list of long.
 	 * 
@@ -88,7 +88,7 @@ public class CompressedLongBigList extends AbstractLongBigList implements Serial
 			c++;
 		}
 		this.length = c;
-		this.borders = new EliasFanoMonotoneBigList( borders );
+		this.borders = new EliasFanoMonotoneLongBigList( borders );
 		this.bits.trim();
 	}
 
