@@ -25,10 +25,10 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
-/** A rank implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneBigList Elias&ndash;Fano representation of monotone functions}. 
+/** A rank implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
  * <p>Note that some data may be shared with {@link SparseSelect}: just use the factory method {@link SparseSelect#getRank()} to obtain an instance.
  */

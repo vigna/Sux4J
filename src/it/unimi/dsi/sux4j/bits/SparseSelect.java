@@ -24,10 +24,10 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
-/** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneBigList Elias&ndash;Fano representation of monotone functions}. 
+/** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
  * <p>Instances of this classes to not add support to a bit vector: rather, they replace the bit vector
  * with a succinct representation of the positions of the ones in the bit vector.
@@ -35,7 +35,7 @@ import it.unimi.dsi.util.LongBigList;
  * <p>Note that some data may be shared with {@link SparseRank}: just use the factory method {@link SparseRank#getSelect()} to obtain an instance.
  */
 
-public class SparseSelect extends EliasFanoMonotoneBigList implements Select {
+public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select {
 	private static final long serialVersionUID = 2L;
 	
 	/** The number of bits in the underlying bit array. */

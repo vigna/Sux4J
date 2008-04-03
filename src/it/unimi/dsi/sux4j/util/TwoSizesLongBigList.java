@@ -32,7 +32,7 @@ import it.unimi.dsi.util.LongBigList;
 import java.io.Serializable;
 import java.util.Arrays;
 
-/** A two-sizes immutable list implementation.
+/** A compressed big list of longs.
  * 
  * <p>Instances of this class store elements in two different {@link LongArrayBitVector}-based lists&mdash;one
  * for large values and one for small values. The threshold between large and small is established by

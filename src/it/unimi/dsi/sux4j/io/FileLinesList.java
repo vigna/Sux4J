@@ -101,7 +101,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	 * @param filename a filename.
 	 * @param encoding an encoding.
 	 * @param bufferSize the buffer size for {@link FastBufferedInputStream}.
-	 * @param terminators a set of {@link FastBufferedInputStream.LineTerminator}s.
+	 * @param terminators a set of line terminators.
 	 */		
 	public FileLinesList( final CharSequence filename, final String encoding, final int bufferSize, final EnumSet<FastBufferedInputStream.LineTerminator> terminators ) throws IOException {
 		this.bufferSize = bufferSize;

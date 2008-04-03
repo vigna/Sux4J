@@ -41,6 +41,13 @@ import java.io.Serializable;
 
 /** An implementation of Elias&ndash;Fano's representation of monotone sequences.
  * 
+ * <p>Instances of this class represent in a highly compacted form a nondecreasing sequence of natural numbers. Instances
+ * are built by providing either an iterator returning the (nondecreasing) sequence, or an {@linkplain Iterable iterable object} that
+ * provides such an iterator. In the first case, you must also provide in advance the number of elements that will be returned and an upper bound to their
+ * values (see below), and at the end of the construction the iterator will be exhausted. 
+ *  
+ * <h2>Implementation details</h2>
+ * 
  * <p>Given a (nondecreasing) monotone sequence 
  * <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub>
  * of natural numbers smaller than <var>u</var>,

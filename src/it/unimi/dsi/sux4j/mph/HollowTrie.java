@@ -41,7 +41,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.sux4j.util.CompressedLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -70,7 +70,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	protected CompressedLongBigList skips;
+	protected EliasFanoLongBigList skips;
 	protected transient BitVector trie;
 	public final Rank9 rank9;
 	public final SimpleSelect select;
@@ -315,11 +315,7 @@ public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		
-		this.skips = new CompressedLongBigList( skips.iterator() );//new TwoSizesLongBigList( skips );
-		
-		CompressedLongBigList comp = new CompressedLongBigList( skips.iterator() );
-		System.err.println( "Using " + this.skips.numBits() + ", but I could use " + comp.numBits() );
-		for( int i = 0; i < skips.size(); i++) assert comp.getLong( i ) == skips.getInt( i ) : comp.get(i ) + " != " + skips.get(i );
+		this.skips = new EliasFanoLongBigList( skips );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );
