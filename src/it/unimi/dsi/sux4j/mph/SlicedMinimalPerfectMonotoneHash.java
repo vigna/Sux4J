@@ -36,7 +36,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.util.CompressedLongBigList;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneFunction;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneBigList;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
@@ -80,7 +80,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	final protected int bucketSizeMask;
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
-	private EliasFanoMonotoneFunction firstInBucket;
+	private EliasFanoMonotoneBigList firstInBucket;
 	private MinimalPerfectHash<BitVector> minimalPerfectHash;
 	private TwoSizesLongBigList offsets;
 	private int bucketShift;
@@ -172,7 +172,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 		
 		offsets = new TwoSizesLongBigList( IntArrayList.wrap( offset ) );
 		offset = null;
-		firstInBucket = new EliasFanoMonotoneFunction( LongArrayList.wrap( bucketSize ) );
+		firstInBucket = new EliasFanoMonotoneBigList( LongArrayList.wrap( bucketSize ) );
 
 /*		iterator = iterable.iterator();
 		for( int i = 0; i < n; i++ ) {

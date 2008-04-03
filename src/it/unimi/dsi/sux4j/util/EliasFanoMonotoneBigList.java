@@ -75,7 +75,7 @@ import java.io.Serializable;
  * -->
  */
 
-public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Serializable {
+public class EliasFanoMonotoneBigList extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 2L;
 	
 	/** The length of the sequence. */
@@ -87,7 +87,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
 	
-	protected EliasFanoMonotoneFunction( final long length, final int l, final LongBigList lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneBigList( final long length, final int l, final LongBigList lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
@@ -98,7 +98,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneFunction( final IntIterable list ) {
+	public EliasFanoMonotoneBigList( final IntIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -110,7 +110,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneFunction( final ShortIterable list ) {
+	public EliasFanoMonotoneBigList( final ShortIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -122,7 +122,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneFunction( final ByteIterable list ) {
+	public EliasFanoMonotoneBigList( final ByteIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -135,7 +135,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * @param list an iterable object.
 	 */
 
-	public EliasFanoMonotoneFunction( final LongIterable list ) {
+	public EliasFanoMonotoneBigList( final LongIterable list ) {
 		this( computeParameters( list.iterator() ), list.iterator() );
 	}
 
@@ -166,7 +166,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final ByteIterator iterator ) {
+	protected EliasFanoMonotoneBigList( final long n, final long upperBound, final ByteIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -180,7 +180,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final ShortIterator iterator ) {
+	protected EliasFanoMonotoneBigList( final long n, final long upperBound, final ShortIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -194,7 +194,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final IntIterator iterator ) {
+	protected EliasFanoMonotoneBigList( final long n, final long upperBound, final IntIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -208,7 +208,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneFunction( final long n, final long upperBound, final LongIterator iterator ) {
+	protected EliasFanoMonotoneBigList( final long n, final long upperBound, final LongIterator iterator ) {
 		this( new long[] { n, upperBound }, iterator );
 	}
 
@@ -222,7 +222,7 @@ public class EliasFanoMonotoneFunction extends AbstractLongBigList implements Se
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneFunction( long[] a, final LongIterator iterator ) {
+	protected EliasFanoMonotoneBigList( long[] a, final LongIterator iterator ) {
 		length = a[ 0 ];
 		long v = -1;
 		final long upperBound = a[ 1 ];
