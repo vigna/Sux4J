@@ -52,26 +52,26 @@ public class TwoSizesLongBigListSpeedTest {
 		EliasFanoMonotoneLongBigList monotone = new EliasFanoMonotoneLongBigList( list );
 		long time;
 		for( int k = 10; k-- != 0; ) {
-			System.out.println( "=== IntArrayList ===");
+			System.out.println( "=== IntArrayList === (" + list.size() * Integer.SIZE + " bits)" );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) list.getInt( position[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
 
-			System.out.println( "=== TwoSizesLongBigList ===");
+			System.out.println( "=== TwoSizesLongBigList === (" + twoSizes.numBits() + " bits)" );
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) twoSizes.getLong( position[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
 
-			System.out.println( "=== EliasFanoLongBigList ===");
+			System.out.println( "=== EliasFanoLongBigList === (" + eliasFano.numBits() + " bits)");
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) eliasFano.getLong( position[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
 
 
-			System.out.println( "=== EliasFanoMonotoneLongBigList ===");
+			System.out.println( "=== EliasFanoMonotoneLongBigList === (" + monotone.numBits() + " bits)");
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) monotone.getLong( position[ i ] );
 			time += System.currentTimeMillis();
