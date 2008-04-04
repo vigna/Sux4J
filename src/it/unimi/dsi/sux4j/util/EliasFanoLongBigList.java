@@ -44,7 +44,7 @@ import java.util.Iterator;
  * or through an {@linkplain Iterator iterator}, but in the latter case the user must also provide a (not necessarily strict) lower bound (0 by default)
  * on the returned values. The compression is particularly high if the distribution of the values of the list is skewed towards the smallest values.
  * 
- * <h2>Implementation Details</h2>
+ * <h2>Implementation details</h2>
  * 
  * <p>Instances of this class store values by offsetting them so that they are strictly positive. Then,
  * the bits of each element, excluding the most significant one, are concatenated in a bit array, and the positions

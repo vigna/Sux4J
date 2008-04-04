@@ -30,7 +30,7 @@ import it.unimi.dsi.fastutil.objects.AbstractObjectListIterator;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.bits.SparseSelect;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
 import java.io.Closeable;
 import java.io.FileInputStream;
@@ -67,8 +67,8 @@ import java.util.RandomAccess;
  * <h2>Implementation details</h2>
  * 
  * <p>Instances of this class perform a full scan of the specified file at construction time, representing
- * the list of pointers to the start of each line as a {@link SparseSelect}. The memory occupation is thus
- * 2 + log <var>l</var> bits per line, where <var>l</var> is the average line length.
+ * the list of pointers to the start of each line using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}. 
+ * The memory occupation per line is thus bounded by 2 + log <var>l</var> bits, where <var>l</var> is the average line length.
  * 
  * @author Sebastiano Vigna
  * @since 1.1
@@ -88,7 +88,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	/** A character buffer for character decoding. It is enough large to hold any line in the file. */
 	private final CharBuffer charBuffer;
 	/** A sparse selection structure keeping track of the start of each line in the file. */
-	private SparseSelect select;
+	private EliasFanoMonotoneLongBigList borders;
 	/** The fast buffered input stream used by {@link #get(int)}. */
 	private final FastBufferedInputStream inputStream;
 	/** A decoder used by {@link #get(int)}. */
@@ -123,34 +123,31 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			if ( len != -1 ) count++;
 			else break;
 		}
-
+		
 		size = count;
 		byteBuffer = ByteBuffer.wrap( array );
 		charBuffer = CharBuffer.wrap( new char[ array.length ] );
 		
 		inputStream.position( 0 );
-		select = new SparseSelect( inputStream.length() + 1, count + 1, new AbstractLongIterator() {
-			boolean toAdvance = false;
+		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new AbstractLongIterator() {
 			long pos = 0;
 			byte[] buffer = byteBuffer.array();
 			
 			public boolean hasNext() {
-				if ( toAdvance ) try {
-					final int result = inputStream.readLine( buffer, terminators );
-					pos = result == -1 ? -1 : inputStream.position();
-					toAdvance = false;
-				}
-				catch ( IOException e ) {
-					throw new RuntimeException( e );
-				}
-				
-				return pos != -1;
+				return pos < size;
 			}
 			
 			public long nextLong() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
-				toAdvance = true;
-				return pos;
+				pos++;
+				try {
+					final long result = inputStream.position();
+					inputStream.readLine( buffer, terminators );
+					return result;
+				}
+				catch ( IOException e ) {
+					throw new RuntimeException( e );
+				}
 			}
 		});
 	}
@@ -184,7 +181,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	
 	public MutableString get( final int index, final FastBufferedInputStream fastBufferedInputStream, final ByteBuffer byteBuffer, final CharBuffer charBuffer, final CharsetDecoder decoder ) {
 		try {
-			fastBufferedInputStream.position( select.select( index ) );
+			fastBufferedInputStream.position( borders.getLong( index ) );
 			byteBuffer.clear();
 			byteBuffer.limit( fastBufferedInputStream.readLine( byteBuffer.array(), terminators ) );
 			charBuffer.clear();

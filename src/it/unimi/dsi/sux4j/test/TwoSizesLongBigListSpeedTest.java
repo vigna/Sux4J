@@ -2,6 +2,8 @@ package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.util.Random;
@@ -37,14 +39,17 @@ public class TwoSizesLongBigListSpeedTest {
 		final int numPos = jsapResult.getInt( "numPos" );
 
 		Random random = new Random( 42 );
-		final IntList list = new IntArrayList( numElements );
+		final IntArrayList list = new IntArrayList( numElements );
 		for( long i = numElements; i-- != 0; ) list.add( random.nextDouble() < density ? 0 : 100 );
 		
 		final int[] position = new int[ numPos ];
 		
 		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % numElements;
 		TwoSizesLongBigList twoSizes = new TwoSizesLongBigList( list );
-		
+		EliasFanoLongBigList eliasFano = new EliasFanoLongBigList( list );
+		final int[] elements = list.elements();
+		for( int i = 1; i < list.size(); i++ ) elements[ i ] += elements[ i - 1 ];
+		EliasFanoMonotoneLongBigList monotone = new EliasFanoMonotoneLongBigList( list );
 		long time;
 		for( int k = 10; k-- != 0; ) {
 			System.out.println( "=== IntArrayList ===");
@@ -56,6 +61,19 @@ public class TwoSizesLongBigListSpeedTest {
 			System.out.println( "=== TwoSizesLongBigList ===");
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) twoSizes.getLong( position[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
+
+			System.out.println( "=== EliasFanoLongBigList ===");
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) eliasFano.getLong( position[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
+
+
+			System.out.println( "=== EliasFanoMonotoneLongBigList ===");
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) monotone.getLong( position[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
 
