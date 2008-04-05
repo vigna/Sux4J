@@ -63,7 +63,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-public class HollowTrie<T> extends AbstractHash<T> implements Serializable {
+public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = Util.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
 

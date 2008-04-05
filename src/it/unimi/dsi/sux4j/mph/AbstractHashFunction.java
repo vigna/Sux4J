@@ -29,7 +29,7 @@ import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
  * it simply returns -1 for {@link #size()} and true for {@link #containsKey(Object)}.
  */
 
-public abstract class AbstractHash<K> extends AbstractObject2LongFunction<K> {
+public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunction<K> {
 	public static final long serialVersionUID = 5315342712300777745L;
 	public boolean containsKey( Object key ) {
 		return true;

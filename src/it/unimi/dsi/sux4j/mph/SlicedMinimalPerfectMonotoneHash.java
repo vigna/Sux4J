@@ -64,7 +64,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.1
  */
 
-public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements Serializable {
+public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( SlicedMinimalPerfectMonotoneHash.class );
 	@SuppressWarnings("unused")
@@ -81,7 +81,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
 	private EliasFanoMonotoneLongBigList firstInBucket;
-	private MinimalPerfectHash<BitVector> minimalPerfectHash;
+	private MinimalPerfectHashFunction<BitVector> minimalPerfectHash;
 	private TwoSizesLongBigList offsets;
 	private int bucketShift;
 	
@@ -154,7 +154,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 		pl.done();
 		
 		for( int i = 1; i < bucketSize.length; i++ ) bucketSize[ i ] += bucketSize[ i - 1 ];
-		minimalPerfectHash = new MinimalPerfectHash<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity() );
+		minimalPerfectHash = new MinimalPerfectHashFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity() );
 		int offset[] = new int[ n ];
 		
 		iterator = iterable.iterator();
@@ -211,7 +211,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHash<T> impleme
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),

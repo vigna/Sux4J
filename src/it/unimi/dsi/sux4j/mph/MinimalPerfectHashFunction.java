@@ -109,8 +109,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.1
  */
 
-public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializable {
-	private static final Logger LOGGER = Util.getLogger( MinimalPerfectHash.class );
+public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+	private static final Logger LOGGER = Util.getLogger( MinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = true;
 	public static final long serialVersionUID = 1L;
 
@@ -143,7 +143,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	 */
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public MinimalPerfectHash( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
 
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( elements instanceof Collection ) n = ((Collection<? extends T>)elements).size();
@@ -237,7 +237,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 	 * 
 	 * @param mph the perfect hash to be copied.
 	 */
-	protected MinimalPerfectHash( final MinimalPerfectHash<T> mph ) {
+	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
 		this.n = mph.n;
 		this.m = mph.m;
 		this.seed = mph.seed;
@@ -308,7 +308,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
@@ -326,7 +326,7 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 
-		final MinimalPerfectHash<CharSequence> minimalPerfectHash;
+		final MinimalPerfectHashFunction<CharSequence> minimalPerfectHash;
 
 		if ( stringFile == null ) {
 			ArrayList<MutableString> stringList = new ArrayList<MutableString>();
@@ -339,11 +339,11 @@ public class MinimalPerfectHash<T> extends AbstractHash<T> implements Serializab
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( stringList, TransformationStrategies.utf16() );
+			minimalPerfectHash = new MinimalPerfectHashFunction<CharSequence>( stringList, TransformationStrategies.utf16() );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHash<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), TransformationStrategies.utf16() );
+			minimalPerfectHash = new MinimalPerfectHashFunction<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), TransformationStrategies.utf16() );
 		}
 
 		LOGGER.info( "Writing to file..." );		

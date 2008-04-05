@@ -63,9 +63,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.1
  */
 
-public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements Serializable {
+public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( LcpMinimalPerfectMonotoneHash.class );
+	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	
@@ -102,7 +102,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public LcpMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 
@@ -241,7 +241,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
@@ -265,7 +265,7 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 
 		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
-		final LcpMinimalPerfectMonotoneHash<CharSequence> lcpMinimalPerfectMonotoneHash;
+		final LcpMonotoneMinimalPerfectHashFunction<CharSequence> lcpMinimalPerfectMonotoneHash;
 		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		if ( stringFile == null ) {
@@ -279,12 +279,12 @@ public class LcpMinimalPerfectMonotoneHash<T> extends AbstractHash<T> implements
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( stringList, transformationStrategy );
+			lcpMinimalPerfectMonotoneHash = new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( stringList, transformationStrategy );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
-			lcpMinimalPerfectMonotoneHash = new LcpMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
+			lcpMinimalPerfectMonotoneHash = new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
 		}
 
 		LOGGER.info( "Writing to file..." );		

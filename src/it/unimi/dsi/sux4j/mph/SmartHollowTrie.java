@@ -37,7 +37,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>Hollow tries compute minimal perfect monotone hashes in little space, but they are rather slow. 
  */
 
-public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable {
+public class SmartHollowTrie<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = Util.getLogger( SmartHollowTrie.class );
 	private static final long serialVersionUID = 0L;
 
@@ -48,7 +48,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 	private int size;
 	private int n;
 	private int bucketSize;
-	private BitstreamImmutableBinaryPartialTrie<BitVector> trie;
+	private BitstreamImmutablePaCoTrie<BitVector> trie;
 	private int log2BucketSize;
 	private TransformationStrategy<? super T> transform;
 	private TwoSizesLongBigList skips;
@@ -190,7 +190,7 @@ public class SmartHollowTrie<T> extends AbstractHash<T> implements Serializable 
 		
 		this.skips = new TwoSizesLongBigList( skips );
 		
-		trie = new BitstreamImmutableBinaryPartialTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
+		trie = new BitstreamImmutablePaCoTrie<BitVector>( vectors, bucketSize, TransformationStrategies.identity() );
 		this.size = n;
 
 		if ( DEBUG ) {

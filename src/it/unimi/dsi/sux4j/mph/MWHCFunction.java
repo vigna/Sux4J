@@ -64,7 +64,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.2
  */
 
-public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
+public class MWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
@@ -269,7 +269,7 @@ public class MWHCFunction<T> extends AbstractHash<T> implements Serializable {
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHash.class.getName(), "Builds a function reading a newline-separated list of strings; strings are mapped to their ordinal position.",
+		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a function reading a newline-separated list of strings; strings are mapped to their ordinal position.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
