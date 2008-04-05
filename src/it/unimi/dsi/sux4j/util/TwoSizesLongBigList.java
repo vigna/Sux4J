@@ -37,10 +37,10 @@ import it.unimi.dsi.util.LongBigList;
 import java.io.Serializable;
 import java.util.Arrays;
 
-/** A compressed big list of longs.
+/** A compressed big list of longs; small elements and large elements are stored separately, using two different, optimally chosen bit sizes.
  * 
  * <p>Instances of this class store in a compacted form a list of natural numbers. Values are provided either through an {@linkplain Iterable iterable object}.
- * You will obtain a reduction in size only if the distribution of the values of the list is strongly skewed towards small values.
+ * You will obtain a reduction in size only if the distribution of the values of the list is skewed towards small values.
  * 
  * <h2>Implementation details</h2>
  * 

@@ -22,41 +22,33 @@ package it.unimi.dsi.sux4j.util;
  */
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
-import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
-import it.unimi.dsi.fastutil.shorts.ShortIterator;
-import it.unimi.dsi.util.AbstractLongBigList;
 
-import java.io.Serializable;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-/** A compressed big list of longs.
+/** A compressed big list of longs providing prefix sums; an element occupies a number of bits roughly equal to the logarithm of the average value.
  * 
- * <p>Instances of this class store in a highly compacted form a list of longs. Values are provided either through an {@linkplain Iterable iterable object},
- * or through an {@linkplain Iterator iterator}, but in the latter case the user must also provide a (not necessarily strict) lower bound (0 by default)
- * on the returned values. The compression is particularly high if the distribution of the values of the list is skewed towards the smallest values.
+ * <p>Instances of this class store in compacted form a list of longs. 
+ * Values are provided either through an {@linkplain Iterable iterable object}.
+ * As an additional service, this list provides access to the <em>{@linkplain #prefixSum(long) prefix sums}</em> of its values.
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>Instances of this class store values by offsetting them so that they are strictly positive. Then,
- * the bits of each element, excluding the most significant one, are concatenated in a bit array, and the positions
- * of the initial bit of each element are stored using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}.
- * If the distribution of the elements is skewed towards small values, this method achieves very a good compression (and, in any case,
- * w.r.t. exact binary length it will not lose more than one bit per element, plus lower-order terms).
+ * <p>Instances of this class are essentially a view over an instance of {@link EliasFanoMonotoneLongBigList}
+ * storing the prefix sums. The {@link #getLong(long)} method has been optimised so to avoid two calls
+ * to the {@link #getLong(long)} method of the {@link EliasFanoMonotoneLongBigList}.
  * 
  */
 public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList {
+	private static final long serialVersionUID = 1L;
+
+	/** Wraps an iterator and returns prefix sums. */
 	
 	private final static class CumulativeLongIterable implements LongIterable {
 		private final LongIterable iterable;
@@ -92,7 +84,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 
 	private BitVector upperBits;
 	
-	/** Creates a new Elias&ndash;Fano long big list.
+	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 * 
 	 * @param elements an iterable object.
 	 */
@@ -101,7 +93,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		this.upperBits = selectUpper.bitVector();
 	}
 	
-	/** Creates a new Elias&ndash;Fano long big list.
+	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 * 
 	 * @param elements an iterable object.
 	 */
@@ -113,7 +105,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		});
 	}
 	
-	/** Creates a new Elias&ndash;Fano long big list.
+	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 * 
 	 * @param elements an iterable object.
 	 */
@@ -125,7 +117,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		});
 	}
 	
-	/** Creates a new Elias&ndash;Fano long big list.
+	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 * 
 	 * @param elements an iterable object.
 	 */
@@ -144,7 +136,12 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		else return ( pos - upperBits.previousOne( pos ) - 1 ) * ( 1L << l ) + lowerBits.getLong( index + 1 ) - lowerBits.getLong( index );
 	}
 	
-	public long getPrefixSum( final long index ) {
+	/** Returns the prefix sum of this list up to the given index.
+	 * 
+	 * @param index an index from 0 to the length of this list.
+	 * @return the sum of the values with index between 0 (inclusive) and <code>index</code> (exclusive).
+	 */
+	public long prefixSum( final long index ) {
 		return super.getLong( index );
 	}
 

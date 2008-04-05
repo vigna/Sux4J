@@ -61,21 +61,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A string map based on a minimal perfect hash signed using Shift-Add-Xor hashes. 
  * 
- * <p>A minimal perfect hash maps a set of string to an initial segment of the natural
- * numbers, but will actually map <em>any</em> string to that segment. By signing
- * each output value with a hash of the string, we get a set-like functionality with a rate
- * error that can be balanced with space occupancy (signatures can go from 1 to {@link Long#SIZE} bits). 
- * 
- * <p>See &ldquo;Performance in practice of string hashing functions&rdquo;, by
- * M.V. Ramakrishna and Justin Zobel, <i>Proc. of the Fifth International Conference on 
- * Database Systems for Advanced Applications</i>, 1997, pages 215&minus;223.
- *
- * @author Sebastiano Vigna
- * @since 1.1.2
+ * @deprecated Moved to the <a href="http://dsiutils.dsi.unimi.it/">DSI utilities</a>.
  */
 
-
-
+@Deprecated
 public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<CharSequence> implements StringMap<CharSequence>, Serializable {
 	private static final long serialVersionUID = 0L;
 	private static final Logger LOGGER = Util.getLogger( ShiftAddXorSignedStringMap.class );
