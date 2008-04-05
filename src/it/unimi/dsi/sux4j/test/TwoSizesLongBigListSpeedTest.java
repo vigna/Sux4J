@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.util.Random;
@@ -47,6 +48,7 @@ public class TwoSizesLongBigListSpeedTest {
 		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % numElements;
 		TwoSizesLongBigList twoSizes = new TwoSizesLongBigList( list );
 		EliasFanoLongBigList eliasFano = new EliasFanoLongBigList( list );
+		EliasFanoPrefixSumLongBigList eliasFanoPrefixSum = new EliasFanoPrefixSumLongBigList( list );
 		final int[] elements = list.elements();
 		for( int i = 1; i < list.size(); i++ ) elements[ i ] += elements[ i - 1 ];
 		EliasFanoMonotoneLongBigList monotone = new EliasFanoMonotoneLongBigList( list );
@@ -64,11 +66,18 @@ public class TwoSizesLongBigListSpeedTest {
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
 
+			System.out.println( "=== EliasFanoPrefixSumLongBigList === (" + eliasFanoPrefixSum.numBits() + " bits)");
+			time = - System.currentTimeMillis();
+			for( int i = 0; i < numPos; i++ ) eliasFanoPrefixSum.getLong( position[ i ] );
+			time += System.currentTimeMillis();
+			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
+
 			System.out.println( "=== EliasFanoLongBigList === (" + eliasFano.numBits() + " bits)");
 			time = - System.currentTimeMillis();
 			for( int i = 0; i < numPos; i++ ) eliasFano.getLong( position[ i ] );
 			time += System.currentTimeMillis();
 			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
+
 
 
 			System.out.println( "=== EliasFanoMonotoneLongBigList === (" + monotone.numBits() + " bits)");

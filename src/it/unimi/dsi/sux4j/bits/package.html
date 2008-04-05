@@ -13,16 +13,17 @@ time work much better. Sux4J proposes a number of new, very efficient implementa
 (in other words: they will be fairly slow on 32-bit processors).
 
 <p>For dense arrays, {@link it.unimi.dsi.sux4j.bits.Rank9} is the only rank implementation. Selection can be performed
-using {@link it.unimi.dsi.sux4j.bits.SimpleSelect} for reasonably uniform bit arrays, or using {@link it.unimi.dsi.sux4j.bits.Select9}, which occupies more space
+using {@link it.unimi.dsi.sux4j.bits.SimpleSelect} for reasonably uniform bit arrays, 
+or using {@link it.unimi.dsi.sux4j.bits.Select9}, which occupies more space
 but guarantees practical constant-time evaluation.
 
 <p>For sparse arrays (e.g., representation of pointers in a bitstream) 
 we provide {@link it.unimi.dsi.sux4j.bits.SparseRank} and {@link it.unimi.dsi.sux4j.bits.SparseSelect}. Their main
-feature is that <em>they do not require the original bit array</em>.
+feature is that <em>they do not require the original bit array</em>, as they use an {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList}
+to implement an succint dictionary containing the positions of all ones.
 
 <p>All structures can be serialised. Since in some cases the original bit vector is stored inside the structure, to
 avoid saving and loading twice the same vector we suggest to pack all structures into a {@link it.unimi.dsi.sux4j.bits.RankSelect} instance.
 
- 
 </body>
 </html>

@@ -23,8 +23,13 @@ package it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.bytes.ByteIterable;
+import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongIterable;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongIterators;
+import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.AbstractLongBigList;
 import it.unimi.dsi.util.LongBigList;
@@ -33,6 +38,11 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 /** A compressed big list of longs.
+ * 
+ * <p>Instances of this class store in a compacted form a list of natural numbers. Values are provided either through an {@linkplain Iterable iterable object}.
+ * You will obtain a reduction in size only if the distribution of the values of the list is strongly skewed towards small values.
+ * 
+ * <h2>Implementation details</h2>
  * 
  * <p>Instances of this class store elements in two different {@link LongArrayBitVector}-based lists&mdash;one
  * for large values and one for small values. The threshold between large and small is established by
@@ -56,35 +66,59 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	/** The number of bits used by this structure. */
 	private final long numBits;
 	
-	/** Builds a new two-sizes long bit list using a given list of integers.
+	/** Builds a new two-sizes long big list using a given iterable object.
 	 * 
-	 * @param list a list of integers.
+	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final IntList list ) {
-		this( new AbstractLongBigList() {
-
-			public long getLong( final long index ) {
-				return list.getInt( (int)index );
+	public TwoSizesLongBigList( final IntIterable elements ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( elements.iterator() );
 			}
-
-			public long length() {
-				return list.size();
-			}
-		} );
+		});
 	}
 	
-	/** Builds a new two-sizes long bit list using a given big list of long.
+	/** Builds a new two-sizes long big list using a given iterable object.
 	 * 
-	 * @param list a list of long.
+	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final LongBigList list ) {
-		length = list.length();
+	public TwoSizesLongBigList( final ShortIterable elements ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( elements.iterator() );
+			}
+		});
+	}
+	
+	/** Builds a new two-sizes long big list using a given iterable object.
+	 * 
+	 * @param elements an iterable object.
+	 */
+	public TwoSizesLongBigList( final ByteIterable elements ) {
+		this( new LongIterable() {
+			public LongIterator iterator() {
+				return LongIterators.wrap( elements.iterator() );
+			}
+		});
+	}
+	
+	/** Builds a new two-sizes long big list using a given iterable object.
+	 * 
+	 * @param elements an iterable object.
+	 */
+	public TwoSizesLongBigList( final LongIterable elements ) {
+		long l = 0;
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		int width = 0;
-		for( long x: list ) {
-			width = Math.max( width, Fast.mostSignificantBit( x ) + 1 );
-			counts.put( x, counts.get( x ) + 1 );
+		for( LongIterator i = elements.iterator(); i.hasNext(); ) {
+			final long value = i.nextLong();
+			width = Math.max( width, Fast.mostSignificantBit( value ) + 1 );
+			counts.put( value, counts.get( value ) + 1 );
+			l++;
 		}
+		
+		length = l;
+		
 		final long[] keys = counts.keySet().toLongArray();
 		Arrays.sort( keys );
 		
@@ -96,6 +130,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		long k;
 		int j = 0;
 		
+		// Find the best cutpoint
 		for( int i = 1; i < width; i++ ) {
 			if ( ASSERTS ) assert costSmall % i == 0;
 			if ( i != 1 ) costSmall = ( costSmall / i ) * ( i + 1 );
@@ -131,8 +166,9 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		
 		final int maxSmall = ( 1 << minIndex );
 		
+		final LongIterator iterator = elements.iterator();
 		for( long i = 0, p = 0, q = 0; i < length; i++ ) {
-			final long value = list.getLong( i );
+			final long value = iterator.nextLong();
 			if ( value < maxSmall ) small.set( p++, value );
 			else {
 				large.set( q++, value );
@@ -142,9 +178,13 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 
 		rank = marker != null ? new Rank9( marker ) : null;
 
-		numBits = small.length() * minIndex + ( marker != null ? rank.numBits() + marker.length() + + large.length() * width : 0 );
+		numBits = small.length() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.length() * width : 0 );
 		if ( ASSERTS ) {
-			for( int i = 0; i < length; i++ ) assert list.getLong( i ) == getLong( i ) : "At " + i + ": " + list.getLong( i ) + " != " + getLong( i ); 
+			final LongIterator t = elements.iterator();
+			for( int i = 0; i < length; i++ ) {
+				final long value = t.nextLong();
+				assert value == getLong( i ) : "At " + i + ": " + value + " != " + getLong( i ); 
+			}
 		}
 	}
 
