@@ -1,20 +1,20 @@
 %define section free
 
 Name:           sux4j
-Version:        0.3
+Version:        1.0
 Release:        1jpp
-Epoch:		0
+Epoch:          0
 Summary:        Succinct data structures for Java
 License:        LGPL
-Source0:	http://sux.dsi.unimi.it/%{name}-%{version}-src.tar.gz
+Source0:        http://sux.dsi.unimi.it/%{name}-%{version}-src.tar.gz
 URL:            http://sux.dsi.unimi.it/
 Group:          Development/Libraries/Java
 Distribution:   JPackage
-Vendor:		JPackage Project
+Vendor:         JPackage Project
 BuildArch:      noarch
-Requires:	fastutil5 >= 5.1.3, java >= 1.5.0, dsiutils >= 1.0.2, colt >= 0:1.1.0, jsap, junit, log4j
-BuildRequires:	ant, jpackage-utils >= 0:1.6, /bin/bash
-BuildRequires:	java-devel >= 1.5.0, java-javadoc fastutil5-javadoc dsiutils-javadoc colt-javadoc jsap-javadoc junit-javadoc log4j-javadoc
+Requires:       fastutil5 >= 5.1.3, java >= 1.5.0, dsiutils >= 1.0.2, colt >= 0:1.1.0, jsap, junit, log4j
+BuildRequires:  ant, jpackage-utils >= 0:1.6, /bin/bash
+BuildRequires:  java-devel >= 1.5.0, java-javadoc fastutil5-javadoc dsiutils-javadoc colt-javadoc jsap-javadoc junit-javadoc log4j-javadoc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
