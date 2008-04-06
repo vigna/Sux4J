@@ -11,18 +11,20 @@ The classes can be gathered in three broad groups:
 <ul>
 <li>General functions (e.g.,  {@link it.unimi.dsi.sux4j.mph.MWHCFunction}). They can be used to associate arbitrary values to a set of objects,
 so, in particular, they can be used to implement <em>order-preserving minimal perfect hashing</em> (elements are mapped
-to their order in which they were provided, independently of their lexicographical order).
+to their order in which they were provided, independently of their lexicographical order). They are also essential
+building blocks for all other classes.
 <li>Minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}); they map a set
 of <var>n</var> object to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 }.
 <li><em>Monotone</em> minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction},
-{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie}). These
+{@link it.unimi.dsi.sux4j.mph.PaCoMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie}). These
 functions requires keys to be prefix-free and provided in lexicographical order; they will map back each key to its position using
 a very small number of bits per element.
 </ul>
 
 <p>All the above structures, with the exception of {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}, were introduced in
 &ldquo;Monotone Minimal Perfect Hashing&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
-Sebastiano Vigna. Monotone minimal perfect hashing classes provide different tradeoffs between speed and space occupancy.
+Sebastiano Vigna. Monotone minimal perfect hashing classes provide different tradeoffs between speed and space occupancy: the are
+listed above in order of decreasing speed and space occupancy.
 
 <h2>Usage</h2>
 

@@ -3,7 +3,9 @@ include build.properties
 source: source2
 	gunzip sux4j-$(version)-src.tar.gz
 	tar --delete --wildcards -v -f sux4j-$(version)-src.tar \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java \
+		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/mph/Sliced*.java
 	gzip sux4j-$(version)-src.tar
 
 source2:

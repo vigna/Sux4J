@@ -23,9 +23,12 @@ or using {@link it.unimi.dsi.sux4j.bits.Select9}, which occupies more space
 but guarantees practical constant-time evaluation.
 
 <p>For sparse arrays (e.g., representation of pointers in a bitstream) 
-we provide {@link it.unimi.dsi.sux4j.bits.SparseRank} and {@link it.unimi.dsi.sux4j.bits.SparseSelect}. Their main
-feature is that <em>they do not require the original bit array</em>, as they use an {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList}
-to implement a succint dictionary containing the positions of bits set.
+we provide {@link it.unimi.dsi.sux4j.bits.SparseRank} and
+{@link it.unimi.dsi.sux4j.bits.SparseSelect}. Their main
+feature is that <em>they do not require the original bit array</em>, as they use
+an {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList}
+to implement a succint dictionary containing the positions of bits set. If the bit array
+is sufficiently sparse, such a representation provides significant gains in space occupancy.
 
 <p>All structures can be serialised. Since in some cases the original bit vector is stored inside the structure, to
 avoid saving and loading twice the same vector we suggest to pack all structures into a {@link it.unimi.dsi.sux4j.bits.RankSelect} instance.

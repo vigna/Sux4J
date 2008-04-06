@@ -6,6 +6,11 @@ Succinct data structures for collections.
 <h2>Package Specification</h2>
 
 <p>This package provides implementations of some succinct techniques for the storage of static lists. The main ingrediant is the 
-Elias&ndash;Fano representation of monotone sequences.
+Elias&ndash;Fano representation of monotone sequences. For monotone sequences, such as file pointers,
+an {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList} is the obvious choise. For general
+sequences, you can either use an {@link it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList},
+which stores the sequence using its prefix sums, or an
+{@link it.unimi.dsi.sux4j.util.EliasFanoLongBigList}. The former is faster and provides also
+prefix sums, but the latter provides a better compression ratio.
 </body>
 </html>
