@@ -5,7 +5,7 @@ import it.unimi.dsi.sux4j.bits.SparseSelect;
 
 import java.util.Random;
 
-public class SDArraySelectTest extends RankSelectTestCase {
+public class SparseSelectTest extends RankSelectTestCase {
 	
 	public void testEmpty() {
 		SparseSelect select;
