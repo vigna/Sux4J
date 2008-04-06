@@ -1,13 +1,11 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.io.FileLinesList;
-import it.unimi.dsi.sux4j.mph.HollowTrie;
 
 import java.io.IOException;
 import java.nio.charset.Charset;

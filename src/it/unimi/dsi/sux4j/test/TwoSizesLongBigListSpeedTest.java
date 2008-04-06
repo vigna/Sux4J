@@ -1,7 +1,6 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;

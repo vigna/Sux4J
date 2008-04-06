@@ -98,7 +98,7 @@ public class SlicedMinimalPerfectMonotoneHash2<T> extends AbstractHashFunction<T
 		return firstInBucket.getLong( bucket ) + offsets[ r ].getLong( bitVector );
 	}
 
-	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
+	@SuppressWarnings({ "unused", "unchecked" }) // TODO: move it to the first for loop when javac has been fixed
 	public SlicedMinimalPerfectMonotoneHash2( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );

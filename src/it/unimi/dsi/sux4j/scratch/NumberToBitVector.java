@@ -11,7 +11,7 @@ import it.unimi.dsi.bits.TransformationStrategy;
  *  bit is the 0-th).
  */
 public class NumberToBitVector implements TransformationStrategy<BigInteger> {
-
+	private static final long serialVersionUID = 1L;
 	/** Number of binary digits to be used. */
 	private int width;
 	
