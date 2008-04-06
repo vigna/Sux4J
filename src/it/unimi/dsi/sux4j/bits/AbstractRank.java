@@ -21,7 +21,7 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
-/** An abstract class providing a few obvious implementations. */
+/** An abstract implementation of {@link Rank} providing a few obvious derived methods. */
 
 public abstract class AbstractRank implements Rank {
 

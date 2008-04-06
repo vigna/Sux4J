@@ -3,17 +3,14 @@ include build.properties
 source: source2
 	gunzip sux4j-$(version)-src.tar.gz
 	tar --delete --wildcards -v -f sux4j-$(version)-src.tar \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/\*Hollow\*.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/\*Lcp\*.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/\*Hollow\*.java \
-		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/mph/\*Hollow\*.java \
-		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/mph/\*Lcp\*.java
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java
 	gzip sux4j-$(version)-src.tar
 
 source2:
 	-rm -fr sux4j-$(version)
 	ln -s . sux4j-$(version)
 	ant clean
+	./genz.sh
 	tar zcvf sux4j-$(version)-src.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING.LIB \
