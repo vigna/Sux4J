@@ -39,7 +39,7 @@ import it.unimi.dsi.util.LongBigList;
 
 import java.io.Serializable;
 
-/** An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies a number of bits roughly equal to the logarithm of the average gap.
+/** An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies a number of bits bounded by two plus the logarithm of the average gap.
  * 
  * <p>Instances of this class represent in a highly compacted form a nondecreasing sequence of natural numbers. Instances
  * are built by providing either an iterator returning the (nondecreasing) sequence, or an {@linkplain Iterable iterable object} that

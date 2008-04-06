@@ -38,7 +38,7 @@ import it.unimi.dsi.util.AbstractLongBigList;
 import java.io.Serializable;
 import java.util.Iterator;
 
-/** A compressed big list of longs; each element occupies a number of bits roughly equal to one plus its bit length.
+/** A compressed big list of longs; each element occupies a number of bits bounded by one plus its bit length plus the logarithm of the average bit length.
  * 
  * <p>Instances of this class store in a highly compacted form a list of longs. Values are provided either through an {@linkplain Iterable iterable object},
  * or through an {@linkplain Iterator iterator}, but in the latter case the user must also provide a (not necessarily strict) lower bound (0 by default)

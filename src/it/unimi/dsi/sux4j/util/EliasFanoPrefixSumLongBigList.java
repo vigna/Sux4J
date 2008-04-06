@@ -32,7 +32,7 @@ import it.unimi.dsi.fastutil.shorts.ShortIterable;
 
 import java.util.NoSuchElementException;
 
-/** A compressed big list of longs providing prefix sums; an element occupies a number of bits roughly equal to the logarithm of the average value.
+/** A compressed big list of longs providing prefix sums; an element occupies a number of bits bounded by two plus the logarithm of the average value.
  * 
  * <p>Instances of this class store in compacted form a list of longs. 
  * Values are provided either through an {@linkplain Iterable iterable object}.
