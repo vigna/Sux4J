@@ -236,7 +236,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( length );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) );
+		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();

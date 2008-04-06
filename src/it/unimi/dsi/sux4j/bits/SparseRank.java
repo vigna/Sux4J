@@ -90,7 +90,7 @@ public class SparseRank extends AbstractRank {
 		lowerLBitsMask = ( 1L << l ) - 1;
 		
 		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( m );
-		upperBits = LongArrayBitVector.getInstance().length( m + ( n >>> l ) );
+		upperBits = LongArrayBitVector.getInstance().length( m + ( n >>> l ) + 1 );
 		long last = 0;
 		for( long i = 0; i < m; i++ ) {
 			pos = iterator.nextLong();
