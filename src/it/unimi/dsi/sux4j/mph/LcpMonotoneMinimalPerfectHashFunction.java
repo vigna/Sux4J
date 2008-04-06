@@ -57,10 +57,9 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A minimal perfect monotone hash implementation based on fixed-size bucketing.
- * *
- * @author Sebastiano Vigna
- * @since 0.1
+/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
+ * longest common prefixes as distributors. 
+ * 
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {

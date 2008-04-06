@@ -56,7 +56,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** Minimal perfect hash.
+/** A minimal perfect hash function.
  *
  * <P>Given a list of elements without duplicates, 
  * the constructors of this class finds a minimal perfect hash function for
@@ -76,7 +76,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
- * writes a serialised minimal perfect hash for the given list.
+ * writes a serialised minimal perfect hash function for the given list.
  *
  * <h3>How it Works</h3>
  * 

@@ -1,7 +1,17 @@
-0.4
+1.0
 
 - Fixed Jenkins hash so that it works with empty strings.
 
+- Some class renamed.
+
+- Rethought command-line argument parsing.
+
+- Now monotone minimal perfect hashing classes.
+
+- ShiftAddXorSignedStringMap moved to the DSI utilities.
+
+- New classes for compressed lists based on the Elias-Fano
+  representation.
 
 0.3
 

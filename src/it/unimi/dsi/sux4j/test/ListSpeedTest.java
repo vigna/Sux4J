@@ -16,7 +16,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 public class ListSpeedTest {
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
+	public static void main( final String[] arg ) throws IOException, JSAPException, ClassNotFoundException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( ListSpeedTest.class.getName(), "Test the speed of a list",
 				new Parameter[] {
@@ -28,7 +28,6 @@ public class ListSpeedTest {
 		if ( jsap.messagePrinted() ) return;
 		
 		final String listName = jsapResult.getString( "list" );
-		final boolean random = jsapResult.getBoolean( "random" );
 		
 		@SuppressWarnings("unchecked")
 		final LongList list = (LongList)BinIO.loadObject( listName );

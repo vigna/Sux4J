@@ -58,12 +58,24 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A read-only function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+/** An immutable function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+ * 
+ * <p>Instance of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
+ * must return elements in a consistent order), whereas values are provided by a {@link LongList}. 
+ * A convenient {@linkplain #MWHCFunction(Iterable, TransformationStrategy) constructor} 
+ * automatically assigns to each key its ordinal value. 
+ * 
+ * <P>As a commodity, this class provides a main method that reads from
+ * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
+ * writes a serialised function mapping each element of the list to its position.
+ * 
+ * <h2>Implementation Details</h2>
  * 
  * <p>After generating a random 3-hypergraph with suitably sorted edges,
  * we assign to each vertex a value in such a way that for each 3-hyperedge the 
  * xor of the three values associated to its vertices is the required value for the corresponding
- * element of the function domain.
+ * element of the function domain. Then, we measure whether it is favourable to store nonzero values
+ * in a separate array, using a ranked marker array to record the positions of the values equal to zero.
  * 
  * @author Sebastiano Vigna
  * @since 0.2

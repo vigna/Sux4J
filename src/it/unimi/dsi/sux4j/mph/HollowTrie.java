@@ -66,6 +66,11 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
+/** A compacted trie recording just the length of the internal-node paths.
+ *
+ * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys.
+ */
+
 public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = Util.getLogger( HollowTrie.class );
 	private static final long serialVersionUID = 0L;
@@ -73,11 +78,16 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	protected EliasFanoLongBigList skips;
-	protected final BitVector trie;
-	public final Rank9 rank9;
-	public final SimpleSelect select;
+	private EliasFanoLongBigList skips;
+	/** The bit vector containing Jacobson's representation of the trie. */
+	private final BitVector trie;
+	/** A ranking structure over {@link #trie}. */
+	private final Rank9 rank9;
+	/** A selection structure over {@link #trie}. */
+	private final SimpleSelect select;
+	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
+	/** The number of elements in this hollow trie. */
 	private int size;
 	
 	private final static class Node {
@@ -278,29 +288,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
-	
-	
-	protected int getVector( Node n, BitVector bv ) {
-		int pos = 0;
-		
-		for(;;) {
-			pos += n.skip;
-			
-			System.err.print( "Skipping " + n.skip + " bits... " );
-			if ( bv.getBoolean( pos++ ) ) {
-				System.err.print( "Turning right... " );
-				n = n.right;
-			}
-			else {
-				n = n.left;
-				System.err.print( "Turning left... " );
-			}
-			if ( n == null ) {
-				System.err.println();
-				return 0;
-			}
-		}
-	}
 	
 	/** Builds a trie recursively. 
 	 * 

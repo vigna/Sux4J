@@ -54,8 +54,8 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A minimal perfect monotone hash implementation based on fixed-size bucketing by means of a {@linkplain BitstreamImmutablePaCoTrie partial
- * compacted binary trie (PaCo trie)}.
+/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
+ * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
  */
 
 public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
