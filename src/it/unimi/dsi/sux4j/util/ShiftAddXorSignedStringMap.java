@@ -36,7 +36,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 import it.unimi.dsi.util.LongBigList;
 import it.unimi.dsi.util.StringMap;
 
@@ -193,7 +193,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		LOGGER.info( "Building minimal perfect hash table..." );
 		hash = preserveOrder ? 
 				new MWHCFunction<CharSequence>( collection, TransformationStrategies.utf16() ) :
-				new MinimalPerfectHash<CharSequence>( collection, TransformationStrategies.utf16() );
+				new MinimalPerfectHashFunction<CharSequence>( collection, TransformationStrategies.utf16() );
 
 		LOGGER.info( "Signing..." );
 		ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( collection.iterator(), hash, width );

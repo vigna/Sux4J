@@ -22,26 +22,31 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.util.LongBigList;
-import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.Rank16;
+import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Random;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
-
-import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -64,7 +69,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.2
  */
 
-public class MWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
@@ -223,17 +228,6 @@ public class MWHCFunction<T> extends AbstractHashFunction<T> implements Serializ
 				( marker.getBoolean( e[ 2 ] ) ? data.getLong( rank.rank( e[ 2 ] ) ) : 0 );
 	}
 	
-	@SuppressWarnings("unchecked")
-	public long getByBitVector( final BitVector bitVector ) {
-		if ( n == 0 ) return -1;
-		final int[] e = new int[ 3 ];
-		HypergraphSorter.bitVectorToEdge( bitVector, seed, m, e );
-		return rank == null ?
-				data.getLong( e[ 0 ] ) ^ data.getLong( e[ 1 ] ) ^ data.getLong( e[ 2 ] ) :
-				( marker.getBoolean( e[ 0 ] ) ? data.getLong( rank.rank( e[ 0 ] ) ) : 0 ) ^
-				( marker.getBoolean( e[ 1 ] ) ? data.getLong( rank.rank( e[ 1 ] ) ) : 0 ) ^
-				( marker.getBoolean( e[ 2 ] ) ? data.getLong( rank.rank( e[ 2 ] ) ) : 0 );
-	}
 	
 	/** Returns the number of elements in the function domain.
 	 *
@@ -266,40 +260,43 @@ public class MWHCFunction<T> extends AbstractHashFunction<T> implements Serializ
 		this.transform = function.transform.copy();
 	}
 	
+	public boolean containsKey( final Object o ) {
+		return true;
+	}
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a function reading a newline-separated list of strings; strings are mapped to their ordinal position.",
+		final SimpleJSAP jsap = new SimpleJSAP( MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
-			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
-			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
-		final String tableName = jsapResult.getString( "table" );
+		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
 
-		final MWHCFunction<CharSequence> function;
+		final Collection<MutableString> collection;
+		if ( "-".equals( stringFile ) ) {
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.start( "Loading strings..." );
+			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+			pl.done();
+		}
+		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		final TransformationStrategy<CharSequence> transformationStrategy = iso
+				? TransformationStrategies.iso() 
+				: TransformationStrategies.utf16();
 
-		LOGGER.info( "Building function..." );
-		//new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, "UTF-8" ) ) )
-		
-		final FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final int size = flc.size();
-		function = new MWHCFunction<CharSequence>( flc, iso ? TransformationStrategies.iso() : TransformationStrategies.utf16(), null, Fast.ceilLog2( size ) );
-
-		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( function, tableName );
+		BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
-
-
 }

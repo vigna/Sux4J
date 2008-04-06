@@ -9,15 +9,21 @@ Minimal perfect hash functions.
 <em>minimal perfect hash functions</em>, and, more generally, of static functions from objects to integers.
 The classes can be gathered in three broad groups:
 <ul>
-<li>Minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}); they map a set
-of <var>n</var> object to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 };
-<li>Monotone minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction},
-{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie});
 <li>General functions (e.g.,  {@link it.unimi.dsi.sux4j.mph.MWHCFunction}). They can be used to associate arbitrary values to a set of objects,
 so, in particular, they can be used to implement <em>order-preserving minimal perfect hashing</em> (elements are mapped
 to their order in which they were provided, independently of their lexicographical order).
+<li>Minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}); they map a set
+of <var>n</var> object to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 }.
+<li><em>Monotone</em> minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction},
+{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie}). These
+functions requires keys to be prefix-free and provided in lexicographical order; they will map back each key to its position using
+a very small number of bits per element.
 </ul>
- 
+
+<p>All the above structures, with the exception of {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}, were introduced in
+&ldquo;Monotone Minimal Perfect Hashing&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
+Sebastiano Vigna.
+
 <h2>Usage</h2>
 
 <p>Functions in this package implement the {@link it.unimi.dsi.fastutil.objects.Object2LongFunction} interface. However,
@@ -28,7 +34,7 @@ that maps your objects into bit vectors. For instance, {@link it.unimi.dsi.bits.
 and {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeIso()} are ready-made strategies that can be used with character sequences.
 
 <p>Note that if you plain to use monotone hashing, you must provide objects in an order such that the corresponding bit vectors
-are lexicographically ordered. For instance, {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeUtf16()} obtain this
+are lexicographically ordered. For instance, {@link it.unimi.dsi.bits.TransformationStrategies#utf16()} obtain this
 results by concatenating the <em>reversed</em> 16-bit representation of each character.
  
 </body>

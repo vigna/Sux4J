@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.scratch;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -27,17 +27,18 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
+import it.unimi.dsi.sux4j.mph.MWHCFunction;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -64,9 +65,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.1
  */
 
-public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T> implements Serializable {
+public class SlicedMinimalPerfectMonotoneHash2<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( SlicedMinimalPerfectMonotoneHash.class );
+	private static final Logger LOGGER = Util.getLogger( SlicedMinimalPerfectMonotoneHash2.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	
@@ -81,25 +82,24 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
 	private EliasFanoMonotoneLongBigList firstInBucket;
-	private MinimalPerfectHashFunction<BitVector> minimalPerfectHash;
-	private TwoSizesLongBigList offsets;
 	private int bucketShift;
+	private MWHCFunction<BitVector>[] offsets;
+	private long offsetCost;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >>> bucketShift;
-		return firstInBucket.getLong( bucket ) + offsets.getLong( minimalPerfectHash.getLong( bitVector ) );
-	}
-
-	@SuppressWarnings("unchecked")
-	public long getByBitVector( final BitVector bitVector ) {
-		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >>> bucketShift;
-		return firstInBucket.getLong( bucket ) + offsets.getLong( minimalPerfectHash.getLong( bitVector ) );
+		long first = firstInBucket.getLong( bucket );
+		int size = (int)( firstInBucket.getLong( bucket + 1 ) - first );
+		int r = Fast.ceilLog2( size );
+		if ( r == -1 ) return -1;
+		if ( r == 0 ) return first;
+		return firstInBucket.getLong( bucket ) + offsets[ r ].getLong( bitVector );
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public SlicedMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public SlicedMinimalPerfectMonotoneHash2( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 
@@ -154,23 +154,43 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 		pl.done();
 		
 		for( int i = 1; i < bucketSize.length; i++ ) bucketSize[ i ] += bucketSize[ i - 1 ];
-		minimalPerfectHash = new MinimalPerfectHashFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity() );
 		int offset[] = new int[ n ];
 		
 		iterator = iterable.iterator();
 
 		pl.start( "Computing offsets..." );
 
+		ObjectArrayList<BitVector>[] keys = new ObjectArrayList[ log2BucketSize ];
+		LongArrayList values[] = new LongArrayList[ log2BucketSize ];
+		for( int i = 0; i < log2BucketSize; i++ ) {
+			keys[ i ] = new ObjectArrayList<BitVector>();
+			values[ i ] = new LongArrayList();
+		}
+		
 		for( int i = 0; i < n; i++ ) {
 			curr = transform.toBitVector( iterator.next() ).fast();
 			bucket = Long.reverse( curr.getLong( 0, Math.min( Long.SIZE, curr.length() ) ) ) >>> bucketShift;
-			offset[ (int)minimalPerfectHash.getLong( curr ) ] = (int)( i - bucketSize[ (int)bucket ] );
+			final int size = (int)( bucketSize[ (int)( bucket + 1 ) ] - bucketSize[ (int)bucket ] );
+			if ( size > 1 ) {
+				int r = Fast.ceilLog2( size );
+				keys[ r ].add( curr );
+				values[ r ].add( (int)( i - bucketSize[ (int)bucket ] ) );
+			}
 			pl.lightUpdate();
 		}
 		
+		offsets = new MWHCFunction[ log2BucketSize ];
+		long offsetCost = 0;
+		for( int i = 1; i < log2BucketSize; i++ ) {
+			if ( ! values[ i ].isEmpty() ) {
+				offsets[ i ] = new MWHCFunction<BitVector>( keys[ i ], TransformationStrategies.identity(), values[ i ], i );
+				offsetCost += offsets[ i ].numBits();
+			}
+		}
+		
+		this.offsetCost = offsetCost;
 		pl.done();
 		
-		offsets = new TwoSizesLongBigList( IntArrayList.wrap( offset ) );
 		offset = null;
 		firstInBucket = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( bucketSize ) );
 
@@ -181,8 +201,8 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 			if ( i != offsets.getLong( (int)minimalPerfectHash.getLong( curr  ) ) + firstInBucket.getLong( (int)bucket ) ) throw new AssertionError();
 		}
 */	
-		LOGGER.debug(  "Cost per element of hashing: " + (double)minimalPerfectHash.numBits() / n );
-		LOGGER.debug(  "Cost per element of offsets: " + (double)offsets.numBits() / n );
+		for( int i = 1; i < log2BucketSize; i++ ) if ( offsets[ i ] != null ) LOGGER.debug( "Cost per element of offsets of width " + i + " :" + (double)offsets[ i ].numBits() / n );
+		LOGGER.debug(  "Cost per element of offsets: " + (double)offsetCost / n );
 		LOGGER.debug(  "Cost per element of prefix sums: " + (double)firstInBucket.numBits() / n );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 
@@ -202,7 +222,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return minimalPerfectHash.numBits() + offsets.numBits() + firstInBucket.numBits() + transform.numBits();
+		return offsetCost + firstInBucket.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {
@@ -235,7 +255,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 
 		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
 
-		final SlicedMinimalPerfectMonotoneHash<CharSequence> lcpMinimalPerfectMonotoneHash;
+		final SlicedMinimalPerfectMonotoneHash2<CharSequence> lcpMinimalPerfectMonotoneHash;
 		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
 
 		if ( stringFile == null ) {
@@ -249,12 +269,12 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 			pl.done();
 
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
-			lcpMinimalPerfectMonotoneHash = new SlicedMinimalPerfectMonotoneHash<CharSequence>( stringList, transformationStrategy );
+			lcpMinimalPerfectMonotoneHash = new SlicedMinimalPerfectMonotoneHash2<CharSequence>( stringList, transformationStrategy );
 		}
 		else {
 			LOGGER.info( "Building minimal perfect monotone hash function..." );
 			FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
-			lcpMinimalPerfectMonotoneHash = new SlicedMinimalPerfectMonotoneHash<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
+			lcpMinimalPerfectMonotoneHash = new SlicedMinimalPerfectMonotoneHash2<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
 		}
 
 		LOGGER.info( "Writing to file..." );		

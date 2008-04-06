@@ -22,27 +22,27 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.Util;
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.util.LongBigList;
-import it.unimi.dsi.bits.TransformationStrategy;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
 
@@ -284,71 +284,43 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return result < n ? result : defRetValue;
 	}
 
-	@Override
-	public long getByBitVector( BitVector key ) {
-		throw new UnsupportedOperationException();
-	}
-	
-	public boolean containsKey( Object key ) {
-		return true;
-	}
-
-	/** Returns the number of elements hashed.
-	 *
-	 * @return the number of elements hashed.
-	 */
-
 	public int size() {
 		return n;
 	}
 
-	public boolean hasTerms() {
-		return false;
-	}
-
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( MWHCFunction.class.getName(),  "Builds a minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read strings." ),
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
-			new UnflaggedOption( "table", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash table." )
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
-		final int bufferSize = jsapResult.getInt( "bufferSize" );
-		final String tableName = jsapResult.getString( "table" );
+		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
 
-		final MinimalPerfectHashFunction<CharSequence> minimalPerfectHash;
-
-		if ( stringFile == null ) {
-			ArrayList<MutableString> stringList = new ArrayList<MutableString>();
+		final Collection<MutableString> collection;
+		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.itemsName = "strings";
-			final LineIterator stringIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ), pl );
-
-			pl.start( "Reading strings..." );
-			while( stringIterator.hasNext() ) stringList.add( stringIterator.next().copy() );
+			pl.start( "Loading strings..." );
+			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();
-
-			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHashFunction<CharSequence>( stringList, TransformationStrategies.utf16() );
 		}
-		else {
-			LOGGER.info( "Building minimal perfect hash table..." );
-			minimalPerfectHash = new MinimalPerfectHashFunction<CharSequence>( new FileLinesCollection( stringFile, "UTF-8", zipped ), TransformationStrategies.utf16() );
-		}
+		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		final TransformationStrategy<CharSequence> transformationStrategy = iso
+				? TransformationStrategies.iso() 
+				: TransformationStrategies.utf16();
 
-		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( minimalPerfectHash, tableName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
-
 }

@@ -3,7 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.BucketedMinimalPerfectMonotoneHash;
+import it.unimi.dsi.sux4j.mph.PacoMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class BucketedMinimalPerfectMonotoneHashTest extends TestCase {
 		int[] v = new int[ s.length ];
 		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-		BucketedMinimalPerfectMonotoneHash<String> mph = new BucketedMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+		PacoMonotoneMinimalPerfectHashFunction<String> mph = new PacoMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
@@ -36,18 +36,18 @@ public class BucketedMinimalPerfectMonotoneHashTest extends TestCase {
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( mph, temp );
-		mph = (BucketedMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
+		mph = (PacoMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 	
-		mph = new BucketedMinimalPerfectMonotoneHash<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+		mph = new PacoMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
 		temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( mph, temp );
-		mph = (BucketedMinimalPerfectMonotoneHash<String>)BinIO.loadObject( temp );
+		mph = (PacoMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 	}

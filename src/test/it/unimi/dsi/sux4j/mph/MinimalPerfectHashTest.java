@@ -1,10 +1,10 @@
 package test.it.unimi.dsi.sux4j.mph;
 
-import static it.unimi.dsi.sux4j.mph.MinimalPerfectHash.countNonzeroPairs;
+import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ public class MinimalPerfectHashTest extends TestCase {
 		String[] s = new String[ 1000 ];
 		for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 		
-		MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+		MinimalPerfectHashFunction<CharSequence> mph = new MinimalPerfectHashFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
@@ -35,7 +35,7 @@ public class MinimalPerfectHashTest extends TestCase {
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( mph, temp );
-		mph = (MinimalPerfectHash<CharSequence>)BinIO.loadObject( temp );
+		mph = (MinimalPerfectHashFunction<CharSequence>)BinIO.loadObject( temp );
 
 		IntArrays.fill( check, -1 );
 		for( int i = s.length; i-- != 0; ) {

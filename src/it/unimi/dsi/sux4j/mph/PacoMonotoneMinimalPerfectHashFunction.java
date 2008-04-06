@@ -29,11 +29,18 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
 
@@ -71,11 +78,6 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
-		final long bucket = distributor.getLong( bv );
-		return ( bucket << log2BucketSize ) + offset.getLong( bv );
-	}
-
-	public long getByBitVector( final BitVector bv ) {
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
@@ -162,14 +164,14 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect monotone hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( PacoMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 bit encoding." ),
+			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to increase entropy (only available for offline construction)." ),
-			new FlaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'o', "offline", "Read strings from this file (without loading them into core memory) instead of standard input." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." )
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
@@ -177,22 +179,26 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 
-		if ( huTucker && stringFile == null ) throw new IllegalArgumentException( "Hu-Tucker coding requires offline construction" );
+		final Collection<MutableString> collection;
+		if ( "-".equals( stringFile ) ) {
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.start( "Loading strings..." );
+			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+			pl.done();
+		}
+		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
+			? new HuTuckerTransformationStrategy( collection, true )
+			: iso
+				? TransformationStrategies.prefixFreeIso() 
+				: TransformationStrategies.prefixFreeUtf16();
 
-		final PacoMonotoneMinimalPerfectHashFunction<? extends CharSequence> minimalPerfectMonotoneHash;
-		final TransformationStrategy<CharSequence> transformationStrategy = iso? TransformationStrategies.prefixFreeIso() : TransformationStrategies.prefixFreeUtf16();
-
-		LOGGER.info( "Building minimal perfect monotone hash function..." );
-		FileLinesCollection flc = new FileLinesCollection( stringFile, encoding.name(), zipped );
-		minimalPerfectMonotoneHash = new PacoMonotoneMinimalPerfectHashFunction<CharSequence>( flc, huTucker ? new HuTuckerTransformationStrategy( flc, true ) : transformationStrategy );
-
-		LOGGER.info( "Writing to file..." );		
-		BinIO.storeObject( minimalPerfectMonotoneHash, functionName );
+		BinIO.storeObject( new PacoMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.scratch;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -12,6 +12,9 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
+import it.unimi.dsi.sux4j.mph.BitstreamImmutablePaCoTrie;
+import it.unimi.dsi.sux4j.mph.HollowTrie;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
 
 import java.io.IOException;
@@ -291,11 +294,5 @@ public class SmartHollowTrie<T> extends AbstractHashFunction<T> implements Seria
 		LOGGER.info( "Writing to file..." );		
 		BinIO.storeObject( hollowTrie, trieName );
 		LOGGER.info( "Completed." );
-	}
-
-
-	@Override
-	public long getByBitVector( BitVector key ) {
-		throw new UnsupportedOperationException();
 	}
 }

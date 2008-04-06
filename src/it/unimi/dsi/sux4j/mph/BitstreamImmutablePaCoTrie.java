@@ -37,15 +37,15 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-/** A succinct implementation of a binary partial trie based on a recursive bitstream.
+/** A succinct implementation of a binary partial compacted trie based on a recursive bitstream.
  * 
- * <p>Instances of this class represent a <em>partial compacted trie</em>. In such a trie,
+ * <p>Instances of this class represent a <em>partial compacted trie</em> (PaCo trie). In such a trie,
  * just a prefix of the path at each node is actually stored: then, we just store the number of missing bits.
  * 
- * <p>The main purpose of partial tries is to serve as <em>distributors</em> for other data structures:
- * given a set of delimiters <var>D</var> of a set <var>S</var>, a partial trie will {@linkplain #getLong(Object) <em>rank</em>}
+ * <p>The main purpose of PaCo tries is to serve as <em>distributors</em> for other data structures:
+ * given a set of delimiters <var>D</var> of a set <var>S</var>, a PaCo trie will {@linkplain #getLong(Object) <em>rank</em>}
  * an elements <var>x</var> of <var>S</var> over <var>D</var>, that is, it will return how many elements of
- * <var>D</var> strictly precede <var>x</var>. To do so, a partial trie records at each node the smallest possible
+ * <var>D</var> strictly precede <var>x</var>. To do so, a PaCo trie records at each node the smallest possible
  * prefix that make it possible to rank correctly the whole of <var>S</var>: depending on the strings in
  * <var>S</var>, the savings in space can be more or less significant.
  * 
@@ -71,7 +71,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 	/** Infinity-like value for initialising node prefixes. It's one less than {@link Integer#MAX_VALUE} because we need to be able to add one
 	 * without overflowing. */
 	private static final int MAX_PREFIX = Integer.MAX_VALUE - 1;
-	/** The bitstream representing the partial trie. */
+	/** The bitstream representing the PaCo trie. */
 	private final byte[] trie;
 	/** The number of leaves in the trie. */
 	private final int numberOfLeaves;

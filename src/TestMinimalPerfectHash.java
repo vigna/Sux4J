@@ -1,7 +1,7 @@
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -12,7 +12,7 @@ public class TestMinimalPerfectHash {
 	
 	@SuppressWarnings("unchecked")
 	public static void main( String a[] ) throws IOException, ClassNotFoundException {
-		MinimalPerfectHash mph = (MinimalPerfectHash)BinIO.loadObject( a[ 0 ] );
+		MinimalPerfectHashFunction mph = (MinimalPerfectHashFunction)BinIO.loadObject( a[ 0 ] );
 		Collection<MutableString> c = new FileLinesCollection( a[ 1 ], "UTF-8" ).allLines();
 		
 		long start;

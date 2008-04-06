@@ -4,7 +4,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHash;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.util.ShiftAddXorSignedStringMap;
 
 import java.io.File;
@@ -23,7 +23,7 @@ public class ShiftAddXorSignedStringMapTest extends TestCase {
 			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 
 			// Test with mph
-			MinimalPerfectHash<CharSequence> mph = new MinimalPerfectHash<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16() );
+			MinimalPerfectHashFunction<CharSequence> mph = new MinimalPerfectHashFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16() );
 			ShiftAddXorSignedStringMap map = new ShiftAddXorSignedStringMap( Arrays.asList( s ).iterator(), mph, width );
 
 			int[] check = new int[ s.length ];
