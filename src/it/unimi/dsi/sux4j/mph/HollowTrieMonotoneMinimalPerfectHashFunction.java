@@ -58,9 +58,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
  */
 
-public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( PacoMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final int n;
@@ -71,7 +71,7 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** A PaCo trie assigning keys to buckets. */
-	private final BitstreamImmutablePaCoTrie<BitVector> distributor;
+	private final HollowTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
 	
@@ -83,7 +83,7 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public PacoMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
+	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
 
@@ -109,24 +109,12 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
-		final int firstbucketSize = 1 << t;
-		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
+		log2BucketSize = 1;//Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) );
+		bucketSize = 1 << log2BucketSize;
+		LOGGER.info( "Bucket size: " +  bucketSize );
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  iterable, transform );
-		
-		BitstreamImmutablePaCoTrie<BitVector> firstDistributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
-
-		// Reassign bucket size based on empirical estimation
-		log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( n / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
-		bucketSize = 1 << log2BucketSize;
-		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
-
-		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
-		else {
-			firstDistributor = null;
-			distributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
-		}
+		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 
 		/*
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
@@ -159,13 +147,12 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	}
 
 	public long numBits() {
-		// Note that the transformation size is already counted by the distributor.
-		return distributor.numBits() + offset.numBits();
+		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( PacoMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -199,7 +186,7 @@ public class PacoMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunct
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new PacoMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
