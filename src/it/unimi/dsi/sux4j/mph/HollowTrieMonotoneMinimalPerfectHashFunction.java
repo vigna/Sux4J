@@ -109,7 +109,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		log2BucketSize = 1;//Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) );
+		log2BucketSize = Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) );
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.info( "Bucket size: " +  bucketSize );
 		
