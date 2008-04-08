@@ -41,6 +41,7 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -209,30 +210,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 
 				this.root = root;
-
-				if ( false && ASSERTS ) {
-					iterator = elements.iterator();
-					int c = 1;
-					while( iterator.hasNext() ) {
-						curr = transformationStrategy.toBitVector( iterator.next() );
-						if ( c++ % bucketSize == 0 ) {
-							if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
-							node = root;
-							pos = 0;
-							while( node != null ) {
-								prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-								assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
-								pos += node.path.length() + 1;
-								if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-								else {
-									assert node.left == null && node.right == null;
-									break;
-								}
-							}
-						}
-					}
-				}
-
 				this.numElements = count;
 
 				LOGGER.info( "Numbering nodes..." );
@@ -255,6 +232,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 					OutputBitStream keys = new OutputBitStream( "tmp.keys" );
 					OutputBitStream lkeys = new OutputBitStream( "tmp.lkeys" );
+					new File( "tmp.keys" ).deleteOnExit();
+					new File( "tmp.lkeys" ).deleteOnExit();
 					values = LongArrayBitVector.getInstance().asLongBigList( 2 );
 					lvalues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 					iterator = elements.iterator();
@@ -281,19 +260,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						else first = false;
 						node = stack[ depth ];
 						pos = len[ depth ];
-
-						if (  false && ASSERTS ) {
-							// Check stack
-							Node n = root;
-							int q = 0;
-							while( n.path.longestCommonPrefixLength( curr.subVector( q ) ) == n.path.length() ) {
-								q += n.path.length();
-								n = curr.getBoolean( p++ ) ? n.right : n.left;
-								if ( q == pos ) break;
-							}
-							//assert n == node;
-						}
-
 
 						for(;;) {
 							final LongArrayBitVector nodePath = node.path;
