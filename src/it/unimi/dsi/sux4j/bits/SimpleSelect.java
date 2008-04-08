@@ -198,7 +198,7 @@ public class SimpleSelect implements Select {
 
 		final long inventoryRank = inventory[ inventoryIndex ];
 		final int subrank = (int)( rank & onesPerInventoryMask );
-
+		
 		if ( subrank == 0 ) return inventoryRank & ~(1L<<63);
 
 		long start;

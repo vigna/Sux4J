@@ -30,6 +30,8 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
+import it.unimi.dsi.fastutil.objects.Object2LongFunction;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.NullOutputStream;
@@ -59,7 +61,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private static final boolean DDEBUG = false;
 	/** Infinity-like value for initialising node prefixes. It's one less than {@link Integer#MAX_VALUE} because we need to be able to add one
 	 * without overflowing. */
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	/** The bitstream representing the PaCo trie. */
 	private final BitVector trie;
 	/** The transformation used to map object to bit vectors. */
@@ -68,6 +70,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private SimpleSelect select;
 	private EliasFanoLongBigList skips;
 	private MWHCFunction<BitVector> behaviour;
+	private Object2LongFunction<BitVector> testFunction;
 	
 	/** A class representing explicitly a partial trie. The {@link IntermediateTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
@@ -75,6 +78,11 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static class IntermediateTrie<T> {
 		private final static boolean ASSERTS = false;
 
+		private Object2LongFunction<BitVector> testFunction = new Object2LongOpenHashMap<BitVector>();
+		{
+			testFunction.defaultReturnValue( -1 );
+		}
+		
 		/** A node in the trie. */
 		protected static class Node {
 			/** Left child. */
@@ -265,6 +273,18 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					else first = false;
 					node = stack[ depth ];
 					pos = len[ depth ];
+					
+					if ( ASSERTS ) {
+						Node n = root;
+						int q = 0;
+						while( n.path.longestCommonPrefixLength( curr.subVector( q ) ) == n.path.length() ) {
+							q += n.path.length();
+							n = curr.getBoolean( p++ ) ? n.right : n.left;
+						}
+						assert n == node;
+					}
+					
+					
 					for(;;) {
 						final LongArrayBitVector nodePath = node.path;
 						final BitVector currFromPos = curr.subVector( pos ); 
@@ -277,7 +297,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								node.seen = true;
 								value = 2;
 								path = nodePath;
-
 							}
 							else {
 								if ( nodePath.getBoolean( prefix ) ) value = 0;
@@ -289,18 +308,24 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								writtenKeys++;
 								values.add( value );
 								keys.writeLong( node.index, 64 );
+								
 								final int pathLength = (int)path.length();
 								lastNode = node;
 								lastPath = path;
 								keys.writeDelta( pathLength );
 								for( int i = 0; i < pathLength; i += Long.SIZE ) keys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
 								
+								long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
+								key[ 0 ] = node.index;
+								for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = path.getLong( i, Math.min( i + Long.SIZE, pathLength) );
+								if ( ASSERTS ) testFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), value );
+														
 								if ( DEBUG ) {
-									System.err.println( "Computed mapping <" + node.index + ", " + path + "> -> " + value );
+									//System.err.println( "Computed mapping <" + node.index + ", " + path + "> -> " + value );
 								}
 
-								if ( value != 2 ) break;
 							}
+							if ( value != 2 ) break;
 							
 						}
 						
@@ -388,6 +413,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		if ( DDEBUG ) System.err.println( immutableBinaryTrie );
 		
 		IntermediateTrie.Node n;
+		testFunction = immutableBinaryTrie.testFunction;
 		
 		while( p < queue.size() ) {
 			n = queue.get( p );
@@ -440,6 +466,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 									key[ i + 1 ] = ibs.readLong( size );
 								}
 
+								if ( ASSERTS ) assert testFunction.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) == immutableBinaryTrie.values.getLong( pos );
+								
 								if ( DEBUG ) {
 									System.err.println( "Adding mapping <" + index + ", " +  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ).subVector( Long.SIZE ) + "> -> " + immutableBinaryTrie.values.getLong( pos ));
 									System.err.println(  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) );
@@ -466,6 +494,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			int c = 0;
 			while( iterator.hasNext() ) {
 				BitVector curr = iterator.next();
+				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
 				long t = getLong( curr );
 				assert t == c / bucketSize : t + " != " + c / bucketSize;
 				c++;
@@ -487,10 +516,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		for(;;) {
 			skip = (int)skips.getLong( p );
 			// Just for testing!!
-			//System.err.println( "Interrogating <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" + s);
+			//System.err.println( "Interrogating <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
 			//System.err.println( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
 			exit = (int)behaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
 			
+			if ( ASSERTS ) assert testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) == exit :	testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) + " != " +  exit;
+			
+			if ( ASSERTS ) assert exit < 3;
 			if ( DEBUG ) System.err.println( "Exit behaviour: " + exit );
 
 			if ( exit < 2 ) break;
@@ -564,9 +596,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		if ( DEBUG ) System.err.println( "Completing at p=" + p + " (index=" + index + ")" );
 		
 		for(;;) {
-			p = select.select( ( r = rank9.rank( p + 1 ) ) - 1 );
-			
-			if ( p < a ) break;
+			r = rank9.rank( p + 1 );
+			if ( r == 0 || ( p = select.select( r - 1 ) ) < a ) break;
 			// We follow the leftmost or rightmost path, depending on where we jumped out.
 			p = r * 2;
 			
