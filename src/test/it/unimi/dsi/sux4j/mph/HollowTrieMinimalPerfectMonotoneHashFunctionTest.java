@@ -24,7 +24,6 @@ public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 		HollowTrieMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
-		
 	}
 
 	public void testPrefix() throws IOException {
@@ -39,33 +38,34 @@ public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 		
-		String[] s = new String[ 1000 ];
-		int[] v = new int[ s.length ];
-		for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
+		for( int d = 10; d < 10000; d *= 10 ) {
+			String[] s = new String[ d ];
+			int[] v = new int[ s.length ];
+			for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-		HollowTrieMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
-		
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+			HollowTrieMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
-		// Exercise code for negative results
-		for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + 1000 ) );
-		
-		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (HollowTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
-	
-		mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
-		
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
-		
-		temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (HollowTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+			// Exercise code for negative results
+			for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + d ) );
 
+			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+			temp.deleteOnExit();
+			BinIO.storeObject( mph, temp );
+			mph = (HollowTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+
+			mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+
+			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+			temp = File.createTempFile( getClass().getSimpleName(), "test" );
+			temp.deleteOnExit();
+			BinIO.storeObject( mph, temp );
+			mph = (HollowTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+		}
 	}
 }

@@ -69,17 +69,19 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final EliasFanoLongBigList skips;
 	private final MWHCFunction<BitVector> behaviour;
 	private Object2LongFunction<BitVector> testFunction;
+	private Object2LongFunction<BitVector> lTestFunction;
 	private MWHCFunction<BitVector> lbehaviour;
+	private final int size;
 	
 	/** A class representing explicitly a partial trie. The {@link IntermediateTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
 	 */
 	private final static class IntermediateTrie<T> {
-		private final static boolean ASSERTS = false;
-
 		private Object2LongFunction<BitVector> testFunction = new Object2LongOpenHashMap<BitVector>();
+		private Object2LongFunction<BitVector> lTestFunction = new Object2LongOpenHashMap<BitVector>();
 		{
 			testFunction.defaultReturnValue( -1 );
+			lTestFunction.defaultReturnValue( -1 );
 		}
 		
 		/** A node in the trie. */
@@ -208,7 +210,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 				this.root = root;
 
-				if ( ASSERTS ) {
+				if ( false && ASSERTS ) {
 					iterator = elements.iterator();
 					int c = 1;
 					while( iterator.hasNext() ) {
@@ -230,139 +232,150 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						}
 					}
 				}
-				
+
 				this.numElements = count;
 
 				LOGGER.info( "Numbering nodes..." );
 
 				ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
-				queue.add( root );
 				int p = 0;
-				while( p < queue.size() ) {
-					node = queue.get( p );
-					node.index = p;
-					if ( node.left != null ) queue.add( node.left );
-					if ( node.right != null ) queue.add( node.right );
-					p++;
-				}
-				queue = null;
-				size = p;
-				
-				LOGGER.info( "Computing function keys..." );
-				
-				OutputBitStream keys = new OutputBitStream( "tmp.keys" );
-				OutputBitStream lkeys = new OutputBitStream( "tmp.lkeys" );
-				values = LongArrayBitVector.getInstance().asLongBigList( 2 );
-				lvalues = LongArrayBitVector.getInstance().asLongBigList( 1 );
-				iterator = elements.iterator();
-
-				// The stack of nodes visited the last time
-				final Node stack[] = new Node[ (int)maxLength ];
-				// The length of the path compacted in the trie up to the corresponding node, excluded
-				final int[] len = new int[ (int)maxLength ];
-				stack[ 0 ] = root;
-				int depth = 0;
-				boolean first = true;
-				int writtenKeys = 0, writtenLKeys = 0;
-				Node lastNode = null;
-				BitVector lastPath = null;
-				
-				while( iterator.hasNext() ) {
-					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-					if ( DEBUG ) System.err.println( curr );
-					if ( ! first )  {
-						// Adjust stack using lcp between present string and previous one
-						prefix = (int)prev.longestCommonPrefixLength( curr );
-						while( depth > 0 && len[ depth ] > prefix ) depth--;
+				if ( root != null ) {
+					queue.add( root );
+					while( p < queue.size() ) {
+						node = queue.get( p );
+						node.index = p;
+						if ( node.left != null ) queue.add( node.left );
+						if ( node.right != null ) queue.add( node.right );
+						p++;
 					}
-					else first = false;
-					node = stack[ depth ];
-					pos = len[ depth ];
-					
-					if ( ASSERTS ) {
-						Node n = root;
-						int q = 0;
-						while( n.path.longestCommonPrefixLength( curr.subVector( q ) ) == n.path.length() ) {
-							q += n.path.length();
-							n = curr.getBoolean( p++ ) ? n.right : n.left;
+					queue = null;
+					size = p;
+
+					LOGGER.info( "Computing function keys..." );
+
+					OutputBitStream keys = new OutputBitStream( "tmp.keys" );
+					OutputBitStream lkeys = new OutputBitStream( "tmp.lkeys" );
+					values = LongArrayBitVector.getInstance().asLongBigList( 2 );
+					lvalues = LongArrayBitVector.getInstance().asLongBigList( 1 );
+					iterator = elements.iterator();
+
+					// The stack of nodes visited the last time
+					final Node stack[] = new Node[ (int)maxLength ];
+					// The length of the path compacted in the trie up to the corresponding node, excluded
+					final int[] len = new int[ (int)maxLength ];
+					stack[ 0 ] = root;
+					int depth = 0;
+					boolean first = true;
+					int writtenKeys = 0, writtenLKeys = 0;
+					Node lastNode = null;
+					BitVector lastPath = null;
+
+					while( iterator.hasNext() ) {
+						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						if ( DEBUG ) System.err.println( curr );
+						if ( ! first )  {
+							// Adjust stack using lcp between present string and previous one
+							prefix = (int)prev.longestCommonPrefixLength( curr );
+							while( depth > 0 && len[ depth ] > prefix ) depth--;
 						}
-						assert n == node;
-					}
-					
-					
-					for(;;) {
-						final LongArrayBitVector nodePath = node.path;
-						final BitVector currFromPos = curr.subVector( pos ); 
-						prefix = (int)currFromPos.longestCommonPrefixLength( nodePath );
-						if ( prefix < nodePath.length() || ! node.seen ) {
+						else first = false;
+						node = stack[ depth ];
+						pos = len[ depth ];
 
-							final BitVector path;
-							final int value;
-							if ( prefix == nodePath.length() ) {
-								node.seen = true;
-								value = node.isLeaf() ? 0 : 2;
-								path = nodePath;
+						if (  false && ASSERTS ) {
+							// Check stack
+							Node n = root;
+							int q = 0;
+							while( n.path.longestCommonPrefixLength( curr.subVector( q ) ) == n.path.length() ) {
+								q += n.path.length();
+								n = curr.getBoolean( p++ ) ? n.right : n.left;
+								if ( q == pos ) break;
 							}
-							else {
-								if ( nodePath.getBoolean( prefix ) ) value = 0;
-								else value = 1;
-								path = currFromPos.subVector( 0, Math.min( currFromPos.length(), nodePath.length() ) ).copy();
-							}
-							
-							if ( lastNode != node || ! path.equals( lastPath ) ) {
-								if ( node.isLeaf() ) {
-									writtenLKeys++;
-									lvalues.add( value );
-									lkeys.writeLong( node.index, 64 );
+							//assert n == node;
+						}
+
+
+						for(;;) {
+							final LongArrayBitVector nodePath = node.path;
+							final BitVector currFromPos = curr.subVector( pos ); 
+							prefix = (int)currFromPos.longestCommonPrefixLength( nodePath );
+							if ( prefix < nodePath.length() || ! node.seen ) {
+
+								final BitVector path;
+								final int value;
+								if ( prefix == nodePath.length() ) {
+									node.seen = true;
+									value = node.isLeaf() ? 0 : 2;
+									if ( ASSERTS ) assert ! node.isLeaf() || currFromPos.length() == nodePath.length();
+									path = nodePath;
 								}
 								else {
-									writtenKeys++;
-									values.add( value );
-									keys.writeLong( node.index, 64 );
-								}
-								
-								
-								final int pathLength = (int)path.length();
-								lastNode = node;
-								lastPath = path;
-								if ( node.isLeaf() ) {
-									lkeys.writeDelta( pathLength );
-									for( int i = 0; i < pathLength; i += Long.SIZE ) lkeys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
-								}
-								else {
-									keys.writeDelta( pathLength );
-									for( int i = 0; i < pathLength; i += Long.SIZE ) keys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
-								}
-								
-								long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
-								key[ 0 ] = node.index;
-								for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = path.getLong( i, Math.min( i + Long.SIZE, pathLength) );
-								if ( ASSERTS ) testFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), value );
-														
-								if ( DEBUG ) {
-									//System.err.println( "Computed mapping <" + node.index + ", " + path + "> -> " + value );
+									if ( nodePath.getBoolean( prefix ) ) value = 0;
+									else value = 1;
+									path = node.isLeaf() ? currFromPos.copy() :	currFromPos.subVector( 0, Math.min( currFromPos.length(), nodePath.length() ) ).copy();
 								}
 
+								if ( lastNode != node || ! path.equals( lastPath ) ) {
+									if ( node.isLeaf() ) {
+										writtenLKeys++;
+										lvalues.add( value );
+										lkeys.writeLong( node.index, 64 );
+									}
+									else {
+										writtenKeys++;
+										values.add( value );
+										keys.writeLong( node.index, 64 );
+									}
+
+
+									final int pathLength = (int)path.length();
+									lastNode = node;
+									lastPath = path;
+									if ( node.isLeaf() ) {
+										lkeys.writeDelta( pathLength );
+										for( int i = 0; i < pathLength; i += Long.SIZE ) lkeys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
+									}
+									else {
+										keys.writeDelta( pathLength );
+										for( int i = 0; i < pathLength; i += Long.SIZE ) keys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
+									}
+
+									if ( ASSERTS ) {
+										long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
+										key[ 0 ] = node.index;
+										for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = path.getLong( i, Math.min( i + Long.SIZE, pathLength ) );
+										if ( node.isLeaf() ) lTestFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), value );
+										else testFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), value );
+									}
+
+									if ( DEBUG ) {
+										System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", " + path + "> -> " + value );
+										System.err.println( testFunction );
+										System.err.println( lTestFunction );
+									}
+
+								}
+								if ( value != 2 ) break;
+
 							}
-							if ( value != 2 ) break;
-							
+
+							pos += nodePath.length() + 1;
+							if ( pos > curr.length() ) break;
+							node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+							// Update stack
+							len[ ++depth ] = pos;
+							stack[ depth ] = node;
 						}
-						
-						pos += nodePath.length() + 1;
-						if ( pos > curr.length() ) break;
-						node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-						// Update stack
-						len[ ++depth ] = pos;
-						stack[ depth ] = node;
+
+						prev.replace( curr );
 					}
-					
-					prev.replace( curr );
+
+					this.writtenKeys = writtenKeys;
+					this.writtenLKeys = writtenLKeys;
+					keys.close();
+					lkeys.close();
 				}
-				
-				this.writtenKeys = writtenKeys;
-				this.writtenLKeys = writtenLKeys;
-				keys.close();
-				lkeys.close();
+				else size = 0;
 			}
 			else{
 				this.root = null;
@@ -425,29 +438,33 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		final int numKeys = immutableBinaryTrie.writtenKeys;
 		final int numLKeys = immutableBinaryTrie.writtenLKeys;
+		size = immutableBinaryTrie.size;
 		final BitVector bitVector = LongArrayBitVector.getInstance( immutableBinaryTrie.size );
 		final ObjectArrayList<IntermediateTrie.Node> queue = new ObjectArrayList<IntermediateTrie.Node>();
 		final IntArrayList skips = new IntArrayList();
 		int p = 0;
-		long skipsLength = 0;
-		queue.add( immutableBinaryTrie.root );
 
-		if ( DDEBUG ) System.err.println( immutableBinaryTrie );
-		
-		IntermediateTrie.Node n;
-		testFunction = immutableBinaryTrie.testFunction;
-		
-		while( p < queue.size() ) {
-			n = queue.get( p );
-			skips.add( (int)n.path.length() );
-			bitVector.add( ! n.isLeaf() );
-			if ( ASSERTS ) assert ( n.left == null ) == ( n.right == null );
-			if ( n.left != null ) queue.add( n.left );
-			if ( n.right != null ) queue.add( n.right );
-			p++;
+		if ( immutableBinaryTrie.root != null ) {
+			queue.add( immutableBinaryTrie.root );
+
+			if ( DDEBUG ) System.err.println( immutableBinaryTrie );
+
+			IntermediateTrie.Node n;
+			testFunction = immutableBinaryTrie.testFunction;
+			lTestFunction = immutableBinaryTrie.lTestFunction;
+
+			while( p < queue.size() ) {
+				n = queue.get( p );
+				if ( ! n.isLeaf() ) skips.add( (int)n.path.length() );
+				bitVector.add( ! n.isLeaf() );
+				if ( ASSERTS ) assert ( n.left == null ) == ( n.right == null );
+				if ( n.left != null ) queue.add( n.left );
+				if ( n.right != null ) queue.add( n.right );
+				p++;
+			}
+
+			if ( ASSERTS ) assert p == immutableBinaryTrie.size : p + " != " + immutableBinaryTrie.size;
 		}
-		
-		if ( ASSERTS ) assert p == immutableBinaryTrie.size : p + " != " + immutableBinaryTrie.size;
 		
 		trie = bitVector;
 		rank9 = new Rank9( bitVector );
@@ -466,10 +483,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		class IterableStream implements Iterable<BitVector> {
 			private InputBitStream ibs;
 			private int n;
+			private Object2LongFunction<BitVector> test;
+			private LongBigList values;
 			
-			public IterableStream( final InputBitStream ibs, final int n ) {
+			public IterableStream( final InputBitStream ibs, final int n, Object2LongFunction<BitVector> test, LongBigList values ) {
 				this.ibs = ibs;
 				this.n = n;
+				this.test = test;
+				this.values = values;
 			}
 
 			public Iterator<BitVector> iterator() {
@@ -495,12 +516,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 									key[ i + 1 ] = ibs.readLong( size );
 								}
 
-								if ( ASSERTS ) assert testFunction.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) == immutableBinaryTrie.values.getLong( pos );
-								
 								if ( DEBUG ) {
-									System.err.println( "Adding mapping <" + index + ", " +  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ).subVector( Long.SIZE ) + "> -> " + immutableBinaryTrie.values.getLong( pos ));
+									System.err.println( "Adding mapping <" + index + ", " +  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ).subVector( Long.SIZE ) + "> -> " + values.getLong( pos ));
 									System.err.println(  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) );
 								}
+
+								if ( ASSERTS ) assert test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) == values.getLong( pos ) : test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) + " != " + values.getLong( pos ) ;
+								
 								pos++;
 								return LongArrayBitVector.wrap( key, pathLength + Long.SIZE );
 							}
@@ -517,47 +539,55 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			
 		};
 		
-		behaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.keys" ), numKeys ) ,TransformationStrategies.identity(), immutableBinaryTrie.values, 2 );
-		lbehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.lkeys" ), numLKeys ) ,TransformationStrategies.identity(), immutableBinaryTrie.lvalues, 1 );
+		behaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.keys" ), numKeys, testFunction, immutableBinaryTrie.values ) ,TransformationStrategies.identity(), immutableBinaryTrie.values, 2 );
+		lbehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.lkeys" ), numLKeys, lTestFunction, immutableBinaryTrie.lvalues ) ,TransformationStrategies.identity(), immutableBinaryTrie.lvalues, 1 );
 
 		if ( ASSERTS ) {
-			Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
-			int c = 0;
-			while( iterator.hasNext() ) {
-				BitVector curr = iterator.next();
-				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
-				long t = getLong( curr );
-				assert t == c / bucketSize : t + " != " + c / bucketSize;
-				c++;
-			}			
+			if ( size > 0 ) {
+				Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
+				int c = 0;
+				while( iterator.hasNext() ) {
+					BitVector curr = iterator.next();
+					if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
+					long t = getLong( curr );
+					assert t == c / bucketSize : t + " != " + c / bucketSize;
+					c++;
+				}		
+			}
 		}
-}
+	}
 	
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		// if ( size <= 1 ) return size - 1;
+		if ( size == 0 ) return 0;
 		final BitVector bitVector = transformationStrategy.toBitVector( (T)o ).fast();
 		LongArrayBitVector key = LongArrayBitVector.getInstance();
 		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
-		int s = 0, skip, exit;
+		int s = 0, skip = 0, exit;
+		boolean isInternal;
 			
 		if ( DEBUG ) System.err.println( "Distributing " + bitVector + "\ntrie:" + trie );
 		
 		for(;;) {
-			skip = (int)skips.getLong( p );
+			isInternal = trie.getBoolean( p );
+			if ( isInternal ) skip = (int)skips.getLong( r );
 			// Just for testing!!
-			//System.err.println( "Interrogating <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
-			//System.err.println( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
-			exit = trie.getBoolean( p ) ? (int)behaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) )
-					: (int)lbehaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
+			//System.err.println( "Interrogating" + ( trie.getBoolean( p ) ? "" : " leaf" ) + " <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
+			exit = isInternal ? (int)behaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) )
+					: (int)lbehaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s ) ) );
 			
-			if ( ASSERTS ) assert testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) == exit :	testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) + " != " +  exit;
+			if ( ASSERTS ) {
+				final long result; 
+				if ( isInternal ) result = testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
+				else result = lTestFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s ) ) ); 
+				
+				if ( result != -1 ) assert result == exit : result + " != " + exit; 
+			}
 			
-			if ( ASSERTS ) assert exit < 3;
 			if ( DEBUG ) System.err.println( "Exit behaviour: " + exit );
 
-			if ( exit < 2 || ! trie.getBoolean( p ) || ( s += skip ) >= length ) break;
+			if ( exit != 2 || ! trie.getBoolean( p ) || ( s += skip ) >= length ) break;
 
 			if ( DEBUG ) System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;

@@ -109,19 +109,12 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		log2BucketSize = Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) ) + 2;
+		log2BucketSize = Fast.ceilLog2( (long)( ( 1 / ( Fast.log2( Math.E ) * HypergraphSorter.GAMMA ) ) * Fast.log2( averageLength ) + Math.log( 2 ) * ( 2 / HypergraphSorter.GAMMA + HypergraphSorter.GAMMA ) ) );
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.info( "Bucket size: " +  bucketSize );
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  iterable, transform );
 		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
-
-		/*
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
-		*/	
 		
 		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
@@ -133,9 +126,9 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + ( n / bucketSize ) * ( maxLength + log2BucketSize - Math.log( n ) ) );
+		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( n / bucketSize ) * Fast.log2( averageLength )) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( n ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA / Math.log( 2 ) + 2 * HypergraphSorter.GAMMA + HypergraphSorter.GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 		
 	}
