@@ -159,8 +159,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	}
 
 	public long numBits() {
-		// Note that the transformation size is already counted by the distributor.
-		return distributor.numBits() + offset.numBits();
+		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {

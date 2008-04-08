@@ -23,7 +23,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -66,10 +65,10 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final BitVector trie;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
-	private Rank9 rank9;
-	private SimpleSelect select;
-	private EliasFanoLongBigList skips;
-	private MWHCFunction<BitVector> behaviour;
+	private final Rank9 rank9;
+	private final SimpleSelect select;
+	private final EliasFanoLongBigList skips;
+	private final MWHCFunction<BitVector> behaviour;
 	private Object2LongFunction<BitVector> testFunction;
 	
 	/** A class representing explicitly a partial trie. The {@link IntermediateTrie#toStream(OutputBitStream)} method
@@ -525,15 +524,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			if ( ASSERTS ) assert exit < 3;
 			if ( DEBUG ) System.err.println( "Exit behaviour: " + exit );
 
-			if ( exit < 2 ) break;
-
-			if ( ! trie.getBoolean( p ) ) {
-				break;
-			}
-
-			if ( ( s += skip ) >= length ) {
-				break;
-			}
+			if ( exit < 2 || ! trie.getBoolean( p ) || ( s += skip ) >= length ) break;
 
 			if ( DEBUG ) System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
 			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
@@ -615,48 +606,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return index;	
 	}
 	
-
-	private void recToString( final InputBitStream trie, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) throws IOException {
-		int skip = trie.readDelta();
-		
-		//System.err.println( "Called with prefix " + printPrefix );
-		
-		result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
-		
-		int pathLength = trie.readDelta();
-		LongArrayBitVector p = LongArrayBitVector.getInstance( pathLength );
-		
-		for( int i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
-			int size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
-			p.append( trie.readLong( size ), size );
-		}
-
-		if ( skip == 0 ) return; // Leaf
-
-		int missing = trie.readDelta();
-
-		path.append( p );
-		result.append( " path:" ).append( p );
-		while( missing-- != 0 ) result.append( '*' );
-		
-		result.append( '\n' );
-
-		trie.readDelta(); // Skip number of leaves in the left subtree
-		
-		path.append( '0' );
-		recToString( trie, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
-		path.charAt( path.length() - 1, '1' ); 
-		recToString( trie, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
-		path.delete( path.length() - 1, path.length() ); 
-		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
-		
-		//System.err.println( "Path now: " + path + " Going to delete from " + ( path.length() - n.pathLength));
-		
-		path.delete( path.length() - pathLength, path.length() );
-	}
-
 	public long numBits() {
-		return trie.length() + rank9.numBits() + select.numBits() + transformationStrategy.numBits();
+		return trie.length() + rank9.numBits() + select.numBits() + behaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {
