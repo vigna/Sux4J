@@ -35,6 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -55,7 +56,8 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
+ * a {@linkplain HollowTrieDistributor hollow trie} as a distributor.
+ * 
  */
 
 public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
@@ -81,9 +83,12 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
-
-	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
+	
 	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( iterable, transform, null );
+	}
+	
+	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
 
 		this.transform = transform;
 
@@ -109,13 +114,13 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		int t = Fast.ceilLog2( (long)( ( 1 / ( Fast.log2( Math.E ) * HypergraphSorter.GAMMA ) ) * Fast.log2( averageLength ) + Math.log( 2 ) * ( 2 / HypergraphSorter.GAMMA + HypergraphSorter.GAMMA ) ) );
+		int t = Fast.ceilLog2( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / HypergraphSorter.GAMMA + Math.log( 2 ) ) );
 		final int firstbucketSize = 1 << t;
 		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		
-		HollowTrieDistributor<BitVector> firstDistributor = new HollowTrieDistributor<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
+		HollowTrieDistributor<BitVector> firstDistributor = new HollowTrieDistributor<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity(), tempDir );
 
 		// Reassign bucket size based on empirical estimation
 		log2BucketSize = t + Fast.mostSignificantBit( (int)Math.ceil( n / firstDistributor.numBits() ) );
@@ -125,7 +130,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
 		else {
 			firstDistributor = null;
-			distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+			distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
 		}
 		
 		
@@ -163,6 +168,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new FlaggedOption( "tempDir", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 't', "temp-dir", "A temporary directory for the files created during the construction." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
@@ -176,6 +182,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -191,7 +198,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, tempDir ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
