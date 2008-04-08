@@ -109,12 +109,25 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		log2BucketSize = Fast.ceilLog2( (long)( ( 1 / ( Fast.log2( Math.E ) * HypergraphSorter.GAMMA ) ) * Fast.log2( averageLength ) + Math.log( 2 ) * ( 2 / HypergraphSorter.GAMMA + HypergraphSorter.GAMMA ) ) );
-		bucketSize = 1 << log2BucketSize;
-		LOGGER.info( "Bucket size: " +  bucketSize );
+		int t = Fast.ceilLog2( (long)( ( 1 / ( Fast.log2( Math.E ) * HypergraphSorter.GAMMA ) ) * Fast.log2( averageLength ) + Math.log( 2 ) * ( 2 / HypergraphSorter.GAMMA + HypergraphSorter.GAMMA ) ) );
+		final int firstbucketSize = 1 << t;
+		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  iterable, transform );
-		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
+		
+		HollowTrieDistributor<BitVector> firstDistributor = new HollowTrieDistributor<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
+
+		// Reassign bucket size based on empirical estimation
+		log2BucketSize = t + Fast.mostSignificantBit( (int)Math.ceil( n / firstDistributor.numBits() ) );
+		bucketSize = 1 << log2BucketSize;
+		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
+
+		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
+		else {
+			firstDistributor = null;
+			distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		}
+		
 		
 		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
