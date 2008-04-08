@@ -238,7 +238,6 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 				
 				while( iterator.hasNext() ) {
 					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-					System.err.println( depth + " -> " + curr );
 					if ( ! first )  {
 						// Adjust stack using lcp between present string and previous one
 						prefix = (int)prev.longestCommonPrefixLength( curr );
