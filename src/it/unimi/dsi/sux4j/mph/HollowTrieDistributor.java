@@ -41,7 +41,6 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -641,7 +640,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	public long numBits() {
-		return trie.length() + rank9.numBits() + select.numBits() + behaviour.numBits() + lbehaviour.numBits() + transformationStrategy.numBits();
+		return trie.length() + rank9.numBits() + skips.numBits() + select.numBits() + behaviour.numBits() + lbehaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {

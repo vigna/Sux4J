@@ -109,7 +109,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + n - 1 ) / n;
 		
-		log2BucketSize = Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) );
+		log2BucketSize = Fast.mostSignificantBit( (int)Math.floor( Fast.log2( averageLength ) ) ) + 2;
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.info( "Bucket size: " +  bucketSize );
 		
@@ -133,7 +133,6 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast distributor bit cost: " + ( n / bucketSize ) * ( maxLength + log2BucketSize - Math.log( n ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( n ) ) ) );
