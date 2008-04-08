@@ -70,6 +70,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final EliasFanoLongBigList skips;
 	private final MWHCFunction<BitVector> behaviour;
 	private Object2LongFunction<BitVector> testFunction;
+	private MWHCFunction<BitVector> lbehaviour;
 	
 	/** A class representing explicitly a partial trie. The {@link IntermediateTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
@@ -128,6 +129,10 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** The number of nodes. */
 		protected final int numElements;
 		private int writtenKeys;
+
+		private LongBigList lvalues;
+
+		private int writtenLKeys;
 		
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
@@ -247,7 +252,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				LOGGER.info( "Computing function keys..." );
 				
 				OutputBitStream keys = new OutputBitStream( "tmp.keys" );
+				OutputBitStream lkeys = new OutputBitStream( "tmp.lkeys" );
 				values = LongArrayBitVector.getInstance().asLongBigList( 2 );
+				lvalues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 				iterator = elements.iterator();
 
 				// The stack of nodes visited the last time
@@ -257,7 +264,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				stack[ 0 ] = root;
 				int depth = 0;
 				boolean first = true;
-				int writtenKeys = 0;
+				int writtenKeys = 0, writtenLKeys = 0;
 				Node lastNode = null;
 				BitVector lastPath = null;
 				
@@ -294,7 +301,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							final int value;
 							if ( prefix == nodePath.length() ) {
 								node.seen = true;
-								value = 2;
+								value = node.isLeaf() ? 0 : 2;
 								path = nodePath;
 							}
 							else {
@@ -304,15 +311,29 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							}
 							
 							if ( lastNode != node || ! path.equals( lastPath ) ) {
-								writtenKeys++;
-								values.add( value );
-								keys.writeLong( node.index, 64 );
+								if ( node.isLeaf() ) {
+									writtenLKeys++;
+									lvalues.add( value );
+									lkeys.writeLong( node.index, 64 );
+								}
+								else {
+									writtenKeys++;
+									values.add( value );
+									keys.writeLong( node.index, 64 );
+								}
+								
 								
 								final int pathLength = (int)path.length();
 								lastNode = node;
 								lastPath = path;
-								keys.writeDelta( pathLength );
-								for( int i = 0; i < pathLength; i += Long.SIZE ) keys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
+								if ( node.isLeaf() ) {
+									lkeys.writeDelta( pathLength );
+									for( int i = 0; i < pathLength; i += Long.SIZE ) lkeys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
+								}
+								else {
+									keys.writeDelta( pathLength );
+									for( int i = 0; i < pathLength; i += Long.SIZE ) keys.writeLong( path.getLong( i, Math.min( i + Long.SIZE, pathLength) ), Math.min( Long.SIZE, pathLength - i ) );
+								}
 								
 								long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
 								key[ 0 ] = node.index;
@@ -340,7 +361,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 				
 				this.writtenKeys = writtenKeys;
+				this.writtenLKeys = writtenLKeys;
 				keys.close();
+				lkeys.close();
 			}
 			else{
 				this.root = null;
@@ -402,6 +425,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		final IntermediateTrie<T> immutableBinaryTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy );
 
 		final int numKeys = immutableBinaryTrie.writtenKeys;
+		final int numLKeys = immutableBinaryTrie.writtenLKeys;
 		final BitVector bitVector = LongArrayBitVector.getInstance( immutableBinaryTrie.size );
 		final ObjectArrayList<IntermediateTrie.Node> queue = new ObjectArrayList<IntermediateTrie.Node>();
 		final IntArrayList skips = new IntArrayList();
@@ -430,9 +454,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		rank9 = new Rank9( bitVector );
 		select = new SimpleSelect( bitVector );
 
-		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( immutableBinaryTrie.size / 2 ) );
-		
 		this.skips = new EliasFanoLongBigList( skips );
+		
+		LOGGER.info( "Bits per skip: " + (double)this.skips.numBits() / this.skips.length() );
 		
 		if ( DDEBUG ) {
 			MutableString s = new MutableString();
@@ -440,16 +464,23 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			System.err.println( s );
 		}
 		
-		behaviour = new MWHCFunction<BitVector>( new Iterable<BitVector>() {
+		class IterableStream implements Iterable<BitVector> {
+			private InputBitStream ibs;
+			private int n;
+			
+			public IterableStream( final InputBitStream ibs, final int n ) {
+				this.ibs = ibs;
+				this.n = n;
+			}
 
 			public Iterator<BitVector> iterator() {
 				try {
+					ibs.position( 0 );
 					return new AbstractObjectIterator<BitVector>() {
 						private int pos = 0;
-						private InputBitStream ibs = new InputBitStream( "tmp.keys" );
 						
 						public boolean hasNext() {
-							return pos < numKeys;
+							return pos < n;
 						}
 
 						public BitVector next() {
@@ -480,13 +511,15 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						}
 					};
 				}
-				catch ( FileNotFoundException e ) {
+				catch ( IOException e ) {
 					throw new RuntimeException( e );
 				}
 			}
 			
-		},TransformationStrategies.identity(), immutableBinaryTrie.values, 2 );
-
+		};
+		
+		behaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.keys" ), numKeys ) ,TransformationStrategies.identity(), immutableBinaryTrie.values, 2 );
+		lbehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( "tmp.lkeys" ), numLKeys ) ,TransformationStrategies.identity(), immutableBinaryTrie.lvalues, 1 );
 
 		if ( ASSERTS ) {
 			Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
@@ -517,7 +550,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			// Just for testing!!
 			//System.err.println( "Interrogating <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
 			//System.err.println( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
-			exit = (int)behaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
+			exit = trie.getBoolean( p ) ? (int)behaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) )
+					: (int)lbehaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
 			
 			if ( ASSERTS ) assert testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) == exit :	testFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) + " != " +  exit;
 			
@@ -607,7 +641,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	public long numBits() {
-		return trie.length() + rank9.numBits() + select.numBits() + behaviour.numBits() + transformationStrategy.numBits();
+		return trie.length() + rank9.numBits() + select.numBits() + behaviour.numBits() + lbehaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {
