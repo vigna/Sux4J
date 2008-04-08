@@ -63,7 +63,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	private static final Logger LOGGER = Util.getLogger( PaCoTrieMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
-	private final int n;
+	private final int size;
 	/** The size of a bucket. */
 	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -77,13 +77,20 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
+		if ( size == 0 ) return -1;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
 
-	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public PaCoTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
+	/** Creates a new PaCo-trie-based monotone minimal perfect hash function using the given
+	 * elements and transformation strategy. 
+	 * 
+	 * @param elements the elements among which the trie must be able to rank.
+	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
+	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
+	 */
+	public PaCoTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
 
@@ -91,34 +98,34 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		long totalLength = 0;
 		int c = 0;
 		BitVector bv;
-		for( T s: iterable ) {
+		for( T s: elements ) {
 			bv = transform.toBitVector( s );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 			c++;
 		}
 		
-		n = c;
+		size = c;
 		
-		if ( n == 0 )	{
+		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
 			return;
 		}
 
-		final long averageLength = ( totalLength + n - 1 ) / n;
+		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( n ) - Math.log( averageLength - Math.log( n ) ) - 1 ) );
+		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( size ) - Math.log( averageLength - Math.log( size ) ) - 1 ) );
 		final int firstbucketSize = 1 << t;
 		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  iterable, transform );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
 		BitstreamImmutablePaCoTrie<BitVector> firstDistributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
 		// Reassign bucket size based on empirical estimation
-		log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( n / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
+		log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
@@ -135,27 +142,27 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
 		*/	
 		
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
 			}
 			public int size() {
-				return n;
+				return size;
 			}
 		}, log2BucketSize );
 
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast distributor bit cost: " + ( n / bucketSize ) * ( maxLength + log2BucketSize - Math.log( n ) ) );
+		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( n ) ) ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( size ) ) ) );
+		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
 
 
 	public int size() {
-		return n;
+		return size;
 	}
 
 	public long numBits() {
