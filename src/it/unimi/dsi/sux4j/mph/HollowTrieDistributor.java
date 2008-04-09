@@ -39,6 +39,7 @@ import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
 import java.io.File;
 import java.io.IOException;
@@ -105,6 +106,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private Object2LongFunction<BitVector> externalTestFunction;
 		/** The root of the trie. */
 		protected final Node root;
+		/** The number of overall elements to distribute. */
+		private final int numElements;
 		/** The number of internal nodes of the trie. */
 		protected final int size;
 		/** The file containing the internal keys (pairs node/path). */
@@ -230,6 +233,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					count++;
 				}
 
+				this.numElements = count;
 				this.root = root;
 				
 				internalKeysFile = File.createTempFile( HollowTrieDistributor.class.getName(), "int", tempDir );
@@ -368,7 +372,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			else {
 				// No elements.
 				this.root = null;
-				this.size = 0;
+				this.size = this.numElements = 0;
 				internalKeysFile = externalKeysFile = null;
 			}
 		}
@@ -525,6 +529,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		
 		internalBehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( intermediateTrie.internalKeysFile ), numInternalKeys, internalTestFunction, intermediateTrie.internalValues ), TransformationStrategies.identity(), intermediateTrie.internalValues, 2 );
 		externalBehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( intermediateTrie.externalKeysFile ), numExternalKeys, externalTestFunction, intermediateTrie.externalValues ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
+		
+		LOGGER.debug( "Forecast three-way behaviour-function bit cost: " + 2 * intermediateTrie.numElements * GAMMA );
+		LOGGER.debug( "Actual three-way behaviour-function bit cost: " + internalBehaviour.numBits() );
+		LOGGER.debug( "Forecast two-way behaviour-function bit cost: " + intermediateTrie.size * GAMMA );
+		LOGGER.debug( "Actual two-way behaviour-function bit cost: " + externalBehaviour.numBits() );
+		LOGGER.debug( "Forecast behaviour-functions bit cost: " + ( 2 * intermediateTrie.numElements * GAMMA + intermediateTrie.size * GAMMA ) );
+		LOGGER.debug( "Actual behaviour-functions bit cost: " + ( externalBehaviour.numBits() + internalBehaviour.numBits() ) );
+		
 		intermediateTrie.internalKeysFile.delete();
 		intermediateTrie.externalKeysFile.delete();
 		

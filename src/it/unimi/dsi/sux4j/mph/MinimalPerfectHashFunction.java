@@ -58,21 +58,17 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A minimal perfect hash function.
  *
- * <P>Given a list of elements without duplicates, 
- * the constructors of this class finds a minimal perfect hash function for
+ * <P>Given a list of elements without duplicates, the constructors of this class finds a minimal perfect hash function for
  * the list. Subsequent calls to the {@link #getLong(Object)} method will return a distinct
- * number for each elements in the list. For elements out of the list, the resulting number is undefined, and
- * might be -1 for the very few cases in which it is possible to establish this fact. The class
- * can then be saved by serialisation and reused later.
+ * number for each elements in the list. For elements out of the list, the resulting number is not specified. In
+ * some (rare) cases it might be possible to establish that an element was not in the original list, and
+ * in that case -1 will be returned. The class can then be saved by serialisation and reused later.
  *
- * <P>The theoretical memory requirements are 2{@link HypergraphSorter#GAMMA GAMMA}=2.46 + o(<var>n</var>) bits per element, plus the bits
+ * <P>The theoretical memory requirements are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 + o(<var>n</var>) bits per element, plus the bits
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
  * an embedded ranking scheme that increases space 
  * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per element.
  * At construction time, however, about 15<var>n</var> integers (i.e., 60<var>n</var> bytes) are necessary. 
- * 
- * <P>This class is very scalable, and if you have enough memory it will handle
- * efficiently hundreds of millions of elements.
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
