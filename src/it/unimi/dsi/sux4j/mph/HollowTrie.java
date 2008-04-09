@@ -387,7 +387,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
-		final String functionName = jsapResult.getString( "function" );
+		final String trieName = jsapResult.getString( "trie" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
@@ -408,7 +408,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new HollowTrie<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new HollowTrie<CharSequence>( collection, transformationStrategy ), trieName );
 		LOGGER.info( "Completed." );
 	}
 }

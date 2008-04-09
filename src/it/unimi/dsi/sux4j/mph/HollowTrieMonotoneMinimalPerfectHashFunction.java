@@ -34,6 +34,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
 import java.io.File;
 import java.io.IOException;
@@ -132,7 +133,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize = Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / HypergraphSorter.GAMMA + Math.log( 2 ) ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
@@ -148,9 +149,9 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * Fast.log2( averageLength )) );
+		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA / Math.log( 2 ) + 2 * HypergraphSorter.GAMMA + HypergraphSorter.GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
