@@ -66,7 +66,7 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A compacted trie recording just the length of the internal-node paths.
+/** A hollow trie, that is, a compacted trie recording just the length of the paths associated to the internal nodes.
  *
  * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys.
  */

@@ -6,7 +6,7 @@
 - Fixed small misbehaviours on very small key sets.
 
 - New data structure (HollowTrieMonotoneMinimalPerfectHashFunction)
-  that uses just log log l bits per element.
+  that uses just 3.44 + 1.23 log log l bits per element.
 
 1.0
 

@@ -16,15 +16,33 @@ building blocks for all other classes.
 <li>Minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}); they map a set
 of <var>n</var> object to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 }.
 <li><em>Monotone</em> minimal perfect hash functions (e.g., {@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction},
-{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie}). These
+{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.HollowTrie}
+and {@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction}). These
 functions requires keys to be prefix-free and provided in lexicographical order; they will map back each key to its position using
-a very small number of bits per element.
+a very small number of bits per element, providing different space/time tradeoffs (in what follows,
+<var>l</var> is maximum the string length):
+<ul>
+<li>{@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction} is very fast, as it has just to evaluate two {@link it.unimi.dsi.sux4j.mph.MWHCFunction}s
+(so if the length of the strings is a constant multiplied by the machine word, it is actually constant-time); however it uses 
+2.7 + log log <var>n</var> + log <var>l</var> bits per element.</li>
+<li>{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction} is slower, as it uses a <em>{@linkplain it.unimi.dsi.sux4j.mph.BitstreamImmutablePaCoTrie partial compacted trie}</em>
+(which requires linear time to be accessed) to distribute keys between buckets; theoretically it uses 
+2.7 + 2 log <var>l</var> bits per element, but the partial compacted trie is every efficiency in exploiting data redundancy, so the actual
+occupancy is in general half with respect to the previous function.</li>
+<li>{@link it.unimi.dsi.sux4j.mph.HollowTrie} is <em>very</em> slow as it has to traverse a succinct trie on the whole key set; it
+is mainly of theoretical interest, as it uses just 2 + log <var>l</var> bits per element, and also in practice it
+occupies less space than the previous two functions.</li>
+<li>{@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction} is slow, as it
+uses a {@linkplain it.unimi.dsi.sux4j.mph.HollowTrieDistributor enriched hollow trie as a distributor}, but it is faster than a hollow trie,
+and it has the (quite surprising) property of using 3.44 + 1.23 log log <var>l</var> bits per element (note the double log). In practice,
+it will use less than a byte per element for strings of length up to a billion bits.</li>
+</ul>
 </ul>
 
 <p>All the above structures, with the exception of {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}, were introduced in
 &ldquo;Monotone Minimal Perfect Hashing&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
-Sebastiano Vigna. Monotone minimal perfect hashing classes provide different tradeoffs between speed and space occupancy: the are
-listed above in order of decreasing speed and space occupancy.
+Sebastiano Vigna (the class {@link it.unimi.dsi.sux4j.mph.MWHCFunction} implements a <em>compacted</em> version
+of the classical {@linkplain it.unimi.dsi.sux4j.mph.HypergraphSorter 3-hypergraph-based structure} introduced therein).
 
 <h2>Usage</h2>
 
