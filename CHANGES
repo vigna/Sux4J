@@ -3,6 +3,11 @@
 - Fixed wrong name of PaCo-trie-based monotone minimal
   perfect hash functions.
 
+- Fixed small misbehaviours on very small key sets.
+
+- New data structure (HollowTrieMonotoneMinimalPerfectHashFunction)
+  that uses just log log l bits per element.
+
 1.0
 
 - Fixed Jenkins hash so that it works with empty strings.

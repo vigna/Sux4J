@@ -124,8 +124,12 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		
 		BitstreamImmutablePaCoTrie<BitVector> firstDistributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
-		// Reassign bucket size based on empirical estimation
-		log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
+		if ( firstbucketSize >= size ) log2BucketSize = t;
+		else {
+			// Reassign bucket size based on empirical estimation
+			log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
+		}
+		
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
@@ -142,6 +146,8 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
 		*/	
 		
+		LOGGER.info( "Bucket size: " + bucketSize );
+
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
@@ -152,7 +158,6 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( size ) ) ) );

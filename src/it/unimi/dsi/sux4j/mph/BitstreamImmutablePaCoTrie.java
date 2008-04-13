@@ -201,71 +201,73 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 
 				this.root = root;
 
-				if ( ASSERTS ) {
-					iterator = elements.iterator();
-					int c = 1;
-					while( iterator.hasNext() ) {
-						curr = transformationStrategy.toBitVector( iterator.next() );
-						if ( c++ % bucketSize == 0 ) {
-							if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
-							node = root;
-							pos = 0;
-							while( node != null ) {
-								prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-								assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
-								pos += node.path.length() + 1;
-								if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-								else {
-									assert node.left == null && node.right == null;
-									break;
+				if ( root != null ) {
+					if ( ASSERTS ) {
+						iterator = elements.iterator();
+						int c = 1;
+						while( iterator.hasNext() ) {
+							curr = transformationStrategy.toBitVector( iterator.next() );
+							if ( c++ % bucketSize == 0 ) {
+								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
+								node = root;
+								pos = 0;
+								while( node != null ) {
+									prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
+									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
+									pos += node.path.length() + 1;
+									if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+									else {
+										assert node.left == null && node.right == null;
+										break;
+									}
 								}
 							}
 						}
 					}
-				}
 
-				LOGGER.info( "Reducing paths..." );
+					LOGGER.info( "Reducing paths..." );
 
-				iterator = elements.iterator();
+					iterator = elements.iterator();
 
-				// The stack of nodes visited the last time
-				final Node stack[] = new Node[ (int)maxLength ];
-				// The length of the path compacted in the trie up to the corresponding node, excluded
-				final int[] len = new int[ (int)maxLength ];
-				stack[ 0 ] = root;
-				int depth = 0;
-				boolean first = true;
-				
-				while( iterator.hasNext() ) {
-					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-					if ( ! first )  {
-						// Adjust stack using lcp between present string and previous one
-						prefix = (int)prev.longestCommonPrefixLength( curr );
-						while( depth > 0 && len[ depth ] > prefix ) depth--;
-					}
-					else first = false;
-					node = stack[ depth ];
-					pos = len[ depth ];
-					for(;;) {
-						final LongArrayBitVector path = node.path;
-						prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( path );
-						if ( prefix < path.length() ) {
-							/* If we are at the left of the current node, we simply update prefixLeft. Otherwise,
-							 * can update prefixRight only *once*. */
-							if ( path.getBoolean( prefix ) ) node.prefixLeft = prefix;
-							else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
-							break;
+					// The stack of nodes visited the last time
+					final Node stack[] = new Node[ (int)maxLength ];
+					// The length of the path compacted in the trie up to the corresponding node, excluded
+					final int[] len = new int[ (int)maxLength ];
+					stack[ 0 ] = root;
+					int depth = 0;
+					boolean first = true;
+
+					while( iterator.hasNext() ) {
+						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						if ( ! first )  {
+							// Adjust stack using lcp between present string and previous one
+							prefix = (int)prev.longestCommonPrefixLength( curr );
+							while( depth > 0 && len[ depth ] > prefix ) depth--;
 						}
-						
-						pos += path.length() + 1;
-						if ( pos > curr.length() ) break;
-						node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-						// Update stack
-						len[ ++depth ] = pos;
-						stack[ depth ] = node;
+						else first = false;
+						node = stack[ depth ];
+						pos = len[ depth ];
+						for(;;) {
+							final LongArrayBitVector path = node.path;
+							prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( path );
+							if ( prefix < path.length() ) {
+								/* If we are at the left of the current node, we simply update prefixLeft. Otherwise,
+								 * can update prefixRight only *once*. */
+								if ( path.getBoolean( prefix ) ) node.prefixLeft = prefix;
+								else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix; 
+								break;
+							}
+
+							pos += path.length() + 1;
+							if ( pos > curr.length() ) break;
+							node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+							// Update stack
+							len[ ++depth ] = pos;
+							stack[ depth ] = node;
+						}
+
+						prev.replace( curr );
 					}
-					
-					prev.replace( curr );
 				}
 			}
 			else this.root = null;
@@ -397,6 +399,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( Object o ) {
+		if ( numberOfLeaves == 0 ) return 0;
 		try {
 			if ( DEBUG ) System.err.println( "Getting " + o + "...");
 			final BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
