@@ -1,7 +1,7 @@
 %define section free
 
 Name:           sux4j
-Version:        1.0
+Version:        1.0.1
 Release:        1jpp
 Epoch:          0
 Summary:        Succinct data structures for Java
@@ -12,15 +12,15 @@ Group:          Development/Libraries/Java
 Distribution:   JPackage
 Vendor:         JPackage Project
 BuildArch:      noarch
-Requires:       fastutil5 >= 5.1.3, java >= 1.5.0, dsiutils >= 1.0.2, colt >= 0:1.1.0, jsap, junit, log4j
+Requires:       fastutil5 >= 5.1.3, java >= 1.5.0, dsiutils >= 1.0.4, colt >= 0:1.1.0, jsap, junit, log4j
 BuildRequires:  ant, jpackage-utils >= 0:1.6, /bin/bash
 BuildRequires:  java-devel >= 1.5.0, java-javadoc fastutil5-javadoc dsiutils-javadoc colt-javadoc jsap-javadoc junit-javadoc log4j-javadoc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
 sux4j is an implementation of succinct data structure in Java. It provides
-basic rank/select implementations, plus sophisticated data structures such
-as minimal perfect hashes.
+a number of related implementations covering ranking/selection over bit
+arrays, compressed lists and minimal perfect hashing.
 
 %package javadoc
 Summary:        Javadoc for %{name}
@@ -74,6 +74,8 @@ ln -s %{name}-%{version} %{_javadocdir}/%{name}
 %ghost %doc %{_javadocdir}/%{name}
 
 %changelog
+* Mon Apr 14 2008 Sebastiano Vigna <vigna at acm.org> 0:1.0.1-1jpp
+- Upgrade to 1.0.1
 * Sun Apr 6 2008 Sebastiano Vigna <vigna at acm.org> 0:1.0-1jpp
 - Upgrade to 1.0
 * Mon Nov 26 2007 Sebastiano Vigna <vigna at acm.org> 0:0.3-1jpp
