@@ -92,13 +92,17 @@ public class SimpleSelect implements Select {
 
 		long d = 0;
 
+		// TODO: unroll so that the loop does not need the test.
+		
 		// First phase: we build an inventory for each one out of onesPerInventory.
 		for( int i = 0; i < numWords; i++ )
-			for( int j = 0; j < 64; j++ )
+			for( int j = 0; j < 64; j++ ) {
+				if ( i * 64 + j >= length ) break;
 				if ( ( bits[ i ] & 1L << j ) != 0 ) {
 					if ( ( d & onesPerInventoryMask ) == 0 ) inventory[ (int)( d >>> log2OnesPerInventory ) ] = i * 64 + j;
 					d++;
 				}
+			}
 
 		inventory[ inventorySize ] = length;
 

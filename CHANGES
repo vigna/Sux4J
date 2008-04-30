@@ -1,3 +1,8 @@
+1.0.2
+
+- Fixed bug in SimpleSelectZero: under certain conditions, an error in
+  counting zeroes was causing a out-of-bounds array access.
+
 1.0.1
 
 - Fixed wrong name of PaCo-trie-based monotone minimal

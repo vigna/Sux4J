@@ -3,6 +3,7 @@ package test.it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Select;
+import it.unimi.dsi.sux4j.bits.SelectZero;
 import junit.framework.TestCase;
 
 public abstract class RankSelectTestCase extends TestCase {
@@ -27,6 +28,19 @@ public abstract class RankSelectTestCase extends TestCase {
 		for( int j = 0, i = 0; i < length; i++ ) {
 			if ( bits.getBoolean( i ) ) {
 				assertEquals( "Selecting " + j, i, s.select( j ) );
+				j++;
+			}
+			
+		}
+	}
+
+	public void assertSelectZero( SelectZero s ) {
+		final BitVector bits = s.bitVector();
+		final long length = bits.length();
+		
+		for( int j = 0, i = 0; i < length; i++ ) {
+			if ( ! bits.getBoolean( i ) ) {
+				assertEquals( "Selecting " + j, i, s.selectZero( j ) );
 				j++;
 			}
 			

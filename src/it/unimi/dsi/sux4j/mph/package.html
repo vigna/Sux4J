@@ -22,7 +22,7 @@ functions requires keys to be prefix-free and provided in lexicographical order;
 a very small number of bits per element, providing different space/time tradeoffs (in what follows,
 <var>l</var> is maximum the string length):
 <ul>
-<li>{@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction} is very fast, as it has just to evaluate two {@link it.unimi.dsi.sux4j.mph.MWHCFunction}s
+<li>{@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction} is very fast, as it has just to evaluate three {@link it.unimi.dsi.sux4j.mph.MWHCFunction}s
 (so if the length of the strings is a constant multiplied by the machine word, it is actually constant-time); however it uses 
 2.7 + log log <var>n</var> + log <var>l</var> bits per element.</li>
 <li>{@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction} is slower, as it uses a <em>{@linkplain it.unimi.dsi.sux4j.mph.BitstreamImmutablePaCoTrie partial compacted trie}</em>
