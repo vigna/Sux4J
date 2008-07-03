@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -74,11 +73,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private MWHCFunction<BitVector> signatures;
 	private int w;
 	private LcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
-	private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
 	private long logWMask;
 	private int logW;
 	private Object2LongOpenHashMap<BitVector> mistakes;
-	private int numExternalKeys;
 	private int logLogW;
 	private long logLogWMask;
 	private int numDelimiters;
@@ -101,9 +98,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private int logW;
 		private int logLogW;
 		private long logLogWMask;
-		private long wMask;
 		private long logWMask;
-		private int rootPathLength;
 		private ObjectArrayList<LongArrayBitVector> internalNodeKeys;
 		private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
 		private LongArrayList internalNodeSignatures;
@@ -119,8 +114,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			private final LongArrayBitVector path;
 			/** The index of this node in breadth-first order. */
 			private int index;
-			/** The length of the prefix of the parent of this node. */
-			private int prefixLength;
 
 			/** Creates a node. 
 			 * 
@@ -180,8 +173,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				
 				values.add( ( h[ 0 ] & logLogWMask ) << logW | ( path.length() & logWMask ) );
 
-				if ( parentPathLength == -1 ) rootPathLength = (int)node.path.length();
-				
 				labelIntermediateTrie( node.right, path.append( 1, 1 ), representations, keys, values );
 
 				path.length( path.length() - node.path.length() - 1 );
@@ -198,7 +189,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param tempDir a directory for the temporary files created during construction, or <code>null</code> for the default temporary directory. 
 		 */
 		
-		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
+		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
 			if ( ASSERTS ) {
 				externalTestFunction = new Object2LongOpenHashMap<BitVector>();
 				externalTestFunction.defaultReturnValue( -1 );
@@ -269,7 +260,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
 				logW = 1 << logLogW;
 				w = 1 << logW;
-				wMask = ( 1 << w ) - 1;
 				logWMask = ( 1 << logW ) - 1;
 				logLogWMask = ( 1 << logLogW ) - 1;
 				assert logW + logLogW <= Long.SIZE;
@@ -308,7 +298,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					// The length of the path compacted in the trie up to the corresponding node, excluded
 					final int[] len = new int[ (int)maxLength ];
 					stack[ 0 ] = root;
-					int depth = 0, behaviour, pathLength;
+					int depth = 0, behaviour;
 					boolean first = true;
 					BitVector currFromPos, path;
 					LongArrayBitVector nodePath;
@@ -342,8 +332,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								externalValues.add( behaviour );
 								externalParentRepresentations.add( Math.max( 0, pos - 1 ) );
 								
-								pathLength = (int)path.length();
-
 								if ( DEBUG ) {
 									externalTestFunction.put(  path, behaviour );
 									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", " + path + "> -> " + behaviour );
@@ -433,7 +421,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		size = intermediateTrie.size;
 		externalTestFunction = intermediateTrie.externalTestFunction;
 		
-		numExternalKeys = intermediateTrie.externalValues != null ? intermediateTrie.externalValues.size() : 0;
 		int p = 0;
 		
 		if ( DEBUG ) {
@@ -446,8 +433,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, Long.SIZE - 1 );
 		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
 
-		internalNodeRepresentations = intermediateTrie.internalNodeRepresentations; // For debugging
-		
 		ObjectRBTreeSet<BitVector> rankerStrings = new ObjectRBTreeSet<BitVector>();
 		for( LongArrayBitVector bv: intermediateTrie.internalNodeRepresentations ) {
 			LongArrayBitVector t = bv.copy();
@@ -486,11 +471,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		logLogWMask =  intermediateTrie.logLogWMask;
 		w = intermediateTrie.w;
 		numDelimiters = intermediateTrie.delimiters.size();
-		
-		LOGGER.debug( "Forecast three-way behaviour-function bit cost: " + 2 * intermediateTrie.numElements * GAMMA );
-		LOGGER.debug( "Forecast two-way behaviour-function bit cost: " + intermediateTrie.size * GAMMA );
-		LOGGER.debug( "Actual two-way behaviour-function bit cost: " + behaviour.numBits() );
-		LOGGER.debug( "Forecast behaviour-functions bit cost: " + ( 2 * intermediateTrie.numElements * GAMMA + intermediateTrie.size * GAMMA ) );
 		
 		// Compute errors to be corrected
 		mistakes = new Object2LongOpenHashMap<BitVector>();
@@ -606,7 +586,10 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	public long numBits() {
-		return behaviour.numBits() + signatures.numBits() + ranker.numBits() + leaves.numBits() + transformationStrategy.numBits(); 
+		long bitsForMistakes = 0;
+		for( BitVector v: mistakes.keySet() ) bitsForMistakes += v.length() + logW;
+		
+		return behaviour.numBits() + signatures.numBits() + ranker.numBits() + leaves.numBits() + transformationStrategy.numBits() + bitsForMistakes; 
 	}
 	
 	public boolean containsKey( Object o ) {

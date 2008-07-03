@@ -34,7 +34,6 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
 import java.io.File;
 import java.io.IOException;
@@ -133,7 +132,6 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		// ALERT: -1 just for debugging
 		log2BucketSize =  Fast.ceilLog2( Fast.ceilLog2( averageLength ) );
 		bucketSize = 1 << log2BucketSize ;
 		
@@ -151,9 +149,6 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
-		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
@@ -163,6 +158,8 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	}
 
 	public long numBits() {
+		System.err.println( "Distributor: " + distributor.numBits() );
+		System.err.println( "Offset: " + offset.numBits() );
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 	
