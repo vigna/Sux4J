@@ -247,6 +247,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
 					int p = 0;
 
+					// TODO: this is ugly
 					queue.add( root );
 					while( p < queue.size() ) {
 						node = queue.get( p );

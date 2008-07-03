@@ -30,6 +30,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -66,6 +67,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
+	private static final boolean ASSERTS = true;
 	
 	/** The number of elements. */
 	final protected int n;
@@ -160,6 +162,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		
 		pl.done();
 		
+		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
+		
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
@@ -183,7 +187,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize + Fast.ceilLog2( maxLcp ) );
+		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1);
 
 		if ( DEBUG ) {
 			int p = 0;

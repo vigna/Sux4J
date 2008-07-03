@@ -156,6 +156,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		final Random r = new Random();
 		long seed;
+
 		do {
 			LOGGER.info( "Generating random hypergraph..." );
 			seed = r.nextLong();
