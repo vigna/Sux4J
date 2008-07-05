@@ -158,8 +158,6 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	}
 
 	public long numBits() {
-		System.err.println( "Distributor: " + distributor.numBits() );
-		System.err.println( "Offset: " + offset.numBits() );
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 	
