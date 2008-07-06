@@ -37,7 +37,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
@@ -608,7 +607,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					if ( ! key.getBoolean( p ) ) break;
 					else key.set( p, false );
 
-				if ( p == -1 ) return size;	// We are exiting at the right of 1^k (k>=0).
+				if ( p == -1 ) return numDelimiters;	// We are exiting at the right of 1^k (k>=0).
 				key.set( p );
 				long pos = ranker.getLong( key );
 				return leaves.rank( pos ); 
