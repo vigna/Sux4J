@@ -262,14 +262,16 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					count++;
 				}
 
+				
 				size = count;
 				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
 				logW = 1 << logLogW;
 				w = 1L << logW;
 				logWMask = ( 1 << logW ) - 1;
 				logLogWMask = ( 1 << logLogW ) - 1;
+				
 				assert logW + logLogW <= Long.SIZE;
-								
+				
 				this.numElements = count;
 				this.root = root;
 				
