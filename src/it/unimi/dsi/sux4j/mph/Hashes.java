@@ -30,7 +30,7 @@ public class Hashes {
 
 	private Hashes() {}
 	
-	/** Jenkins 64-bit hashing.
+	/** Jenkins 64-bit hashing (all three values produced).
 	 * 
 	 * <p>This code is based on the <samp><a href="http://www.burtleburtle.net/bob/c/lookup8.c">lookup8.c</a></samp>, and in particular
 	 * on the version consuming 64 bits at a time, but it has been slightly modified to work correctly with any bit vector length (not just multiples of 64).
@@ -102,5 +102,78 @@ public class Hashes {
 		h[ 0 ] = a;
 		h[ 1 ] = b;
 		h[ 2 ] = c;
+	}
+
+	/** Jenkins 64-bit hashing.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @return the first of the three hash values returned by {@link #jenkins(BitVector, long, long[])}.
+	 */
+	
+	public static long jenkins( final BitVector bv, final long seed)  {
+		final long length = bv.length();
+		long a, b, c, from = 0;
+
+		if ( bv.length() == 0 ) return seed ^ 0x8de6a918d6538324L;
+		
+		/* Set up the internal state */
+		a = b = seed;
+		c = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value */
+
+		while ( length - from > Long.SIZE * 2 ) {
+			a += bv.getLong( from, from + Long.SIZE );
+			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
+			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, length ) );
+
+			a -= b; a -= c; a ^= (c >>> 43);
+			b -= c; b -= a; b ^= (a << 9);
+			c -= a; c -= b; c ^= (b >>> 8);
+			a -= b; a -= c; a ^= (c >>> 38);
+			b -= c; b -= a; b ^= (a << 23);
+			c -= a; c -= b; c ^= (b >>> 5);
+			a -= b; a -= c; a ^= (c >>> 35);
+			b -= c; b -= a; b ^= (a << 49);
+			c -= a; c -= b; c ^= (b >>> 11);
+			a -= b; a -= c; a ^= (c >>> 12);
+			b -= c; b -= a; b ^= (a << 18);
+			c -= a; c -= b; c ^= (b >>> 22);
+
+			from += 3 * Long.SIZE;
+		}
+
+		c += length << 3;
+		long residual = length - from;
+		if ( residual > 0 ) {
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
+				residual -= Long.SIZE;
+			}
+			if ( residual != 0 ) b += bv.getLong( length - residual, length );
+		}
+
+		a -= b; a -= c; a ^= (c >>> 43);
+		b -= c; b -= a; b ^= (a << 9);
+		c -= a; c -= b; c ^= (b >>> 8);
+		a -= b; a -= c; a ^= (c >>> 38);
+		b -= c; b -= a; b ^= (a << 23);
+		c -= a; c -= b; c ^= (b >>> 5);
+		a -= b; a -= c; a ^= (c >>> 35);
+		b -= c; b -= a; b ^= (a << 49);
+		c -= a; c -= b; c ^= (b >>> 11);
+		a -= b; a -= c; a ^= (c >>> 12);
+		b -= c; b -= a; b ^= (a << 18);
+		c -= a; c -= b; c ^= (b >>> 22);
+
+		return a;
+	}
+
+	/** Jenkins 64-bit hashing.
+	 * 
+	 * @param bv a bit vector.
+	 * @return the first of the three hash values returned by {@link #jenkins(BitVector, long, long[])} with seed 0.
+	 */
+	public static long jenkins( final BitVector bv )  {
+		return jenkins( bv, 0 );
 	}
 }

@@ -493,7 +493,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
-					mistakeSignatures.add( curr.hashCode() );
+					long h = Hashes.jenkins( curr );
+					mistakeSignatures.add( (int)( h ^ h >>> 32 ) );
 					mistakes++;
 				}
 				
@@ -508,7 +509,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			c = 0;
 			
 			for( BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
-				if ( mistakeSignatures.contains( curr.hashCode() ) ) {
+				long h = Hashes.jenkins( curr );
+				if ( mistakeSignatures.contains( (int)( h ^ h >>> 32 ) ) ) {
 					positives.add( curr.copy() );
 					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) ); 
 				}
@@ -547,7 +549,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	
 	private long getNodeStringLength( BitVector v ) {
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
-		if ( mistakeSignatures.contains( v.hashCode() ) ) {
+		final long c = Hashes.jenkins( v );
+		if ( mistakeSignatures.contains( (int)( c ^ c >>> 32 ) ) ) {
 			if ( DEBUG ) System.err.println( "Correcting..." );
 			return corrections.getLong( v );
 		}
