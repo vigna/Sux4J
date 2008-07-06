@@ -72,7 +72,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** A debug function used to store explicitly {@link #behaviour}. */
 	private final Object2LongFunction<BitVector> externalTestFunction;
 	private MWHCFunction<BitVector> signatures;
-	private int w;
+	private long w;
 	private LcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
@@ -96,7 +96,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private LongBigList externalValues;
 		/** The string representing the parent of each key in {@link #externalKeysFile}. */
 		private IntArrayList externalParentRepresentations;
-		private int w;
+		private long w;
 		private int logW;
 		private int logLogW;
 		private long logLogWMask;
@@ -158,8 +158,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					long[] h = new long[ 3 ];
 					Hashes.jenkins( path, 0, h );
 
-					int p = w / 2;
-					int j = w / 4;
+					long p = w / 2;
+					long j = w / 4;
 					while( p <= parentPathLength || p > path.length() ) {
 						//System.err.println( "p: " + p + " + parentPathLength: " + parentPathLength + " path.length(): " + path.length()  + " j: " + j );
 						if ( p <= parentPathLength ) p += j;
@@ -265,11 +265,11 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				size = count;
 				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
 				logW = 1 << logLogW;
-				w = 1 << logW;
+				w = 1L << logW;
 				logWMask = ( 1 << logW ) - 1;
 				logLogWMask = ( 1 << logLogW ) - 1;
 				assert logW + logLogW <= Long.SIZE;
-				
+								
 				this.numElements = count;
 				this.root = root;
 				
