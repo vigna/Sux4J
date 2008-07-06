@@ -37,6 +37,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
 import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
@@ -141,11 +142,14 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				return "[" + path + "]";
 			}
 		}
+		
+		ProgressLogger pl = new ProgressLogger();
 			
 		void labelIntermediateTrie( Node node, LongArrayBitVector path,ObjectArrayList<LongArrayBitVector> representations, ObjectArrayList<LongArrayBitVector>keys, LongArrayList values ) {
 			assert ( node.left != null ) == ( node.right != null );
 			if ( node.left != null ) {
-
+				pl.update();
+				
 				long parentPathLength = path.length() - 1;
 				
 				path.append( node.path );
@@ -282,7 +286,10 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					internalNodeRepresentations = new ObjectArrayList<LongArrayBitVector>();
 					internalNodeSignatures = new LongArrayList();
 					internalNodeKeys = new ObjectArrayList<LongArrayBitVector>();
+					pl.expectedUpdates = delimiters.size();
+					pl.start( "Labelling trie..." );
 					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), internalNodeRepresentations, internalNodeKeys, internalNodeSignatures );
+					pl.done();
 
 					if ( DEBUG ) {
 						System.err.println( "Internal node representations: " + internalNodeRepresentations );
