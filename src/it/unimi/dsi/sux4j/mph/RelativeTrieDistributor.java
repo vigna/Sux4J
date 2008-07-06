@@ -607,7 +607,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				for( p = key.size(); p-- != 0; ) 
 					if ( ! key.getBoolean( p ) ) break;
 					else key.set( p, false );
-				assert p > -1;
+
+				if ( p == -1 ) return size;	// We are exiting at the right of 1^k (k>=0).
 				key.set( p );
 				long pos = ranker.getLong( key );
 				return leaves.rank( pos ); 
