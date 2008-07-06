@@ -143,12 +143,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 		}
 		
-		ProgressLogger pl = new ProgressLogger();
-			
 		void labelIntermediateTrie( Node node, LongArrayBitVector path,ObjectArrayList<LongArrayBitVector> representations, ObjectArrayList<LongArrayBitVector>keys, LongArrayList values ) {
 			assert ( node.left != null ) == ( node.right != null );
 			if ( node.left != null ) {
-				pl.update();
 				
 				long parentPathLength = path.length() - 1;
 				
@@ -157,28 +154,32 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				labelIntermediateTrie( node.left, path.append( 0, 1 ), representations, keys, values );
 				path.remove( (int)( path.length() - 1 ) );
 
-				long[] h = new long[ 3 ];
-				Hashes.jenkins( path, 0, h );
-
-				int p = w / 2;
-				int j = w / 4;
-				while( p <= parentPathLength || p > path.length() ) {
-					if ( p <= parentPathLength ) p += j;
-					else p -= j;
-
-					j /= 2;
-				}
-
-				assert p <= path.length();
-				assert p > parentPathLength;
-
-				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
-				representations.add( path.copy() );
-				assert Fast.length( path.length() ) <= logW;
-				//System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h[ 0 ] & logWMask ) + " and length " + ( path.length() & wMask ) );
 				
-				values.add( ( h[ 0 ] & logLogWMask ) << logW | ( path.length() & logWMask ) );
+				if ( parentPathLength != -1 ) {
+					long[] h = new long[ 3 ];
+					Hashes.jenkins( path, 0, h );
 
+					int p = w / 2;
+					int j = w / 4;
+					while( p <= parentPathLength || p > path.length() ) {
+						//System.err.println( "p: " + p + " + parentPathLength: " + parentPathLength + " path.length(): " + path.length()  + " j: " + j );
+						if ( p <= parentPathLength ) p += j;
+						else p -= j;
+
+						j /= 2;
+					}
+
+					assert p <= path.length();
+					assert p > parentPathLength;
+
+					keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
+					representations.add( path.copy() );
+					assert Fast.length( path.length() ) <= logW;
+					//System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h[ 0 ] & logWMask ) + " and length " + ( path.length() & wMask ) );
+					
+					values.add( ( h[ 0 ] & logLogWMask ) << logW | ( path.length() & logWMask ) );
+				}
+				
 				labelIntermediateTrie( node.right, path.append( 1, 1 ), representations, keys, values );
 
 				path.length( path.length() - node.path.length() - 1 );
@@ -286,10 +287,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					internalNodeRepresentations = new ObjectArrayList<LongArrayBitVector>();
 					internalNodeSignatures = new LongArrayList();
 					internalNodeKeys = new ObjectArrayList<LongArrayBitVector>();
-					pl.expectedUpdates = delimiters.size();
-					pl.start( "Labelling trie..." );
 					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), internalNodeRepresentations, internalNodeKeys, internalNodeSignatures );
-					pl.done();
 
 					if ( DEBUG ) {
 						System.err.println( "Internal node representations: " + internalNodeRepresentations );
@@ -453,9 +451,11 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			for( p = t.size(); p-- != 0; ) 
 				if ( ! t.getBoolean( p ) ) break;
 				else t.set( p, false );
-			assert p > -1;
-			t.set( p );
-			rankerStrings.add( t );
+			// ALERT: this will catch 1^k for k>=0. Should be fixed in code.
+			if ( p != -1 ) {
+				t.set( p );
+				rankerStrings.add( t );
+			}
 		}
 		
 		rankerStrings.addAll( intermediateTrie.delimiters );
