@@ -146,7 +146,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			assert ( node.left != null ) == ( node.right != null );
 			if ( node.left != null ) {
 				
-				long parentPathLength = path.length() - 1;
+				long parentPathLength = Math.max( 0, path.length() - 1 );
 				
 				path.append( node.path );
 
@@ -154,9 +154,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				path.remove( (int)( path.length() - 1 ) );
 
 				
-				if ( parentPathLength != -1 ) {
-					long[] h = new long[ 3 ];
-					Hashes.jenkins( path, 0, h );
+				if ( path.length() != 0 ) {
+					long h = Hashes.jenkins( path );
 
 					long p = w / 2;
 					long j = w / 4;
@@ -174,9 +173,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
 					representations.add( path.copy() );
 					assert Fast.length( path.length() ) <= logW;
-					//System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h[ 0 ] & logWMask ) + " and length " + ( path.length() & wMask ) );
-					
-					values.add( ( h[ 0 ] & logLogWMask ) << logW | ( path.length() & logWMask ) );
+					if ( DEBUG ) System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h & logLogWMask ) + " and length " + ( path.length() & logWMask ) );
+
+					values.add( ( h & logLogWMask ) << logW | ( path.length() & logWMask ) );
 				}
 				
 				labelIntermediateTrie( node.right, path.append( 1, 1 ), representations, keys, values );
@@ -267,16 +266,16 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
 				logW = 1 << logLogW;
 				w = 1L << logW;
-				logWMask = ( 1 << logW ) - 1;
-				logLogWMask = ( 1 << logLogW ) - 1;
+				logWMask = ( 1L << logW ) - 1;
+				logLogWMask = ( 1L << logLogW ) - 1;
 				
 				assert logW + logLogW <= Long.SIZE;
 				
 				this.numElements = count;
 				this.root = root;
 				
-				if ( DEBUG ) {
-					System.err.println( "w: " + w );
+				if ( DEBUG ) System.err.println( "w: " + w );
+				if ( DDEBUG ) {
 					System.err.println( "Delimiters: " + delimiters );
 					System.err.println( this );
 				}
@@ -290,7 +289,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					internalNodeKeys = new ObjectArrayList<LongArrayBitVector>();
 					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), internalNodeRepresentations, internalNodeKeys, internalNodeSignatures );
 
-					if ( DEBUG ) {
+					if ( DDEBUG ) {
 						System.err.println( "Internal node representations: " + internalNodeRepresentations );
 						System.err.println( "Internal node signatures: " + internalNodeSignatures );
 					}
@@ -338,12 +337,13 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								path = curr;
 
 								externalValues.add( behaviour );
-								externalParentRepresentations.add( Math.max( 0, pos - 1 ) );
+								externalParentRepresentations.add( depth == 0 ? pos : pos - 1 );
 								
 								if ( DEBUG ) {
-									externalTestFunction.put(  path, behaviour );
+									externalTestFunction.put( path, behaviour );
 									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", " + path + "> -> " + behaviour );
-									System.err.println( externalTestFunction );
+									System.err.println( "Root: " + root + " node: " + node + " representation length: " + ( depth == 0 ? pos : pos - 1 ) );
+									if ( DDEBUG ) System.err.println( externalTestFunction );
 								}
 
 								break;
@@ -431,7 +431,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		
 		int p = 0;
 		
-		if ( DEBUG ) {
+		if ( DDEBUG ) {
 			System.err.println( "Internal node representations: " + intermediateTrie.internalNodeRepresentations );
 			System.err.println( "Internal node keys: " + intermediateTrie.internalNodeKeys );
 		}
@@ -461,7 +461,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		
 		rankerStrings.addAll( intermediateTrie.delimiters );
 		
-		if ( DEBUG ) System.err.println( "Rankers: " + rankerStrings );
+		if ( DDEBUG ) System.err.println( "Rankers: " + rankerStrings );
 		
 		LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( rankerStrings.size() );
 		p = 0;
@@ -470,7 +470,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			p++;
 		}
 		leaves = new Rank9( leavesBitVector );
-		if ( DEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
+		if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
 		
 		ranker = new LcpMonotoneMinimalPerfectHashFunction<BitVector>( rankerStrings, TransformationStrategies.prefixFree() );
 		logWMask = intermediateTrie.logWMask;
@@ -555,28 +555,36 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			return corrections.getLong( v );
 		}
 		
-		int i = logW - 1, j = -1, l = 0, r = (int)v.length();
+		int i = logW - 1;
+		long r = (int)v.length();
+		long j = -1;
+		long l = 0;
 		while( r - l > 1 ) {
 			assert i > -1;
 			if ( DDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			// ALERT: slow!
 			for( j = l + 1; j < r; j++ ) if ( j % ( 1 << i ) == 0 ) break;
-			if ( j < w ) {
+			if ( j < r ) {
 
 				long data = signatures.getLong( v.subVector( 0, j ) );
 				
-				if ( data < 1 ) r = j;
+				if ( data == -1 ) {
+					if ( DEBUG ) System.err.println( "Missing " + v.subVector( 0, j )  );
+					r = j;
+				}
 				else {
-					long[] h = new long[ 3 ];
-					int g = (int)( data & logWMask );
+					long g = data & logWMask;
 
-					if ( g > v.length() ) r = j;
+					if ( g > v.length() ) {
+						if ( DEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, j )  );
+						r = j;
+					}
 					else {
-						Hashes.jenkins( v.subVector( 0, g ), 0, h );
+						long h = Hashes.jenkins( v.subVector( 0, g ) );
 
-						if ( DEBUG ) System.err.println( "Recalling " + v.subVector( 0, j ) + " with signature " + ( h[ 0 ] & logLogW ) + " and length " + g );
+						if ( DEBUG ) System.err.println( "Recalling " + v.subVector( 0, j ) + " with signature " + ( h & logLogWMask ) + " and length " + g );
 
-						if ( ( data >>> logW ) == ( h[ 0 ] & logLogWMask ) && g >= j ) l = g;
+						if ( ( data >>> logW ) == ( h & logLogWMask ) && g >= j ) l = g;
 						else r = j;
 					}
 				}
