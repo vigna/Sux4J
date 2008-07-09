@@ -170,7 +170,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		final int[] stack = sorter.stack;
 		final int[][] edge = sorter.edge;
-		int top = n, k, s, v = 0;
+		int top = n, k, v = 0;
+		long s;
 		while( top > 0 ) {
 			k = stack[ --top ];
 

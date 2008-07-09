@@ -3,6 +3,11 @@
 - Fixed bug in SimpleSelectZero: under certain conditions, an error in
   counting zeroes was causing a out-of-bounds array access.
 
+- Fixed gross bug in MWHCFunction. It wasn't working for bit width
+  beyond 32.
+
+- New data structure (RelativeTrieMonotoneMinimalPerfectHashFunction).
+
 1.0.1
 
 - Fixed wrong name of PaCo-trie-based monotone minimal
