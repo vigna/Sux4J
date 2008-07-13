@@ -29,7 +29,7 @@ import it.unimi.dsi.util.LongBigList;
 
 /** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
- * <p>Instances of this classes to not add support to a bit vector: rather, they replace the bit vector
+ * <p>Instances of this classes do not add support to a bit vector: rather, they replace the bit vector
  * with a succinct representation of the positions of the ones in the bit vector.
  * 
  * <p>Note that some data may be shared with {@link SparseRank}: just use the factory method {@link SparseRank#getSelect()} to obtain an instance.
