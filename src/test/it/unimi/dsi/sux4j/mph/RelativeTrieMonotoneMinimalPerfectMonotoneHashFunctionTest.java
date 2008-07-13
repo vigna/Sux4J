@@ -3,7 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.RelativeTrieMinimalPerfectHashFunction;
+import it.unimi.dsi.sux4j.mph.RelativeTrieMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class RelativeTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
+public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 	
 	
 	public static String binary(int l) {
@@ -21,14 +21,14 @@ public class RelativeTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase
 
 	public void testSmallest() throws IOException {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
-		RelativeTrieMinimalPerfectHashFunction<String> mph = new RelativeTrieMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 	}
 
 	public void testSmall() throws IOException {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
-		RelativeTrieMinimalPerfectHashFunction<String> mph = new RelativeTrieMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 	}
@@ -41,7 +41,7 @@ public class RelativeTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase
 			int[] v = new int[ s.length ];
 			for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-			RelativeTrieMinimalPerfectHashFunction<String> mph = new RelativeTrieMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
 			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
@@ -51,18 +51,18 @@ public class RelativeTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase
 			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 			temp.deleteOnExit();
 			BinIO.storeObject( mph, temp );
-			mph = (RelativeTrieMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+			mph = (RelativeTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 
-			mph = new RelativeTrieMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+			mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
 			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 			temp = File.createTempFile( getClass().getSimpleName(), "test" );
 			temp.deleteOnExit();
 			BinIO.storeObject( mph, temp );
-			mph = (RelativeTrieMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+			mph = (RelativeTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		}
 	}
