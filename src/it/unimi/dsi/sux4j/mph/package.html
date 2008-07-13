@@ -36,11 +36,14 @@ occupies less space than the previous two functions.</li>
 uses a {@linkplain it.unimi.dsi.sux4j.mph.HollowTrieDistributor enriched hollow trie as a distributor}, but it is faster than a hollow trie,
 and it has the (quite surprising) property of using 3.44 + 1.23 log log <var>l</var> bits per element (note the double log). In practice,
 it will use less than a byte per element for strings of length up to a billion bits.</li>
+<li>{@link it.unimi.dsi.sux4j.mph.RelativeTrieMonotoneMinimalPerfectHashFunction} is faster than
+{@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction}, but occupies in practice more space
+(even if, from an asymptotic viewpoint, the space required is the same). Presently it is mainly of theoretical interest.</li>
 </ul>
 </ul>
 
 <p>All the above structures, with the exception of {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}, were introduced in
-&ldquo;Monotone Minimal Perfect Hashing&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
+&ldquo;Monotone Minimal Perfect Hashing: Searching a Sorted Table with <i>O</i>(1) Accesses&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
 Sebastiano Vigna (the class {@link it.unimi.dsi.sux4j.mph.MWHCFunction} implements a <em>compacted</em> version
 of the classical {@linkplain it.unimi.dsi.sux4j.mph.HypergraphSorter 3-hypergraph-based structure} introduced therein).
 

@@ -31,8 +31,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
@@ -41,13 +39,13 @@ import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
 /** A distributor based on a relative trie.
- * 
+ *
+ * <p>A relative trie behaves like a trie, but only on a subset of all possible keys.
  */
 
 public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
@@ -70,11 +68,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** The number of (internal and external) nodes of the trie. */
 	private final int size;
 	private MWHCFunction<BitVector> signatures;
-	private long w;
 	private LcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
-	private int logLogW;
 	private long logLogWMask;
 	private int numDelimiters;
 	private IntOpenHashSet mistakeSignatures;
@@ -84,8 +80,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static class IntermediateTrie<T> {
 		/** The root of the trie. */
 		protected final Node root;
-		/** The number of overall elements to distribute. */
-		private final int numElements;
 		/** The number of internal nodes of the trie. */
 		protected final int size;
 		/** The values associated to the keys in {@link #externalKeysFile}. */
@@ -263,7 +257,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				
 				assert logW + logLogW <= Long.SIZE;
 				
-				this.numElements = count;
 				this.root = root;
 				
 				if ( DEBUG ) System.err.println( "w: " + w );
@@ -359,7 +352,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			else {
 				// No elements.
 				this.root = null;
-				this.size = this.numElements = 0;
+				this.size = 0;
 			}
 		}
 
@@ -400,7 +393,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
 		this( elements, bucketSize, transformationStrategy, null );
 	}
 
@@ -420,9 +413,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		logWMask = intermediateTrie.logWMask;
 		logW =  intermediateTrie.logW;
-		logLogW =  intermediateTrie.logLogW;
 		logLogWMask =  intermediateTrie.logLogWMask;
-		w = intermediateTrie.w;
 		numDelimiters = intermediateTrie.delimiters.size();
 
 		int p = 0;
@@ -448,7 +439,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			for( p = t.size(); p-- != 0; ) 
 				if ( ! t.getBoolean( p ) ) break;
 				else t.set( p, false );
-			// ALERT: this will catch 1^k for k>=0. Should be fixed in code.
 			if ( p != -1 ) {
 				t.set( p );
 				rankerStrings.add( t );

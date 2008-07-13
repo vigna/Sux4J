@@ -57,13 +57,13 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain HollowTrieDistributor hollow trie} as a distributor.
+ * a {@linkplain RelativeTrieDistributor relative trie} as a distributor.
  * 
  */
 
-public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( RelativeTrieMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( RelativeTrieMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final int size;
@@ -93,7 +93,7 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
 		this( elements, transform, null );
 	}
 	
@@ -106,7 +106,7 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	 * @param tempDir a directory for the temporary files created during construction 
 	 * by the {@link HollowTrieDistributor}, or <code>null</code> for the default temporary directory. 
 	 */
-	public RelativeTrieMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) {
 
 		this.transform = transform;
 
@@ -163,7 +163,7 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( RelativeTrieMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( RelativeTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -199,7 +199,7 @@ public class RelativeTrieMinimalPerfectHashFunction<T> extends AbstractHashFunct
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new RelativeTrieMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, tempDir ), functionName );
+		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, tempDir ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
