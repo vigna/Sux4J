@@ -62,9 +62,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors.
  */
 
-public class LcpMonotoneMinimalPerfectHashFunction2<T> extends AbstractHashFunction<T> implements Serializable {
+public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction2.class );
+	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = true;
@@ -95,7 +95,7 @@ public class LcpMonotoneMinimalPerfectHashFunction2<T> extends AbstractHashFunct
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public LcpMonotoneMinimalPerfectHashFunction2( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 
@@ -236,7 +236,7 @@ public class LcpMonotoneMinimalPerfectHashFunction2<T> extends AbstractHashFunct
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction2.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -270,7 +270,7 @@ public class LcpMonotoneMinimalPerfectHashFunction2<T> extends AbstractHashFunct
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction2<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
