@@ -24,7 +24,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
@@ -32,11 +31,9 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.objects.AbstractObject2IntFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -45,34 +42,37 @@ import org.apache.log4j.Logger;
 import cern.colt.Sorting;
 import cern.colt.function.LongComparator;
 
-/** A read-only function stored using two {@linkplain MWHCFunction he Majewski-Wormald-Havas-Czech functions}&mdash;one for
+/** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values.
  * 
  * <p>The constructor of this class performs a pre-scan of the values to be assigned. If possible, it finds the best possible
- * <var>r</var> such that the 2<sup><var>r</var></sub> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
- * and suitably remapped when read.
+ * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
+ * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
+ * values, which are stored in a separate function.
  * 
  * @author Sebastiano Vigna
- * @since 0.2
+ * @since 1.0.2
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
+    private final static boolean ASSERTS = true;
+    
 	/** The number of elements. */
 	final protected int n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
-	/** The first function. The special output value {@link #escape} denotes that {@link #secondFunction} (if not <code>null</code>) 
+	/** The first function, or <code>null</code>. The special output value {@link #escape} denotes that {@link #secondFunction} 
 	 * should be queried instead. */
 	final protected MWHCFunction<BitVector> firstFunction;
-	/** The second function. If not <code>null</code>, all queries for which {@link #firstFunction} returns
-	 * {@link #escape} will be rerouted here. */
+	/** The second function. All queries for which {@link #firstFunction} returns
+	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is <code>null</code>) will be rerouted here. */
 	final protected MWHCFunction<BitVector> secondFunction;	
-	/** A mapping from values of the first function to actual values, provided there is a second function. */
+	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
 	final protected long[] remap;
-	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead. */
+	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final int escape;
 
 	/** Creates a new two-step function for the given elements and values.
@@ -108,6 +108,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		final int m = counts.size();
 		
+		// Sort keys by reverse frequency
 		final long[] keys = counts.keySet().toLongArray( new long[ m ] );
 		Sorting.quickSort( keys, 0, keys.length, new LongComparator() {
 			public int compare( final long a, final long b ) {
@@ -121,16 +122,9 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		// Examine every possible choice for r. Note that r = 0 implies one function, so we do not need to test the case r == w.
 		for( int r = 0; r < w && pos < m; r++ ) {
-			/* We add to pre and subtract from post the counts of elements from position (1<<r-1) to position (1<<r)-1.  
-			 * Note that for b = 0 we are actually computing the cost of a single function (the first one).
-			 */
-			for( int j = 0; j < ( 1 << r ) - 1 && pos < m; j++ ) {
-				final long c = counts.get( keys[ pos++ ] ); 
-				pre += c;
-				post -= c;
-			}
-			
-			/* This cost function is dependent on the implementation of MWHCFunction. */
+
+			/* This cost function is dependent on the implementation of MWHCFunction. 
+			 * Note that for r = 0 we are actually computing the cost of a single function (the first one). */
 			final long cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * (long)r, HypergraphSorter.GAMMA * n * r ) +
 					(long)Math.min( HypergraphSorter.GAMMA * post * 1.126 + post * w, HypergraphSorter.GAMMA * post * w ) +
 					pos * Long.SIZE;
@@ -139,23 +133,31 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 				best = r;
 				bestCost = cost;
 			}
+
+			/* We add to pre and subtract from post the counts of elements from position (1<<r)-1 to position (1<<r+1)-1. */
+			for( int j = 0; j < ( 1 << r ) && pos < m; j++ ) {
+				final long c = counts.get( keys[ pos++ ] ); 
+				pre += c;
+				post -= c;
+			}	
 		}
 
+		if ( ASSERTS ) assert pos == m;
+		
 		counts.clear();
 		counts.trim();
 		
 		// We must keep the remap array small.
-		if ( best >= Integer.MAX_VALUE ) best = Integer.MAX_VALUE - 1;
-
-		LOGGER.info( "Best threshold: " + best );
-		escape = ( 1 << best ) - 1; // Immaterial if threshold == 0.
+		if ( best >= Integer.SIZE ) best = Integer.SIZE - 1;
+		
+		LOGGER.debug( "Best threshold: " + best );
+		escape = ( 1 << best ) - 1;
 		System.arraycopy( keys, 0, remap = new long[ escape ], 0, remap.length );
 		final Long2LongOpenHashMap map = new Long2LongOpenHashMap();
 		map.defaultReturnValue( -1 );
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-
 			firstFunction = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 				public long getLong( int index ) {
 					long value = map.get( values.getLong( index ) );
@@ -186,7 +188,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		}
 
 		secondFunction = new MWHCFunction<BitVector>( new Iterable<BitVector>() {
-
+			// Returns only elements whose values are in second values (e.g., elements such that their value is not in map).
 			public Iterator<BitVector> iterator() {
 				return new AbstractObjectIterator<BitVector>() {
 					private BitVector next;
@@ -208,7 +210,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 					public BitVector next() {
 						if ( ! hasNext() ) throw new NoSuchElementException();
-						BitVector result = next;
+						final BitVector result = next;
 						next = null;
 						return result;
 					}
@@ -216,7 +218,8 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 			
 		}, TransformationStrategies.identity(), secondValues, w );
-		if ( secondFunction != null ) LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
+		
+		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );

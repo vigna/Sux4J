@@ -66,7 +66,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	@SuppressWarnings("unused")
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = true;
 	
 	/** The number of elements. */
