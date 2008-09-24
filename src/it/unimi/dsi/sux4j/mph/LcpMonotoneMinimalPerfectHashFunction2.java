@@ -62,11 +62,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors.
  */
 
-public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class LcpMonotoneMinimalPerfectHashFunction2<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction2.class );
 	@SuppressWarnings("unused")
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = true;
 	
 	/** The number of elements. */
@@ -79,8 +79,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	final protected int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
 	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected MWHCFunction<BitVector> offsets;
-	final protected TwoStepsMWHCFunction<BitVector> lcpLengths;
+	final protected MWHCFunction<BitVector> offsetLcpLength;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
@@ -89,13 +88,14 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
-		final long prefix = lcpLengths.getLong( bitVector ); 
+		final long value = offsetLcpLength.getLong( bitVector );
+		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return -1;
-		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLong( bitVector );
+		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + ( value & bucketSizeMask );
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public LcpMonotoneMinimalPerfectHashFunction2( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 
@@ -115,8 +115,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		if ( ! iterator.hasNext() )	{
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
-			offsets = null;
-			lcpLengths = null;
+			offsetLcpLength = null;
 			return;
 		}
 
@@ -181,37 +180,27 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		}
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
 			}
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize );
-
-		// Build function assigning the lcp length and the bucketing data to each element.
-		lcpLengths = new TwoStepsMWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length(); 
-			}
-			public int size() {
-				return n;
-			}
-		} );
+		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1);
 
 		if ( DEBUG ) {
 			int p = 0;
 			for( T key: iterable ) {
-				BitVector bv = transform.toBitVector( key );
-				if ( p++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( bv ) ) ) * bucketSize + offsets.getLong( bv ) ) {
+				final long value = offsetLcpLength.getLong( key );
+				if ( p++ != lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask ) ) {
 					System.err.println( "p: " + ( p - 1 ) 
 							+ "  Key: " + key 
 							+ " bucket size: " + bucketSize 
-							+ " lcp " + transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( bv ) )
-							+ " lcp length: " + lcpLengths.getLong( bv ) 
-							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( bv ) ) ) 
-							+ " offset: " + offsets.getLong( bv ) );
+							+ " lcp " + transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) 
+							+ " lcp length: " + ( value >>> log2BucketSize ) 
+							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) 
+							+ " offset: " + ( value & bucketSizeMask ) );
 					throw new AssertionError();
 				}
 			}
@@ -238,7 +227,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return offsets.numBits() + lcpLengths.numBits() + lcp2Bucket.numBits() + transform.numBits();
+		return offsetLcpLength.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {
@@ -247,7 +236,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction2.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -281,7 +270,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction2<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
