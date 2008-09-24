@@ -19,14 +19,14 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 		return s.substring( s.length() - 32 );
 	}
 
-	public void testSmallest() throws IOException {
+	public void testSmallest() {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 	}
 
-	public void testSmall() throws IOException {
+	public void testSmall() {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
 		RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
