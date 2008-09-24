@@ -53,7 +53,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -68,7 +68,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** The number of (internal and external) nodes of the trie. */
 	private final int size;
 	private MWHCFunction<BitVector> signatures;
-	private LcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
+	private TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
 	private long logLogWMask;
@@ -458,7 +458,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		leaves = new Rank9( leavesBitVector );
 		if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
 		
-		ranker = new LcpMonotoneMinimalPerfectHashFunction<BitVector>( rankerStrings, TransformationStrategies.prefixFree() );
+		ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( rankerStrings, TransformationStrategies.prefixFree() );
 		
 		// Compute errors to be corrected
 		this.mistakeSignatures = new IntOpenHashSet();
@@ -536,43 +536,49 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 		
 		int i = logW - 1;
+		long mask = 1L << i;
 		long r = v.length();
-		long j = -1;
 		long l = 0;
 		while( r - l > 1 ) {
 			assert i > -1;
 			if ( DDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
-			// ALERT: slow!
-			for( j = l + 1; j < r; j++ ) if ( j % ( 1L << i ) == 0 ) break;
-			if ( j < r ) {
+			
+			if ( ( l & mask ) != ( r - 1 & mask ) ) {
+				final long f = ( r - 1 ) & ( -1L << i ); 
+				if ( ASSERTS ) {
+					long j;
+					for( j = l + 1; j < r; j++ ) if ( j % ( 1L << i ) == 0 ) break;
+					assert j == f : j + " != " + f;
+				}
 
-				long data = signatures.getLong( v.subVector( 0, j ) );
+				long data = signatures.getLong( v.subVector( 0, f ) );
 				
-				if ( DEBUG ) System.err.println( "Recalled " + v.subVector( 0, j ) + " (signature: " + ( data >>> logW ) + " length: " + ( data & logWMask ) + " data: " + data + ")" );
+				if ( DEBUG ) System.err.println( "Recalled " + v.subVector( 0, f ) + " (signature: " + ( data >>> logW ) + " length: " + ( data & logWMask ) + " data: " + data + ")" );
 				
 				if ( data == -1 ) {
-					if ( DEBUG ) System.err.println( "Missing " + v.subVector( 0, j )  );
-					r = j;
+					if ( DEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
+					r = f;
 				}
 				else {
 					long g = data & logWMask;
 
 					if ( g > v.length() ) {
-						if ( DEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, j )  );
-						r = j;
+						if ( DEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, f )  );
+						r = f;
 					}
 					else {
 						long h = v.subVector( 0, g ).hashCode(); //Hashes.jenkins( v.subVector( 0, g ) );
 
 						if ( DEBUG ) System.err.println( "Testing signature " + ( h & logLogWMask ) );
 
-						if ( ( data >>> logW ) == ( h & logLogWMask ) && g >= j ) l = g;
-						else r = j;
+						if ( ( data >>> logW ) == ( h & logLogWMask ) && g >= f ) l = g;
+						else r = f;
 					}
 				}
 			}
 				
 			i--;
+			mask >>= 1;
 		}
 		
 		return l;
