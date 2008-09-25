@@ -23,23 +23,32 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.bits.BitVectors.OfflineBitVectorIterable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
+import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import org.apache.log4j.Logger;
 
@@ -94,7 +103,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private ObjectArrayList<LongArrayBitVector> internalNodeKeys;
 		private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
 		private LongArrayList internalNodeSignatures;
-		private ObjectOpenHashSet<BitVector> delimiters;
+		private ObjectLinkedOpenHashSet<BitVector> delimiters;
 		
 		/** A node in the trie. */
 		private static class Node {
@@ -187,7 +196,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
 			
 			Iterator<? extends T> iterator = elements.iterator(); 
-			delimiters = new ObjectOpenHashSet<BitVector>();
+			delimiters = new ObjectLinkedOpenHashSet<BitVector>();
 			
 			if ( iterator.hasNext() ) {
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
@@ -386,6 +395,73 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 	}
 	
+
+	
+	/** An iterator returning the union of the bit vectors returned by two iterators.
+	 *  The two iterators must return bit vectors in an increasing fashion; the resulting
+	 *  {@link MergedBitVectorIterator} will do the same. Duplicates will be eliminated.
+	 */
+
+	public class MergedBitVectorIterator extends AbstractObjectIterator<BitVector> {
+		/** The first component iterator. */
+		private final Iterator<? extends BitVector> it0;
+		/** The second component iterator. */
+		private final Iterator<? extends BitVector> it1;
+		/** The last bit vector returned by {@link #it0}. */
+		private BitVector curr0;
+		/** The last bit vector returned by {@link #it1}. */
+		private BitVector curr1;
+		/** The result. */
+		private LongArrayBitVector result;
+		
+		/** Creates a new merged iterator by merging two given iterators.
+		 * 
+		 * @param it0 the first (monotonically nondecreasing) component iterator.
+		 * @param it1 the second (monotonically nondecreasing) component iterator.
+		 */
+		public MergedBitVectorIterator( final Iterator<? extends BitVector> it0, final Iterator<? extends BitVector> it1 ) {
+			this.it0 = it0;
+			this.it1 = it1;
+			result = LongArrayBitVector.getInstance();
+			if ( it0.hasNext() ) curr0 = it0.next();
+			if ( it1.hasNext() ) curr1 = it1.next();
+		}
+
+		public boolean hasNext() {
+			return curr0 != null || curr1 != null;
+		}
+		
+		public BitVector next() {
+			if ( ! hasNext() ) throw new NoSuchElementException();
+
+			final int cmp;
+			
+			if ( curr0 == null ) {
+				result.replace( curr1 );
+				curr1 = it1.hasNext() ? it1.next() : null;
+			} 
+			else if ( curr1 == null ) {
+				result.replace( curr0 );
+				curr0 = it0.hasNext() ? it0.next() : null;
+			} 
+			else if ( ( cmp = curr0.compareTo( curr1 ) ) < 0 ) {
+				result.replace( curr0 );
+				curr0 = it0.hasNext() ? it0.next() : null;
+			} 
+			else if ( cmp > 0 ) {
+				result.replace( curr1 );
+				curr1 = it1.hasNext() ? it1.next() : null;
+			} 
+			else {
+				result.replace( curr1 );
+				curr0 = it0.hasNext() ? it0.next() : null;
+				curr1 = it1.hasNext() ? it1.next() : null;
+			}
+			
+			return result;
+		}
+	}
+
 	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
@@ -393,7 +469,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
+	
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this( elements, bucketSize, transformationStrategy, null );
 	}
 
@@ -405,7 +482,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir the directory where temporary files will be created, or <code>for the default directory</code>.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy, tempDir );
 
@@ -415,8 +492,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		logW =  intermediateTrie.logW;
 		logLogWMask =  intermediateTrie.logLogWMask;
 		numDelimiters = intermediateTrie.delimiters.size();
-
-		int p = 0;
+		final int numInternalNodeRepresentations = intermediateTrie.internalNodeRepresentations.size();
 		
 		if ( DDEBUG ) {
 			System.err.println( "Internal node representations: " + intermediateTrie.internalNodeRepresentations );
@@ -424,36 +500,93 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 		
 		signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.logLogW );
+		intermediateTrie.internalNodeKeys = null;
+		intermediateTrie.internalNodeSignatures = null;
 		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
+		intermediateTrie.externalValues = null;
+		
+		Collections.sort( intermediateTrie.internalNodeRepresentations );
 
-		ObjectRBTreeSet<BitVector> rankerStrings = new ObjectRBTreeSet<BitVector>();
-		for( LongArrayBitVector bv: intermediateTrie.internalNodeRepresentations ) {
-			LongArrayBitVector t = bv.copy();
-			t.add( false );
-			rankerStrings.add( t );
-			t = bv.copy();
-			t.add( true );
-			rankerStrings.add( t );
-			t = bv.copy();
-			t.add( true );
-			for( p = t.size(); p-- != 0; ) 
-				if ( ! t.getBoolean( p ) ) break;
-				else t.set( p, false );
+		File tempAdd0 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "add0" );
+		DataOutputStream add0 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempAdd0 ) ) ); 
+		File tempAdd1 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "add1" );
+		DataOutputStream add1 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempAdd1 ) ) ); 
+		File tempPlus1 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "plus1" );
+		DataOutputStream plus1 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempPlus1 ) ) ); 
+		LongArrayBitVector labv = LongArrayBitVector.getInstance();
+		
+		int cPlus1 = 0;
+		for( BitVector bv: intermediateTrie.internalNodeRepresentations ) {
+			labv.replace( bv );
+			labv.add( false );
+			BitVectors.writeFast( labv, add0 );
+			labv.set( labv.length() - 1, true );
+			BitVectors.writeFast( labv, add1 );
+			int p;
+			for( p = labv.size(); p-- != 0; ) 
+				if ( ! labv.getBoolean( p ) ) break;
+				else labv.set( p, false );
 			if ( p != -1 ) {
-				t.set( p );
-				rankerStrings.add( t );
+				labv.set( p );
+				BitVectors.writeFast( labv, plus1 );
+				cPlus1++;
 			}
 		}
 		
-		rankerStrings.addAll( intermediateTrie.delimiters );
+		add0.close();
+		add1.close();
+		plus1.close();
+
+		intermediateTrie.internalNodeRepresentations = null;
+
+		final OfflineBitVectorIterable add0Iterable = new OfflineBitVectorIterable( tempAdd0, numInternalNodeRepresentations );
 		
-		if ( DDEBUG ) System.err.println( "Rankers: " + rankerStrings );
+		LongArrayBitVector[] add1Vectors = new LongArrayBitVector[ numInternalNodeRepresentations ];
+		int p = 0;
+		OfflineBitVectorIterable tmpAdd1Iterable = new OfflineBitVectorIterable( tempAdd1, numInternalNodeRepresentations );
+		for( LongArrayBitVector bv: tmpAdd1Iterable ) add1Vectors[ p++ ] = LongArrayBitVector.copy( bv );
+		Arrays.sort(  add1Vectors );
+		if ( DDEBUG ) System.err.println( "Sorted add1: " + Arrays.toString( add1Vectors ) );
+		tmpAdd1Iterable.close();
+		tmpAdd1Iterable = null;
 		
-		LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( rankerStrings.size() );
+		final OfflineBitVectorIterable add1Iterable = BitVectors.makeOffline( Arrays.asList( add1Vectors ).iterator() );
+		add1Vectors = null;
+		
+		LongArrayBitVector[] plus1Vectors = new LongArrayBitVector[ cPlus1 ];
 		p = 0;
+		OfflineBitVectorIterable tmpPlus1Iterable = new OfflineBitVectorIterable( tempPlus1, cPlus1 );
+		for( LongArrayBitVector bv: tmpPlus1Iterable ) plus1Vectors[ p++ ] = LongArrayBitVector.copy( bv );
+		Arrays.sort(  plus1Vectors );
+		if ( DDEBUG ) System.err.println( "Sorted plus1: " + Arrays.toString( plus1Vectors ) );
+		tmpPlus1Iterable.close();
+		tmpPlus1Iterable = null;
+		
+		final OfflineBitVectorIterable plus1Iterable = BitVectors.makeOffline( Arrays.asList( plus1Vectors ).iterator() );
+		plus1Vectors = null;
+		
+		
+		Iterable<BitVector> rankerStrings = new Iterable<BitVector>() {
+
+			public Iterator<BitVector> iterator() {
+				return new MergedBitVectorIterator(
+					new MergedBitVectorIterator( add0Iterable.iterator(), add1Iterable.iterator() ),
+					new MergedBitVectorIterator( plus1Iterable.iterator(), intermediateTrie.delimiters.iterator() ) );
+			}
+			
+		};
+		
+		if ( DDEBUG ) {
+			System.err.print( "Rankers: " );
+			for( BitVector bv: rankerStrings ) System.err.println( " " + bv );
+			System.err.println();
+		}
+		
+		LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( intermediateTrie.delimiters.size() + numInternalNodeRepresentations * 3 );
+		int q = 0;
 		for( BitVector v : rankerStrings ) {
-			if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( p );
-			p++;
+			if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( q );
+			q++;
 		}
 		leaves = new Rank9( leavesBitVector );
 		if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );

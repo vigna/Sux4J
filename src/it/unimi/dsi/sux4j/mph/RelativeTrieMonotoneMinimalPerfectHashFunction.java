@@ -93,7 +93,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( elements, transform, null );
 	}
 	
@@ -106,7 +106,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	 * @param tempDir a directory for the temporary files created during construction 
 	 * by the {@link HollowTrieDistributor}, or <code>null</code> for the default temporary directory. 
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
 
 		this.transform = transform;
 
