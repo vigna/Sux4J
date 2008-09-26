@@ -132,7 +132,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize = Fast.ceilLog2( 11 + 9 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) );
+		log2BucketSize = Fast.mostSignificantBit( 11 + 9 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) );
 		bucketSize = 1 << log2BucketSize;
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
