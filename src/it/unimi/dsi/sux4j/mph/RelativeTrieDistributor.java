@@ -154,7 +154,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 				
 				if ( path.length() != 0 ) {
-					long h = path.hashCode();// Hashes.jenkins( path );
+					long h = Hashes.jenkins( path );
 
 					long p = w / 2;
 					long j = w / 4;
@@ -702,7 +702,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						r = f;
 					}
 					else {
-						long h = v.subVector( 0, g ).hashCode(); //Hashes.jenkins( v.subVector( 0, g ) );
+						long h = Hashes.jenkins( v.subVector( 0, g ) );
 
 						if ( DEBUG ) System.err.println( "Testing signature " + ( h & logLogWMask ) );
 
@@ -757,6 +757,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 
 	private long numBitsForMistakes() {
+		System.err.println( corrections.numBits() );
+		System.err.println( mistakeSignatures.size() * Integer.SIZE );
+		
 		return corrections.numBits() + mistakeSignatures.size() * Integer.SIZE;
 	}
 	
