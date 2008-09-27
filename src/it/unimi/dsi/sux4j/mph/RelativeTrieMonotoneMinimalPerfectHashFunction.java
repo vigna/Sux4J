@@ -146,7 +146,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			public int size() {
 				return size;
 			}
-		}, log2BucketSize );
+		}, this.log2BucketSize );
 
 		
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
