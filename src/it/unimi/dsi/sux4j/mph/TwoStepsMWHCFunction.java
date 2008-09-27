@@ -58,7 +58,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
-    private final static boolean ASSERTS = true;
+    private final static boolean ASSERTS = false;
     
 	/** The number of elements. */
 	final protected int n;
