@@ -132,7 +132,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		final long averageLength = ( totalLength + size - 1 ) / size;
 
 		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( 16 + 7 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) ) : log2BucketSize;
-		bucketSize = 1 << log2BucketSize;
+		bucketSize = 1 << this.log2BucketSize;
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		LOGGER.debug( "Average length: " + averageLength );
