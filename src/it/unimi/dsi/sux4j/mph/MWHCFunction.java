@@ -256,6 +256,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
+		if ( n == 0 ) return 0;
 		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.length() : 0 ) * width;
 	}
 

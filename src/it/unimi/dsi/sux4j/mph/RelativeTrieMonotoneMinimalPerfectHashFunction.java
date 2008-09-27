@@ -35,7 +35,6 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -53,7 +52,6 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
@@ -85,28 +83,29 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
-	
+
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements and transformation strategy, using the default temporary directory. 
+	 * elements and transformation strategy. 
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null );
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+		this( elements, transform, -1 );
 	}
 	
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements, transformation strategy, and temporary directory. 
+	 * elements, transformation strategy and bucket size. 
+	 * 
+	 * <p>This constructor is mainly for debugging and testing purposes.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @param tempDir a directory for the temporary files created during construction 
-	 * by the {@link HollowTrieDistributor}, or <code>null</code> for the default temporary directory. 
+	 * @param log2BucketSize the logarithm of the bucket size.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, int log2BucketSize ) {
 
 		this.transform = transform;
 
@@ -124,22 +123,22 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		size = c;
 		
 		if ( size == 0 ) {
-			bucketSize = log2BucketSize = 0;
+			bucketSize = this.log2BucketSize = 0;
 			distributor = null;
 			offset = null;
 			return;
 		}
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
-		
-		log2BucketSize = Fast.mostSignificantBit( 11 + 9 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) );
+
+		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( 16 + 7 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) ) : log2BucketSize;
 		bucketSize = 1 << log2BucketSize;
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		
-		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
+		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
@@ -170,7 +169,6 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 't', "temp-dir", "A temporary directory for the files created during the construction." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
@@ -184,7 +182,6 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -200,7 +197,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, tempDir ), functionName );
+		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

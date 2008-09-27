@@ -23,30 +23,24 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.bits.BitVectors.OfflineBitVectorIterable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -62,7 +56,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean DDDEBUG = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -104,6 +99,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
 		private LongArrayList internalNodeSignatures;
 		private ObjectLinkedOpenHashSet<BitVector> delimiters;
+		private ObjectLinkedOpenHashSet<BitVector> leaves;
 		
 		/** A node in the trie. */
 		private static class Node {
@@ -141,45 +137,42 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 		}
 		
-		void labelIntermediateTrie( Node node, LongArrayBitVector path,ObjectArrayList<LongArrayBitVector> representations, ObjectArrayList<LongArrayBitVector>keys, LongArrayList values ) {
-			assert ( node.left != null ) == ( node.right != null );
+		void labelIntermediateTrie( Node node, LongArrayBitVector path,
+				ObjectLinkedOpenHashSet<BitVector> delimiters, 
+				ObjectArrayList<LongArrayBitVector> representations, 
+				ObjectArrayList<LongArrayBitVector>keys, 
+				LongArrayList values,
+				boolean left ) {
+			if ( ASSERTS ) assert ( node.left != null ) == ( node.right != null );
+
+			long parentPathLength = path.length() - 1;
+
 			if ( node.left != null ) {
-				
-				long parentPathLength = Math.max( 0, path.length() - 1 );
-				
 				path.append( node.path );
 
-				labelIntermediateTrie( node.left, path.append( 0, 1 ), representations, keys, values );
+				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, values, true );
 				path.remove( (int)( path.length() - 1 ) );
 
+				final long h = Hashes.jenkins( path );
+				final long p = ( -1L << Fast.mostSignificantBit( parentPathLength ^ path.length() ) & path.length() );
+
+				if ( ASSERTS ) assert p <= path.length() : p + " > " + path.length();
+				if ( ASSERTS ) assert p > parentPathLength : p + " <= " + parentPathLength;
+
+				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
+				representations.add( path.copy() );
+				if ( ASSERTS ) assert Fast.length( path.length() ) <= logW;
+				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h & logLogWMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & logLogWMask ) << logW | ( path.length() & logWMask )) + ")" );
+
+				values.add( ( h & logLogWMask ) << logW | ( path.length() & logWMask ) );
 				
-				if ( path.length() != 0 ) {
-					long h = Hashes.jenkins( path );
-
-					long p = w / 2;
-					long j = w / 4;
-					while( p <= parentPathLength || p > path.length() ) {
-						//System.err.println( "p: " + p + " + parentPathLength: " + parentPathLength + " path.length(): " + path.length()  + " j: " + j );
-						if ( p <= parentPathLength ) p += j;
-						else p -= j;
-
-						j /= 2;
-					}
-
-					assert p <= path.length();
-					assert p > parentPathLength;
-
-					keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
-					representations.add( path.copy() );
-					assert Fast.length( path.length() ) <= logW;
-					if ( DEBUG ) System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h & logLogWMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & logLogWMask ) << logW | ( path.length() & logWMask )) + ")" );
-
-					values.add( ( h & logLogWMask ) << logW | ( path.length() & logWMask ) );
-				}
-				
-				labelIntermediateTrie( node.right, path.append( 1, 1 ), representations, keys, values );
+				labelIntermediateTrie( node.right, path.append( 1, 1 ), delimiters, representations, keys, values, false );
 
 				path.length( path.length() - node.path.length() - 1 );
+			}
+			else {
+				if ( left ) delimiters.add( LongArrayBitVector.copy( path.subVector( 0, path.lastOne() + 1 ) ) );
+				else delimiters.add( LongArrayBitVector.copy( path ) );
 			}
 		}
 
@@ -190,14 +183,13 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param bucketSize the size of a bucket.
 		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 		 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-		 * @param tempDir a directory for the temporary files created during construction, or <code>null</code> for the default temporary directory. 
 		 */
 		
-		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
+		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
 			
 			Iterator<? extends T> iterator = elements.iterator(); 
-			delimiters = new ObjectLinkedOpenHashSet<BitVector>();
-			
+
+			leaves = DDEBUG ? new ObjectLinkedOpenHashSet<BitVector>() : null;
 			if ( iterator.hasNext() ) {
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
@@ -219,7 +211,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, prev.copy() );
-							delimiters.add( prev.copy() );
+							if ( DDEBUG ) leaves.add( prev.copy() );
 							prevDelimiter.replace( prev );
 						}
 						else {
@@ -247,7 +239,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 							if ( ASSERTS ) assert node != null;
 
-							delimiters.add( prev.copy() );
+							if ( DDEBUG ) leaves.add( prev.copy() );
 							prevDelimiter.replace( prev );
 						}
 					}
@@ -265,29 +257,50 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				logLogWMask = ( 1L << logLogW ) - 1;
 				
 				assert logW + logLogW <= Long.SIZE;
+				assert logW + logLogW <= Long.SIZE;
 				
 				this.root = root;
 				
 				if ( DEBUG ) System.err.println( "w: " + w );
 				if ( DDEBUG ) {
-					System.err.println( "Delimiters: " + delimiters );
+					System.err.println( "Leaves (" + leaves.size() + "): " + leaves );
 					System.err.println( this );
 				}
 				
 				
+				internalNodeRepresentations = new ObjectArrayList<LongArrayBitVector>();
+
 				if ( root != null ) {
 					LOGGER.info( "Computing approximate structure..." );
 
-					internalNodeRepresentations = new ObjectArrayList<LongArrayBitVector>();
 					internalNodeSignatures = new LongArrayList();
 					internalNodeKeys = new ObjectArrayList<LongArrayBitVector>();
-					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), internalNodeRepresentations, internalNodeKeys, internalNodeSignatures );
+					delimiters = new ObjectLinkedOpenHashSet<BitVector>();
+					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), delimiters, internalNodeRepresentations, internalNodeKeys, internalNodeSignatures, true );
 
 					if ( DDEBUG ) {
+						System.err.println( "Delimiters (" + delimiters.size() + "): " + delimiters );
+						Iterator<BitVector> d = delimiters.iterator(), l = leaves.iterator();
+						for( int i = 0; i < delimiters.size(); i++ ) {
+							BitVector del = d.next(), leaf = l.next();
+							assert del.longestCommonPrefixLength( leaf ) == del.length() : del.longestCommonPrefixLength( leaf ) + " != " + del.length() + "\n" + del + "\n" + leaf + "\n";
+						}
+						assert ! l.hasNext();
+						
 						System.err.println( "Internal node representations: " + internalNodeRepresentations );
 						System.err.println( "Internal node signatures: " + internalNodeSignatures );
 					}
-					
+
+					if ( ASSERTS ) {
+						Iterator<BitVector> d =delimiters.iterator();
+						BitVector t = d.next();
+						for( int i = 1; i < delimiters.size(); i++ ) {
+							final BitVector c = d.next();
+							assert t.compareTo( c ) < 0;
+							t = c;
+						}
+					}
+
 					LOGGER.info( "Computing function keys..." );
 
 					externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
@@ -299,14 +312,14 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					// The length of the path compacted in the trie up to the corresponding node, excluded
 					final int[] len = new int[ (int)maxLength ];
 					stack[ 0 ] = root;
-					int depth = 0, behaviour;
+					int depth = 0, behaviour, c = 0;
 					boolean first = true;
 					BitVector currFromPos, path;
 					LongArrayBitVector nodePath;
 
 					while( iterator.hasNext() ) {
 						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-						if ( DEBUG ) System.err.println( "Analysing key " + curr + "..." );
+						if ( DDDEBUG ) System.err.println( "Analysing key " + curr + "..." );
 						if ( ! first )  {
 							// Adjust stack using lcp between present string and previous one
 							prefix = (int)prev.longestCommonPrefixLength( curr );
@@ -321,7 +334,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							currFromPos = curr.subVector( pos ); 
 							prefix = (int)currFromPos.longestCommonPrefixLength( nodePath );
 
-							//System.err.println( "prefix: " + prefix + " nodePath.length(): " + nodePath.length() + " node.isLeaf(): " + node.isLeaf() );
+							if ( DDDEBUG ) System.err.println( "prefix: " + prefix + " nodePath.length(): " + nodePath.length() + ( prefix < nodePath.length() ? " bit: " + String.valueOf( nodePath.getBoolean( prefix ) ) : "" ) + " node.isLeaf(): " + node.isLeaf() );
 							
 							if ( prefix < nodePath.length() || node.isLeaf() ) {
 								// Exit. LEFT or RIGHT, depending on the bit at the end of the common prefix. The
@@ -333,8 +346,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								externalValues.add( behaviour );
 								externalParentRepresentations.add( depth == 0 ? pos : pos - 1 );
 								
-								if ( DEBUG ) {
-									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", " + path + "> -> " + behaviour );
+								if ( DDDEBUG ) {
+									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping " + c + " <" + node.index + ", " + path + "> -> " + behaviour );
 									System.err.println( "Root: " + root + " node: " + node + " representation length: " + ( depth == 0 ? pos : pos - 1 ) );
 								}
 
@@ -354,6 +367,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						}
 
 						prev.replace( curr );
+						c++;
 					}
 
 				}
@@ -470,7 +484,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
 	
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
 		this( elements, bucketSize, transformationStrategy, null );
 	}
 
@@ -482,9 +496,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir the directory where temporary files will be created, or <code>for the default directory</code>.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
 		this.transformationStrategy = transformationStrategy;
-		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy, tempDir );
+		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy );
 
 		size = intermediateTrie.size;
 
@@ -504,94 +518,46 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		intermediateTrie.internalNodeSignatures = null;
 		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
 		intermediateTrie.externalValues = null;
-		
-		Collections.sort( intermediateTrie.internalNodeRepresentations );
 
-		File tempAdd0 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "add0" );
-		DataOutputStream add0 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempAdd0 ) ) ); 
-		File tempAdd1 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "add1" );
-		DataOutputStream add1 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempAdd1 ) ) ); 
-		File tempPlus1 = File.createTempFile( RelativeTrieDistributor.class.getSimpleName(), "plus1" );
-		DataOutputStream plus1 = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempPlus1 ) ) ); 
-		LongArrayBitVector labv = LongArrayBitVector.getInstance();
+		ObjectOpenHashSet<LongArrayBitVector> rankers = new ObjectOpenHashSet<LongArrayBitVector>();
 		
-		int cPlus1 = 0;
 		for( BitVector bv: intermediateTrie.internalNodeRepresentations ) {
-			labv.replace( bv );
-			labv.add( false );
-			BitVectors.writeFast( labv, add0 );
-			labv.set( labv.length() - 1, true );
-			BitVectors.writeFast( labv, add1 );
-			int p;
-			for( p = labv.size(); p-- != 0; ) 
-				if ( ! labv.getBoolean( p ) ) break;
-				else labv.set( p, false );
-			if ( p != -1 ) {
-				labv.set( p );
-				BitVectors.writeFast( labv, plus1 );
-				cPlus1++;
+			rankers.add( LongArrayBitVector.copy( bv.subVector( 0, bv.lastOne() + 1 ) ) );
+			rankers.add( LongArrayBitVector.copy( bv ).append( 1, 1 ) );
+			LongArrayBitVector plus1 = LongArrayBitVector.copy( bv );
+			long lastZero = plus1.lastZero();
+			if ( lastZero != -1 ) {
+				plus1.length( lastZero + 1 );
+				plus1.set( lastZero );
+				rankers.add( plus1 );
 			}
 		}
-		
-		add0.close();
-		add1.close();
-		plus1.close();
 
 		intermediateTrie.internalNodeRepresentations = null;
 
-		final OfflineBitVectorIterable add0Iterable = new OfflineBitVectorIterable( tempAdd0, numInternalNodeRepresentations );
-		
-		LongArrayBitVector[] add1Vectors = new LongArrayBitVector[ numInternalNodeRepresentations ];
-		int p = 0;
-		OfflineBitVectorIterable tmpAdd1Iterable = new OfflineBitVectorIterable( tempAdd1, numInternalNodeRepresentations );
-		for( LongArrayBitVector bv: tmpAdd1Iterable ) add1Vectors[ p++ ] = LongArrayBitVector.copy( bv );
-		Arrays.sort(  add1Vectors );
-		if ( DDEBUG ) System.err.println( "Sorted add1: " + Arrays.toString( add1Vectors ) );
-		tmpAdd1Iterable.close();
-		tmpAdd1Iterable = null;
-		
-		final OfflineBitVectorIterable add1Iterable = BitVectors.makeOffline( Arrays.asList( add1Vectors ).iterator() );
-		add1Vectors = null;
-		
-		LongArrayBitVector[] plus1Vectors = new LongArrayBitVector[ cPlus1 ];
-		p = 0;
-		OfflineBitVectorIterable tmpPlus1Iterable = new OfflineBitVectorIterable( tempPlus1, cPlus1 );
-		for( LongArrayBitVector bv: tmpPlus1Iterable ) plus1Vectors[ p++ ] = LongArrayBitVector.copy( bv );
-		Arrays.sort(  plus1Vectors );
-		if ( DDEBUG ) System.err.println( "Sorted plus1: " + Arrays.toString( plus1Vectors ) );
-		tmpPlus1Iterable.close();
-		tmpPlus1Iterable = null;
-		
-		final OfflineBitVectorIterable plus1Iterable = BitVectors.makeOffline( Arrays.asList( plus1Vectors ).iterator() );
-		plus1Vectors = null;
-		
-		
-		Iterable<BitVector> rankerStrings = new Iterable<BitVector>() {
+		LongArrayBitVector[] rankerArray = rankers.toArray( new LongArrayBitVector[ rankers.size() ] );
+		rankers = null;
+		Arrays.sort( rankerArray );
 
-			public Iterator<BitVector> iterator() {
-				return new MergedBitVectorIterator(
-					new MergedBitVectorIterator( add0Iterable.iterator(), add1Iterable.iterator() ),
-					new MergedBitVectorIterator( plus1Iterable.iterator(), intermediateTrie.delimiters.iterator() ) );
-			}
-			
-		};
-		
 		if ( DDEBUG ) {
-			System.err.print( "Rankers: " );
-			for( BitVector bv: rankerStrings ) System.err.println( " " + bv );
+			System.err.println( "Rankers: " );
+			for( BitVector bv: rankerArray ) System.err.println( bv );
 			System.err.println();
 		}
 		
-		LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( intermediateTrie.delimiters.size() + numInternalNodeRepresentations * 3 );
+		LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( numInternalNodeRepresentations * 3 );
 		int q = 0;
-		for( BitVector v : rankerStrings ) {
+		
+		for( BitVector v : rankerArray ) {
 			if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( q );
 			q++;
 		}
+		leavesBitVector.length( q ).trim();
 		leaves = new Rank9( leavesBitVector );
+
 		if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
 		
-		ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( rankerStrings, TransformationStrategies.prefixFree() );
+		ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( Arrays.asList( rankerArray ), TransformationStrategies.prefixFree() );
 		
 		// Compute errors to be corrected
 		this.mistakeSignatures = new IntOpenHashSet();
@@ -634,10 +600,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			this.mistakeSignatures.addAll( mistakeSignatures );
 			corrections = new MWHCFunction<BitVector>( positives, TransformationStrategies.identity(), results, logW );
 		}
-
-		add0Iterable.close();
-		add1Iterable.close();
-		plus1Iterable.close();
 		
 		if ( ASSERTS ) {
 			if ( size > 0 ) {
@@ -647,7 +609,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					BitVector curr = iterator.next();
 					if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
 					long t = getLong( curr );
-					assert t == c / bucketSize : "At " + c + ": " + t + " != " + c / bucketSize;
+					assert t == c / bucketSize : "At " + c + ": " + c / bucketSize + " != " + t;
 					c++;
 				}		
 			}
@@ -676,7 +638,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		long l = 0;
 		while( r - l > 1 ) {
 			assert i > -1;
-			if ( DDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
+			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i ); 
@@ -688,23 +650,23 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 				long data = signatures.getLong( v.subVector( 0, f ) );
 				
-				if ( DEBUG ) System.err.println( "Recalled " + v.subVector( 0, f ) + " (signature: " + ( data >>> logW ) + " length: " + ( data & logWMask ) + " data: " + data + ")" );
+				if ( DDDEBUG ) System.err.println( "Recalled " + v.subVector( 0, f ) + " (signature: " + ( data >>> logW ) + " length: " + ( data & logWMask ) + " data: " + data + ")" );
 				
 				if ( data == -1 ) {
-					if ( DEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
+					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
 					r = f;
 				}
 				else {
 					long g = data & logWMask;
 
 					if ( g > v.length() ) {
-						if ( DEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, f )  );
+						if ( DDDEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, f )  );
 						r = f;
 					}
 					else {
 						long h = Hashes.jenkins( v.subVector( 0, g ) );
 
-						if ( DEBUG ) System.err.println( "Testing signature " + ( h & logLogWMask ) );
+						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & logLogWMask ) );
 
 						if ( ( data >>> logW ) == ( h & logLogWMask ) && g >= f ) l = g;
 						else r = f;
@@ -722,30 +684,29 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return 0;
-		BitVector v = (BitVector)o;
-		int b = (int)behaviour.getLong( o );
-		long length = getNodeStringLength( v );
+		final BitVector v = (BitVector)o;
+		final int b = (int)behaviour.getLong( o );
+		final long length = getNodeStringLength( v );
+		final BitVector key = v.subVector( 0, length ).copy();
+		final boolean bit = v.getBoolean( length );
 		
-		if ( length == 0 ) return b == 0 ? 0 : numDelimiters;
-		
-		BitVector key = v.subVector( 0, length ).copy();
-		if ( b == 0 ) {
-			key.add( v.getBoolean( length ) );
+		if ( b == LEFT ) {
+			//System.err.println( "LEFT: " + bit );
+			if ( bit ) key.add( true );
+			else key.length( key.lastOne() + 1 );
 			long pos = ranker.getLong( key );
+			//System.err.println( key.length() + " " + pos);
 			return leaves.rank( pos ); 
 		}
 		else {
-			boolean bit = v.getBoolean( length );
+			//System.err.println( "RIGHT: " + bit );
 			if ( bit ) {
-				key.add( true );
-				int p;
-				for( p = key.size(); p-- != 0; ) 
-					if ( ! key.getBoolean( p ) ) break;
-					else key.set( p, false );
-
-				if ( p == -1 ) return numDelimiters;	// We are exiting at the right of 1^k (k>=0).
-				key.set( p );
+				final long lastZero = key.lastZero();
+				//System.err.println( lastZero );
+				if ( lastZero == -1 ) return numDelimiters;	// We are exiting at the right of 1^k (k>=0).
+				key.length( lastZero + 1 ).set( lastZero );
 				long pos = ranker.getLong( key );
+				//System.err.println( "pos: " + pos + " rank: " + leaves.rank( pos ) );
 				return leaves.rank( pos ); 
 			}
 			else {
@@ -757,9 +718,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 
 	private long numBitsForMistakes() {
-		System.err.println( corrections.numBits() );
-		System.err.println( mistakeSignatures.size() * Integer.SIZE );
-		
 		return corrections.numBits() + mistakeSignatures.size() * Integer.SIZE;
 	}
 	
