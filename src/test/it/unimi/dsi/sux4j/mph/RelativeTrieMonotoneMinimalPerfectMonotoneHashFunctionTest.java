@@ -58,7 +58,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 
 	public void testSmall() {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
-		for( int b = 2; b < 5; b++ ) {
+		for( int b = -1; b < 5; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 		}
@@ -67,7 +67,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 		
-		for( int b = 3; b < 6; b++ ) {
+		for( int b = -1; b < 6; b++ ) {
 			for( int d = 100; d < 10000; d *= 10 ) {
 				String[] s = new String[ d ];
 				int[] v = new int[ s.length ];

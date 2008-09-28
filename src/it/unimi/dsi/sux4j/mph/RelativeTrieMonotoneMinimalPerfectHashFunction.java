@@ -135,7 +135,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		
-		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity() );
+		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity() );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			final long bucketSizeMask = ( 1L << RelativeTrieMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
