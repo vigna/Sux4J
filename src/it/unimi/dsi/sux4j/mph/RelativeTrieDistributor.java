@@ -31,7 +31,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -42,7 +41,6 @@ import it.unimi.dsi.util.LongBigList;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 import org.apache.log4j.Logger;
 
@@ -75,7 +73,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
-	private long logLogWMask;
+	private long signatureMask;
 	private int numDelimiters;
 	private IntOpenHashSet mistakeSignatures;
 	private MWHCFunction<BitVector> corrections;
@@ -93,8 +91,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private long w;
 		private int logW;
 		private int logLogW;
-		private long logLogWMask;
 		private long logWMask;
+		private int signatureSize;
+		private long signatureMask;
 		private ObjectArrayList<LongArrayBitVector> internalNodeKeys;
 		private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
 		private LongArrayList internalNodeSignatures;
@@ -162,9 +161,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
 				representations.add( path.copy() );
 				if ( ASSERTS ) assert Fast.length( path.length() ) <= logW;
-				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h & logLogWMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & logLogWMask ) << logW | ( path.length() & logWMask )) + ")" );
+				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key " + path.subVector( 0, p ) + ", signature " + ( h & signatureMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & signatureMask ) << logW | ( path.length() & logWMask )) + ")" );
 
-				values.add( ( h & logLogWMask ) << logW | ( path.length() & logWMask ) );
+				values.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
 				
 				labelIntermediateTrie( node.right, path.append( 1, 1 ), delimiters, representations, keys, values, false );
 
@@ -254,10 +253,10 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				logW = 1 << logLogW;
 				w = 1L << logW;
 				logWMask = ( 1L << logW ) - 1;
-				logLogWMask = ( 1L << logLogW ) - 1;
+				signatureSize = logLogW + 4; // A small additive constant to avoid excessively small signatures
+				signatureMask = ( 1L << signatureSize ) - 1;
 				
-				assert logW + logLogW <= Long.SIZE;
-				assert logW + logLogW <= Long.SIZE;
+				if ( ASSERTS ) assert logW + signatureSize <= Long.SIZE;
 				
 				this.root = root;
 				
@@ -411,71 +410,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	
 
 	
-	/** An iterator returning the union of the bit vectors returned by two iterators.
-	 *  The two iterators must return bit vectors in an increasing fashion; the resulting
-	 *  {@link MergedBitVectorIterator} will do the same. Duplicates will be eliminated.
-	 */
-
-	public class MergedBitVectorIterator extends AbstractObjectIterator<BitVector> {
-		/** The first component iterator. */
-		private final Iterator<? extends BitVector> it0;
-		/** The second component iterator. */
-		private final Iterator<? extends BitVector> it1;
-		/** The last bit vector returned by {@link #it0}. */
-		private BitVector curr0;
-		/** The last bit vector returned by {@link #it1}. */
-		private BitVector curr1;
-		/** The result. */
-		private LongArrayBitVector result;
-		
-		/** Creates a new merged iterator by merging two given iterators.
-		 * 
-		 * @param it0 the first (monotonically nondecreasing) component iterator.
-		 * @param it1 the second (monotonically nondecreasing) component iterator.
-		 */
-		public MergedBitVectorIterator( final Iterator<? extends BitVector> it0, final Iterator<? extends BitVector> it1 ) {
-			this.it0 = it0;
-			this.it1 = it1;
-			result = LongArrayBitVector.getInstance();
-			if ( it0.hasNext() ) curr0 = it0.next();
-			if ( it1.hasNext() ) curr1 = it1.next();
-		}
-
-		public boolean hasNext() {
-			return curr0 != null || curr1 != null;
-		}
-		
-		public BitVector next() {
-			if ( ! hasNext() ) throw new NoSuchElementException();
-
-			final int cmp;
-			
-			if ( curr0 == null ) {
-				result.replace( curr1 );
-				curr1 = it1.hasNext() ? it1.next() : null;
-			} 
-			else if ( curr1 == null ) {
-				result.replace( curr0 );
-				curr0 = it0.hasNext() ? it0.next() : null;
-			} 
-			else if ( ( cmp = curr0.compareTo( curr1 ) ) < 0 ) {
-				result.replace( curr0 );
-				curr0 = it0.hasNext() ? it0.next() : null;
-			} 
-			else if ( cmp > 0 ) {
-				result.replace( curr1 );
-				curr1 = it1.hasNext() ? it1.next() : null;
-			} 
-			else {
-				result.replace( curr1 );
-				curr0 = it0.hasNext() ? it0.next() : null;
-				curr1 = it1.hasNext() ? it1.next() : null;
-			}
-			
-			return result;
-		}
-	}
-
 	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
@@ -504,7 +438,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		logWMask = intermediateTrie.logWMask;
 		logW =  intermediateTrie.logW;
-		logLogWMask =  intermediateTrie.logLogWMask;
+		signatureMask =  intermediateTrie.signatureMask;
 		numDelimiters = intermediateTrie.delimiters.size();
 		final int numInternalNodeRepresentations = intermediateTrie.internalNodeRepresentations.size();
 		
@@ -513,7 +447,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			System.err.println( "Internal node keys: " + intermediateTrie.internalNodeKeys );
 		}
 		
-		signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.logLogW );
+		signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize );
 		intermediateTrie.internalNodeKeys = null;
 		intermediateTrie.internalNodeSignatures = null;
 		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
@@ -666,9 +600,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					else {
 						long h = Hashes.jenkins( v.subVector( 0, g ) );
 
-						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & logLogWMask ) );
+						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
 
-						if ( ( data >>> logW ) == ( h & logLogWMask ) && g >= f ) l = g;
+						if ( ( data >>> logW ) == ( h & signatureMask ) && g >= f ) l = g;
 						else r = f;
 					}
 				}

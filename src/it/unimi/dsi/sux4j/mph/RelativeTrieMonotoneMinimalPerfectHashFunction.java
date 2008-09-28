@@ -131,7 +131,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 
-		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( 16 + 7 * Fast.ceilLog2( averageLength ) + Fast.ceilLog2( Fast.ceilLog2( averageLength ) ) ) : log2BucketSize;
+		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 16 + 7 * Math.log( averageLength + 1 ) + Math.log( Math.log( averageLength + 1 ) + 1 ) ) ) : log2BucketSize;
 		bucketSize = 1 << this.log2BucketSize;
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
@@ -169,6 +169,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new FlaggedOption( "log2bucket", JSAP.INTEGER_PARSER, "-1", JSAP.NOT_REQUIRED, 'b', "log2bucket", "The base 2 logarithm of the bucket size (mainly for testing)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
@@ -178,6 +179,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
+		final int log2BucketSize = jsapResult.getInt( "log2bucket" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
@@ -197,7 +199,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
