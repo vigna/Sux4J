@@ -241,6 +241,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
+		if ( n == 0 ) return 0;
 		return offsets.numBits() + lcpLengths.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 

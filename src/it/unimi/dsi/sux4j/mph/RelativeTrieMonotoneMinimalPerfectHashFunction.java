@@ -65,8 +65,6 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	
 	/** The number of elements. */
 	private final int size;
-	/** The size of a bucket. */
-	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
 	private final int log2BucketSize;
 	/** The transformation strategy. */
@@ -105,7 +103,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 * @param log2BucketSize the logarithm of the bucket size.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, int log2BucketSize ) {
+	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final int log2BucketSize ) {
 
 		this.transform = transform;
 
@@ -123,7 +121,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		size = c;
 		
 		if ( size == 0 ) {
-			bucketSize = this.log2BucketSize = 0;
+			this.log2BucketSize = -1;
 			distributor = null;
 			offset = null;
 			return;
@@ -132,16 +130,16 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		final long averageLength = ( totalLength + size - 1 ) / size;
 
 		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 16 + 7 * Math.log( averageLength + 1 ) + Math.log( Math.log( averageLength + 1 ) + 1 ) ) ) : log2BucketSize;
-		bucketSize = 1 << this.log2BucketSize;
-		
+				
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		LOGGER.debug( "Average length: " + averageLength );
-		LOGGER.debug( "Bucket size: " + bucketSize );
+		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		
-		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity() );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
+			final long bucketSizeMask = ( 1L << RelativeTrieMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return index & bucketSizeMask; 
 			}
 			public int size() {
 				return size;
@@ -158,6 +156,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	}
 
 	public long numBits() {
+		if ( size == 0 ) return 0;
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 	
