@@ -267,7 +267,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 				firstNextDepth = null;
 			}
 			if( depth > maxDepth ) maxDepth = depth;
-			sumOfDepths += depth;
 			skipsLength += length( n.skip );
 			bitVector.add( n.left != null );
 			bitVector.add( n.right != null );
@@ -293,7 +292,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		final int skipWidth = Fast.ceilLog2( maxSkip );
 
 		LOGGER.info( "Max depth: " + maxDepth );
-		LOGGER.info( "Average depth: " + sumOfDepths / ( 2.0 * size - 1 ) );
+		LOGGER.info( "Average depth: " + (double)sumOfDepths / size  );
 		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
