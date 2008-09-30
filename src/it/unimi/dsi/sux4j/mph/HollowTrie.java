@@ -253,18 +253,37 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		recToString( root, new StringBuilder(), result, new StringBuilder(), 0 );
 		System.out.println( result );*/
 		
-		root = null;
-		Node n;
+		Node n, firstNextDepth = root;
+		int depth = -1, maxDepth = 0;
+		long sumOfDepths = 0;
+		root = null;		
 		
 		while( p < queue.size() ) {
 			n = queue.get( p );
 			if ( maxSkip < n.skip ) maxSkip = n.skip;
 			skips.add( n.skip );
+			if ( firstNextDepth == n ) {
+				depth++;
+				firstNextDepth = null;
+			}
+			if( depth > maxDepth ) maxDepth = depth;
+			sumOfDepths += depth;
 			skipsLength += length( n.skip );
 			bitVector.add( n.left != null );
 			bitVector.add( n.right != null );
-			if ( n.left != null ) queue.add( n.left );
-			if ( n.right != null ) queue.add( n.right );
+			
+			if ( n.left != null ) {
+				queue.add( n.left );
+				if ( firstNextDepth == null ) firstNextDepth = n.left;
+			}
+			else sumOfDepths += depth + 1;
+			
+			if ( n.right != null ) {
+				queue.add( n.right );
+				if ( firstNextDepth == null ) firstNextDepth = n.right;
+			}
+			else sumOfDepths += depth + 1;
+
 			p++;
 		}
 		
@@ -273,6 +292,8 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		select = new SimpleSelect( bitVector );
 		final int skipWidth = Fast.ceilLog2( maxSkip );
 
+		LOGGER.info( "Max depth: " + maxDepth );
+		LOGGER.info( "Average depth: " + sumOfDepths / ( 2.0 * size - 1 ) );
 		LOGGER.info( "Max skip: " + maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
 		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
