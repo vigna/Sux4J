@@ -43,9 +43,13 @@ it will use less than a byte per element for strings of length up to a billion b
 </ul>
 </ul>
 
-<p>All the above structures, with the exception of {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}, were introduced in
-&ldquo;Monotone Minimal Perfect Hashing: Searching a Sorted Table with <i>O</i>(1) Accesses&rdquo;, by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and 
-Sebastiano Vigna (the class {@link it.unimi.dsi.sux4j.mph.MWHCFunction} implements a <em>compacted</em> version
+<p>{@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction} and {@link it.unimi.dsi.sux4j.mph.RelativeTrieMonotoneMinimalPerfectHashFunction}
+were introduced by Djamal Belazzougui, Paolo Boldi, Rasmus Pagh and Sebastiano Vigna
+in &ldquo;Monotone Minimal Perfect Hashing: Searching a Sorted Table with <i>O</i>(1) Accesses&rdquo;, 
+Proc. of the 20th Annual ACM&ndash;SIAM Symposium On Discrete Mathematics (SODA), ACM Press, 2009.
+{@link it.unimi.dsi.sux4j.mph.TwoStepsLcpMonotoneMinimalPerfectHashFunction}, {@link it.unimi.dsi.sux4j.mph.PaCoTrieMonotoneMinimalPerfectHashFunction},
+ {@link it.unimi.dsi.sux4j.mph.HollowTrie} and {@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction} were introduced
+ by the same authors in &ldquo;Theory and Practise of Minimal Monotone Perfect Hashing&rdquo; (the class {@link it.unimi.dsi.sux4j.mph.MWHCFunction} implements a <em>compacted</em> version
 of the classical {@linkplain it.unimi.dsi.sux4j.mph.HypergraphSorter 3-hypergraph-based structure} introduced therein).
 
 <h2>Usage</h2>

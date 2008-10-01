@@ -62,7 +62,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors, and store their lengths using a {@link TwoStepsMWHCFunction}.
  * 
  * <p>This implementation should use a few less bits per elements than {@link LcpMonotoneMinimalPerfectHashFunction},
- * but it is significantly slower as one or two additional functions must be queried.
+ * but it is a bit slower as one or two additional functions must be queried.
  */
 
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
