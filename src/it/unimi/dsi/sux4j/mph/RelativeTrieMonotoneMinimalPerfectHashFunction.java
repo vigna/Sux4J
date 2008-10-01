@@ -65,7 +65,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	
 	/** The number of elements. */
 	private final int size;
-	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
+	/** The logarithm of the bucket size. */
 	private final int log2BucketSize;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
