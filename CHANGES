@@ -1,3 +1,14 @@
+1.0.3
+
+- New TwoStepsMWHCFunction that records in s<r bits the most
+  frequent values.
+
+- Much improved relative trie implementation (uses two-steps MWHC functions, too).
+
+- New TwoStepsLCPMonotoneMinimalPerfectHashFunction: it is slightly slow
+  than an LCPMonotoneMinimalPerfectHashFunction, but consumes significantly
+  less space thanks to a two-steps MWHC function.
+
 1.0.2
 
 - Fixed bug in SimpleSelectZero: under certain conditions, an error in

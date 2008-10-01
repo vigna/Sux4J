@@ -1,7 +1,7 @@
 %define section free
 
 Name:           sux4j
-Version:        1.0.2
+Version:        1.0.3
 Release:        1jpp
 Epoch:          0
 Summary:        Succinct data structures for Java
@@ -74,6 +74,8 @@ ln -s %{name}-%{version} %{_javadocdir}/%{name}
 %ghost %doc %{_javadocdir}/%{name}
 
 %changelog
+* Wed Oct 1 2008 Sebastiano Vigna <vigna at acm.org> 0:1.0.3-1jpp
+- Upgrade to 1.0.3
 * Sun Jul 13 2008 Sebastiano Vigna <vigna at acm.org> 0:1.0.2-1jpp
 - Upgrade to 1.0.2
 * Mon Apr 14 2008 Sebastiano Vigna <vigna at acm.org> 0:1.0.1-1jpp
