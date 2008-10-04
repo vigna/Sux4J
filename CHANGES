@@ -1,3 +1,8 @@
+1.0.4
+
+- New progressive hash-computation methods that provide Jenkins hash
+  in constant time on all prefixes (after a linear-time preprocessing).
+
 1.0.3
 
 - New TwoStepsMWHCFunction that records in s<r bits the most
