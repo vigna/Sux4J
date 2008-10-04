@@ -570,8 +570,12 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	
 	private long getNodeStringLength( BitVector v ) {
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
-		final long c = Hashes.jenkins( v );
-		if ( mistakeSignatures.contains( (int)( c ^ c >>> 32 ) ) ) {
+		
+		long state[][] = Hashes.preprocessJenkins( v, 0 );
+		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
+		
+		final long corr = Hashes.jenkins( v, v.length(), a, b, c );
+		if ( mistakeSignatures.contains( (int)( corr ^ corr >>> 32 ) ) ) {
 			if ( DEBUG ) System.err.println( "Correcting..." );
 			return corrections.getLong( v );
 		}
@@ -608,7 +612,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						r = f;
 					}
 					else {
-						long h = Hashes.jenkins( v.subVector( 0, g ) );
+						long h = Hashes.jenkins( v, g, a, b, c );
 
 						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
 
