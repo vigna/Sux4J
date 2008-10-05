@@ -9,6 +9,7 @@ import it.unimi.dsi.sux4j.mph.MWHCFunction;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import junit.framework.TestCase;
 
@@ -53,5 +54,21 @@ public class MWHCFunctionTest extends TestCase {
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
 		assertEquals( l.getLong( 3 ), mph.getLong( "d" ) );
+	}
+	
+	public void testDuplicates() {
+		MWHCFunction<String> mph = new MWHCFunction<String>( 
+				new Iterable<String>() {
+					int iteration;
+
+					public Iterator<String> iterator() {
+						if ( iteration++ > 2 ) return Arrays.asList( new String[] { "a", "b", "c" } ).iterator();
+						return Arrays.asList( new String[] { "a", "b", "a" } ).iterator();
+					}
+				}, 
+				TransformationStrategies.utf16() );
+		assertEquals( mph.getLong( "a" ), 0 );
+		assertEquals( mph.getLong( "b" ), 1 );
+		assertEquals( mph.getLong( "c" ), 2 );
 	}
 }

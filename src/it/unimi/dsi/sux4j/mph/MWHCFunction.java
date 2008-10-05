@@ -225,7 +225,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 				}
 
-				for( DataOutputStream d: dos ) d.close();
+				for( DataOutputStream d: dos ) d.flush();
 
 				long seed = 0;
 				HypergraphSorter.Result result = null;
@@ -304,13 +304,15 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 				if ( result != HypergraphSorter.Result.DUPLICATE ) break;
 				
+				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				// Too many duplicates. Resetting procedure.
 				for( DataOutputStream d: dos ) d.flush();
 				for( FileOutputStream f: fos ) f.getChannel().position( 0 );
 				globalSeed = r.nextLong();
 				Arrays.fill( c, 0 );
+				p = 0;
 				for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
-					Hashes.jenkins( bv, 0, h );
+					Hashes.jenkins( bv, globalSeed, h );
 					bucket = (int)( h[ 0 ] & 0xFF );
 					c[ bucket ]++;
 					dos[ bucket ].writeLong( h[ 0 ] );
