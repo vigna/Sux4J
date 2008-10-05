@@ -104,7 +104,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 		
 	/** The number of elements. */
 	final protected int n;
