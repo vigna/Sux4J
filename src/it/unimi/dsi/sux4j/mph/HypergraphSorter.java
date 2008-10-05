@@ -44,14 +44,15 @@ import cern.colt.function.IntComparator;
  * <i>Comput. J.</i>, 39(6):547&minus;554, 1996,
  * a 3-hypergraph based technique to store functions
  * (actually, the paper uses the technique just to store a permutation of the key set, but
- * it is clear it can be used to store any function). More generally, the procedure sorts
- * the hyperedges of a random 3-hypergraph so that for each edge at least one vertex, the <em>hinge</em>, never
- * appeared before (this happens with positive probability if the number of vertices is at
- * least {@link #GAMMA} times the number of 3-hyperedges).
+ * it is clear it can be used to store any function). More generally, the procedure 
+ * first generates a random 3-hypergraph whose edges correspond to elements of the function domain.
+ * The, it sorts the edges of the random 3-hypergraph so that for each edge at least one vertex, the <em>hinge</em>, never
+ * appeared before in the sorted edge list (this happens with positive probability if the number of vertices is at
+ * least {@linkplain #GAMMA &gamma;} times the number of edges).
  * 
  * <p>Instances of this class contain the data necessary to generate the random hypergraph
  * and apply the sorting procedure. At construction time, you provide just the desired number
- * of edges; then, each call to {@link #generateAndSort(Iterator, TransformationStrategy, long) generateAndSort()}
+ * of edges; then, each call to {@link #generateAndSort(Iterator, TransformationStrategy, long) generateAndSort()}
  * will generate a new 3-hypergraph using a 64-bit seed, an iterator returning the key set,
  * and a corresponding {@link TransformationStrategy}. If the method returns true, the sorting was
  * successful and in the public field {@link #stack} you can retrieve the <em>opposite</em>
@@ -62,7 +63,7 @@ import cern.colt.function.IntComparator;
  * 
  * <p>To guarantee the same results when reading a Majewski-Wormald-Havas-Czech-like structure,
  * the method {@link #bitVectorToEdge(BitVector, long, int, int[]) bitVectorToEdge()} can be used to retrieve, starting from
- * a bit vector, the corresponding hyperedge. While having a function returning the edge starting
+ * a bit vector, the corresponding edge. While having a function returning the edge starting
  * from a key would be more object-oriented and avoid hidden dependencies, it would also require
  * storing the transformation provided at construction time, which would make this class non-thread-safe.
  * Just be careful to transform the keys into bit vectors using
@@ -79,8 +80,8 @@ import cern.colt.function.IntComparator;
  * <P>Building and sorting a large 3-hypergraph may take hours. As it happens with all probabilistic algorithms,
  * one can just give estimates of the expected time.
  * 
- * <P>There are two probabilistic sources of problems: duplicate hyperedges and non-acyclic hypergraphs.
- * However, the probability of duplicate hyperedges is vanishing when <var>n</var> approaches infinity,
+ * <P>There are two probabilistic sources of problems: duplicate edges and non-acyclic hypergraphs.
+ * However, the probability of duplicate edges is vanishing when <var>n</var> approaches infinity,
  * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
@@ -88,8 +89,8 @@ import cern.colt.function.IntComparator;
  * class, this class will log at {@link org.apache.log4j.Level#INFO INFO} level
  * what's happening.
  *
- * <P>Note that if during the generation process the log warns more than once about duplicate hyperedges, you should
- * suspect that there are duplicates in the string list, as duplicate hyperedges are <em>extremely</em> unlikely.
+ * <P>Note that if during the generation process the log warns more than once about duplicate edges, you should
+ * suspect that there are duplicates in the string list, as duplicate edges are <em>extremely</em> unlikely.
  *
  * @author Sebastiano Vigna
  */
@@ -97,7 +98,7 @@ import cern.colt.function.IntComparator;
 
 public class HypergraphSorter<T> {
 	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
-	 * are acyclic with positive probability if the ratio hyperedges/vertices exceeds this constant. */
+	 * are acyclic with positive probability if the ratio edges/vertices exceeds this constant. */
 	public static final double GAMMA = 1.23;
 
 	/** The internal state of a visit. */
@@ -107,24 +108,24 @@ public class HypergraphSorter<T> {
 	final public int numVertices;
 	/** The number of edges in the hypergraph. */
 	final public int numEdges;
-	/** An 3&times;n array recording the triple of vertices involved in each hyperedge. It is *reversed*
+	/** An 3&times;n array recording the triple of vertices involved in each edge. It is *reversed*
 		   w.r.t. what you would expect to reduce object creation. */
 	final public int[][] edge;
-	/** Whether a hyperedge has been already removed. */
+	/** Whether a edge has been already removed. */
 	final private boolean[] removed;
-	/** For each vertex of the intermediate hypergraph, the vector of incident hyperedges. */
+	/** For each vertex of the intermediate hypergraph, the vector of incident edges. */
 	final private int[] inc;
 	/** The next position to fill in the respective incidence vector. 
-	 * Used also to store the hyperedge permutation and speed up permute(). */
+	 * Used also to store the edge permutation and speed up permute(). */
 	final private int[] last; 
 	/** For each vertex of the intermediate hypergraph, the offset into 
-	 * the vector of incident hyperedges. Used also to speed up permute(). */
+	 * the vector of incident edges. Used also to speed up permute(). */
 	final private int[] incOffset;
-	/** The hyperedge stack. Used also to invert the hyperedge permutation. */
+	/** The edge stack. Used also to invert the edge permutation. */
 	final public int[] stack;
 	/** The degree of each vertex of the intermediate hypergraph. */
 	final private int[] d;
-	/** Initial top of the hyperedge stack. */
+	/** Initial top of the edge stack. */
 	int top;
 	/** The stack for i. */
 	final private int[] recStackI;
@@ -149,14 +150,14 @@ public class HypergraphSorter<T> {
 		recStackK = new int[ numEdges ];
 	}
 
-	/** Turns a bit vector into a 3-hyperedge.
+	/** Turns a bit vector into a 3-edge.
 	 * 
 	 * <p>This method will never return degenerate edge.
 	 * 
 	 * @param bv a bit vector.
 	 * @param seed the seed for the hash function.
 	 * @param numVertices the number of vertices in the underlying hypergraph.
-	 * @param e an array to store the resulting hyperedge.
+	 * @param e an array to store the resulting edge.
 	 */
 	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int e[] ) {
 		final long[] h = new long[ 3 ];
@@ -189,7 +190,7 @@ public class HypergraphSorter<T> {
 		
 		final int[] e = new int[ 3 ];
 
-		/* We build the hyperedge list. */
+		/* We build the edge list. */
 		int k = 0;
 		IntArrays.fill( d, 0 );
 		
@@ -210,9 +211,9 @@ public class HypergraphSorter<T> {
 				d[ edge[ j ][ i ] ]++; 
 
 
-		LOGGER.info( "Checking for duplicate hyperedges..." );
+		LOGGER.info( "Checking for duplicate edges..." );
 
-		/* Now we quicksort hyperedges lexicographically, keeping into last their permutation. */
+		/* Now we quicksort edges lexicographically, keeping into last their permutation. */
 		for( int i = numEdges; i-- != 0; ) last[ i ] = i;
 
 		GenericSorting.quickSort( 0, numEdges, new IntComparator() {
@@ -244,11 +245,11 @@ public class HypergraphSorter<T> {
 		
 		for( int i = numEdges - 1; i-- != 0; ) 
 			if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
-				LOGGER.info( "Found double hyperedge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
+				LOGGER.info( "Found double edge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
 				return false;
 			}
 
-		/* We now invert last and permute all hyperedges back into their place. Note that
+		/* We now invert last and permute all edges back into their place. Note that
 		 * we use last and incOffset to speed up the process. */
 		for( int i = numEdges; i-- != 0; ) stack[ last[ i ] ] = i;
 
@@ -290,7 +291,7 @@ public class HypergraphSorter<T> {
 
 		if ( top == numEdges ) LOGGER.info( "Visit completed." );
 		else {
-			LOGGER.info( "Visit failed: stripped " + top + " hyperedges out of " + numEdges + "." );
+			LOGGER.info( "Visit failed: stripped " + top + " edges out of " + numEdges + "." );
 			return false;
 		}
 
@@ -320,7 +321,7 @@ public class HypergraphSorter<T> {
 		while ( true ) {
 			if ( ! inside ) {
 				for ( i = 0; i < last[ x ]; i++ ) 
-					if ( !removed[ k = inc[ incOffset[ x ] + i ] ] ) break; // The only hyperedge incident on x in the current configuration.
+					if ( !removed[ k = inc[ incOffset[ x ] + i ] ] ) break; // The only edge incident on x in the current configuration.
 
 				// TODO: k could be wrong if the graph is regular and cyclic.
 				stack[ top++ ] = k;
@@ -330,7 +331,7 @@ public class HypergraphSorter<T> {
 				for ( i = 0; i < 3; i++ ) d[ edge[ i ][ k ] ]--;
 			}
 
-			/* We follow recursively the other vertices of the hyperedge, if they have degree one in the current configuration. */
+			/* We follow recursively the other vertices of the edge, if they have degree one in the current configuration. */
 			for( i = 0; i < 3; i++ ) 
 				if ( edge[ i ][ k ] != x && d[ edge[ i ][ k ] ] == 1 ) {
 					recStackI[ recTop ] = i + 1;

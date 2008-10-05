@@ -35,6 +35,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.util.LongBigList;
 
@@ -63,7 +64,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>Instance of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
  * must return elements in a consistent order), whereas values are provided by a {@link LongList}. 
  * A convenient {@linkplain #MWHCFunction(Iterable, TransformationStrategy) constructor} 
- * automatically assigns to each key its ordinal value. 
+ * automatically assigns to each key its rank (e.g., its position in iteration order). 
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
@@ -71,11 +72,18 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <h2>Implementation Details</h2>
  * 
- * <p>After generating a random 3-hypergraph with suitably sorted edges,
+ * <p>After generating a {@link HypergraphSorter random 3-hypergraph with suitably sorted edges},
  * we assign to each vertex a value in such a way that for each 3-hyperedge the 
  * xor of the three values associated to its vertices is the required value for the corresponding
- * element of the function domain. Then, we measure whether it is favourable to store nonzero values
- * in a separate array, using a ranked marker array to record the positions of the values equal to zero.
+ * element of the function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
+ * 
+ * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
+ * in a separate array, using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
+ * 
+ * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> elements requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
+ * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
+ * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently chose
+ * the most space-efficient method.
  * 
  * @author Sebastiano Vigna
  * @since 0.2
