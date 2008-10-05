@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -112,7 +113,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	final protected int m;
 	/** The data width. */
 	final protected int width;
-	/** The seed of the underlying 3-hypergraph. */
+	/** The seed used to generate the initial hash triple. */
+	final protected long globalSeed;
+	/** The seed of the underlying 3-hypergraphs. */
 	final protected long[] seed;
 	/** The start offset of each block. */
 	final protected int[] offset;
@@ -151,7 +154,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		try{
 			Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transform );
 			if ( ! iterator.hasNext() ) {
-				n = m = 0;
+				globalSeed = n = m = 0;
 				data = null;
 				marker = null;
 				rank = null;
@@ -163,17 +166,27 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			}
 
 			final File file[] = new File[ 256 ];
+			final FileOutputStream[] fos = new FileOutputStream[ 256 ];
 			final DataOutputStream[] dos = new DataOutputStream[ 256 ];
+			final Random r = new Random();
 			
 			seed = new long[ 256 ];
+			offset = new int[ 257 ];
 			int[] c = new int[ 256 ];
+			
 			for( int i = 0; i < 256; i++ ) {
-				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( MWHCFunction.class.getSimpleName(), String.valueOf( i ) ))));
+				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( fos[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( MWHCFunction.class.getSimpleName(), String.valueOf( i ) ))));
 				file[ i ].deleteOnExit();
 			}
 
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+			ProgressLogger pl = new ProgressLogger( LOGGER );
+
+			pl.start( "Scanning collection... " );
+
 			int p = 0, bucket;
 			long[] h = new long[ 3 ];
+			long globalSeed = 0;
 			for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
 				Hashes.jenkins( bv, 0, h );
 				bucket = (int)( h[ 0 ] & 0xFF );
@@ -182,105 +195,137 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				dos[ bucket ].writeLong( h[ 1 ] );
 				dos[ bucket ].writeLong( h[ 2 ] );
 				dos[ bucket ].writeInt( p++ );
+				pl.lightUpdate();
 			}
+
+			pl.done();
 
 			n = p;
 			this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
-			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
-
 			// Candidate data; might be discarded for compaction.
-			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 			final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 512 );
 
-			if ( DEBUG ) {
-				System.err.print( "Bucket sizes: " );
-				double avg = n / 256.0;
-				double var = 0;
+
+			for(;;) {
+				LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
+
+
+				if ( DEBUG ) {
+					System.err.print( "Bucket sizes: " );
+					double avg = n / 256.0;
+					double var = 0;
+					for( int i = 0; i < 256; i++ ) {
+						System.err.print( i + ":" + c[ i ] + " " );
+						var += ( c[ i ] - avg  ) * ( c[ i ] - avg );
+					}
+					System.err.println();
+					System.err.println( "Average: " + avg );
+					System.err.println( "Variance: " + var / n );
+
+				}
+
+				for( DataOutputStream d: dos ) d.close();
+
+				long seed = 0;
+				HypergraphSorter.Result result = null;
+
 				for( int i = 0; i < 256; i++ ) {
-					System.err.print( i + ":" + c[ i ] + " " );
-					var += ( c[ i ] - avg  ) * ( c[ i ] - avg );
+					final int bucketSize = c[ i ];
+					final FastBufferedInputStream fbis = new FastBufferedInputStream( new FileInputStream( file[ i ] ) );
+					final DataInputStream dis = new DataInputStream( fbis );
+					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucketSize );
+					final int[] valueOffset = new int[ bucketSize ];
+					int duplicate = 0;
+
+					do {
+						if ( result == HypergraphSorter.Result.DUPLICATE && duplicate++ > 3 ) break;
+						LOGGER.info( "Generating random hypergraph for bucket " + i + "..." );
+						seed = r.nextLong();
+					} while ( ( result = sorter.generateAndSort( new AbstractObjectIterator<long[]>() {
+						private int pos = 0;
+						private long[] hash = new long[ 3 ];
+						{
+							fbis.position( 0 );
+						}
+						public boolean hasNext() {
+							return pos < bucketSize;
+						}
+
+						public long[] next() {
+							if ( ! hasNext() ) throw new NoSuchElementException();
+							try {
+								hash[ 0 ] = dis.readLong();
+								hash[ 1 ] = dis.readLong();
+								hash[ 2 ] = dis.readLong();
+								valueOffset[ pos ] = dis.readInt();
+							}
+							catch ( IOException e ) {
+								throw new RuntimeException( e );
+							}
+							pos++;
+							return hash;
+						}
+
+					}, seed ) ) != HypergraphSorter.Result.OK );
+
+					dis.close();
+
+					if ( result == HypergraphSorter.Result.DUPLICATE ) break;
+
+					this.seed[ i ] = seed;
+					offset[ i + 1 ] = offset[ i ] + sorter.numVertices; 
+
+					/* We assign values. */
+					/** Whether a specific node has already been used as perfect hash value for an item. */
+					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
+
+					int top = bucketSize, k, v = 0;
+					final int[] stack = sorter.stack;
+					final int[][] edge = sorter.edge;
+
+					long s;
+					while( top > 0 ) {
+						k = stack[ --top ];
+
+						s = 0;
+
+						for ( int j = 0; j < 3; j++ ) {
+							if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
+							else s ^= data.getLong( offset[ i ] + edge[ j ][ k ] );
+							used.set( edge[ j ][ k ] );
+						}
+
+						data.set( offset[ i ] + edge[ v ][ k ], ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) ^ s );
+						if ( ASSERTS ) assert ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) == ( data.getLong( offset[ i ] + edge[ 0 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 1 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 2 ][ k ] ) );
+					}
+
 				}
-				System.err.println();
-				System.err.println( "Average: " + avg );
-				System.err.println( "Variance: " + var / n );
+
+				if ( result != HypergraphSorter.Result.DUPLICATE ) break;
 				
-			}
-
-			for( DataOutputStream d: dos ) d.close();
-			offset = new int[ 257 ];
-
-			final Random r = new Random();
-			long seed;
-
-			for( int i = 0; i < 256; i++ ) {
-				final int bucketSize = c[ i ];
-				final FastBufferedInputStream fbis = new FastBufferedInputStream( new FileInputStream( file[ i ] ) );
-				final DataInputStream dis = new DataInputStream( fbis );
-				HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucketSize );
-				final int[] valueOffset = new int[ bucketSize ];
-
-				do {
-					LOGGER.info( "Generating random hypergraph..." );
-					seed = r.nextLong();
-				} while ( ! sorter.generateAndSort( new AbstractObjectIterator<long[]>() {
-					private int pos = 0;
-					private long[] h = new long[ 3 ];
-					{
-						fbis.position( 0 );
-					}
-					public boolean hasNext() {
-						return pos < bucketSize;
-					}
-
-					public long[] next() {
-						if ( ! hasNext() ) throw new NoSuchElementException();
-						try {
-							h[ 0 ] = dis.readLong();
-							h[ 1 ] = dis.readLong();
-							h[ 2 ] = dis.readLong();
-							valueOffset[ pos ] = dis.readInt();
-						}
-						catch ( IOException e ) {
-							throw new RuntimeException( e );
-						}
-						pos++;
-						return h;
-					}
-					
-				}, seed ) );
-
-				dis.close();
-				this.seed[ i ] = seed;
-				offset[ i + 1 ] = offset[ i ] + sorter.numVertices; 
-
-				/* We assign values. */
-				/** Whether a specific node has already been used as perfect hash value for an item. */
-				final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
-
-				int top = bucketSize, k, v = 0;
-				final int[] stack = sorter.stack;
-				final int[][] edge = sorter.edge;
-
-				long s;
-				while( top > 0 ) {
-					k = stack[ --top ];
-
-					s = 0;
-
-					for ( int j = 0; j < 3; j++ ) {
-						if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-						else s ^= data.getLong( offset[ i ] + edge[ j ][ k ] );
-						used.set( edge[ j ][ k ] );
-					}
-
-					data.set( offset[ i ] + edge[ v ][ k ], ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) ^ s );
-					if ( ASSERTS ) assert ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) == ( data.getLong( offset[ i ] + edge[ 0 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 1 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 2 ][ k ] ) );
+				// Too many duplicates. Resetting procedure.
+				for( DataOutputStream d: dos ) d.flush();
+				for( FileOutputStream f: fos ) f.getChannel().position( 0 );
+				globalSeed = r.nextLong();
+				Arrays.fill( c, 0 );
+				for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
+					Hashes.jenkins( bv, 0, h );
+					bucket = (int)( h[ 0 ] & 0xFF );
+					c[ bucket ]++;
+					dos[ bucket ].writeLong( h[ 0 ] );
+					dos[ bucket ].writeLong( h[ 1 ] );
+					dos[ bucket ].writeLong( h[ 2 ] );
+					dos[ bucket ].writeInt( p++ );
+					pl.lightUpdate();
 				}
 
+				pl.done();
 			}
 
-			for( File f: file ) f.delete();	
+			this.globalSeed = globalSeed;
+			for( File f: file ) f.delete();
+
 			// Check for compaction
 			long nonZero = 0;
 			m = offset[ 256 ];
@@ -336,7 +381,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return -1;
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)o ), 0, h );
+		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int bucket = (int)( h[ 0 ] & 0xFF );
 		final int bucketOffset = offset[ bucket ];
 		HypergraphSorter.bitVectorToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
@@ -375,6 +420,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
 		this.m = function.m;
+		this.globalSeed = function.globalSeed;
 		this.offset = function.offset;
 		this.width = function.width;
 		this.seed = function.seed;

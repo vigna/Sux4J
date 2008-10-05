@@ -384,10 +384,9 @@ public class Hashes {
 	 * 
 	 * @param triple three longs.
 	 * @param seed a seed for the hash.
-	 * @param h a triple of long values in which the three generated hashes will be saved.
 	 */
 	
-	public static void jenkins( final long[] triple, final long seed, final long[] h )  {
+	public static void jenkins( final long[] triple, final long seed )  {
 		long a, b, c;
 
 		/* Set up the internal state */
@@ -411,9 +410,9 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		h[ 0 ] = a;
-		h[ 1 ] = b;
-		h[ 2 ] = c;
+		triple[ 0 ] = a;
+		triple[ 1 ] = b;
+		triple[ 2 ] = c;
 	}
 
 }

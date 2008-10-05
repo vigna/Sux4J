@@ -97,6 +97,9 @@ import cern.colt.function.IntComparator;
 
 
 public class HypergraphSorter<T> {
+
+	public static enum Result { OK, DUPLICATE, CYCLIC }; 
+	
 	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
 	 * are acyclic with positive probability if the ratio edges/vertices exceeds this constant. */
 	public static final double GAMMA = 1.23;
@@ -190,11 +193,10 @@ public class HypergraphSorter<T> {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
 		}
-		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed, h );
-		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 1 ] = (int)( e[ 0 ] + ( h[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
-		e[ 2 ] = (int)( e[ 0 ] + ( h[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
+		Hashes.jenkins( triple, seed );
+		e[ 0 ] = (int)( ( triple[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( e[ 0 ] + ( triple[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
+		e[ 2 ] = (int)( e[ 0 ] + ( triple[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
 		if ( e[ 2 ] >= e[ 1 ] ) e[ 2 ]++;
 		e[ 1 ] %= numVertices;
 		e[ 2 ] %= numVertices;
@@ -209,7 +211,7 @@ public class HypergraphSorter<T> {
 	 * @param seed a 64-bit random seed.
 	 * @return true if the sorting procedure succeeded.
 	 */
-	public boolean generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
+	public Result generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] e = new int[ 3 ];
@@ -233,7 +235,7 @@ public class HypergraphSorter<T> {
 	 * @param seed a 64-bit random seed.
 	 * @return true if the sorting procedure succeeded.
 	 */
-	public boolean generateAndSort( final Iterator<long[]> iterator, final long seed ) {
+	public Result generateAndSort( final Iterator<long[]> iterator, final long seed ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] e = new int[ 3 ];
@@ -255,7 +257,7 @@ public class HypergraphSorter<T> {
 	 * 
 	 * @return true if the sorting procedure succeeded.
 	 */
-	private boolean generateAndSort() {
+	private Result generateAndSort() {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
 		final int[] last = this.last;
@@ -274,7 +276,7 @@ public class HypergraphSorter<T> {
 				d[ edge[ j ][ i ] ]++; 
 
 
-		LOGGER.info( "Checking for duplicate edges..." );
+		LOGGER.debug( "Checking for duplicate edges..." );
 
 		/* Now we quicksort edges lexicographically, keeping into last their permutation. */
 		for( int i = numEdges; i-- != 0; ) last[ i ] = i;
@@ -310,7 +312,7 @@ public class HypergraphSorter<T> {
 			for( int i = numEdges - 1; i-- != 0; ) 
 				if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
 					LOGGER.info( "Found double edge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
-					return false;
+					return Result.DUPLICATE;
 				}
 		}
 
@@ -331,7 +333,7 @@ public class HypergraphSorter<T> {
 		}, last, incOffset
 		);
 
-		LOGGER.info( "Visiting hypergraph..." );
+		LOGGER.debug( "Visiting hypergraph..." );
 
 		/* We set up the offset of each vertex in the incidence
 				   vector. This is necessary to avoid creating m incidence vectors at
@@ -359,10 +361,10 @@ public class HypergraphSorter<T> {
 		if ( top == numEdges ) LOGGER.info( "Visit completed." );
 		else {
 			LOGGER.info( "Visit failed: stripped " + top + " edges out of " + numEdges + "." );
-			return false;
+			return Result.CYCLIC;
 		}
 
-		return true;
+		return Result.OK;
 	}
 
 
