@@ -54,6 +54,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
@@ -147,40 +148,27 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
-
-		// First of all we compute the size, either by size(), if possible, or simply by iterating.
-		if ( elements instanceof Collection ) n = ((Collection<? extends T>)elements).size();
-		else {
-			int c = 0;
-			// Do not add a suppression annotation--it breaks javac
-			for( T o: elements ) c++;
-			n = c;
-		}
-		
-		if ( n == 0 ) {
-			data = null;
-			marker = null;
-			rank = null;
-			seed = null;
-			offset = null;
-			this.width = 0;
-			return;
-		}
-
-		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
-		this.seed = new long[ 256 ];
 		
 		LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
 		
-		// Candidate data; might be discarded for compaction.
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-		final LongBigList data = dataBitVector.asLongBigList( this.width );
-		
-		final File file[] = new File[ 256 ];
-		
 		try{
+			Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transform );
+			if ( ! iterator.hasNext() ) {
+				n = 0;
+				data = null;
+				marker = null;
+				rank = null;
+				seed = null;
+				offset = null;
+				this.width = 0;
+				return;
+				
+			}
+			
+			final File file[] = new File[ 256 ];
 			final DataOutputStream[] dos = new DataOutputStream[ 256 ];
 			
+			seed = new long[ 256 ];
 			int[] c = new int[ 256 ];
 			for( int i = 0; i < 256; i++ ) {
 				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( MWHCFunction.class.getSimpleName(), String.valueOf( i ) ))));
@@ -194,6 +182,12 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				BitVectors.writeFast( bv, dos[ h ] );
 				dos[ h ].writeInt( p++ );
 			}
+
+			n = p;
+			this.width = width == -1 ? Fast.ceilLog2( n ) : width;
+			// Candidate data; might be discarded for compaction.
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+			final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 512 );
 
 			if ( DEBUG ) LOGGER.debug( "Bucket sizes: " + Arrays.toString( c ) );
 
@@ -242,8 +236,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				this.seed[ i ] = seed;
 				offset[ i + 1 ] = offset[ i ] + sorter.numVertices; 
 
-				data.size( offset[ i + 1 ] );
-
 				/* We assign values. */
 				/** Whether a specific node has already been used as perfect hash value for an item. */
 				final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
@@ -269,55 +261,56 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				}
 
 			}
+
+			for( File f: file ) f.delete();	
+			// Check for compaction
+			long nonZero = 0;
+			final int m = offset[ 256 ];
+			data.size( m );
+			for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
+
+			// We estimate size using Rank16
+			if ( nonZero * this.width + m * 1.126 < (long)m * this.width ) {
+				LOGGER.info( "Compacting..." );
+				marker = LongArrayBitVector.ofLength( m );
+				final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( nonZero );
+				nonZero = 0;
+				for( int i = 0; i < data.size(); i++ ) {
+					final long value = data.getLong( i ); 
+					if ( value != 0 ) {
+						marker.set( i );
+						newData.set( nonZero++, value );
+					}
+				}
+
+				rank = new Rank16( marker );
+
+				if ( ASSERTS ) {
+					for( int i = 0; i < data.size(); i++ ) {
+						final long value = data.getLong( i ); 
+						assert ( value != 0 ) == marker.getBoolean( i );
+						if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) ) : value + " != " + newData.getLong( rank.rank( i ) );
+					}
+				}
+				this.data = newData;
+			}
+			else {
+				dataBitVector.trim();
+				this.data = data;
+				marker = null;
+				rank = null;
+			}
+
+			LOGGER.info( "Completed." );
+			LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
+					HypergraphSorter.GAMMA * this.width :
+						HypergraphSorter.GAMMA + this.width + 0.126 ) );
+			LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 		}
 		catch( IOException e ) {
 			throw new RuntimeException( e );
 		}
-		
-		for( File f: file ) f.delete();
-		
-		// Check for compaction
-		long c = 0;
-		final int m = offset[ 256 ];
-		for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) c++;
 
-		// We estimate size using Rank16
-		if ( c * this.width + m * 1.126 < (long)m * this.width ) {
-			LOGGER.info( "Compacting..." );
-			marker = LongArrayBitVector.ofLength( m );
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( c );
-			c = 0;
-			for( int i = 0; i < data.size(); i++ ) {
-				final long value = data.getLong( i ); 
-				if ( value != 0 ) {
-					marker.set( i );
-					newData.set( c++, value );
-				}
-			}
-
-			rank = new Rank16( marker );
-
-			if ( ASSERTS ) {
-				for( int i = 0; i < data.size(); i++ ) {
-					final long value = data.getLong( i ); 
-					assert ( value != 0 ) == marker.getBoolean( i );
-					if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) ) : value + " != " + newData.getLong( rank.rank( i ) );
-				}
-			}
-			this.data = newData;
-		}
-		else {
-			dataBitVector.trim();
-			this.data = data;
-			marker = null;
-			rank = null;
-		}
-		
-		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
-				HypergraphSorter.GAMMA * this.width :
-					HypergraphSorter.GAMMA + this.width + 0.126 ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 
