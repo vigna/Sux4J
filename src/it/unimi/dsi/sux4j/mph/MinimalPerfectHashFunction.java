@@ -166,7 +166,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		do {
 			LOGGER.info( "Generating random hypergraph..." );
 			seed = r.nextLong();
-		} while ( ! sorter.generateAndSort( elements.iterator(), transform, seed ) );
+		} while ( sorter.generateAndSort( elements.iterator(), transform, seed ) != HypergraphSorter.Result.OK );
 		
 		this.seed = seed;
 		

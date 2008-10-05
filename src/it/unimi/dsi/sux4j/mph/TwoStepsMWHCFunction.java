@@ -231,6 +231,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		final BitVector bitVector = transform.toBitVector( (T)o );
 		if ( firstFunction != null ) {
 			final int firstValue = (int)firstFunction.getLong( bitVector );
+			if ( firstValue == -1 ) return -1;
 			if ( firstValue != escape ) return remap[ firstValue ];
 		}
 		return secondFunction.getLong( bitVector );

@@ -93,7 +93,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long prefix = lcpLengths.getLong( bitVector ); 
-		if ( prefix > bitVector.length() ) return -1;
+		if ( prefix == -1 || prefix > bitVector.length() ) return -1;
 		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLong( bitVector );
 	}
 

@@ -305,11 +305,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				if ( result != HypergraphSorter.Result.DUPLICATE ) break;
 				
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				// Too many duplicates. Resetting procedure.
+
+				// Too many duplicates. Resetting procedure. This shouldn't happen.
 				for( DataOutputStream d: dos ) d.flush();
 				for( FileOutputStream f: fos ) f.getChannel().position( 0 );
 				globalSeed = r.nextLong();
 				Arrays.fill( c, 0 );
+				dataBitVector.fill( false );
 				p = 0;
 				for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
 					Hashes.jenkins( bv, globalSeed, h );
