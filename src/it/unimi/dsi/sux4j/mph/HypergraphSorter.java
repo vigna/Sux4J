@@ -138,7 +138,7 @@ public class HypergraphSorter<T> {
 	 */
 	public HypergraphSorter( final int numEdges ) {
 		this.numEdges = numEdges;
-		numVertices = (int)Math.ceil( GAMMA * numEdges ) + 1;
+		numVertices = numEdges == 0 ? 0 : (int)Math.ceil( GAMMA * numEdges ) + 1;
 		edge = new int[ 3 ][ numEdges ];
 		last = new int[ numVertices ];
 		inc = new int[ numVertices * 3 ];
@@ -152,7 +152,8 @@ public class HypergraphSorter<T> {
 
 	/** Turns a bit vector into a 3-edge.
 	 * 
-	 * <p>This method will never return degenerate edge.
+	 * <p>This method will never return a degenerate edge. However, if there are no edges
+	 * the vector <code>e</code> will be filled with -1.
 	 * 
 	 * @param bv a bit vector.
 	 * @param seed the seed for the hash function.
@@ -160,6 +161,10 @@ public class HypergraphSorter<T> {
 	 * @param e an array to store the resulting edge.
 	 */
 	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int e[] ) {
+		if ( numVertices == 0 ) {
+			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
+			return;
+		}
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( bv, seed, h );
 		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
@@ -191,19 +196,16 @@ public class HypergraphSorter<T> {
 		final int[] e = new int[ 3 ];
 
 		/* We build the edge list. */
-		int k = 0;
 		IntArrays.fill( d, 0 );
 		
-		while( iterator.hasNext() ) {
+		for( int k = 0; k < numEdges; k++ ) {
 			bitVectorToEdge( transform.toBitVector( iterator.next() ), seed, numVertices, e );
 			edge[ 0 ][ k ] = e[ 0 ];
 			edge[ 1 ][ k ] = e[ 1 ];
 			edge[ 2 ][ k ] = e[ 2 ];
-
-			k++;
 		}
 
-		// TODO: should we check hasNext()?
+		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSorter.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
 		
 		/* We compute the degree of each vertex. */
 		for( int j = 0; j < 3; j++ ) 
@@ -242,12 +244,14 @@ public class HypergraphSorter<T> {
 		//for( int i = 0; i < numEdges; i++ ){ for( int j = 0; j < 3; j++ ) System.err.print( edge[ j ][i ]+ " "); System.err.print( tmp[last[i ]] );
 		//Hashes.jenkins( tmp[last[i ] ], init, h ); System.err.print( Arrays.toString(h));
 		//System.err.println(); }
-		
-		for( int i = numEdges - 1; i-- != 0; ) 
-			if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
-				LOGGER.info( "Found double edge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
-				return false;
-			}
+
+		if ( numEdges > 1 ) {
+			for( int i = numEdges - 1; i-- != 0; ) 
+				if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
+					LOGGER.info( "Found double edge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
+					return false;
+				}
+		}
 
 		/* We now invert last and permute all edges back into their place. Note that
 		 * we use last and incOffset to speed up the process. */
@@ -272,10 +276,12 @@ public class HypergraphSorter<T> {
 				   vector. This is necessary to avoid creating m incidence vectors at
 				   each round. */
 		IntArrays.fill( last, 0 );
-		incOffset[ 0 ] = 0;
 
-		for( int i = 1; i < numVertices; i++ ) incOffset[ i ] = incOffset[ i - 1 ] + d[ i - 1 ];
-
+		if ( numVertices > 0 ) {
+			incOffset[ 0 ] = 0;
+			for( int i = 1; i < numVertices; i++ ) incOffset[ i ] = incOffset[ i - 1 ] + d[ i - 1 ];
+		}
+		
 		/* We fill the vector. */
 		for( int i = 0; i < numEdges; i++ ) 
 			for( int j = 0; j < 3; j++ ) {
