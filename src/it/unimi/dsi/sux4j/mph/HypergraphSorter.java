@@ -175,7 +175,33 @@ public class HypergraphSorter<T> {
 		e[ 2 ] %= numVertices;
 	}
 	
-		
+	/** Turns a triple of intermediate hashes into a 3-edge.
+	 * 
+	 * <p>This method will never return a degenerate edge. However, if there are no edges
+	 * the vector <code>e</code> will be filled with -1.
+	 * 
+	 * @param triple a triple of intermediate hashes.
+	 * @param seed the seed for the hash function.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
+	 * @param e an array to store the resulting edge.
+	 */
+	public static void bitVectorToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
+		if ( numVertices == 0 ) {
+			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
+			return;
+		}
+		final long[] h = new long[ 3 ];
+		Hashes.jenkins( triple, seed, h );
+		e[ 0 ] = (int)( ( h[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( e[ 0 ] + ( h[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
+		e[ 2 ] = (int)( e[ 0 ] + ( h[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
+		if ( e[ 2 ] >= e[ 1 ] ) e[ 2 ]++;
+		e[ 1 ] %= numVertices;
+		e[ 2 ] %= numVertices;
+	}
+	
+
+
 	/** Generates a random 3-hypergraph and tries to sort its edges.
 	 * 
 	 * @param iterator an iterator returning {@link #numEdges} keys.
@@ -186,18 +212,9 @@ public class HypergraphSorter<T> {
 	public boolean generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
-		final int[] last = this.last;
-		final int[] inc = this.inc;
-		final int[] incOffset = this.incOffset;
-		final int[] stack = this.stack;
-		final int[] d = this.d;
-		BooleanArrays.fill( removed, false );
-		
 		final int[] e = new int[ 3 ];
 
 		/* We build the edge list. */
-		IntArrays.fill( d, 0 );
-		
 		for( int k = 0; k < numEdges; k++ ) {
 			bitVectorToEdge( transform.toBitVector( iterator.next() ), seed, numVertices, e );
 			edge[ 0 ][ k ] = e[ 0 ];
@@ -206,8 +223,52 @@ public class HypergraphSorter<T> {
 		}
 
 		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSorter.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
+
+		return generateAndSort();
+	}
+
+	/** Generates a random 3-hypergraph and tries to sort its edges.
+	 * 
+	 * @param iteratore an iterator returning {@link #numEdges} keys.
+	 * @param seed a 64-bit random seed.
+	 * @return true if the sorting procedure succeeded.
+	 */
+	public boolean generateAndSort( final Iterator<long[]> iterator, final long seed ) {
+		// We cache all variables for faster access
+		final int[][] edge = this.edge;
+		final int[] e = new int[ 3 ];
+
+		/* We build the edge list. */
+		for( int k = 0; k < numEdges; k++ ) {
+			bitVectorToEdge( iterator.next(), seed, numVertices, e );
+			edge[ 0 ][ k ] = e[ 0 ];
+			edge[ 1 ][ k ] = e[ 1 ];
+			edge[ 2 ][ k ] = e[ 2 ];
+		}
+
+		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSorter.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
+
+		return generateAndSort();
+	}
+
+	/** Generates a random 3-hypergraph and tries to sort its edges.
+	 * 
+	 * @return true if the sorting procedure succeeded.
+	 */
+	private boolean generateAndSort() {
+		// We cache all variables for faster access
+		final int[][] edge = this.edge;
+		final int[] last = this.last;
+		final int[] inc = this.inc;
+		final int[] incOffset = this.incOffset;
+		final int[] stack = this.stack;
+		final int[] d = this.d;
+		BooleanArrays.fill( removed, false );
+		
 		
 		/* We compute the degree of each vertex. */
+		IntArrays.fill( d, 0 );
+		
 		for( int j = 0; j < 3; j++ ) 
 			for( int i = numEdges; i-- != 0; ) 
 				d[ edge[ j ][ i ] ]++; 

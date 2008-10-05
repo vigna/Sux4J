@@ -103,7 +103,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 		
 	/** The number of elements. */
@@ -172,13 +172,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				file[ i ].deleteOnExit();
 			}
 
-			int p = 0;
+			int p = 0, bucket;
+			long[] h = new long[ 3 ];
 			for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
-				int h = bv.hashCode();
-				h = ( ( h >>> 32 ) ^ ( h >> 16 ) ^ ( h >> 8 ) ^ h ) & 0xFF;
-				c[ h ]++;
-				BitVectors.writeFast( bv, dos[ h ] );
-				dos[ h ].writeInt( p++ );
+				Hashes.jenkins( bv, 0, h );
+				bucket = (int)( h[ 0 ] & 0xFF );
+				c[ bucket ]++;
+				dos[ bucket ].writeLong( h[ 0 ] );
+				dos[ bucket ].writeLong( h[ 1 ] );
+				dos[ bucket ].writeLong( h[ 2 ] );
+				dos[ bucket ].writeInt( p++ );
 			}
 
 			n = p;
@@ -220,9 +223,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				do {
 					LOGGER.info( "Generating random hypergraph..." );
 					seed = r.nextLong();
-				} while ( ! sorter.generateAndSort( new AbstractObjectIterator<BitVector>() {
+				} while ( ! sorter.generateAndSort( new AbstractObjectIterator<long[]>() {
 					private int pos = 0;
-					private LongArrayBitVector bv = LongArrayBitVector.getInstance();
+					private long[] h = new long[ 3 ];
 					{
 						fbis.position( 0 );
 					}
@@ -230,20 +233,22 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						return pos < bucketSize;
 					}
 
-					public BitVector next() {
+					public long[] next() {
 						if ( ! hasNext() ) throw new NoSuchElementException();
 						try {
-							BitVectors.readFast( dis, bv );
+							h[ 0 ] = dis.readLong();
+							h[ 1 ] = dis.readLong();
+							h[ 2 ] = dis.readLong();
 							valueOffset[ pos ] = dis.readInt();
 						}
 						catch ( IOException e ) {
 							throw new RuntimeException( e );
 						}
 						pos++;
-						return bv;
+						return h;
 					}
 					
-				}, TransformationStrategies.identity(), seed ) );
+				}, seed ) );
 
 				dis.close();
 				this.seed[ i ] = seed;
@@ -330,11 +335,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return -1;
 		final int[] e = new int[ 3 ];
-		final BitVector bv = transform.toBitVector( (T)o );
-		int bucket = bv.hashCode();
-		bucket = ( ( bucket >>> 32 ) ^ ( bucket >> 16 ) ^ ( bucket >> 8 ) ^ bucket ) & 0xFF;
+		final long[] h = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)o ), 0, h );
+		final int bucket = (int)( h[ 0 ] & 0xFF );
 		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)o ), seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		HypergraphSorter.bitVectorToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
 		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
 		if ( e0 == -1 ) return -1;
 		return rank == null ?
