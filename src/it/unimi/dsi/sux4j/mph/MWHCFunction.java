@@ -52,7 +52,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -105,12 +104,12 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 		
 	/** The number of elements. */
 	final protected int n;
 	/** The number of vertices of the intermediate hypergraph. */
-	//final protected int m;
+	final protected int m;
 	/** The data width. */
 	final protected int width;
 	/** The seed of the underlying 3-hypergraph. */
@@ -149,12 +148,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) {
 		this.transform = transform;
 		
-		LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
-		
 		try{
 			Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transform );
 			if ( ! iterator.hasNext() ) {
-				n = 0;
+				n = m = 0;
 				data = null;
 				marker = null;
 				rank = null;
@@ -164,7 +161,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				return;
 				
 			}
-			
+
 			final File file[] = new File[ 256 ];
 			final DataOutputStream[] dos = new DataOutputStream[ 256 ];
 			
@@ -177,7 +174,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			int p = 0;
 			for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
-				int h = (int)( Hashes.jenkins( bv ) & 0xFF );
+				int h = bv.hashCode();
+				h = ( ( h >>> 32 ) ^ ( h >> 16 ) ^ ( h >> 8 ) ^ h ) & 0xFF;
 				c[ h ]++;
 				BitVectors.writeFast( bv, dos[ h ] );
 				dos[ h ].writeInt( p++ );
@@ -185,11 +183,26 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			n = p;
 			this.width = width == -1 ? Fast.ceilLog2( n ) : width;
+
+			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
+
 			// Candidate data; might be discarded for compaction.
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 			final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 512 );
 
-			if ( DEBUG ) LOGGER.debug( "Bucket sizes: " + Arrays.toString( c ) );
+			if ( DEBUG ) {
+				System.err.print( "Bucket sizes: " );
+				double avg = n / 256.0;
+				double var = 0;
+				for( int i = 0; i < 256; i++ ) {
+					System.err.print( i + ":" + c[ i ] + " " );
+					var += ( c[ i ] - avg  ) * ( c[ i ] - avg );
+				}
+				System.err.println();
+				System.err.println( "Average: " + avg );
+				System.err.println( "Variance: " + var / n );
+				
+			}
 
 			for( DataOutputStream d: dos ) d.close();
 			offset = new int[ 257 ];
@@ -265,7 +278,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			for( File f: file ) f.delete();	
 			// Check for compaction
 			long nonZero = 0;
-			final int m = offset[ 256 ];
+			m = offset[ 256 ];
 			data.size( m );
 			for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 
@@ -313,19 +326,22 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	}
 
-
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return -1;
 		final int[] e = new int[ 3 ];
-		BitVector bv = transform.toBitVector( (T)o );
-		int block = (int)( Hashes.jenkins( bv ) & 0xFF );
-		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)o ), seed[ block ], offset[ block + 1 ] - offset[ block ], e );
+		final BitVector bv = transform.toBitVector( (T)o );
+		int bucket = bv.hashCode();
+		bucket = ( ( bucket >>> 32 ) ^ ( bucket >> 16 ) ^ ( bucket >> 8 ) ^ bucket ) & 0xFF;
+		final int bucketOffset = offset[ bucket ];
+		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)o ), seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
+		if ( e0 == -1 ) return -1;
 		return rank == null ?
-				data.getLong( offset[ block ] + e[ 0 ] ) ^ data.getLong( offset[ block ] + e[ 1 ] ) ^ data.getLong( offset[ block ] + e[ 2 ] ) :
-				( marker.getBoolean( offset[ block ] + e[ 0 ] ) ? data.getLong( rank.rank( offset[ block ] + e[ 0 ] ) ) : 0 ) ^
-				( marker.getBoolean( offset[ block ] + e[ 1 ] ) ? data.getLong( rank.rank( offset[ block ] + e[ 1 ] ) ) : 0 ) ^
-				( marker.getBoolean( offset[ block ] + e[ 2 ] ) ? data.getLong( rank.rank( offset[ block ] + e[ 2 ] ) ) : 0 );
+				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
+				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
+				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
+				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
 	}
 	
 	
@@ -353,6 +369,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
+		this.m = function.m;
 		this.offset = function.offset;
 		this.width = function.width;
 		this.seed = function.seed;
