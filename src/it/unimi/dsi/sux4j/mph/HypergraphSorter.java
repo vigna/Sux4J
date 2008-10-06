@@ -31,9 +31,7 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import cern.colt.GenericPermuting;
-import cern.colt.GenericSorting;
-import cern.colt.Swapper;
+import cern.colt.Sorting;
 import cern.colt.function.IntComparator;
 
 /** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
@@ -68,6 +66,17 @@ import cern.colt.function.IntComparator;
  * storing the transformation provided at construction time, which would make this class non-thread-safe.
  * Just be careful to transform the keys into bit vectors using
  * the same {@link TransformationStrategy} used to generate the random 3-hypergraph.
+ * 
+ * <h2>Support for preprocessed keys</h2>
+ * 
+ * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
+ * {@link #generateAndSort(Iterator, long)} and {@link #bitVectorToEdge(long[], long, int, int[])} use
+ * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
+ * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
+ * then operating directly on the hash codes. This is particularly useful in bucketed constructions, where
+ * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
+ * rehashed using {@link Hashes#jenkins(long[], long)}&mdash;this is necessary to vary the associated edges whenever
+ * the generated 3-hypergraph is not acyclic.
  * 
  * <h2>Implementation details</h2>
  * 
@@ -153,7 +162,7 @@ public class HypergraphSorter<T> {
 		recStackK = new int[ numEdges ];
 	}
 
-	/** Turns a bit vector into a 3-edge.
+	/** Turns a bit vector into an edge.
 	 * 
 	 * <p>This method will never return a degenerate edge. However, if there are no edges
 	 * the vector <code>e</code> will be filled with -1.
@@ -178,7 +187,7 @@ public class HypergraphSorter<T> {
 		e[ 2 ] %= numVertices;
 	}
 	
-	/** Turns a triple of intermediate hashes into a 3-edge.
+	/** Turns a triple of longs into an edge.
 	 * 
 	 * <p>This method will never return a degenerate edge. However, if there are no edges
 	 * the vector <code>e</code> will be filled with -1.
@@ -231,7 +240,7 @@ public class HypergraphSorter<T> {
 
 	/** Generates a random 3-hypergraph and tries to sort its edges.
 	 * 
-	 * @param iteratore an iterator returning {@link #numEdges} keys.
+	 * @param iterator an iterator returning {@link #numEdges} triples of longs.
 	 * @param seed a 64-bit random seed.
 	 * @return true if the sorting procedure succeeded.
 	 */
@@ -263,7 +272,6 @@ public class HypergraphSorter<T> {
 		final int[] last = this.last;
 		final int[] inc = this.inc;
 		final int[] incOffset = this.incOffset;
-		final int[] stack = this.stack;
 		final int[] d = this.d;
 		BooleanArrays.fill( removed, false );
 		
@@ -276,62 +284,30 @@ public class HypergraphSorter<T> {
 				d[ edge[ j ][ i ] ]++; 
 
 
-		LOGGER.debug( "Checking for duplicate edges..." );
-
-		/* Now we quicksort edges lexicographically, keeping into last their permutation. */
-		for( int i = numEdges; i-- != 0; ) last[ i ] = i;
-
-		GenericSorting.quickSort( 0, numEdges, new IntComparator() {
-			public int compare( final int x, final int y ) {
-				int r;
-				if ( ( r = edge[ 0 ][ x ] - edge[ 0 ][ y ] ) != 0 ) return r;
-				if ( ( r = edge[ 1 ][ x ] - edge[ 1 ][ y ] ) != 0 ) return r;
-				return edge[ 2 ][ x ] - edge[ 2 ][ y ];
-			}
-		},
-		new Swapper() {
-			public void swap( final int x, final int y ) {
-				int e0 = edge[ 0 ][ x ], e1 = edge[ 1 ][ x ], e2 = edge[ 2 ][ x ], p = last[ x ];
-				edge[ 0 ][ x ] = edge[ 0 ][ y ];
-				edge[ 1 ][ x ] = edge[ 1 ][ y ];
-				edge[ 2 ][ x ] = edge[ 2 ][ y ];
-				edge[ 0 ][ y ] = e0;
-				edge[ 1 ][ y ] = e1;
-				edge[ 2 ][ y ] = e2;
-				last[ x ] = last[ y ];
-				last[ y ] = p;
-			}
-		}
-		);
-
-		//for( int i = 0; i < numEdges; i++ ){ for( int j = 0; j < 3; j++ ) System.err.print( edge[ j ][i ]+ " "); System.err.print( tmp[last[i ]] );
-		//Hashes.jenkins( tmp[last[i ] ], init, h ); System.err.print( Arrays.toString(h));
-		//System.err.println(); }
-
 		if ( numEdges > 1 ) {
-			for( int i = numEdges - 1; i-- != 0; ) 
-				if ( edge[ 0 ][ i + 1 ] == edge[ 0 ][ i ] && edge[ 1 ][ i + 1 ] == edge[ 1 ][ i ] && edge[ 2 ][ i + 1 ] == edge[ 2 ][ i ] ) {
-					LOGGER.info( "Found double edge for elements " + last[ i ] + " and " + last[ i + 1 ] + "." );
+			LOGGER.debug( "Checking for duplicate edges..." );
+
+			/* Now we quicksort edges lexicographically, keeping into last their permutation. */
+			for( int i = numEdges; i-- != 0; ) last[ i ] = i;
+
+			Sorting.quickSort( last, 0, numEdges, new IntComparator() {
+				public int compare( final int x, final int y ) {
+					int r;
+					if ( ( r = edge[ 0 ][ x ] - edge[ 0 ][ y ] ) != 0 ) return r;
+					if ( ( r = edge[ 1 ][ x ] - edge[ 1 ][ y ] ) != 0 ) return r;
+					return edge[ 2 ][ x ] - edge[ 2 ][ y ];
+				}
+			} );
+
+			for( int i = numEdges - 1, prev = last[ numEdges - 1 ], next; i-- != 0; ) {
+				next = last[ i ];
+				if ( edge[ 0 ][ next ] == edge[ 0 ][ prev ] && edge[ 1 ][ next ] == edge[ 1 ][ prev ] && edge[ 2 ][ next ] == edge[ 2 ][ prev ] ) {
+					LOGGER.info( "Found double edge for elements " + next + " and " + prev + "." );
 					return Result.DUPLICATE;
 				}
-		}
-
-		/* We now invert last and permute all edges back into their place. Note that
-		 * we use last and incOffset to speed up the process. */
-		for( int i = numEdges; i-- != 0; ) stack[ last[ i ] ] = i;
-
-		GenericPermuting.permute( stack, new Swapper() {
-			public void swap( final int x, final int y ) {
-				int e0 = edge[ 0 ][ x ], e1 = edge[ 1 ][ x ], e2 = edge[ 2 ][ x ];
-				edge[ 0 ][ x ] = edge[ 0 ][ y ];
-				edge[ 1 ][ x ] = edge[ 1 ][ y ];
-				edge[ 2 ][ x ] = edge[ 2 ][ y ];
-				edge[ 0 ][ y ] = e0;
-				edge[ 1 ][ y ] = e1;
-				edge[ 2 ][ y ] = e2;
+				prev = next;
 			}
-		}, last, incOffset
-		);
+		}
 
 		LOGGER.debug( "Visiting hypergraph..." );
 
@@ -358,9 +334,9 @@ public class HypergraphSorter<T> {
 		top = 0;
 		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) visit( i );
 
-		if ( top == numEdges ) LOGGER.info( "Visit completed." );
+		if ( top == numEdges ) LOGGER.debug( "Visit completed." );
 		else {
-			LOGGER.info( "Visit failed: stripped " + top + " edges out of " + numEdges + "." );
+			LOGGER.debug( "Visit failed: stripped " + top + " edges out of " + numEdges + "." );
 			return Result.CYCLIC;
 		}
 

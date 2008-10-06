@@ -18,31 +18,33 @@ public class MWHCFunctionTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
 
-		for( int width = 16; width < Long.SIZE; width += 8 ) {
-			String[] s = new String[ 1000 ];
-			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
+		for( int width = 20; width < Long.SIZE; width += 8 ) {
+			for( int size = 1000; size < 10000000; size *= 10 ) {
+				String[] s = new String[ size ];
+				for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 
-			MWHCFunction<CharSequence> mph = new MWHCFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16(), null, width );
+				MWHCFunction<CharSequence> mph = new MWHCFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16(), null, width );
 
-			int[] check = new int[ s.length ];
-			IntArrays.fill( check, -1 );
-			for( int i = s.length; i-- != 0; ) {
-				assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
-				check[ (int)mph.getLong( s[ i ] ) ] = i;
-			}
+				int[] check = new int[ s.length ];
+				IntArrays.fill( check, -1 );
+				for( int i = s.length; i-- != 0; ) {
+					assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
+					check[ (int)mph.getLong( s[ i ] ) ] = i;
+				}
 
-			// Exercise code for negative results
-			for( int i = 1000; i-- != 0; ) mph.getLong( Integer.toString( i * i + 1000 ) );
+				// Exercise code for negative results
+				for( int i = size; i-- != 0; ) mph.getLong( Integer.toString( i * i + size ) );
 
-			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-			temp.deleteOnExit();
-			BinIO.storeObject( mph, temp );
-			mph = (MWHCFunction<CharSequence>)BinIO.loadObject( temp );
+				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
+				mph = (MWHCFunction<CharSequence>)BinIO.loadObject( temp );
 
-			IntArrays.fill( check, -1 );
-			for( int i = s.length; i-- != 0; ) {
-				assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
-				check[ (int)mph.getLong( s[ i ] ) ] = i;
+				IntArrays.fill( check, -1 );
+				for( int i = s.length; i-- != 0; ) {
+					assertEquals( Integer.toString( i ), -1, check[ (int)mph.getLong( s[ i ] ) ] );
+					check[ (int)mph.getLong( s[ i ] ) ] = i;
+				}
 			}
 		}
 	}
@@ -67,8 +69,8 @@ public class MWHCFunctionTest extends TestCase {
 					}
 				}, 
 				TransformationStrategies.utf16() );
-		assertEquals( mph.getLong( "a" ), 0 );
-		assertEquals( mph.getLong( "b" ), 1 );
-		assertEquals( mph.getLong( "c" ), 2 );
+		assertEquals( 0, mph.getLong( "a" ) );
+		assertEquals( 1, mph.getLong( "b" ) );
+		assertEquals( 2, mph.getLong( "c" ) );
 	}
 }

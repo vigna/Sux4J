@@ -23,7 +23,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -50,6 +49,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.SequenceInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -59,7 +59,12 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.collections.iterators.IteratorEnumeration;
 import org.apache.log4j.Logger;
+
+import cern.colt.GenericSorting;
+import cern.colt.Swapper;
+import cern.colt.function.IntComparator;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -107,6 +112,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 		
+	/** The logarithm of the number of physical disk buckets. */
+	public final static int LOG2_DISK_BUCKETS = 8;
+	/** The number of physical disk buckets. */
+	public final static int DISK_BUCKETS = 1 << LOG2_DISK_BUCKETS;
+	/** The shift for physical disk buckets. */
+	public final static int DISK_BUCKETS_SHIFT = Long.SIZE - LOG2_DISK_BUCKETS;
+	/** The logarithm of the desired bucket size. */
+	public final static int LOG2_BUCKET_SIZE = 9;
+	/** The shift for buckets. */
+	final private int bucketShift;
 	/** The number of elements. */
 	final protected int n;
 	/** The number of vertices of the intermediate hypergraph. */
@@ -154,42 +169,37 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		try{
 			Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transform );
 			if ( ! iterator.hasNext() ) {
-				globalSeed = n = m = 0;
+				globalSeed = bucketShift = n = m = this.width = 0;
 				data = null;
 				marker = null;
 				rank = null;
 				seed = null;
 				offset = null;
-				this.width = 0;
 				return;
-				
 			}
 
-			final File file[] = new File[ 256 ];
-			final FileOutputStream[] fos = new FileOutputStream[ 256 ];
-			final DataOutputStream[] dos = new DataOutputStream[ 256 ];
+			final File file[] = new File[ DISK_BUCKETS ];
+			final FileOutputStream[] fos = new FileOutputStream[ DISK_BUCKETS ];
+			final DataOutputStream[] dos = new DataOutputStream[ DISK_BUCKETS ];
 			final Random r = new Random();
 			
-			seed = new long[ 256 ];
-			offset = new int[ 257 ];
-			int[] c = new int[ 256 ];
-			
-			for( int i = 0; i < 256; i++ ) {
-				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( fos[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( MWHCFunction.class.getSimpleName(), String.valueOf( i ) ))));
+			for( int i = 0; i < DISK_BUCKETS; i++ ) {
+				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( fos[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( MWHCFunction.class.getSimpleName(), String.valueOf( i ) ) ) ) );
 				file[ i ].deleteOnExit();
 			}
 
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-			ProgressLogger pl = new ProgressLogger( LOGGER );
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
 
 			pl.start( "Scanning collection... " );
 
 			int p = 0, bucket;
 			long[] h = new long[ 3 ];
+			int[] c = new int[ DISK_BUCKETS ];
 			long globalSeed = 0;
 			for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
 				Hashes.jenkins( bv, 0, h );
-				bucket = (int)( h[ 0 ] & 0xFF );
+				bucket = (int)( h[ 0 ] >>> DISK_BUCKETS_SHIFT );
 				c[ bucket ]++;
 				dos[ bucket ].writeLong( h[ 0 ] );
 				dos[ bucket ].writeLong( h[ 1 ] );
@@ -199,23 +209,51 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			}
 
 			pl.done();
-
 			n = p;
+
+			// Now we decide whether to coarsen the file subdivision
+			final int virtualDiskBuckets, log2NumBuckets;
+			if ( Fast.ceilLog2( n >> LOG2_BUCKET_SIZE ) < LOG2_DISK_BUCKETS ) {
+				log2NumBuckets = Math.max( 0, Fast.ceilLog2( n >> LOG2_BUCKET_SIZE ) );
+				virtualDiskBuckets = 1 << log2NumBuckets;
+			}
+			else {
+				log2NumBuckets = Fast.ceilLog2( n >> LOG2_BUCKET_SIZE );
+				virtualDiskBuckets = DISK_BUCKETS;
+			}
+
+			bucketShift = Long.SIZE - log2NumBuckets;
+			final int bucketStep = DISK_BUCKETS / virtualDiskBuckets;
+			final int numBuckets = 1 << log2NumBuckets;
+			
+			//System.err.println( log2NumBuckets +  " " + numBuckets );
+			LOGGER.debug( "Number of buckets: " + numBuckets );
+			LOGGER.debug( "Number of disk buckets: " + virtualDiskBuckets );
+			
+			seed = new long[ numBuckets ];
+			offset = new int[ numBuckets + 1 ];
+			
 			this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 			// Candidate data; might be discarded for compaction.
-			final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 512 );
+			final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numBuckets );
 
+			int maxC = 0;
+			for( int i = 0; i < virtualDiskBuckets; i++ ) {
+				int s = 0;
+				for( int j = 0; j < bucketStep; j++ ) s += c[ i * bucketStep + j ];
+				if ( s > maxC ) maxC = s;
+			}
+			final long[][] buffer = new long[ 3 ][ maxC ];
 
 			for(;;) {
 				LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
 
-
 				if ( DEBUG ) {
 					System.err.print( "Bucket sizes: " );
-					double avg = n / 256.0;
+					double avg = n / (double)DISK_BUCKETS;
 					double var = 0;
-					for( int i = 0; i < 256; i++ ) {
+					for( int i = 0; i < DISK_BUCKETS; i++ ) {
 						System.err.print( i + ":" + c[ i ] + " " );
 						var += ( c[ i ] - avg  ) * ( c[ i ] - avg );
 					}
@@ -230,77 +268,121 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				long seed = 0;
 				HypergraphSorter.Result result = null;
 
-				for( int i = 0; i < 256; i++ ) {
-					final int bucketSize = c[ i ];
-					final FastBufferedInputStream fbis = new FastBufferedInputStream( new FileInputStream( file[ i ] ) );
+				for( int i = 0; i < virtualDiskBuckets; i++ ) {
+					int diskBucketSize = 0;
+					final FastBufferedInputStream fbis;
+					
+					if ( virtualDiskBuckets == DISK_BUCKETS ) {
+						fbis = new FastBufferedInputStream( new FileInputStream( file[ i ] ) );
+						diskBucketSize = c[ i ];
+					}
+					else {
+						final FileInputStream[] fis = new FileInputStream[ bucketStep ];
+						for( int f = 0; f < fis.length; f++ ) {
+							fis[ f ] = new FileInputStream( file[ i * bucketStep + f ] );
+							diskBucketSize += c[ i * bucketStep + f ];
+						}
+						fbis = new FastBufferedInputStream( new SequenceInputStream( new IteratorEnumeration( Arrays.asList( fis ).iterator() ) ) );
+					}
 					final DataInputStream dis = new DataInputStream( fbis );
-					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucketSize );
-					final int[] valueOffset = new int[ bucketSize ];
+					final int[] valueOffset = new int[ diskBucketSize ];
 					int duplicate = 0;
 
-					do {
-						if ( result == HypergraphSorter.Result.DUPLICATE && duplicate++ > 3 ) break;
-						LOGGER.info( "Generating random hypergraph for bucket " + i + "..." );
-						seed = r.nextLong();
-					} while ( ( result = sorter.generateAndSort( new AbstractObjectIterator<long[]>() {
-						private int pos = 0;
-						private long[] hash = new long[ 3 ];
-						{
-							fbis.position( 0 );
-						}
-						public boolean hasNext() {
-							return pos < bucketSize;
-						}
-
-						public long[] next() {
-							if ( ! hasNext() ) throw new NoSuchElementException();
-							try {
-								hash[ 0 ] = dis.readLong();
-								hash[ 1 ] = dis.readLong();
-								hash[ 2 ] = dis.readLong();
-								valueOffset[ pos ] = dis.readInt();
-							}
-							catch ( IOException e ) {
-								throw new RuntimeException( e );
-							}
-							pos++;
-							return hash;
-						}
-
-					}, seed ) ) != HypergraphSorter.Result.OK );
+					for( int j = 0; j < diskBucketSize; j++ ) {
+						buffer[ 0 ][ j ] = dis.readLong(); 
+						buffer[ 1 ][ j ] = dis.readLong(); 
+						buffer[ 2 ][ j ] = dis.readLong(); 
+						valueOffset[ j ] = dis.readInt();
+					}
 
 					dis.close();
 
-					if ( result == HypergraphSorter.Result.DUPLICATE ) break;
-
-					this.seed[ i ] = seed;
-					offset[ i + 1 ] = offset[ i ] + sorter.numVertices; 
-
-					/* We assign values. */
-					/** Whether a specific node has already been used as perfect hash value for an item. */
-					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
-
-					int top = bucketSize, k, v = 0;
-					final int[] stack = sorter.stack;
-					final int[][] edge = sorter.edge;
-
-					long s;
-					while( top > 0 ) {
-						k = stack[ --top ];
-
-						s = 0;
-
-						for ( int j = 0; j < 3; j++ ) {
-							if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-							else s ^= data.getLong( offset[ i ] + edge[ j ][ k ] );
-							used.set( edge[ j ][ k ] );
+					GenericSorting.quickSort( 0, diskBucketSize, new IntComparator() {
+						public int compare( final int x, final int y ) {
+							return Long.signum( buffer[ 0 ][ x ] - buffer[ 0 ][ y ] );
 						}
+					},
+					new Swapper() {
+						public void swap( final int x, final int y ) {
+							final long e0 = buffer[ 0 ][ x ], e1 = buffer[ 1 ][ x ], e2 = buffer[ 2 ][ x ];
+							final int v = valueOffset[ x ];
+							buffer[ 0 ][ x ] = buffer[ 0 ][ y ];
+							buffer[ 1 ][ x ] = buffer[ 1 ][ y ];
+							buffer[ 2 ][ x ] = buffer[ 2 ][ y ];
+							valueOffset[ x ] = valueOffset[ y ];
+							buffer[ 0 ][ y ] = e0;
+							buffer[ 1 ][ y ] = e1;
+							buffer[ 2 ][ y ] = e2;
+							valueOffset[ y ] = v;
+						}
+					}
+					);
 
-						data.set( offset[ i ] + edge[ v ][ k ], ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) ^ s );
-						if ( ASSERTS ) assert ( values == null ? valueOffset[ k ] : values.getLong( valueOffset[ k ] ) ) == ( data.getLong( offset[ i ] + edge[ 0 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 1 ][ k ] ) ^ data.getLong( offset[ i ] + edge[ 2 ][ k ] ) );
+					for( int q = i * ( numBuckets / virtualDiskBuckets ), last = 0; q < ( i + 1 ) * ( numBuckets / virtualDiskBuckets ); q++ ) {
+						final int qq = q;
+						final int start = last;
+						while( last < diskBucketSize && ( bucketShift == Long.SIZE ? 0 : buffer[ 0 ][ last ] >>> bucketShift ) == q ) last++;
+						final int end = last;
+						HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( end - start );
+						do {
+							if ( result == HypergraphSorter.Result.DUPLICATE && duplicate++ > 3 ) break;
+							//LOGGER.info( "Generating random hypergraph for bucket " + q + " (size " + ( end - start ) + ")..." );
+							seed = r.nextLong();
+						} while ( ( result = sorter.generateAndSort( new AbstractObjectIterator<long[]>() {
+							private int pos = start;
+							private long[] hash = new long[ 3 ];
+							public boolean hasNext() {
+								return pos < end;
+							}
+
+							public long[] next() {
+								if ( ! hasNext() ) throw new NoSuchElementException();
+								hash[ 0 ] = buffer[ 0 ][ pos ];
+								hash[ 1 ] = buffer[ 1 ][ pos ];
+								hash[ 2 ] = buffer[ 2 ][ pos ];
+								pos++;
+								return hash;
+							}
+
+						}, seed ) ) != HypergraphSorter.Result.OK );
+
+						if ( result == HypergraphSorter.Result.DUPLICATE ) break;
+
+						this.seed[ q ] = seed;
+						offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
+
+						/* We assign values. */
+						/** Whether a specific node has already been used as perfect hash value for an item. */
+						final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
+
+						int top = end - start, k, v = 0;
+						final int[] stack = sorter.stack;
+						final int[][] edge = sorter.edge;
+						final int off = offset[ q ];
+						
+						long s;
+						while( top > 0 ) {
+							k = stack[ --top ];
+
+							s = 0;
+							v = -1;
+							
+							for ( int j = 0; j < 3; j++ ) {
+								if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
+								else s ^= data.getLong( off + edge[ j ][ k ] );
+								used.set( edge[ j ][ k ] );
+							}
+
+							data.set( off + edge[ v ][ k ], ( values == null ? valueOffset[ start + k ] : values.getLong( valueOffset[ start + k ] ) ) ^ s );
+							if ( ASSERTS ) assert ( values == null ? valueOffset[ start + k ] : values.getLong( valueOffset[ start + k ] ) ) == ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) ) :
+								"<" + edge[ 0 ][ k ] + "," + edge[ 1 ][ k ] + "," + edge[ 2 ][ k ] + ">: " + ( values == null ? valueOffset[ start + k ] : values.getLong( valueOffset[ start + k ] ) ) + " != " + ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) );
+						}
 					}
 
+					if ( result == HypergraphSorter.Result.DUPLICATE ) break;
 				}
+				
+				if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offset ) );
 
 				if ( result != HypergraphSorter.Result.DUPLICATE ) break;
 				
@@ -315,7 +397,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				p = 0;
 				for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
 					Hashes.jenkins( bv, globalSeed, h );
-					bucket = (int)( h[ 0 ] & 0xFF );
+					bucket = (int)( h[ 0 ] >>> DISK_BUCKETS_SHIFT );
 					c[ bucket ]++;
 					dos[ bucket ].writeLong( h[ 0 ] );
 					dos[ bucket ].writeLong( h[ 1 ] );
@@ -332,7 +414,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			// Check for compaction
 			long nonZero = 0;
-			m = offset[ 256 ];
+			m = offset[ offset.length - 1 ];
 			data.size( m );
 			for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 
@@ -386,7 +468,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
-		final int bucket = (int)( h[ 0 ] & 0xFF );
+		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
 		final int bucketOffset = offset[ bucket ];
 		HypergraphSorter.bitVectorToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
 		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
@@ -424,6 +506,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
 		this.m = function.m;
+		this.bucketShift = function.bucketShift;
 		this.globalSeed = function.globalSeed;
 		this.offset = function.offset;
 		this.width = function.width;
