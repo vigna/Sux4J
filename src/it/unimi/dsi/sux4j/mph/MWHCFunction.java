@@ -191,6 +191,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
 
+			pl.itemsName = "keys";
 			pl.start( "Scanning collection... " );
 
 			int p = 0, bucket;
@@ -267,6 +268,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 				long seed = 0;
 				HypergraphSorter.Result result = null;
+				pl.expectedUpdates = numBuckets;
+				pl.itemsName = "buckets";
+				pl.start( "Analysing buckets... " );
 
 				for( int i = 0; i < virtualDiskBuckets; i++ ) {
 					int diskBucketSize = 0;
@@ -286,7 +290,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					}
 					final DataInputStream dis = new DataInputStream( fbis );
 					final int[] valueOffset = new int[ diskBucketSize ];
-					int duplicate = 0;
 
 					for( int j = 0; j < diskBucketSize; j++ ) {
 						buffer[ 0 ][ j ] = dis.readLong(); 
@@ -323,6 +326,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						final int start = last;
 						while( last < diskBucketSize && ( bucketShift == Long.SIZE ? 0 : buffer[ 0 ][ last ] >>> bucketShift ) == q ) last++;
 						final int end = last;
+						int duplicate = 0;
+						result = null;
 						HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( end - start );
 						do {
 							if ( result == HypergraphSorter.Result.DUPLICATE && duplicate++ > 3 ) break;
@@ -379,8 +384,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						}
 					}
 
+					pl.update();
 					if ( result == HypergraphSorter.Result.DUPLICATE ) break;
 				}
+
+				pl.done();
 				
 				if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offset ) );
 
@@ -395,6 +403,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				Arrays.fill( c, 0 );
 				dataBitVector.fill( false );
 				p = 0;
+
+				pl.itemsName = "keys";
+				pl.start( "Scanning collection... " );
+
 				for( BitVector bv: TransformationStrategies.wrap( elements, transform ) ) {
 					Hashes.jenkins( bv, globalSeed, h );
 					bucket = (int)( h[ 0 ] >>> DISK_BUCKETS_SHIFT );

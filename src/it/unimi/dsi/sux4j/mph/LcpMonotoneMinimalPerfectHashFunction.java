@@ -163,7 +163,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		pl.done();
 		
 		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
-		
+
+		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
@@ -179,6 +180,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 
+		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
