@@ -22,21 +22,18 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
+import it.unimi.dsi.logging.ProgressLogger;
 
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.Random;
 
+import org.apache.commons.collections.Predicate;
 import org.apache.log4j.Logger;
 
 import cern.colt.Sorting;
@@ -66,14 +63,15 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	final protected TransformationStrategy<? super T> transform;
 	/** The first function, or <code>null</code>. The special output value {@link #escape} denotes that {@link #secondFunction} 
 	 * should be queried instead. */
-	final protected MWHCFunction<BitVector> firstFunction;
+	final protected MWHCFunction<T> firstFunction;
 	/** The second function. All queries for which {@link #firstFunction} returns
 	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is <code>null</code>) will be rerouted here. */
-	final protected MWHCFunction<BitVector> secondFunction;	
+	final protected MWHCFunction<T> secondFunction;	
 	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
 	final protected long[] remap;
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final int escape;
+	private long seed;
 
 	/** Creates a new two-step function for the given elements and values.
 	 * 
@@ -84,9 +82,30 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 */
 
 	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) {
-		this.transform = transform;
+		this( elements, transform, values, null );
+	}
 		
-		n = values.size();
+	/** Creates a new two-step function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 */
+
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, TripleStore<T> triplesStore ) {
+		this.transform = transform;
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final Random random = new Random();
+		pl.itemsName = "keys";
+
+		if ( triplesStore == null ) {
+			triplesStore = new TripleStore<T>( transform, pl );
+			triplesStore.reset( random.nextLong() );
+			triplesStore.addAll( elements.iterator() );
+		}
+		n = triplesStore.size();
+		
 		if ( n == 0 ) {
 			escape = 0;
 			firstFunction = secondFunction = null;
@@ -158,7 +177,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+			firstFunction = new MWHCFunction<T>( elements, transform, new AbstractLongList() {
 				public long getLong( int index ) {
 					long value = map.get( values.getLong( index ) );
 					if ( value != -1 ) return value;
@@ -169,55 +188,21 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 					return n;
 				}
 
-			}, best );
+			}, best, triplesStore );
 
 			LOGGER.debug( "Actual bit cost per element of first function: " + (double)firstFunction.numBits() / n );
 		}
 		else firstFunction = null;
 
-		final LongList secondValues;
-
-		if ( firstFunction == null ) secondValues = values;
-		else {
-			secondValues = new LongArrayList();
-
-			for( int i = 0; i < n; i++ ) {
-				final long value = values.getLong( i );
-				if ( ! map.containsKey( value ) ) secondValues.add( value );
+		triplesStore.filter( new Predicate() {
+			public boolean evaluate( Object triple ) {
+				return firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape;
 			}
-		}
-
-		secondFunction = new MWHCFunction<BitVector>( new Iterable<BitVector>() {
-			// Returns only elements whose values are in second values (e.g., elements such that their value is not in map).
-			public Iterator<BitVector> iterator() {
-				return new AbstractObjectIterator<BitVector>() {
-					private BitVector next;
-					private int curr = -1;
-					private Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transform );
-					
-					public boolean hasNext() {
-						if ( next != null ) return true;
-						for(;;) {
-							if ( ! iterator.hasNext() ) return false;
-							final BitVector bv = iterator.next();
-							curr++;
-							if ( ! map.containsKey( values.getLong( curr ) ) ) {
-								next = bv;
-								return true;
-							}
-						}
-					}
-
-					public BitVector next() {
-						if ( ! hasNext() ) throw new NoSuchElementException();
-						final BitVector result = next;
-						next = null;
-						return result;
-					}
-				};
-			}
-			
-		}, TransformationStrategies.identity(), secondValues, w );
+		});
+		
+		secondFunction = new MWHCFunction<T>( elements, transform, values, w, triplesStore );
+		
+		this.seed = triplesStore.seed;
 		
 		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 
@@ -228,13 +213,23 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		final BitVector bitVector = transform.toBitVector( (T)o );
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
 		if ( firstFunction != null ) {
-			final int firstValue = (int)firstFunction.getLong( bitVector );
+			final int firstValue = (int)firstFunction.getLongByTriple( triple );
 			if ( firstValue == -1 ) return -1;
 			if ( firstValue != escape ) return remap[ firstValue ];
 		}
-		return secondFunction.getLong( bitVector );
+		return secondFunction.getLongByTriple( triple );
+	}
+	
+	public long getLongByTriple( final long[] triple ) {
+		if ( firstFunction != null ) {
+			final int firstValue = (int)firstFunction.getLongByTriple( triple );
+			if ( firstValue == -1 ) return -1;
+			if ( firstValue != escape ) return remap[ firstValue ];
+		}
+		return secondFunction.getLongByTriple( triple );
 	}
 	
 	/** Returns the number of elements in the function domain.

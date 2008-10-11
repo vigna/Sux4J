@@ -75,7 +75,7 @@ import cern.colt.function.IntComparator;
  * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
  * then operating directly on the hash codes. This is particularly useful in bucketed constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
- * rehashed using {@link Hashes#jenkins(long[], long)}&mdash;this is necessary to vary the associated edges whenever
+ * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
  * 
  * <h2>Implementation details</h2>
@@ -202,10 +202,11 @@ public class HypergraphSorter<T> {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
 		}
-		Hashes.jenkins( triple, seed );
-		e[ 0 ] = (int)( ( triple[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 1 ] = (int)( e[ 0 ] + ( triple[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
-		e[ 2 ] = (int)( e[ 0 ] + ( triple[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
+		final long[] hash = new long[ 3 ];
+		Hashes.jenkins( triple, seed, hash );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( e[ 0 ] + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 1 ) + 1 );
+		e[ 2 ] = (int)( e[ 0 ] + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % ( numVertices - 2 ) + 1 );
 		if ( e[ 2 ] >= e[ 1 ] ) e[ 2 ]++;
 		e[ 1 ] %= numVertices;
 		e[ 2 ] %= numVertices;
@@ -222,15 +223,15 @@ public class HypergraphSorter<T> {
 	 */
 	public Result generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
 		// We cache all variables for faster access
-		final int[][] edge = this.edge;
+		final int[] edge0 = edge[ 0 ], edge1 = edge[ 1 ], edge2 = edge[ 2 ];
 		final int[] e = new int[ 3 ];
 
 		/* We build the edge list. */
 		for( int k = 0; k < numEdges; k++ ) {
 			bitVectorToEdge( transform.toBitVector( iterator.next() ), seed, numVertices, e );
-			edge[ 0 ][ k ] = e[ 0 ];
-			edge[ 1 ][ k ] = e[ 1 ];
-			edge[ 2 ][ k ] = e[ 2 ];
+			edge0[ k ] = e[ 0 ];
+			edge1[ k ] = e[ 1 ];
+			edge2[ k ] = e[ 2 ];
 		}
 
 		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSorter.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
@@ -246,15 +247,15 @@ public class HypergraphSorter<T> {
 	 */
 	public Result generateAndSort( final Iterator<long[]> iterator, final long seed ) {
 		// We cache all variables for faster access
-		final int[][] edge = this.edge;
+		final int[] edge0 = edge[ 0 ], edge1 = edge[ 1 ], edge2 = edge[ 2 ];
 		final int[] e = new int[ 3 ];
 
 		/* We build the edge list. */
 		for( int k = 0; k < numEdges; k++ ) {
 			bitVectorToEdge( iterator.next(), seed, numVertices, e );
-			edge[ 0 ][ k ] = e[ 0 ];
-			edge[ 1 ][ k ] = e[ 1 ];
-			edge[ 2 ][ k ] = e[ 2 ];
+			edge0[ k ] = e[ 0 ];
+			edge1[ k ] = e[ 1 ];
+			edge2[ k ] = e[ 2 ];
 		}
 
 		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSorter.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
@@ -269,6 +270,7 @@ public class HypergraphSorter<T> {
 	private Result generateAndSort() {
 		// We cache all variables for faster access
 		final int[][] edge = this.edge;
+		final int[] edge0 = edge[ 0 ], edge1 = edge[ 1 ], edge2 = edge[ 2 ];
 		final int[] last = this.last;
 		final int[] inc = this.inc;
 		final int[] incOffset = this.incOffset;
@@ -293,15 +295,15 @@ public class HypergraphSorter<T> {
 			Sorting.quickSort( last, 0, numEdges, new IntComparator() {
 				public int compare( final int x, final int y ) {
 					int r;
-					if ( ( r = edge[ 0 ][ x ] - edge[ 0 ][ y ] ) != 0 ) return r;
-					if ( ( r = edge[ 1 ][ x ] - edge[ 1 ][ y ] ) != 0 ) return r;
-					return edge[ 2 ][ x ] - edge[ 2 ][ y ];
+					if ( ( r = edge0[ x ] - edge0[ y ] ) != 0 ) return r;
+					if ( ( r = edge1[ x ] - edge1[ y ] ) != 0 ) return r;
+					return edge2[ x ] - edge2[ y ];
 				}
 			} );
 
 			for( int i = numEdges - 1, prev = last[ numEdges - 1 ], next; i-- != 0; ) {
 				next = last[ i ];
-				if ( edge[ 0 ][ next ] == edge[ 0 ][ prev ] && edge[ 1 ][ next ] == edge[ 1 ][ prev ] && edge[ 2 ][ next ] == edge[ 2 ][ prev ] ) {
+				if ( edge0[ next ] == edge0[ prev ] && edge1[ next ] == edge1[ prev ] && edge2[ next ] == edge2[ prev ] ) {
 					LOGGER.info( "Found double edge for elements " + next + " and " + prev + "." );
 					return Result.DUPLICATE;
 				}

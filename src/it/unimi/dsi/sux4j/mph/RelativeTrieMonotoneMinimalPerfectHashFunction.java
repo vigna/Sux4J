@@ -40,6 +40,7 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -110,12 +111,25 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		long maxLength = 0;
 		long totalLength = 0;
 		int c = 0;
-		BitVector bv;
-		for( T s: elements ) {
-			bv = transform.toBitVector( s );
-			maxLength = Math.max( maxLength, bv.length() );
-			totalLength += bv.length();
-			c++;
+		Random r = new Random();
+		TripleStore<BitVector> triplesStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
+		triplesStore.reset( r.nextLong() );
+
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
+
+		int duplicates = 0;
+		try {
+			for( BitVector bv: bitVectors ) {
+				maxLength = Math.max( maxLength, bv.length() );
+				totalLength += bv.length();
+				triplesStore.add( bv );
+				c++;
+			}
+		} catch( TripleStore.DuplicateException e ) {
+			if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
+			LOGGER.warn( "Found duplicate. Recomputing triples..." );
+			triplesStore.reset( r.nextLong() );
+			triplesStore.addAll( bitVectors.iterator() );
 		}
 		
 		size = c;
@@ -131,7 +145,6 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 
 		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 16 + 7 * Math.log( averageLength + 1 ) + Math.log( Math.log( averageLength + 1 ) + 1 ) ) ) : log2BucketSize;
 				
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		
@@ -144,7 +157,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			public int size() {
 				return size;
 			}
-		}, this.log2BucketSize );
+		}, this.log2BucketSize, triplesStore );
 
 		
 		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );

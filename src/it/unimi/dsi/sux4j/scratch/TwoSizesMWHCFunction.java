@@ -169,6 +169,12 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLong( bitVector );
 	}
 	
+	public long getLongByTriple( final long[] triple ) {
+		long firstValue = firstFunction.getLong( triple );
+		if ( firstValue != escape || secondFunction == null ) return firstValue;
+		return secondFunction.getLong( triple );
+	}
+	
 	/** Returns the number of elements in the function domain.
 	 *
 	 * @return the number of the elements in the function domain.

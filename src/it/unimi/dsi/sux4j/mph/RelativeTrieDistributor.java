@@ -416,6 +416,9 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		this( elements, log2BucketSize, transformationStrategy, null );
 	}
 
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
+		this( elements, log2BucketSize, transformationStrategy, tempDir, null );
+	}
 	/** Creates a partial compacted trie using given elements, bucket size, transformation strategy, and temporary directory.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
@@ -424,7 +427,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir the directory where temporary files will be created, or <code>for the default directory</code>.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) {
+	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir, final TripleStore<BitVector> triplesStore ) {
 		this.transformationStrategy = transformationStrategy;
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy );
 
@@ -443,7 +446,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		logW =  intermediateTrie.logW;
 		signatureMask =  intermediateTrie.signatureMask;
 
-		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
+		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1, triplesStore );
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {

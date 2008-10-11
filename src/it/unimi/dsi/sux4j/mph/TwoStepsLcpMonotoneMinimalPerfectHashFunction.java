@@ -44,6 +44,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -80,42 +81,38 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	final protected int log2BucketSize;
 	/** The mask for {@link #log2BucketSize} bits. */
 	final protected int bucketSizeMask;
-	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
-	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected MWHCFunction<BitVector> offsets;
-	final protected TwoStepsMWHCFunction<BitVector> lcpLengths;
+	/** A function mapping each element to the offset inside its bucket. */
+	final protected MWHCFunction<T> offsets;
+	/** A function mapping each element to the length of the longest common prefix of its bucket. */
+	final protected TwoStepsMWHCFunction<T> lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
+	/** The seed to be used when converting keys to triples. */
+	private long seed;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
-		final long prefix = lcpLengths.getLong( bitVector ); 
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
+		final long prefix = lcpLengths.getLongByTriple( triple ); 
 		if ( prefix == -1 || prefix > bitVector.length() ) return -1;
-		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLong( bitVector );
+		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLongByTriple( triple );
 	}
 
-	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
 	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
-
-		// First of all we compute the size, either by size(), if possible, or simply by iterating.
-		if ( iterable instanceof Collection ) n = ((Collection<? extends T>)iterable).size();
-		else {
-			int c = 0;
-			// Do not add a suppression annotation--it breaks javac
-			for( T o: iterable ) c++;
-			n = c;
-		}
-		
 		this.transform = transform;
+		final Random r = new Random();
 
-		Iterator<? extends T> iterator = iterable.iterator();
-		
-		if ( ! iterator.hasNext() )	{
+		TripleStore<T> triplesStore = new TripleStore<T>( transform, pl );
+		triplesStore.reset( r.nextLong() );
+		triplesStore.addAll( iterable.iterator() );
+		n = triplesStore.size();
+		if ( n == 0 ) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
 			offsets = null;
@@ -132,7 +129,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		BitVector curr = null;
-		int prefix, currLcp = 0;
+		int currLcp = 0;
 		final BitVector[] lcp = new BitVector[ numBuckets ];
 		int maxLcp = 0;
 		long maxLength = 0;
@@ -140,6 +137,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
 		
+		Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
 			pl.lightUpdate();
@@ -184,25 +182,26 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		offsets = new MWHCFunction<T>( iterable, transform, new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
 			}
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize );
+		}, log2BucketSize, triplesStore );
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		lcpLengths = new TwoStepsMWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), new AbstractLongList() {
+		lcpLengths = new TwoStepsMWHCFunction<T>( iterable, transform, new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length(); 
 			}
 			public int size() {
 				return n;
 			}
-		} );
+		}, triplesStore );
 
+		this.seed = triplesStore.seed();
 		if ( DEBUG ) {
 			int p = 0;
 			for( T key: iterable ) {
