@@ -207,6 +207,7 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 		checkedForDuplicates = false;
 		Arrays.fill( count, 0 );
 		try {
+			for( DataOutputStream d: dos ) d.close();
 			for( int i = 0; i < DISK_BUCKETS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ) ) );
 		}
 		catch ( IOException e ) {
