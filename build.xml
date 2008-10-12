@@ -10,6 +10,10 @@
 	<condition property="colt.apiurl" value="${local.colt.apiurl}" else="${remote.colt.apiurl}"><isset property="local"/></condition>
 	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
 	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
+	<condition property="commons-io.apiurl" value="${local.commons-io.apiurl}" else="${remote.commons-io.apiurl}"><isset property="local"/></condition>
+	<condition property="commons-lang.apiurl" value="${local.commons-lang.apiurl}" else="${remote.commons-lang.apiurl}"><isset property="local"/></condition>
+	<condition property="commons-configuration.apiurl" value="${local.commons-configuration.apiurl}" else="${remote.commons-configuration.apiurl}"><isset property="local"/></condition>
+	<condition property="commons-collections.apiurl" value="${local.commons-collections.apiurl}" else="${remote.commons-collections.apiurl}"><isset property="local"/></condition>
 
 	<property name="subdir"    value=""/>
   
@@ -67,6 +71,7 @@
 			<classpath location="${jar.base}/emma.jar"/>
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
+			<jvmarg value="-Xmx128M" />
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
@@ -118,5 +123,33 @@
 			<fileset dir="." includes="*.jar"/>
 		</delete>
   </target>
+
+
+	<!-- =========== An additional task to run FindBugs. ========== -->
+
+	<property name="findbugs.home" value="/usr/share/java/findbugs"/>
+	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" onerror="report"/>
+
+	<target name="findbugs" depends="jar" description="Find bugs">
+		<findbugs home="${findbugs.home}" output="xml:withMessages" outputFile="findbugs.xml" excludeFilter="/home/vigna/law/java/conf/findbugs-excl.xml">
+			<auxClasspath path="${jar.base}/colt.jar"/>
+			<auxClasspath path="${jar.base}/mg4j.jar"/>
+			<auxClasspath path="${jar.base}/junit.jar"/>
+			<auxClasspath path="${jar.base}/fastutil.jar"/>
+			<auxClasspath path="${jar.base}/dsiutils.jar"/>
+			<auxClasspath path="${jar.base}/commons-collections.jar"/>
+			<auxClasspath path="${jar.base}/commons-lang.jar"/>
+			<auxClasspath path="${jar.base}/commons-io.jar"/>
+			<auxClasspath path="${jar.base}/commons-configuration.jar"/>
+			<auxClasspath path="${jar.base}/jsap.jar"/>
+			<auxClasspath path="${jar.base}/log4j.jar"/>
+			<sourcePath path="${src}"/>
+			<class location="mg4j-${version}.jar"/>
+		</findbugs>
+
+		<style includes="findbugs.xml" destdir="${findbugs}" style="xsl/default.xsl"/>
+	</target>
+
+
 </project>
 
