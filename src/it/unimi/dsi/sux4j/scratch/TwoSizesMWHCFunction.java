@@ -157,7 +157,7 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		}
 		
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 

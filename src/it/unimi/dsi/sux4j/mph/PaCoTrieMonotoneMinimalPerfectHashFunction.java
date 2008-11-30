@@ -40,6 +40,7 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -96,16 +97,18 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 
 		long maxLength = 0;
 		long totalLength = 0;
-		int c = 0;
 		BitVector bv;
+		final Random random = new Random();
+		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
+		tripleStore.reset( random.nextLong() );
 		for( T s: elements ) {
 			bv = transform.toBitVector( s );
+			tripleStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
-			c++;
 		}
 		
-		size = c;
+		size = tripleStore.size();
 		
 		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
@@ -155,13 +158,12 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 			public int size() {
 				return size;
 			}
-		}, log2BucketSize );
+		}, log2BucketSize, tripleStore );
 
-		
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( size ) ) ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
 

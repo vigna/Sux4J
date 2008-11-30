@@ -216,7 +216,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 	/** Returns the number of bits used by this structure.

@@ -207,7 +207,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 

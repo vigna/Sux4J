@@ -96,12 +96,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 		
-	/** The logarithm of the number of physical disk buckets. */
-	public final static int LOG2_DISK_BUCKETS = 8;
-	/** The number of physical disk buckets. */
-	public final static int DISK_BUCKETS = 1 << LOG2_DISK_BUCKETS;
-	/** The shift for physical disk buckets. */
-	public final static int DISK_BUCKETS_SHIFT = Long.SIZE - LOG2_DISK_BUCKETS;
 	/** The logarithm of the desired bucket size. */
 	public final static int LOG2_BUCKET_SIZE = 9;
 	/** The shift for buckets. */
@@ -133,8 +127,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param elements the elements in the domain of the function.
 	 * @param transform a transformation strategy for the elements.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> triplesStore ) {
-		this( elements, transform, null, -1, triplesStore );
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) {
+		this( elements, transform, null, -1, tripleStore );
 	}
 
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
@@ -154,7 +148,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the <code>values</code>. 
 	 */
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> triplesStore ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> tripleStore ) {
 		this.transform = transform;
 	
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
@@ -162,13 +156,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		Random r = new Random();
 		pl.itemsName = "keys";
 
-		final boolean givenTripleStore = triplesStore != null;
+		final boolean givenTripleStore = tripleStore != null;
 		if ( ! givenTripleStore ) {
-			triplesStore = new TripleStore<T>( transform, pl );
-			triplesStore.reset( r.nextLong() );
-			triplesStore.addAll( elements.iterator() );
+			tripleStore = new TripleStore<T>( transform, pl );
+			tripleStore.reset( r.nextLong() );
+			tripleStore.addAll( elements.iterator() );
 		}
-		n = triplesStore.size();
+		n = tripleStore.size();
 		
 		if ( n == 0 ) {
 			this.globalSeed = bucketShift = m = this.width = 0;
@@ -180,8 +174,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return;
 		}
 
-		int log2NumBuckets = Math.max( 0, Fast.ceilLog2( n >> LOG2_BUCKET_SIZE ) );
-		bucketShift = triplesStore.log2Buckets( log2NumBuckets );
+		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
+		bucketShift = tripleStore.log2Buckets( log2NumBuckets );
 		final int numBuckets = 1 << log2NumBuckets;
 		
 		//System.err.println( log2NumBuckets +  " " + numBuckets );
@@ -207,7 +201,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				int q = 0;
-				for( TripleStore.Bucket bucket: triplesStore ) {
+				for( TripleStore.Bucket bucket: tripleStore ) {
 					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucket.size() );
 					do {
 						seed = r.nextLong();
@@ -253,16 +247,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			catch( TripleStore.DuplicateException e ) {
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				triplesStore.reset( r.nextLong() );
-				triplesStore.addAll( elements.iterator() );
+				tripleStore.reset( r.nextLong() );
+				tripleStore.addAll( elements.iterator() );
 			}
 		}
 
 		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offset ) );
 
-		globalSeed = triplesStore.seed();
+		globalSeed = tripleStore.seed();
 
-		if ( ! givenTripleStore ) triplesStore.close();
+		if ( ! givenTripleStore ) tripleStore.close();
 		
 		// Check for compaction
 		long nonZero = 0;
@@ -306,7 +300,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
 				HypergraphSorter.GAMMA * this.width :
 					HypergraphSorter.GAMMA + this.width + 0.126 ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -359,8 +353,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		// TODO: add seed/offset data
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.length() : 0 ) * width;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.length() : 0 ) * width + seed.length * Long.SIZE + offset.length * Integer.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

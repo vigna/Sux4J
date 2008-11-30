@@ -207,7 +207,7 @@ public class LcpMinimalPerfectMonotoneHash2<T> extends AbstractHashFunction<T> i
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
 		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 

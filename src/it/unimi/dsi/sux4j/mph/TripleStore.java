@@ -33,7 +33,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.SequenceInputStream;
@@ -41,6 +40,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
@@ -78,7 +78,6 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 	/** The seed used to generate the initial hash triple. */
 	protected long seed;
 	private int[] count;
-	private long[][] buffer;
 	private int buckets;
 	private File file[];
 	private int diskBucketStep;
@@ -87,9 +86,9 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 	private final TransformationStrategy<? super T> transform;
 	private final ProgressLogger pl;
 	private DataOutputStream[] dos;
-	private int[] offset;
 	private int virtualDiskBuckets;
 	private Predicate filter;
+	private int maxCount;
 
 	public TripleStore( final TransformationStrategy<? super T> transform ) {
 		this( transform, null );
@@ -214,13 +213,32 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 			throw new RuntimeException( e );
 		}
 	}
+
+	@SuppressWarnings("unused")
+	public void check( final Iterable<? extends T> iterable ) {
+		final Random random = new Random();
+		int duplicates = 0;
+
+		for(;;)
+			try {
+				for( TripleStore.Bucket b: this ) b.iterator();
+				break;
+			}
+			catch ( DuplicateException e ) {
+				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
+				LOGGER.warn( "Found duplicate. Recomputing triples..." );
+				reset( random.nextLong() );
+				addAll( iterable.iterator() );
+			}
+			
+		checkedForDuplicates = true;
+	}
 	
 	public int log2Buckets( final int log2Buckets ) {
 		this.buckets = 1 << log2Buckets;
 		diskBucketStep = Math.max( DISK_BUCKETS / buckets, 1 );
 		virtualDiskBuckets = DISK_BUCKETS / diskBucketStep;
-		int maxCount = 0;
-		
+		maxCount = 0;
 		for( int i = 0; i < virtualDiskBuckets; i++ ) {
 			int s = 0;
 			for( int j = 0; j < diskBucketStep; j++ ) s += count[ i * diskBucketStep + j ];
@@ -247,9 +265,6 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 		LOGGER.debug( "Number of disk buckets: " + DISK_BUCKETS );
 		LOGGER.debug( "Number of virtual disk buckets: " + virtualDiskBuckets );
 
-		buffer = new long[ 3 ][ maxCount ];
- 		offset = new int[ maxCount ];
-		
 		return bucketShift;
 	}
 	
@@ -261,13 +276,13 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 		private final int[] offset;
 		private final int end;
 		
-		public Bucket( final long[][] buffer, final int[] offset, final int start, final int end ) {
-			this.offset = offset;
+		public Bucket( final long[] buffer0, final long[] buffer1, final long[] buffer2, final int[] offset, final int start, final int end ) {
 			this.start = start;
 			this.end = end;
-			buffer0 = buffer[ 0 ];
-			buffer1 = buffer[ 1 ];
-			buffer2 = buffer[ 2 ];
+			this.offset = offset;
+			this.buffer0 = buffer0;
+			this.buffer1 = buffer1;
+			this.buffer2 = buffer2;
 		}
 		
 		public int size() {
@@ -320,6 +335,10 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 			private FastBufferedInputStream fbis;
 			private int last;
 			private int bucketSize;
+			private final long[] buffer0 = new long[ maxCount ];
+			private final long[] buffer1 = new long[ maxCount ];
+			private final long[] buffer2 = new long[ maxCount ];
+			private final int[] offset = new int[ maxCount ];
 			
 			public boolean hasNext() {
 				return bucket < buckets;
@@ -327,10 +346,11 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 			
 			public Bucket next() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
+				final long[] buffer0 = this.buffer0;
+
 				if ( bucket % ( buckets / virtualDiskBuckets ) == 0 ) {
 					final int diskBucket = bucket / ( buckets / virtualDiskBuckets );
-
-					final long[] buffer0 = buffer[ 0 ], buffer1 = buffer[ 1 ], buffer2 = buffer[ 2 ];
+					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 
 					bucketSize = 0;
 					try {
@@ -400,15 +420,15 @@ public class TripleStore<T> implements Serializable, Closeable, Iterable<TripleS
 					
 					if ( ! checkedForDuplicates && bucketSize > 1 )
 						for( int i = bucketSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new TripleStore.DuplicateException();
-					checkedForDuplicates = true;
+					if ( bucket == buckets - 1 ) checkedForDuplicates = true;
 					last = 0;
 				}
 
 				final int start = last;
-				while( last < bucketSize && ( bucketShift == Long.SIZE ? 0 : buffer[ 0 ][ last ] >>> bucketShift ) == bucket ) last++;
+				while( last < bucketSize && ( bucketShift == Long.SIZE ? 0 : buffer0[ last ] >>> bucketShift ) == bucket ) last++;
 				bucket++;
 
-				return new Bucket( buffer, offset, start, last );
+				return new Bucket( buffer0, buffer1, buffer2, offset, start, last );
 			}
 		};
 	}

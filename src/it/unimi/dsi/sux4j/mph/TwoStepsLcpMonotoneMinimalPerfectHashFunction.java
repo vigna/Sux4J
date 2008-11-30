@@ -82,9 +82,9 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	/** The mask for {@link #log2BucketSize} bits. */
 	final protected int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket. */
-	final protected MWHCFunction<T> offsets;
+	final protected MWHCFunction<BitVector> offsets;
 	/** A function mapping each element to the length of the longest common prefix of its bucket. */
-	final protected TwoStepsMWHCFunction<T> lcpLengths;
+	final protected TwoStepsMWHCFunction<BitVector> lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
@@ -102,16 +102,20 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLongByTriple( triple );
 	}
 
+	@SuppressWarnings("unused")
 	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		this.transform = transform;
 		final Random r = new Random();
 
-		TripleStore<T> triplesStore = new TripleStore<T>( transform, pl );
-		triplesStore.reset( r.nextLong() );
-		triplesStore.addAll( iterable.iterator() );
-		n = triplesStore.size();
+		if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
+		else {
+			int c = 0;
+			for( T dummy: iterable ) c++;
+			n = c;
+		}
+		
 		if ( n == 0 ) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
@@ -134,12 +138,15 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		int maxLcp = 0;
 		long maxLength = 0;
 
+		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
+		tripleStore.reset( r.nextLong() );
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
 		
 		Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
+			tripleStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
@@ -147,6 +154,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr = transform.toBitVector( iterator.next() );
+				tripleStore.add( curr );
 				pl.lightUpdate();
 				final int cmp = prev.compareTo( curr );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted at position " + ( b * bucketSize + i ) );
@@ -181,27 +189,28 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}
 
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = new MWHCFunction<T>( iterable, transform, new AbstractLongList() {
+		offsets = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return index % bucketSize; 
 			}
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize, triplesStore );
+		}, log2BucketSize, tripleStore );
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		lcpLengths = new TwoStepsMWHCFunction<T>( iterable, transform, new AbstractLongList() {
+		lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length(); 
 			}
 			public int size() {
 				return n;
 			}
-		}, triplesStore );
+		}, tripleStore );
 
-		this.seed = triplesStore.seed();
+		this.seed = tripleStore.seed();
 		if ( DEBUG ) {
 			int p = 0;
 			for( T key: iterable ) {
@@ -223,7 +232,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
 		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 

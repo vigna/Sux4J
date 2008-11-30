@@ -179,7 +179,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 		LOGGER.debug(  "Cost per element of hashing: " + (double)minimalPerfectHash.numBits() / n );
 		LOGGER.debug(  "Cost per element of offsets: " + (double)offsets.numBits() / n );
 		LOGGER.debug(  "Cost per element of prefix sums: " + (double)firstInBucket.numBits() / n );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 	}
 

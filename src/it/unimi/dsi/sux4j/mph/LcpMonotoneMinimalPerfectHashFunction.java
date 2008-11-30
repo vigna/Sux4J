@@ -80,7 +80,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	final protected int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
 	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected MWHCFunction<T> offsetLcpLength;
+	final protected MWHCFunction<BitVector> offsetLcpLength;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
@@ -98,16 +98,20 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + ( value & bucketSizeMask );
 	}
 
+	@SuppressWarnings("unused")
 	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		this.transform = transform;
 		final Random r = new Random();
 
-		TripleStore<T> triplesStore = new TripleStore<T>( transform, pl );
-		triplesStore.reset( r.nextLong() );
-		triplesStore.addAll( iterable.iterator() );
-		n = triplesStore.size();
+		if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
+		else {
+			int c = 0;
+			for( T dummy: iterable ) c++;
+			n = c;
+		}
+		
 		if ( n == 0 ) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
@@ -130,11 +134,16 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		long maxLength = 0;
 
 		pl.expectedUpdates = n;
+		
+		final TripleStore<BitVector> triplesStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
+		triplesStore.reset( r.nextLong() );
+
 		pl.start( "Scanning collection..." );
 		
 		final Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
+			triplesStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
@@ -142,6 +151,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr = transform.toBitVector( iterator.next() );
+				triplesStore.add( curr );
 				pl.lightUpdate();
 				final int cmp = prev.compareTo( curr );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted at position " + ( b * bucketSize + i ) );
@@ -179,7 +189,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<T>( iterable, transform, new AbstractLongList() {
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
 			}
@@ -211,7 +221,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
 		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 

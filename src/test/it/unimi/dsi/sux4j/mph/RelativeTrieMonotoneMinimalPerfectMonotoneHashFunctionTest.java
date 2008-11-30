@@ -49,7 +49,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 
 	public void testSmallest() {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
-		for( int b = -1; b < 5; b++ ) {
+		for( int b = 1; b < 2; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 			mph.numBits();

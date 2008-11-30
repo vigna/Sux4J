@@ -42,7 +42,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 import java.io.IOException;
@@ -83,8 +83,8 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private final BitVector trie;
 	/** A ranking structure over {@link #trie}. */
 	private final Rank9 rank9;
-	/** A selection structure over {@link #trie}. */
-	private final SimpleSelect select;
+	/** A balanced parentheses structure over {@link #trie}. */
+	private GRRRBalancedParentheses balParen;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** The number of elements in this hollow trie. */
@@ -93,6 +93,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private final static class Node {
 		Node left, right;
 		int skip;
+		int openParentheses;
 		
 		public Node( final Node left, final Node right, final int skip ) {
 			this.left = left;
@@ -105,55 +106,47 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object object ) {
+		//System.err.println( "Hashing " + object + "..." );
 		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
-		long p = 0, r = 0, length = bitVector.length(), index = 0, a = 0, b = 0, t;
+		long p = 1, length = bitVector.length(), index = 0;
 		int s = 0;
 		
-		
 		for(;;) {
-			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
-
-			//System.out.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
-			if ( bitVector.getBoolean( s ) ) p = 2 * r + 2;
-			else p = 2 * r + 1;
-
-			t = 2 * rank9.rank( a, b + 1 );
-			a = b + 1;
-			b += t;
+			if ( ( s += (int)skips.getLong( rank9.rank( p ) - 1 ) ) >= length ) return -1;
+			//System.err.println( "Skipping " + rank9.rank( p ) + " bits..." );
 			
-			index += p - a - rank9.rank( a, p );
-
-			//System.err.println( a + " " + b + " " + p + " " + index );
-			
-			if ( ASSERTS ) assert p < trie.length();
-			if ( ! trie.getBoolean( p ) ) break;
-
-			r = rank9.rank( p + 1 ) - 1;
+			//System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... \n" );
+			if ( bitVector.getBoolean( s ) ) {
+				final long q = balParen.findClose( p ) + 1;
+				index += ( q - p ) / 2;
+				//System.err.println( "Increasing index by " + ( q - p + 1 ) / 2 + " to " + index + "..." );
+				if ( ! trie.getBoolean( q ) ) return index;
+				p = q;
+			}
+			else if ( ! trie.getBoolean( ++p ) ) return index;
 			
 			s++;
 		}
-		
-		// System.out.println();
-		// Complete computation of leaf index
-		
-		for(;;) {
-			p = select.select( ( r = rank9.rank( p + 1 ) ) - 1 );
-			if ( p < a ) break;
-			p = r * 2;
-			
-			t = 2 * rank9.rank( a, b + 1 );
-			a = b + 1;
-			b += t;
-			
-			index += p - a + 1 - rank9.rank( a, p + 1 );
-			
-			//System.err.println( "Scanning; " + a + " " + b + " " + p + " " + index );
-		}
+	}
+	
+	private final static class SkipInfo {
+		private int maxSkip;
+		private long skipsLength;
+	}
+	
+	long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo ) {
+		if ( node == null ) return pos;
 
-		//System.err.println( "Returning " + index );
+		bitVector.set( pos++ ); // This adds the open parentheses
 		
-		return index;
+		if ( skipInfo.maxSkip < node.skip ) skipInfo.maxSkip = node.skip;
+		skipInfo.skipsLength += length( node.skip );
+		skips.add( node.skip );
+		
+		pos = visit( node.left, bitVector, pos, skips, skipInfo );
+
+		return visit( node.right, bitVector, pos + 1, skips, skipInfo ); // This adds the closing parenthesis
 	}
 	
 	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
@@ -236,66 +229,37 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 
 		if ( size <= 1 ) {
 			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
-			select = new SimpleSelect( LongArrays.EMPTY_ARRAY, 0 );
+			balParen = new GRRRBalancedParentheses( BitVectors.EMPTY_VECTOR );
 			trie = BitVectors.EMPTY_VECTOR;
 			return;
 		}
 
-		final BitVector bitVector = LongArrayBitVector.getInstance( 2 * numNodes + 1 );
-		final ObjectArrayList<Node> queue = new ObjectArrayList<Node>();
+		final LongArrayBitVector bitVector = LongArrayBitVector.ofLength( 2 * numNodes + 2 );
 		final IntArrayList skips = new IntArrayList();
-		int p = 0, maxSkip = Integer.MIN_VALUE;
-		long skipsLength = 0;
-		bitVector.add( 1 );
-		queue.add( root );
-
+		SkipInfo skipInfo = new SkipInfo();
+		
 		/*StringBuilder result = new StringBuilder();
 		recToString( root, new StringBuilder(), result, new StringBuilder(), 0 );
 		System.out.println( result );*/
 		
-		Node n, firstNextDepth = root;
-		int depth = -1, maxDepth = 0;
-		long sumOfDepths = 0;
-		root = null;		
-		
-		while( p < queue.size() ) {
-			n = queue.get( p );
-			if ( maxSkip < n.skip ) maxSkip = n.skip;
-			skips.add( n.skip );
-			if ( firstNextDepth == n ) {
-				depth++;
-				firstNextDepth = null;
-			}
-			if( depth > maxDepth ) maxDepth = depth;
-			skipsLength += length( n.skip );
-			bitVector.add( n.left != null );
-			bitVector.add( n.right != null );
-			
-			if ( n.left != null ) {
-				queue.add( n.left );
-				if ( firstNextDepth == null ) firstNextDepth = n.left;
-			}
-			else sumOfDepths += depth + 1;
-			
-			if ( n.right != null ) {
-				queue.add( n.right );
-				if ( firstNextDepth == null ) firstNextDepth = n.right;
-			}
-			else sumOfDepths += depth + 1;
+		bitVector.set( 0 ); // Fake open parenthesis
+		visit( root, bitVector, 1, skips, skipInfo );
 
-			p++;
-		}
+		//System.err.println( bitVector );
+		//System.err.println( skips );
 		
+		root = null;		
+			
 		trie = bitVector;
 		rank9 = new Rank9( bitVector );
-		select = new SimpleSelect( bitVector );
-		final int skipWidth = Fast.ceilLog2( maxSkip );
+		balParen = new GRRRBalancedParentheses( bitVector );
+		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
-		LOGGER.info( "Max depth: " + maxDepth );
-		LOGGER.info( "Average depth: " + (double)sumOfDepths / size  );
-		LOGGER.info( "Max skip: " + maxSkip );
+/*		LOGGER.info( "Max depth: " + maxDepth );
+		LOGGER.info( "Average depth: " + (double)sumOfDepths / size  );*/
+		LOGGER.info( "Max skip: " + skipInfo.maxSkip );
 		LOGGER.info( "Max skip width: " + skipWidth );
-		LOGGER.info( "Bits per skip: " + ( skipsLength * 2.0 ) / ( numNodes - 1 ) );
+		LOGGER.info( "Bits per skip: " + ( skipInfo.skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		
 		this.skips = new EliasFanoLongBigList( skips );
 		
@@ -304,7 +268,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			System.err.println( this.skips );
 		}
 		
-		final long numBits = rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
+		final long numBits = rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
@@ -372,7 +336,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	}
 
 	public long numBits() {
-		return rank9.numBits() + select.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
+		return rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
 	}
 	
 	private void recToString( final Node n, final StringBuilder printPrefix, final StringBuilder result, final StringBuilder path, final int level ) {

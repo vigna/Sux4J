@@ -152,7 +152,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / size );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
 

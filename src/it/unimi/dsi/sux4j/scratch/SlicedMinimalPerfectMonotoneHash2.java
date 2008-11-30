@@ -204,7 +204,7 @@ public class SlicedMinimalPerfectMonotoneHash2<T> extends AbstractHashFunction<T
 		for( int i = 1; i < log2BucketSize; i++ ) if ( offsets[ i ] != null ) LOGGER.debug( "Cost per element of offsets of width " + i + " :" + (double)offsets[ i ].numBits() / n );
 		LOGGER.debug(  "Cost per element of offsets: " + (double)offsetCost / n );
 		LOGGER.debug(  "Cost per element of prefix sums: " + (double)firstInBucket.numBits() / n );
-		LOGGER.debug( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 	}
 
