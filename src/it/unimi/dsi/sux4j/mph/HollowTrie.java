@@ -252,7 +252,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			
 		trie = bitVector;
 		rank9 = new Rank9( bitVector );
-		balParen = new GRRRBalancedParentheses( bitVector );
+		balParen = new GRRRBalancedParentheses( bitVector, false, true, false );
 		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
 /*		LOGGER.info( "Max depth: " + maxDepth );
