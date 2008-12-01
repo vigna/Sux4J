@@ -1,6 +1,7 @@
 package test.it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
 
@@ -101,7 +102,7 @@ public class SparseRankTest extends RankSelectTestCase {
 		rank = new SparseRank( LongArrayBitVector.of( 1, 0, 1, 1, 0, 0, 0 ).bits(), 7 );
 		SparseSelect select = rank.getSelect();
 		for( int i = 1; i < 7; i++ ) {
-			System.err.println( i );
+			//System.err.println( i );
 			assertEquals( select.select( rank.rank( i ) - 1 ), rank.pred( i ) );
 		}
 	}
@@ -191,5 +192,11 @@ public class SparseRankTest extends RankSelectTestCase {
 			r = new SparseRank( v );
 			for( int i = size; i-- != 0; ) assertEquals( i, r.rank( i ) );
 		}
+	}
+	
+	public void testGetRank() {
+		SparseSelect select = new SparseSelect( LongArrayList.wrap( new long[] { 0, 48, 128 } ) );
+		SparseRank rank = select.getRank();
+		assertRankAndSelect( rank, select );
 	}
 }

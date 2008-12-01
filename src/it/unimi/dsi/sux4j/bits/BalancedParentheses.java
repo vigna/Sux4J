@@ -31,19 +31,26 @@ import java.io.Serializable;
  * represented in a bit array.
  * 
  * <p>A bit array of viewed by implementations of this class as a string of open (=one) and closed
- * (=zero) parentheses, which must be nested correctly.
- * 
+ * (=zero) parentheses, which must be nested correctly. All operations are optional, but by contract
+ * at least one of {@link #findOpen(long)} and {@link #findClose(long)} <strong>must</strong> be
+ * provided.
  */
 public interface BalancedParentheses extends Serializable {
 
-	/** Returns the position of the matching open parenthesis.
+	/** Returns the position of the matching open parenthesis (optional operation).
+	 *
+	 * <p>Note that if you do not implement this method you <strong>must</strong>
+	 * implement {@link #findClose(long)}.
 	 * 
 	 * @param pos a position in the bit vector containing a closed parenthesis (a zero).
 	 * @return the position of the matching open parenthesis.
 	 */
 	public long findOpen( long pos );
 
-	/** Returns the position of the matching closed parenthesis.
+	/** Returns the position of the matching closed parenthesis (optional operation).
+	 * 
+	 * <p>Note that if you do not implement this method you <strong>must</strong>
+	 * implement {@link #findOpen(long)}.
 	 * 
 	 * @param pos a position in the bit vector containing an open parenthesis (a one).
 	 * @return the position of the matching open parenthesis.
@@ -51,7 +58,7 @@ public interface BalancedParentheses extends Serializable {
 	public long findClose( long pos );
 
 	/** Returns the position of the open parenthesis of the pair the most
-	 * tightly encloses the given position.
+	 * tightly encloses the given position (optional operation).
 	 * 
 	 * @param pos a position in the bit vector.
 	 * @return the position of the open parenthesis of the pair the most

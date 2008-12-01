@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
@@ -77,6 +78,30 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 		this.n = n;
 	}	
 	
+	/** Creates a new select structure using a {@linkplain LongList list} of longs.
+	 * 
+	 * <p>This constructor is particularly useful if the positions of the ones are provided by
+	 * some sequential source.
+	 *
+	 * @param list the list of the positions of ones.
+	 */
+	public SparseSelect( final LongList list ) {
+		super( list );
+		this.n = list.isEmpty() ? 0 : list.getLong( list.size() - 1 ) + 1;
+	}	
+	
+	/** Creates a new select structure using a {@linkplain LongBigList big list} of longs.
+	 * 
+	 * <p>This constructor is particularly useful if the positions of the ones are provided by
+	 * some sequential source.
+	 *
+	 * @param list the list of the positions of ones.
+	 */
+	public SparseSelect( final LongBigList list ) {
+		super( list );
+		this.n = list.isEmpty() ? 0 : list.getLong( list.length() - 1 ) + 1;
+	}	
+	
 	protected SparseSelect( long n, long m, int l, LongBigList lowerBits, SimpleSelect selectUpper ) {
 		super( m, l, lowerBits, selectUpper );
 		this.n = n;
@@ -95,6 +120,16 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 		return n;
 	}
 	
+	@Override
+	public int size() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public long getLong( final long pos ) {
+		throw new UnsupportedOperationException();
+	}
+
 	public long numBits() {
 		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
 	}
@@ -110,8 +145,23 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 * @return a copy of the underlying bit vector.
 	 */
 	public BitVector bitVector() {
-		final LongArrayBitVector result = LongArrayBitVector.getInstance( n ).length( n );
+		final LongArrayBitVector result = LongArrayBitVector.ofLength( n );
 		for( long i = length; i-- != 0; ) result.set( select( i ) );
 		return result;
+	}
+
+	@Override
+	public int hashCode() {
+		return System.identityHashCode( this );
+	}
+	
+	@Override
+	public boolean equals( final Object o ) {
+		return o == this;
+	}
+	
+	@Override
+	public String toString() {
+		return getClass().getName() + '@' + Integer.toHexString( hashCode() );
 	}
 }

@@ -5,19 +5,23 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 public class GRRRBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
-	private static final boolean ASSERTS = true;
-	private static final boolean DEBUG = true;
+	private static final boolean ASSERTS = false;
+	private static final boolean DEBUG = false;
 	private final long[] bits;
 	private final long length;
-	private LongArrayList farOpening;
-	private LongArrayList farOpeningMatch;
-	private LongArrayList farClosing;
-	private LongArrayList farClosingMatch;
+	private final SparseSelect openingPioneers;
+	private final int numOpeningPioneers;
+	private final SparseRank openingPioneersRank;
+	private final EliasFanoLongBigList openingPioneerMatches;
+	private final SparseSelect closingPioneers;
+	private final EliasFanoLongBigList closingPioneerMatches;
 
 	public final static int countFarOpen( long word, int l ) {
 		int c = 0, e = 0;
@@ -89,111 +93,107 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		this.length = length;
 		final int numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 		
+		LongArrayList openingPioneers;
+		LongArrayList openingPioneerMatches;
+		LongArrayList closingPioneers;
+		LongArrayList closingPioneerMatches;
+
 		final byte count[] = new byte[ numWords ];
 		final byte residual[] = new byte[ numWords ];
-		farClosing = new LongArrayList();
-		farClosingMatch = new LongArrayList();
-		for( int i = 0; i < numWords; i++ ) {
-			if ( DEBUG ) System.err.println( "Scanning word " + i + " (" + LongArrayBitVector.wrap( new long[] { bits[ i ] } ) + ")" );
-			final int l = (int)Math.min( Long.SIZE, length - i * Long.SIZE );
-			if ( i > 0 ) {
-				int excess = 0, lastBlock = -1, lastResidual = -1;
-				long lastPosition = -1;
+		closingPioneers = new LongArrayList();
+		closingPioneerMatches = new LongArrayList();
+		for( int block = 0; block < numWords; block++ ) {
+			if ( DEBUG ) System.err.println( "Scanning word " + block + " (" + LongArrayBitVector.wrap( new long[] { bits[ block ] } ) + ")" );
+			final int l = (int)Math.min( Long.SIZE, length - block * Long.SIZE );
+			
+			if ( block > 0 ) {
+				int excess = 0;
+				int countFarClosing = countFarClose( bits[ block ], l );
 				
 				for( int j = 0; j < l; j++ ) {
-					if ( ( bits[ i ] & 1L << j ) != 0 ) {
+					if ( ( bits[ block ] & 1L << j ) != 0 ) {
 						if ( excess > 0 ) excess = -1;
 						else --excess;
 					}
 					else {
 						if ( ++excess > 0 ) {
-							
 							// Find block containing matching far open parenthesis
-							int matchingBlock = i;
+							int matchingBlock = block;
 							while( count[ --matchingBlock ] == 0 );
-							if ( lastBlock != -1 && matchingBlock != lastBlock ) {
+							countFarClosing--;
+							if ( --count[ matchingBlock ] == 0 || countFarClosing == 0 ) {
 								// This is a closing pioneer
-								if ( DEBUG ) System.err.println( "+) " + lastPosition + " " + Arrays.toString(  count ) );
-								farClosing.add( lastPosition );
-								farClosingMatch.add( lastBlock * Long.SIZE + findFarOpen( bits[ lastBlock ], Long.SIZE, lastResidual ) );
+								if ( DEBUG ) System.err.println( "+) " + ( block * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
+								closingPioneers.add( block * Long.SIZE + j );
+								closingPioneerMatches.add( ( block * Long.SIZE + j ) - ( matchingBlock * Long.SIZE + findFarOpen( bits[ matchingBlock ], Long.SIZE, residual[ matchingBlock ] ) ) );
 							}
-							lastPosition = i * Long.SIZE + j;
-							lastBlock = matchingBlock;
-							lastResidual = residual[ matchingBlock ];
-
-							count[ matchingBlock ]--;
 							residual[ matchingBlock ]++;
 						}
 					}
 				}
-				
-				if ( lastPosition != -1 ) {
-					// This is a closing pioneer
-					if ( DEBUG ) System.err.println( "*) " + lastPosition + " " + Arrays.toString(  count ) );
-					farClosing.add( lastPosition );
-					farClosingMatch.add( lastBlock * Long.SIZE + findFarOpen( bits[ lastBlock ], Long.SIZE, lastResidual ) );
-				}
-				
 			}
-			count[ i ] = (byte)countFarOpen( bits[ i ], l );
+			count[ block ] = (byte)countFarOpen( bits[ block ], l );
 			if ( DEBUG ) System.err.println( "Stack updated: " + Arrays.toString(  count ) );
 		}
 		
 		for( int i = count.length; i-- != 0; ) if ( count[ i ] != 0 ) throw new IllegalArgumentException( "Unbalanced parentheses" );
-		if ( DEBUG ) System.err.println( "):" + farClosing );
-		if ( DEBUG ) System.err.println( "):" + farClosingMatch );
+		if ( DEBUG ) System.err.println( "):" + closingPioneers );
+		if ( DEBUG ) System.err.println( "):" + closingPioneerMatches );
 		
 		ByteArrays.fill( residual, (byte)0 );
-		farOpening = new LongArrayList();
-		farOpeningMatch = new LongArrayList();
-		for( int i = numWords; i-- != 0; ) {
-			if ( DEBUG ) System.err.println( "Scanning word " + i + " (" + LongArrayBitVector.wrap( new long[] { bits[ i ] } ) + ")" );
-			final int l = (int)Math.min( Long.SIZE, length - i * Long.SIZE );
-			if ( i != numWords -1 ) {
-				int excess = 0, lastBlock = -1, lastResidual = -1;
-				long lastPosition = -1;
+		openingPioneers = new LongArrayList();
+		openingPioneerMatches = new LongArrayList();
+		
+		for( int block = numWords; block-- != 0; ) {
+			if ( DEBUG ) System.err.println( "Scanning word " + block + " (" + LongArrayBitVector.wrap( new long[] { bits[ block ] } ) + ")" );
+			final int l = (int)Math.min( Long.SIZE, length - block * Long.SIZE );
+
+			if ( block != numWords -1 ) {
+				int excess = 0;
+				int countFarOpening = countFarOpen( bits[ block ], l );
+				boolean somethingAdded = false;
 				
 				for( int j = l; j-- != 0; ) {
-					if ( ( bits[ i ] & 1L << j ) == 0 ) {
+					if ( ( bits[ block ] & 1L << j ) == 0 ) {
 						if ( excess > 0 ) excess = -1;
 						else --excess;
 					}
 					else {
 						if ( ++excess > 0 ) {
-							
 							// Find block containing matching far close parenthesis
-							int matchingBlock = i;
+							int matchingBlock = block;
 							while( count[ ++matchingBlock ] == 0 );
-							if ( lastBlock != -1 && matchingBlock != lastBlock ) {
+							countFarOpening--;
+							if ( --count[ matchingBlock ] == 0 || countFarOpening == 0 ) {
 								// This is an opening pioneer
-								if ( DEBUG ) System.err.println( "+( " + ( i * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
-								farOpening.add( lastPosition );
-								farOpeningMatch.add( lastBlock * Long.SIZE + findFarClose( bits[ lastBlock ], Long.SIZE, lastResidual ) );
+								if ( DEBUG ) System.err.println( "+( " + ( block * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
+								openingPioneers.add( block * Long.SIZE + j );
+								openingPioneerMatches.add( - ( block * Long.SIZE + j ) + ( matchingBlock * Long.SIZE + findFarClose( bits[ matchingBlock ], Long.SIZE, residual[ matchingBlock ]) ) );
+								//if ( block == 14 ) System.err.println( "Adding " + block * Long.SIZE + j );
+								if ( ASSERTS ) somethingAdded = true;
 							}
-							lastPosition = i * Long.SIZE + j;
-							lastBlock = matchingBlock;
-							lastResidual = residual[ matchingBlock ];
-							
-							count[ matchingBlock ]--;
 							residual[ matchingBlock ]++;
 						}
-					}
+					}					
 				}				
-
-				if ( lastPosition != -1 ) {
-					// This is a opening pioneer
-					if ( DEBUG ) System.err.println( "*( " + lastPosition + " " + Arrays.toString(  count ) );
-					farOpening.add( lastPosition );
-					farOpeningMatch.add( lastBlock * Long.SIZE + findFarClose( bits[ lastBlock ], Long.SIZE, lastResidual ) );
-				}
+				if ( ASSERTS ) assert somethingAdded || countFarOpen( bits[ block ], l ) == 0 : "No pioneers for block " + block + " " + LongArrayBitVector.wrap(  new long[] { bits[ block ] }, l ) + " (" + l + ") " + countFarOpen( bits[ block ], l );
 			}
-			count[ i ] = (byte)countFarClose( bits[ i ], l );
+			count[ block ] = (byte)countFarClose( bits[ block ], l );
 			if ( DEBUG ) System.err.println( "Stack updated: " + Arrays.toString(  count ) );
 		}
 		
 		for( int i = count.length; i-- != 0; ) if ( count[ i ] != 0 ) throw new IllegalArgumentException( "Unbalanced parentheses" );
-		if ( DEBUG ) System.err.println( "(:" + farOpening );
-		if ( DEBUG ) System.err.println( "(:" + farOpeningMatch );
+		if ( DEBUG ) System.err.println( "(:" + openingPioneers );
+		if ( DEBUG ) System.err.println( "(:" + openingPioneerMatches );
+		
+		Collections.reverse( openingPioneers );
+		Collections.reverse( openingPioneerMatches );
+		this.openingPioneers = new SparseSelect( openingPioneers );
+		this.numOpeningPioneers = openingPioneers.size();
+		this.openingPioneersRank = this.openingPioneers.getRank();
+		this.closingPioneers = new SparseSelect( closingPioneers );
+		this.openingPioneerMatches = new EliasFanoLongBigList( openingPioneerMatches );
+		this.closingPioneerMatches = new EliasFanoLongBigList( closingPioneerMatches );
 	}
 	
 	public BitVector bitVector() {
@@ -201,7 +201,7 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 	}
 
 	public long enclose( long pos ) {
-		return 0;
+		throw new UnsupportedOperationException();
 	}
 
 	public long findClose( final long pos ) {
@@ -220,22 +220,29 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 			}
 		}
 		
-		int i;
-		for( i = 0; i < farOpening.size(); i++ ) if ( pos >= farOpening.getLong( i ) ) break;
-		long pioneer = farOpening.getLong( i );
-		long match = farOpeningMatch.getLong( i );
-		if ( DEBUG ) System.err.println( "pioneer: " + pioneer + "; match: " + match );
-		int dist = (int)( pos - pioneer );
+		final long pioneerIndex = openingPioneersRank.rank( pos + 1 ) - 1;
+		final long pioneer = openingPioneers.select( pioneerIndex );
+		final long match = pioneer + openingPioneerMatches.getLong( pioneerIndex );
+
+		if ( ASSERTS ) {
+			int i = numOpeningPioneers;
+			while( pos < openingPioneers.select( --i ) );
+			assert i == pioneerIndex : i + " != " + pioneerIndex ;
+		}
+		
 		if ( pos == pioneer ) {
 			if ( DEBUG ) System.err.println( "Returning exact pioneer match: " + match );
 			return match;
 		}
 		
-		if ( ASSERTS ) assert word == pioneer / Long.SIZE;
+		if ( DEBUG ) System.err.println( "pioneer: " + pioneer + "; match: " + match );
+		int dist = (int)( pos - pioneer );
+		
+		if ( ASSERTS ) assert word == pioneer / Long.SIZE : "pos: " + pos + " word:" + word + " pioneer: " + pioneer + " word:" + pioneer / Long.SIZE;
 		if ( ASSERTS ) assert word != match / Long.SIZE;
 		if ( ASSERTS ) assert pioneer < pos;
 		
-		int e = 2 * Fast.count( ( bits[ word ] >>> ( pioneer & LongArrayBitVector.WORD_MASK ) ) & ( 1L << dist ) - 1 ) - dist; 
+		int e = 2 * Fast.count( ( bits[ word ] >>> ( pioneer % Long.SIZE ) ) & ( 1L << dist ) - 1 ) - dist; 
 		if ( ASSERTS ) {
 			assert e >= 1;
 			int ee = 0;
@@ -246,26 +253,22 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		if ( DEBUG ) System.err.println( "eccess: " + e );
 		
 		final int matchWord = (int)( match / Long.SIZE );
+		final int matchBit = (int)( match % Long.SIZE );
 		
-		for( int j = (int)( match & LongArrayBitVector.WORD_MASK ); j-- != 0; ) {
-			if ( ( bits[ matchWord ] & 1L << j ) != 0 ) e++;
-			else e--;
-			if ( e == 0 ) {
-				if ( DEBUG ) System.err.println( "Returning value: " + ( matchWord * Long.SIZE + j ) );
-				return matchWord * Long.SIZE + j;
-			}
-		}
-		
-		throw new IllegalArgumentException();
+		final int numFarClose = matchBit - 2 * Fast.count( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
+
+		if ( DEBUG ) System.err.println( "far close before match: " + numFarClose );
+		if ( DEBUG ) System.err.println( "Finding far close of rank " + ( numFarClose - e ) + " at " + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) );		
+		if ( DEBUG ) System.err.println( "Returning value: " + ( matchWord * Long.SIZE + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) ) );
+		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], matchBit, numFarClose - e );
 	}
 
 	public long findOpen( long pos ) {
-		
-		throw new IllegalArgumentException();
-}
+		throw new UnsupportedOperationException();
+	}
 
 	public long numBits() {
-		return 0;
+		return openingPioneers.numBits() + openingPioneerMatches.numBits() + closingPioneers.numBits() + closingPioneerMatches.numBits();
 	}
 
 }

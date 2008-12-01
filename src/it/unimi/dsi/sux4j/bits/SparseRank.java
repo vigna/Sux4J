@@ -151,7 +151,7 @@ public class SparseRank extends AbstractRank {
 			upperPos--; 
 		} while( upperPos >= 0 && upperBits.getBoolean( upperPos ) && lowerBits.getLong( rank ) >= posLowerBits );
 
-		return ( upperPos - rank ) << l | lowerBits.getLong( rank );
+		return rank << l | lowerBits.getLong( rank );
 	}
 
 	
@@ -181,5 +181,4 @@ public class SparseRank extends AbstractRank {
 		}
 		return result;
 	}
-
 }

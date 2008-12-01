@@ -15,7 +15,7 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 	}
 
 	public long enclose( long pos ) {
-		return v.subVector( 0, pos ).lastZero();
+		throw new UnsupportedOperationException();
 	}
 
 	public long findClose( long pos ) {
@@ -41,10 +41,9 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 		}
 		
 		throw new IllegalArgumentException();
-}
+	}
 
 	public long numBits() {
 		return 0;
 	}
-
 }
