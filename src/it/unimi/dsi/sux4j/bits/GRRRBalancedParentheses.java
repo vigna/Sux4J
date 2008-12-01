@@ -14,6 +14,7 @@ import java.util.Collections;
 
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
+import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 
 public class GRRRBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
@@ -87,141 +88,114 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 
 		return -1;
 	}
+	
+	private final static long L = 0x3830282018100800L;
 
 	public final static int findNearClose( long word ) {
-		if ( ( word & 2 ) == 0 ) return 1;
+		long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+		long zeroes = 0, update;
+		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+		System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+        byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 9; // Twice the number of open parentheses (cumulative by byte)
+
+		System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+        
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - L ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); // Excess per byte
+		System.err.print( "Sums: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 & ~0xFF;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & MSBS_STEP_8;
+		System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
-		final long word2 = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 );
+		System.err.print( "Sums: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 1 );
+		System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
-		if ( ( word2 >>> 2 & 3 ) == 0 ) return 3;
-
-        final long word4 = ( word2 & 3 * ONES_STEP_4 ) + ( ( word2 >>> 2 ) & 3 * ONES_STEP_4 );
-        int e = 2 * (int)( word4 & 0xF ) - 4;
-        
-        if ( ASSERTS ) assert e > 0;
-        
-        if ( e <= 4 - 2 * ( word4 >>> 4 & 0xF ) ) {
-        	if ( e <= 2 - 2 * ( word2 >>> 4 & 3 ) ) return 5;
-        	else return 7;	
-        }
-
-        final long word8 = ( word4 + ( word4 >>> 4 ) ) & 0x0f * ONES_STEP_8;
-        e = 2 * (int)( word8 & 0xFF ) - 8;
-        
-        if ( ASSERTS ) assert e > 0;
-        
-        if ( e <= 8 - 2 * ( word8 >>> 8 & 0xFF ) ) {
-        	if ( e <= 4 - 2 * ( word4 >>> 8 & 0xF ) ) {
-            	if ( e <= 2 - 2 * ( word2 >>> 8 & 3 ) ) return 9;
-            	else return 11;	
-        	}
-        	else {
-        		e -= 4 - 2 * ( word4 >>> 8 & 0xF );
-            	if ( e <= 2 - 2 * ( word2 >>> 12 & 3 ) ) return 13;
-            	else return 15;	
-        	}
-        }
-        
-        final long word16 = ( word8 + ( word8 >>> 8 ) ) & 0x00ff00ff00ff00ffL;
-        e = 2 * (int)( word16 & 0xFFFF ) - 16;
-
-        if ( ASSERTS ) assert e > 0;
-        System.err.println( e + ", " + (16 - 2 * ( word16 >>> 16 & 0xFFFF ))+ ", " + (2 - 2 * ( word2 >>> 16 & 3 )));
-        if ( e <= 16 - 2 * ( word16 >>> 16 & 0xFFFF ) ) {
-            System.err.println( "HERE");
-            if ( e <= 8 - 2 * ( word8 >>> 16 & 0xFF ) ) {
-            	if ( e <= 4 - 2 * ( word4 >>> 16 & 0xF ) ) {
-                	if ( e <= 2 - 2 * ( word2 >>> 16 & 3 ) ) return 17;
-                	else return 19;	
-            	}
-            	else {
-            		e -= 4 - 2 * ( word4 >>> 16 & 0xF );
-                	if ( e <= 2 - 2 * ( word2 >>> 20 & 3 ) ) return 21;
-                	else return 23;
-            	}
-            }
-            else {
-            	e -= 8 - 2 * ( word8 >>> 16 & 0xFF );
-
-            	if ( e <= 4 - 2 * ( word4 >>> 24 & 0xF ) ) {
-                	if ( e <= 2 - 2 * ( word2 >>> 24 & 3 ) ) return 25;
-                	else return 27;
-            	}
-            	else {
-            		e -= 4 - 2 * ( word4 >>> 24 & 0xF );
-                	if ( e <= 2 - 2 * ( word2 >>> 28 & 3 ) ) return 29;
-                	else return 31;	
-            	}
-            }
-        }
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		System.err.print( "Sums: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 2 );
+		System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
-        final long word32 = ( word16 + ( word16 >>> 16 ) ) & 0x0000ffff0000ffffL;
-        e = 2 * (int)( word32 & 0xFFFFFFFFL ) - 32;
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 3 );
+		
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 4 );
+		
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 5 );
+		
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 6 );
+		
+		word >>>= 1;
+		byteSums += ( word & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~word & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
+		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ( ONES_STEP_8 & ~MSBS_STEP_8 ) ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 7 );
+		
+		
+		for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
+		
+		
+		int block = Fast.leastSignificantBit( zeroes & MSBS_STEP_8 ) - 7;
+		return (int)( block + ( zeroes >>> block & 0x7F ) - 1 );
+/*		//assert block != -1;
+		//block = block == -1 ? 0 : block / 8;
+		assert block >= 7;
+		excess = excess >>> block - 7 & 0xFF;
+		System.out.println( "LSB: " + Fast.leastSignificantBit( zeroes & MSBS_STEP_8 ) + " Block: " + block ); 
+		System.out.println("Excess: " + excess );
+		
+		if ( excess != 0 ) {
+			for( int i = 0; i < 8; i++ ) {
+				if ( ( origWord & 1L << block - 7 + i ) != 0 ) excess++;
+				else excess--;
+				if ( excess == 0 ) {
+					assert ( zeroes >>> block -7 & 0x7F ) - 1 == i : (( zeroes >>> block -7 & 0x7F ) - 1 )+ " != " + i;
 
-        if ( ASSERTS ) assert e > 0;
-
-        if ( e <= 32 - 2 * ( word32 >>> 32 & 0xFFFFFFFFL ) ) {
-            if ( e <= 16 - 2* ( word16 >>> 32 & 0xFFFF ) ) {
-                if ( e <= 8 - 2 * ( word8 >>> 32 & 0xFF ) ) {
-                	if ( e <= 4 - 2 * ( word4 >>> 32 & 0xF ) ) {
-                    	if ( e <= 2 - 2 * ( word2 >>> 32 & 3 ) ) return 33;
-                    	else return 35;	
-                	}
-                	else {
-                		e -= 4 - 2 * ( word4 >>> 32 & 0xF );
-                    	if ( e <= 2 - 2 * ( word2 >>> 36 & 3 ) ) return 37;
-                    	else return 39;
-                	}
-                }
-                else {
-                	e -= 8 - 2 * ( word8 >>> 32 & 0xFF );
-
-                	if ( e <= 4 - 2 * ( word4 >>> 40 & 0xF ) ) {
-                    	if ( e <= 2 - 2 * ( word2 >>> 40 & 3 ) ) return 41;
-                    	else return 43;
-                	}
-                	else {
-                		e -= 4 - 2 * ( word4 >>> 40 & 0xF );
-                    	if ( e <= 2 - 2 * ( word2 >>> 44 & 3 ) ) return 45;
-                    	else return 47;	
-                	}
-                }
-            }
-            else {
-            	e -= 16 - 2 * ( word16 >>> 32 & 0xFFFFL );
-
-            	if ( e <= 16 - 2 * ( word16 >>> 48 & 0xFFFF ) ) {
-            		if ( e <= 8 - 2 * ( word8 >>> 48 & 0xFF ) ) {
-            			if ( e <= 4 - 2 * ( word4 >>> 48 & 0xF ) ) {
-            				if ( e <= 2 - 2 * ( word2 >>> 48 & 3 ) ) return 49;
-            				else return 51;	
-            			}
-            			else {
-            				e -= 4 - 2 * ( word4 >>> 48 & 0xF );
-            				if ( e <= 2 - 2 * ( word2 >>> 52 & 3 ) ) return 53;
-            				else return 55;
-            			}
-            		}
-            		else {
-            			e -= 8 - 2 * ( word8 >>> 48 & 0xFF );
-
-            			if ( e <= 4 - 2 * ( word4 >>> 56 & 0xF ) ) {
-            				if ( e <= 2 - 2 * ( word2 >>> 56 & 3 ) ) return 57;
-            				else return 59;
-            			}
-            			else {
-            				e -= 4 - 2 * ( word4 >>> 56 & 0xF );
-            				if ( e <= 2 - 2 * ( word2 >>> 60 & 3 ) ) return 61;
-            				else return 63;	
-            			}
-            		}
-            	}
-            }
-        }
+					return block -7 + i;
+				}
+			}
+		}
+		else {
+			//assert ( zeroes >>> block -7 & 0x7F ) - 1 == 1 : ( ( zeroes >>> block -7 & 0x7F ) - 1 ) + " != " + 1;
+			return (int)( block - 7 + ( zeroes >>> block -7 & 0x7F ) - 1 );
+		}
+		
+        return -1;*/
         
-        return -1;
 	}
-
+	
 	public GRRRBalancedParentheses( final BitVector bv ) {
 		this( bv, true, true, true );
 	}

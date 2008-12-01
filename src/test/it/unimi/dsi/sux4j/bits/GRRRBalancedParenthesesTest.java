@@ -35,17 +35,20 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 		
 		if ( e > 0 ) {
 			bv.add( 0 );
-			recTest( bv, e - 1 );
+			bv.add( 0 );
+			recTest( bv, e - 2 );
 			bv.set( bv.length() - 1 );
-			recTest( bv, e + 1 );
-			bv.length( bv.length() - 1 );
+			bv.set( bv.length() - 2 );
+			recTest( bv, e + 2 );
+			bv.length( bv.length() - 2 );
 		}
 	}
 	
 	public void testFindNearCloseRec() {
 		LongArrayBitVector bv = LongArrayBitVector.getInstance();
 		bv.add( 1 );
-		recTest( bv, 1 );
+		bv.add( 1 );
+		recTest( bv, 2 );
 	}
 	
 	public void testFindNearClose() {
@@ -82,7 +85,9 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 		assertEquals( 27, GRRRBalancedParentheses.findNearClose( parseSmall( "(((((((((((((())))))))))))))" ) ) );
 		assertEquals( 29, GRRRBalancedParentheses.findNearClose( parseSmall( "((((((((((((((()))))))))))))))" ) ) );
 		assertEquals( 31, GRRRBalancedParentheses.findNearClose( parseSmall( "((((((((((((((()()))))))))))))))" ) ) );
-	}
+
+		assertEquals( 63, GRRRBalancedParentheses.findNearClose( parseSmall( "(((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))" ) ) );
+}
 	
 	public void testLong() {
 		GRRRBalancedParentheses bp = new GRRRBalancedParentheses( new long[] { -1, -1, 0, 0 }, Long.SIZE * 4 );
