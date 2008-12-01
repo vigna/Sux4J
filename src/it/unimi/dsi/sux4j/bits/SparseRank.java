@@ -30,7 +30,8 @@ import it.unimi.dsi.util.LongBigList;
 
 /** A rank implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
- * <p>Note that some data may be shared with {@link SparseSelect}: just use the factory method {@link SparseSelect#getRank()} to obtain an instance.
+ * <p>Note that some data may be shared with {@link SparseSelect}: just use the factory method {@link SparseSelect#getRank()} to obtain an instance. In that
+ * case, {@link #numBits()} counts just the new data used to build the class, and not the shared part.
  */
 
 public class SparseRank extends AbstractRank {
@@ -50,7 +51,9 @@ public class SparseRank extends AbstractRank {
 	protected final BitVector upperBits;
 	/** The rank structure used to extract the upper bits. */ 
 	protected final SimpleSelectZero selectZeroUpper;
-
+	/** Whether this structure was built from a {@link SparseSelect} structure, and thus shares part of its internal state. */
+	protected final boolean fromSelect;
+	
 	/** Creates a new rank structure using a long array.
 	 * 
 	 * <p>The resulting structure keeps no reference to the original array.
@@ -104,6 +107,7 @@ public class SparseRank extends AbstractRank {
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + m + " positions in the provided iterator" );
 		
 		selectZeroUpper = new SimpleSelectZero( upperBits );
+		fromSelect = false;
 	}
 
 	protected SparseRank( long n, long m, int l, LongBigList lowerBits, BitVector upperBits ) {
@@ -114,6 +118,7 @@ public class SparseRank extends AbstractRank {
 		this.lowerBits = lowerBits;
 		this.upperBits = upperBits;
 		this.selectZeroUpper = new SimpleSelectZero( upperBits );
+		this.fromSelect = true;
 	}
 
 	public long rank( final long pos ) {
@@ -134,7 +139,7 @@ public class SparseRank extends AbstractRank {
 	}
 
 	public long numBits() {
-		return selectZeroUpper.numBits() + upperBits.length() + lowerBits.size() * l;
+		return selectZeroUpper.numBits() + ( fromSelect ? 0 : upperBits.length() + lowerBits.size() * l );
 	}
 	
 	public long pred( final long pos ) {

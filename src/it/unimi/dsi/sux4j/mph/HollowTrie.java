@@ -268,7 +268,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			System.err.println( this.skips );
 		}
 		
-		final long numBits = rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
+		final long numBits = rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 	}
 	
@@ -336,7 +336,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	}
 
 	public long numBits() {
-		return rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + /*skipLocator.numBits() +*/ transform.numBits();
+		return rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 	}
 	
 	private void recToString( final Node n, final StringBuilder printPrefix, final StringBuilder result, final StringBuilder path, final int level ) {

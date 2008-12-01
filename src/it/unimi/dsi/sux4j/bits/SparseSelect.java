@@ -33,7 +33,8 @@ import it.unimi.dsi.util.LongBigList;
  * <p>Instances of this classes do not add support to a bit vector: rather, they replace the bit vector
  * with a succinct representation of the positions of the ones in the bit vector.
  * 
- * <p>Note that some data may be shared with {@link SparseRank}: just use the factory method {@link SparseRank#getSelect()} to obtain an instance.
+ * <p>Note that some data may be shared with {@link SparseRank}: just use the factory method {@link SparseRank#getSelect()} to obtain an instance. In that
+ * case, {@link #numBits()} counts just the new data used to build the class, and not the shared part.
  */
 
 public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select {
@@ -41,6 +42,8 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	
 	/** The number of bits in the underlying bit array. */
 	private final long n;
+	/** Whether this structure was built from a {@link SparseRank} structure, and thus shares part of its internal state. */
+	protected final boolean fromRank;
 
 	/** Creates a new select structure using a long array.
 	 * 
@@ -76,6 +79,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	public SparseSelect( final long n, long m, final LongIterator iterator ) {
 		super( m, n, iterator );
 		this.n = n;
+		fromRank = false;
 	}	
 	
 	/** Creates a new select structure using a {@linkplain LongList list} of longs.
@@ -88,6 +92,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	public SparseSelect( final LongList list ) {
 		super( list );
 		this.n = list.isEmpty() ? 0 : list.getLong( list.size() - 1 ) + 1;
+		fromRank = false;
 	}	
 	
 	/** Creates a new select structure using a {@linkplain LongBigList big list} of longs.
@@ -100,11 +105,13 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	public SparseSelect( final LongBigList list ) {
 		super( list );
 		this.n = list.isEmpty() ? 0 : list.getLong( list.length() - 1 ) + 1;
+		fromRank = false;
 	}	
 	
 	protected SparseSelect( long n, long m, int l, LongBigList lowerBits, SimpleSelect selectUpper ) {
 		super( m, l, lowerBits, selectUpper );
 		this.n = n;
+		this.fromRank = true;
 	}
 
 	/** Creates a new {@link SparseRank} structure sharing data with this instance.
@@ -131,7 +138,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
+		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length() * l );
 	}
 
 	public long select( final long rank ) {
