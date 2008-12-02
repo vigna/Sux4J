@@ -91,9 +91,9 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 	
 	private final static long L = 0x4038302820181008L;
 
-	public final static int findNearClose( long word ) {
+	public final static int findNearClose( final long word ) {
 		long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
-		long zeroes = 0, update;
+		long zeroes, update;
 		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
 		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
         byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 1; // Twice the number of open parentheses (cumulative by byte)
@@ -104,10 +104,10 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		//System.err.print( "Closed excess: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
 
 		// Set up flags for excess values that are already zero
-		update = ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8;
-		update = ( update & ( zeroes ^ update ) ) >>> 7;
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
 		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
-		zeroes |= ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) ) & ( MSBS_STEP_8 | ONES_STEP_8 * 8 );
+		zeroes = ( MSBS_STEP_8 | ONES_STEP_8 * 7 ) & update;
 		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		byteSums += ( word >>> 7 & ONES_STEP_8 );
@@ -116,7 +116,7 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
 		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 7 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 6 ) & update;
 		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		byteSums += ( word >>> 6 & ONES_STEP_8 );
@@ -125,47 +125,49 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
 		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 6 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 5 ) & update;
 		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		byteSums += ( word >>> 5 & ONES_STEP_8 );
 		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 5 ) & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 5 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 4 ) & update;
 		
 		byteSums += ( word >>> 4 & ONES_STEP_8 );
 		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 4 ) & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 4 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 3 ) & update;
 		
 		byteSums += ( word >>> 3 & ONES_STEP_8 );
 		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 3 ) & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 3 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 2 ) & update;
 		
 		byteSums += ( word >>> 2 & ONES_STEP_8 );
 		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 2 ) & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 2 ) & update;
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 1 ) & update;
 		
 		byteSums += ( word >>> 1 & ONES_STEP_8 );
 		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 1 ) & ONES_STEP_8 ) ) ^ ( ( ( byteSums  ) ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
 		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
 		update = ~( ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ~ONES_STEP_8 ) & MSBS_STEP_8 ) );
-		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 1 ) & update;
+		zeroes = zeroes & ~update | MSBS_STEP_8 & update;
 		
 		
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		
-		int block = Fast.leastSignificantBit( zeroes & MSBS_STEP_8 ) - 7;
-		return (int)( block + ( zeroes >>> block & 0x7F ) - 1 );
-/*		//assert block != -1;
+		final int block = Fast.leastSignificantBit( zeroes >>> 7 & ONES_STEP_8 );
+		// A simple trick to return 127 if block < 0 (i.e., no match)
+		return ( (int)( block + ( zeroes >>> block & 0x7F ) ) | ( block >> 8 ) ) & 0x7F;
+
+		/*		//assert block != -1;
 		//block = block == -1 ? 0 : block / 8;
 		assert block >= 7;
 		excess = excess >>> block - 7 & 0xFF;
@@ -338,7 +340,7 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 			if ( ASSERTS ) assert ( c != 0 ) == ( result < 0 || result >= Long.SIZE - bit ) : "c: " + c + " bit: " + (b - bit) + " result:" + result + " " + LongArrayBitVector.wrap(  new long[] { bits[ word ] >>> bit }, Long.SIZE - bit ) + " (" +(Long.SIZE -bit)+ ")";
 			if ( ASSERTS ) assert ( c != 0 ) || ( b == bit + result ) : b + " != " + ( bit + result ) + " (bit:" + bit + ")" + LongArrayBitVector.wrap(  new long[] { bits[ word ] >>> bit } );
 		}
-		if ( result >= 0 && result < Long.SIZE - bit ) {
+		if ( result < Long.SIZE - bit ) {
 			if ( DEBUG ) System.err.println( "Returning in-word value: " + ( word * Long.SIZE + bit + result ) );
 			return word * Long.SIZE + bit + result;
 		}
