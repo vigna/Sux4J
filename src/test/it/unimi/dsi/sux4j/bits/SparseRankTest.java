@@ -96,16 +96,6 @@ public class SparseRankTest extends RankSelectTestCase {
 		assertRank( rank );
 		assertEquals( 0, rank.rank( 0 ) );
 	}
-
-	public void testPred() {
-		SparseRank rank;
-		rank = new SparseRank( LongArrayBitVector.of( 1, 0, 1, 1, 0, 0, 0 ).bits(), 7 );
-		SparseSelect select = rank.getSelect();
-		for( int i = 1; i < 7; i++ ) {
-			//System.err.println( i );
-			assertEquals( select.select( rank.rank( i ) - 1 ), rank.pred( i ) );
-		}
-	}
 	
 	public void testSparse() {
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( 256 * 1024 );

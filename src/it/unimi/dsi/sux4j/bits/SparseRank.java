@@ -141,25 +141,7 @@ public class SparseRank extends AbstractRank {
 	public long numBits() {
 		return selectZeroUpper.numBits() + ( fromSelect ? 0 : upperBits.length() + lowerBits.size() * l );
 	}
-	
-	public long pred( final long pos ) {
-		if ( pos == 0 || m == 0 ) return -1;
-		if ( pos >= n ) return m;
-		final long posShiftrL = pos >>> l;
-
-		long upperPos = selectZeroUpper.selectZero( posShiftrL );
-		long rank = upperPos - ( posShiftrL );
-		final long posLowerBits = pos & lowerLBitsMask;
-
-		do {
-			rank--; 
-			upperPos--; 
-		} while( upperPos >= 0 && upperBits.getBoolean( upperPos ) && lowerBits.getLong( rank ) >= posLowerBits );
-
-		return rank << l | lowerBits.getLong( rank );
-	}
-
-	
+		
 	/** Creates a new {@link SparseSelect} structure sharing data with this instance.
 	 *
 	 * @return a new {@link SparseSelect} structure sharing data with this instance.
