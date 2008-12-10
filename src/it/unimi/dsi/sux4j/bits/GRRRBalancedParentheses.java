@@ -212,6 +212,8 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		final byte count[] = new byte[ numWords ];
 		final byte residual[] = new byte[ numWords ];
 
+		if ( DEBUG ) System.err.println( "Expression: " + bitVector );
+		
 		LongArrayList closingPioneers = null, closingPioneerMatches = null, openingPioneers = null, openingPioneerMatches = null;
 
 		if ( findOpen ) {

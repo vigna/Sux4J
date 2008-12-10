@@ -38,7 +38,7 @@ public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 		
-		for( int d = 10; d < 10000; d *= 10 ) {
+		for( int d = 10; d < 1000; d *= 10 ) {
 			String[] s = new String[ d ];
 			int[] v = new int[ s.length ];
 			for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );

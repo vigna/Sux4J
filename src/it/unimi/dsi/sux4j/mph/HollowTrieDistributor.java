@@ -37,7 +37,6 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
-import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
@@ -64,9 +63,9 @@ import org.apache.log4j.Logger;
 public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
-	private static final boolean DEBUG = true;
-	private static final boolean DDEBUG = true;
-	private static final boolean ASSERTS = true;
+	private static final boolean DEBUG = false;
+	private static final boolean DDEBUG = false;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -79,8 +78,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final TransformationStrategy<? super T> transformationStrategy;
 	/** The bitstream representing the hollow trie. */
 	private final LongArrayBitVector trie;
-	/** A ranking structure over {@link #trie}. */
-	private final Rank9 rank9;
 	/** The list of skips, indexed by the internal nodes (we do not need skips on the leaves). */
 	private final EliasFanoLongBigList skips;
 	/** For each internal node and each possible path, the related behaviour. */
@@ -250,7 +247,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( root != null ) {
 					LOGGER.info( "Numbering nodes..." );
 
-					size = visit( root, 0 ); // Number nodes
+					size = visit( root, 0 ); // Number nodes; we start from one so to add the fake root
 					
 					LOGGER.info( "Computing function keys..." );
 
@@ -337,7 +334,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 									}
 
 									if ( DEBUG ) {
-										System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", " + path + "> -> " + behaviour );
+										System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping <" + node.index + ", [" + path.length() + ", " + Integer.toHexString( path.hashCode() ) + "] " + path + "> -> " + behaviour );
 										System.err.println( internalTestFunction );
 										System.err.println( externalTestFunction );
 									}
@@ -374,11 +371,11 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private void recToString( final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) {
 			if ( n == null ) return;
 			
-			result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
+			result.append( printPrefix ).append( '(' ).append( level ).append( ')' ).append( " [" ).append( n.index ).append( ']' );
 			
 			if ( n.path != null ) {
 				path.append( n.path );
-				result.append( " path:" ).append( n.path );
+				result.append( " path: " ).append( "[" ).append( path.length() ).append( ", " ).append( Integer.toHexString( path.hashCode() ) ).append( "] " ).append( n.path );
 			}
 
 			result.append( '\n' );
@@ -402,11 +399,11 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	private long visit( final IntermediateTrie.Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips ) {
-		if ( node == null ) return pos;
+		if ( node.isLeaf() ) return pos;
 
 		bitVector.set( pos++ ); // This adds the open parentheses
 		
-		skips.add( (int)( node.path.length() + 1 ) );
+		skips.add( (int)node.path.length() );
 		
 		pos = visit( node.left, bitVector, pos, skips );
 
@@ -434,16 +431,18 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 */
 	public HollowTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
+		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy, tempDir );
 
-		size = intermediateTrie.size * 2 + 1;
+		size = intermediateTrie.size;
+		System.err.println( "**"+size );
 		internalTestFunction = intermediateTrie.internalTestFunction;
 		externalTestFunction = intermediateTrie.externalTestFunction;
 		
 		final int numInternalKeys = intermediateTrie.internalValues.size();
 		final int numExternalKeys = intermediateTrie.externalValues.size();
 		
-		trie = LongArrayBitVector.ofLength( size * 2 + 2 );
+		trie = LongArrayBitVector.ofLength( size + 1 );
 		trie.set( 0 );
 		IntArrayList skips = new IntArrayList();
 		
@@ -454,7 +453,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 		
 		balParen = new GRRRBalancedParentheses( trie, false, true, false );
-		rank9 = new Rank9( trie );
 		this.skips = new EliasFanoLongBigList( skips );
 		skips = null;
 		
@@ -536,7 +534,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					BitVector curr = iterator.next();
 					if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
 					long t = getLong( curr );
-					assert t == c / bucketSize : t + " != " + c / bucketSize;
+					assert c / bucketSize == t : c / bucketSize + " != " + t;
 					c++;
 				}		
 			}
@@ -549,41 +547,49 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		if ( size == 0 ) return 0;
 		final BitVector bitVector = transformationStrategy.toBitVector( (T)o ).fast();
 		LongArrayBitVector key = LongArrayBitVector.getInstance();
-		long p = 1, length = bitVector.length(), index = 0, t;
+		long p = 1, length = bitVector.length(), index = 0, r = 0;
 		int s = 0, skip = 0, behaviour;
+		long lastLeftTurn = 0;
+		long lastLeftTurnIndex = 0;
 		boolean isInternal;
 			
 		if ( DEBUG ) System.err.println( "Distributing " + bitVector + "\ntrie:" + trie );
 		
 		for(;;) {
 			isInternal = trie.getBoolean( p );
-			if ( isInternal ) skip = (int)skips.getLong( rank9.rank( p ) - 1 );
-			//System.err.println( "Interrogating" + ( trie.getBoolean( p ) ? "" : " leaf" ) + " <" + p + ", " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
-			behaviour = isInternal ? (int)internalBehaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) )
-					: (int)externalBehaviour.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s ) ) );
+			if ( isInternal ) skip = (int)skips.getLong( r );
+			if ( DEBUG ) System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) + ", [" + Math.min( length, s + skip ) + ", " + Integer.toHexString( bitVector.subVector( s, Math.min( length, s + skip ) ).hashCode() ) + "] " + bitVector.subVector( s, Math.min( length, s + skip ) ) + "> (skip: " + skip + ")" );
+			behaviour = isInternal ? (int)internalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) )
+					: (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s ) ) );
 			
 			if ( ASSERTS ) {
 				final long result; 
-				if ( isInternal ) result = internalTestFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
-				else result = externalTestFunction.getLong( key.length( 0 ).append( p, Long.SIZE ).append( bitVector.subVector( s ) ) ); 
+				if ( isInternal ) result = internalTestFunction.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) );
+				else result = externalTestFunction.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s ) ) ); 
+				//assert result != -1; // Only if you don't test with non-keys
 				if ( result != -1 ) assert result == behaviour : result + " != " + behaviour; 
 			}
 			
+			//if ( ASSERTS ) assert behaviour == LEFT || behaviour == RIGHT || behaviour == FOLLOW : behaviour; // Only if you don't test with non-keys
 			if ( DEBUG ) System.err.println( "Exit behaviour: " + behaviour );
 
 			if ( behaviour != FOLLOW || ! isInternal || ( s += skip ) >= length ) break;
 
 			if ( DEBUG ) System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... " );
 			
-			//System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... \n" );
 			if ( bitVector.getBoolean( s ) ) {
 				final long q = balParen.findClose( p ) + 1;
 				index += ( q - p ) / 2;
+				r += ( q - p ) / 2;
 				//System.err.println( "Increasing index by " + ( q - p + 1 ) / 2 + " to " + index + "..." );
-				if ( ! trie.getBoolean( q ) ) return index;
 				p = q;
 			}
-			else if ( ! trie.getBoolean( ++p ) ) return index;
+			else {
+				lastLeftTurn = p;
+				lastLeftTurnIndex = index;
+				p++;
+				r++;
+			}
 			
 			if ( ASSERTS ) assert p < trie.length();
 
@@ -595,16 +601,23 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			return index;	
 		}
 		else {
-			final long q = balParen.findClose( p ) + 1;
-			index += ( q - p ) / 2;			
-			if ( DEBUG ) System.err.println( "Returning (on the right) " + index );
+			if ( isInternal ) {
+				final long q = balParen.findClose( lastLeftTurn );
+				//System.err.println( p + ", " + q + " ," + lastLeftTurn + ", " +lastLeftTurnIndex);;
+				index = ( q - lastLeftTurn + 1 ) / 2 + lastLeftTurnIndex;// + ( trie.getBoolean( q ) ? 0 : 1 );			
+				if ( DEBUG ) System.err.println( "Returning (on the right, internal) " + index );
+			}
+			else {
+				index++;
+				if ( DEBUG ) System.err.println( "Returning (on the right, external) " + index );
+			}
 			return index;	
 		}
 		
 	}
 	
 	public long numBits() {
-		return trie.length() + rank9.numBits() + skips.numBits() + balParen.numBits() + internalBehaviour.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
+		return trie.length() + skips.numBits() + balParen.numBits() + internalBehaviour.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {
