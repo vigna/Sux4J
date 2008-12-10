@@ -135,7 +135,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		private long skipsLength;
 	}
 	
-	long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo ) {
+	private long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo ) {
 		if ( node == null ) return pos;
 
 		bitVector.set( pos++ ); // This adds the open parentheses
@@ -270,6 +270,8 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		
 		final long numBits = rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
+		LOGGER.info( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
+		LOGGER.info( "Bits per trie node: " + (double)trie.length() / size );
 	}
 	
 	
