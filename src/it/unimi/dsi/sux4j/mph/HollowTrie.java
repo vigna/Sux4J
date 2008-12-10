@@ -32,7 +32,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
@@ -41,7 +40,6 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
@@ -81,8 +79,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private EliasFanoLongBigList skips;
 	/** The bit vector containing Jacobson's representation of the trie. */
 	private final BitVector trie;
-	/** A ranking structure over {@link #trie}. */
-	private final Rank9 rank9;
 	/** A balanced parentheses structure over {@link #trie}. */
 	private GRRRBalancedParentheses balParen;
 	/** The transformation strategy. */
@@ -110,21 +106,25 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
 		long p = 1, length = bitVector.length(), index = 0;
-		int s = 0;
+		int s = 0, r = 0;
 		
 		for(;;) {
-			if ( ( s += (int)skips.getLong( rank9.rank( p ) - 1 ) ) >= length ) return -1;
+			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
 			//System.err.println( "Skipping " + rank9.rank( p ) + " bits..." );
 			
 			//System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... \n" );
 			if ( bitVector.getBoolean( s ) ) {
 				final long q = balParen.findClose( p ) + 1;
+				r += ( q - p ) / 2 ;
 				index += ( q - p ) / 2;
 				//System.err.println( "Increasing index by " + ( q - p + 1 ) / 2 + " to " + index + "..." );
 				if ( ! trie.getBoolean( q ) ) return index;
 				p = q;
 			}
-			else if ( ! trie.getBoolean( ++p ) ) return index;
+			else {
+				if ( ! trie.getBoolean( ++p ) ) return index;
+				r++;
+			}
 			
 			s++;
 		}
@@ -228,7 +228,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		this.size = size;
 
 		if ( size <= 1 ) {
-			rank9 = new Rank9( LongArrays.EMPTY_ARRAY, 0 );
 			balParen = new GRRRBalancedParentheses( BitVectors.EMPTY_VECTOR );
 			trie = BitVectors.EMPTY_VECTOR;
 			return;
@@ -251,7 +250,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		root = null;		
 			
 		trie = bitVector;
-		rank9 = new Rank9( bitVector );
 		balParen = new GRRRBalancedParentheses( bitVector, false, true, false );
 		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
@@ -268,7 +266,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			System.err.println( this.skips );
 		}
 		
-		final long numBits = rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
+		final long numBits = numBits();
 		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
 		LOGGER.info( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
 		LOGGER.info( "Bits per trie node: " + (double)trie.length() / size );
@@ -338,7 +336,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	}
 
 	public long numBits() {
-		return rank9.numBits() + balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
+		return balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 	}
 	
 	private void recToString( final Node n, final StringBuilder printPrefix, final StringBuilder result, final StringBuilder path, final int level ) {
