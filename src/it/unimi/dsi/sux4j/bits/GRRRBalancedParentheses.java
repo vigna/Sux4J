@@ -18,7 +18,7 @@ import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 
 public class GRRRBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	private transient long[] bits;
 	protected final BitVector bitVector;

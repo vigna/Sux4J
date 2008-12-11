@@ -52,10 +52,10 @@ import org.apache.log4j.Logger;
 public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( RelativeTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
-	private static final boolean DEBUG = true;
-	private static final boolean DDEBUG = true;
-	private static final boolean DDDEBUG = true;
-	private static final boolean ASSERTS = true;
+	private static final boolean DEBUG = false;
+	private static final boolean DDEBUG = false;
+	private static final boolean DDDEBUG = false;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
