@@ -138,10 +138,10 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		LOGGER.info( "Computing z-fast relative trie distributor..." );
-		System.err.println( "*********" + tripleStore.seed() );
+		//System.err.println( "*********" + tripleStore.seed() );
 		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
 		LOGGER.info( "Computing offsets..." );
-		System.err.println( "*********" + tripleStore.seed() );
+		//System.err.println( "*********" + tripleStore.seed() );
 		offset = new MWHCFunction<BitVector>( null, TransformationStrategies.identity(), new AbstractLongList() {
 			final long bucketSizeMask = ( 1L << RelativeTrieMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
@@ -151,7 +151,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 				return size;
 			}
 		}, this.log2BucketSize, tripleStore );
-		System.err.println( "*********" + tripleStore.seed() );
+		//System.err.println( "*********" + tripleStore.seed() );
 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
