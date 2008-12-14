@@ -88,7 +88,11 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 
 		assertEquals( 63, GRRRBalancedParentheses.findNearClose( parseSmall( "(((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))" ) ) );
 }
-	
+
+	public void testFindFarClose() {
+		GRRRBalancedParentheses.findFarClose2( parseSmall( "()))(()(", false ), Long.SIZE, 0 );
+	}
+		
 	public void testLong() {
 		GRRRBalancedParentheses bp = new GRRRBalancedParentheses( new long[] { -1, -1, 0, 0 }, Long.SIZE * 4 );
 		assertBalancedParentheses( bp );

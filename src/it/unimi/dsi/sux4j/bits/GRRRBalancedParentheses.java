@@ -88,6 +88,22 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 
 		return -1;
 	}
+
+	
+	public final static int findFarClose2( long word, int l, int k ) {
+		// 00 -> 00 01 -> 01 11 -> 10 10 -> 00
+		System.err.println( "Before: " + Long.toBinaryString( 0x100 | word ) );
+		long open = word & ( ( word & 0x5 * ONES_STEP_4 ) << 1 );
+		System.err.println( "After:  " + Long.toBinaryString( 0x100 | open ) );
+		long closed = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+		/*long zeroes, update;
+		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+        byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 1; // Twice the number of open parentheses (cumulative by byte)
+*/
+		return 0;
+	
+	}
 	
 	private final static long L = 0x4038302820181008L;
 
@@ -162,7 +178,7 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
-		
+		// TODO: check that in this case MSB(x&-x) isn't better.
 		final int block = Fast.leastSignificantBit( zeroes >>> 7 & ONES_STEP_8 );
 		// A simple trick to return 127 if block < 0 (i.e., no match)
 		return ( (int)( block + ( zeroes >>> block & 0x7F ) ) | ( block >> 8 ) ) & 0x7F;

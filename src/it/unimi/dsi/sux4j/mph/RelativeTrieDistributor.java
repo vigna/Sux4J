@@ -503,7 +503,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % ( 1L << log2BucketSize ) == 0 ? " (bucket)" : "" ));
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
-					long h = Hashes.jenkins( curr );
+					long h = Hashes.jenkins( curr, seed );
 					mistakeSignatures.add( (int)( h ^ h >>> 32 ) );
 					mistakes++;
 				}
@@ -518,7 +518,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			c = 0;
 
 			for( BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
-				long h = Hashes.jenkins( curr );
+				long h = Hashes.jenkins( curr, seed );
 				if ( mistakeSignatures.contains( (int)( h ^ h >>> 32 ) ) ) {
 					positives.add( curr.copy() );
 					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) ); 
@@ -574,19 +574,13 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		long l = 0;
 		int i = Fast.mostSignificantBit( r );
 		long mask = 1L << i;
-		final long[] triple = new long[ 3 ];
 		while( r - l > 1 ) {
 			if ( ASSERTS ) assert i > -1;
 			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i );
-				Hashes.jenkins( v, f, a, b, c, triple );
-				if ( ASSERTS ) assert seed == signatures.globalSeed : seed + " != " + signatures.globalSeed;
-				long data = signatures.getLongByTriple( triple );
-				if ( ASSERTS ) assert data == signatures.getLong( v.subVector( 0, f ) );
-				
-				if ( DDDEBUG ) System.err.println( "Recalled (" + f + "," + ( triple[ 0 ] & signatureMask ) + ") " + v.subVector( 0, f ) + " (signature: " + ( data >>> logW ) + " length: " + ( data & logWMask ) + " data: " + data + ")" );
+				long data = signatures.getLong( v.subVector( 0, f ) );
 				
 				if ( data == -1 ) {
 					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
@@ -627,19 +621,21 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		final int b = (int)behaviour.getLong( o );
 		if ( emptyTrie ) return b;
 		final long length = getNodeStringLength( v );
+		if ( DDDEBUG ) System.err.println( "getNodeStringLength( v )=" + length );
 		final BitVector key = v.subVector( 0, length ).copy();
+		if ( length >= v.length() ) return -1;
 		final boolean bit = v.getBoolean( length );
 		
 		if ( b == LEFT ) {
-			//System.err.println( "LEFT: " + bit );
+			if ( DDDEBUG ) System.err.println( "LEFT: " + bit );
 			if ( bit ) key.add( true );
 			else key.length( key.lastOne() + 1 );
 			long pos = ranker.getLong( key );
-			//System.err.println( key.length() + " " + pos);
+			if ( DDDEBUG ) System.err.println( key.length() + " " + pos + " " + leaves.bitVector() );
 			return leaves.rank( pos ); 
 		}
 		else {
-			//System.err.println( "RIGHT: " + bit );
+			if ( DDDEBUG ) System.err.println( "RIGHT: " + bit );
 			if ( bit ) {
 				final long lastZero = key.lastZero();
 				//System.err.println( lastZero );

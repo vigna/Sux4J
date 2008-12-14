@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 
 public abstract class BalancedParenthesesTestCase extends TestCase {
 	
-	public static LongArrayBitVector parse( String s ) {
+	public static LongArrayBitVector parse( String s, boolean check ) {
 		int e = 0;
 		LongArrayBitVector bv = LongArrayBitVector.getInstance();
 		for( int i = 0; i < s.length(); i++ ) {
@@ -17,22 +17,26 @@ public abstract class BalancedParenthesesTestCase extends TestCase {
 				e++;
 			}
 			else {
-				if ( e == 0 ) throw new IllegalArgumentException();
+				if ( check && e == 0 ) throw new IllegalArgumentException();
 				bv.add( 0 );
 				e--;
 			}
 		}
 
-		if ( e != 0 ) throw new IllegalArgumentException();
+		if ( check && e != 0 ) throw new IllegalArgumentException();
 		
 		return bv;
 	}
 
 	
-	public static long parseSmall( String s ) {
+	public static long parseSmall( String s, boolean check ) {
 		if ( s.length() > Long.SIZE ) throw new IllegalArgumentException();
-		LongArrayBitVector bv = parse( s );
+		LongArrayBitVector bv = parse( s, check );
 		return bv.getLong( 0, s.length() );
+	}
+
+	public static long parseSmall( String s ) {
+		return parseSmall( s, true );
 	}
 
 	public void assertBalancedParentheses( BalancedParentheses balancedParentheses ) {
