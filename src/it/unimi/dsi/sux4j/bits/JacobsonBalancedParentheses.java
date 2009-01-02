@@ -18,7 +18,7 @@ import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
 import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
 
-public class GRRRBalancedParentheses implements BalancedParentheses {
+public class JacobsonBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -343,15 +343,15 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
         
 	}
 	
-	public GRRRBalancedParentheses( final BitVector bv ) {
+	public JacobsonBalancedParentheses( final BitVector bv ) {
 		this( bv, true, true, true );
 	}
 	
-	public GRRRBalancedParentheses( final long[] bits, final long length ) {
+	public JacobsonBalancedParentheses( final long[] bits, final long length ) {
 		this( LongArrayBitVector.wrap(  bits, length ) );
 	}
 
-	public GRRRBalancedParentheses( final BitVector bitVector, final boolean findOpen, final boolean findClose, final boolean enclose ) {
+	public JacobsonBalancedParentheses( final BitVector bitVector, final boolean findOpen, final boolean findClose, final boolean enclose ) {
 		if ( ! findOpen && ! findClose && ! enclose ) throw new IllegalArgumentException( "You must specify at least one implemented method" );
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
