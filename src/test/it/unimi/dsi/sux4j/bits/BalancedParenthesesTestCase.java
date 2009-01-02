@@ -3,11 +3,26 @@ package test.it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import junit.framework.TestCase;
 
 public abstract class BalancedParenthesesTestCase extends TestCase {
-	
+
+	public static String binary( long l, boolean reverse ) {
+		if ( reverse ) l = Long.reverse( l );
+		MutableString s = new MutableString().append( "0000000000000000000000000000000000000000000000000000000000000000000000000" ).append( Long.toBinaryString( l ) );
+		s.delete( 0, s.length() - 64 );
+		s.insert( 0, '\n' );
+		s.append( '\n' );
+		for( int i = 0; i < 32; i++ ) s.append( " " ).append( Long.toHexString( ( l >>> ( 31 - i ) * 2 ) & 0x3 ) );
+		s.append( '\n' );
+		for( int i = 0; i < 16; i++ ) s.append( "   " ).append( Long.toHexString( ( l >>> ( 15 - i ) * 4 ) & 0xF ) );
+		s.append( '\n' );
+		return s.toString();
+	}
+
+
 	public static LongArrayBitVector parse( String s, boolean check ) {
 		int e = 0;
 		LongArrayBitVector bv = LongArrayBitVector.getInstance();

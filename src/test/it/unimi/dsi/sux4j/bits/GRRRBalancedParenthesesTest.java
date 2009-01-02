@@ -4,7 +4,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
 
 public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
-	
+
 	public void testCountFarOpen() {
 		
 		assertEquals( 0, GRRRBalancedParentheses.countFarOpen( 0x5555555555555555L, Long.SIZE ) );
@@ -23,7 +23,7 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 	}
 
 	
-	private void recTest( LongArrayBitVector bv, int e ) {
+	private void recFindNearCloseTest( LongArrayBitVector bv, int e ) {
 		if ( e == 0 ) {
 			assertEquals( bv.toString(), bv.length() - 1, GRRRBalancedParentheses.findNearClose( bv.getLong( 0, bv.length() ) ) );
 			return;
@@ -36,10 +36,10 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 		if ( e > 0 ) {
 			bv.add( 0 );
 			bv.add( 0 );
-			recTest( bv, e - 2 );
+			recFindNearCloseTest( bv, e - 2 );
 			bv.set( bv.length() - 1 );
 			bv.set( bv.length() - 2 );
-			recTest( bv, e + 2 );
+			recFindNearCloseTest( bv, e + 2 );
 			bv.length( bv.length() - 2 );
 		}
 	}
@@ -48,7 +48,7 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 		LongArrayBitVector bv = LongArrayBitVector.getInstance();
 		bv.add( 1 );
 		bv.add( 1 );
-		recTest( bv, 2 );
+		recFindNearCloseTest( bv, 2 );
 	}
 	
 	public void testFindNearClose() {
@@ -89,8 +89,70 @@ public class GRRRBalancedParenthesesTest extends BalancedParenthesesTestCase {
 		assertEquals( 63, GRRRBalancedParentheses.findNearClose( parseSmall( "(((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))" ) ) );
 }
 
+	private void recFindFarCloseTest( LongArrayBitVector bv ) {
+		if ( bv.length() == Long.SIZE ) {
+			final long word = bv.getLong( 0, Long.SIZE );
+			for( int i = 0; ; i++ ) {
+				final int result = GRRRBalancedParentheses.findFarClose( word, Long.SIZE, i );
+				if ( result != -1 ) assertEquals( result, GRRRBalancedParentheses.findFarClose( word, i ) );
+				else {
+					assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( word, i ) );
+					break;
+				}
+			}
+			return;
+		}
+
+		bv.add( 0 );
+		bv.add( 0 );
+		recFindFarCloseTest( bv );
+		bv.set( bv.length() - 1 );
+		bv.set( bv.length() - 2 );
+		recFindFarCloseTest( bv );
+		bv.length( bv.length() - 2 );
+	}
+	
+	public void testFindFarCloseRec() {
+		LongArrayBitVector bv = LongArrayBitVector.getInstance();
+		recFindFarCloseTest( bv );
+	}
+	
+
 	public void testFindFarClose() {
-		GRRRBalancedParentheses.findFarClose2( parseSmall( "()))(()(", false ), Long.SIZE, 0 );
+		assertEquals( 2, GRRRBalancedParentheses.findFarClose( parseSmall( "()))(()(", false ), 0 ) );
+		assertEquals( 31, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 31 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 0 ) );
+		assertEquals( 15, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 15 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 32 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 33 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))((((((((((((((((((((((((((((((((", false ), 40 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))(((((((((((((((())))))))))))))))))))))))))))))))", false ), 0 ) );
+		assertEquals( 63, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))(((((((((((((((())))))))))))))))))))))))))))))))", false ), 31 ) );
+		assertEquals( 15, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))(((((((((((((((())))))))))))))))))))))))))))))))", false ), 15 ) );
+		assertEquals( 48, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))(((((((((((((((())))))))))))))))))))))))))))))))", false ), 16 ) );
+
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "()((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 0 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "()((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "()((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 2 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 0 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 2 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( ")(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 0 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( ")(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( ")(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 2 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( "))((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 0 ) );
+		assertEquals( 1, GRRRBalancedParentheses.findFarClose( parseSmall( "))((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 2 ) );
+
+		assertEquals( 62, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 61 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 62 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 63 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 0 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 2 ) );
+		assertEquals( 0, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 0 ) );
+		assertEquals( 1, GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 1 ) );
+		assertTrue( Long.SIZE <= GRRRBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 2 ) );
 	}
 		
 	public void testLong() {

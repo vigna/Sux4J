@@ -12,14 +12,17 @@ import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 
+
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
 import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
+import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
 
 public class GRRRBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
+	private static final boolean DDEBUG = false;
 	private transient long[] bits;
 	protected final BitVector bitVector;
 	private final SparseSelect openingPioneers;
@@ -90,18 +93,148 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 	}
 
 	
-	public final static int findFarClose2( long word, int l, int k ) {
+	public static final long MSBS_STEP_4 = 0x8L * ONES_STEP_4;
+	private static final long ONES_STEP_16 = 0x0001000100010001L;
+	private static final long MSBS_STEP_16 = 0x8000800080008000L;
+	private static final long ONES_STEP_32 = 0x0000000100000001L;
+	private static final long ONES_STEP_64 = 0x0000000000000001L;
+	private static final long MSBS_STEP_32 = 0x8000000080000000L;
+	private static final long MSBS_STEP_64 = 0x8000000000000000L;
+
+	public final static int findFarClose( long word, int k ) {
 		// 00 -> 00 01 -> 01 11 -> 10 10 -> 00
-		System.err.println( "Before: " + Long.toBinaryString( 0x100 | word ) );
-		long open = word & ( ( word & 0x5 * ONES_STEP_4 ) << 1 );
-		System.err.println( "After:  " + Long.toBinaryString( 0x100 | open ) );
-		long closed = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
-		/*long zeroes, update;
-		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
-		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
-        byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 1; // Twice the number of open parentheses (cumulative by byte)
-*/
-		return 0;
+		if ( DDEBUG ) System.err.println( "Before: " + binary( word, true ) );
+		final long b1 = ( word & ( 0xA * ONES_STEP_4 ) ) >>> 1;
+		final long b0 = word & ( 0x5 * ONES_STEP_4 );
+		final long lsb = ( b1 ^ b0 ) & b1;
+		//System.err.println( "b0:" + binary( b0, true ) );
+		//System.err.println( "b1:" + binary( b1, true ) );
+		//System.err.println( "lsb:" + binary( lsb, true ) );
+		
+		final long open2 = ( b1 & b0 ) << 1 | lsb;
+		if ( DDEBUG ) System.err.println( "Open:" + binary( open2, false ) );
+		// 00 -> 10 01 -> 01 11 -> 00 10 -> 00
+		final long closed2 = ( ( b1 | b0 ) ^ ( 0x5 * ONES_STEP_4 ) ) << 1 | lsb; 
+		if ( DDEBUG ) System.err.println( "Closed:" + binary( closed2, false ) );
+		
+		final long open4eccess = ( open2 & ( 0x3 * ONES_STEP_4  ) );
+		final long closed4eccess = ( closed2 & ( 0xC * ONES_STEP_4 ) ) >>> 2;
+
+		//if ( DDEBUG ) System.err.println( "Open e:  " + binary( open4eccess, false ) );
+		//if ( DDEBUG ) System.err.println( "Closed e:" + binary( closed4eccess, false ) );
+
+		long open4 = ( ( open4eccess | MSBS_STEP_4 ) - closed4eccess ) ^ MSBS_STEP_4;
+		if ( DDEBUG ) System.err.println( "Diff (open4):" + binary( open4, false ) );
+
+		final long open4mask = ( ( ( ( open4 & MSBS_STEP_4 ) >>> 3 ) | MSBS_STEP_4 ) - ONES_STEP_4 ) ^ MSBS_STEP_4;
+		
+		if ( DDEBUG ) System.err.println( "Mask (open4)  : " + binary( open4mask, false ) );
+
+		//open4eccess = ( open & ( 0xC * ONES_STEP_4  ) ) >>> 2;
+		//closed4eccess = closed & ( 0x3 * ONES_STEP_4 );
+
+		long closed4 = ( ( closed4eccess | MSBS_STEP_4 ) - open4eccess ) ^ MSBS_STEP_4;
+		if ( DDEBUG ) System.err.println( "Diff (closed4):" + binary( closed4, false ) );
+		final long closed4mask = ( ( ( ( closed4 & MSBS_STEP_4 ) >>> 3 ) | MSBS_STEP_4 ) - ONES_STEP_4 ) ^ MSBS_STEP_4;
+		if ( DDEBUG ) System.err.println( "Mask (closed4): " + binary( closed4mask, false ) );
+
+		open4 = ( ( open2 & ( 0xC * ONES_STEP_4 ) ) >>> 2 ) + ( open4mask & open4 );
+		closed4 = ( closed2 & ( 0x3 * ONES_STEP_4 ) ) + ( closed4mask & closed4 );
+		
+		if ( DDEBUG ) System.err.println( "Open 4:  " + binary( open4, false ) );
+		if ( DDEBUG ) System.err.println( "Closed 4:" + binary( closed4, false ) );
+
+		final long open8eccess = ( open4 & ( 0xF * ONES_STEP_8 ) );
+		final long closed8eccess = ( closed4 & ( 0xF0 * ONES_STEP_8 ) ) >> 4;
+		
+		long open8  = ( ( open8eccess | MSBS_STEP_8 ) - closed8eccess ) ^ MSBS_STEP_8;
+		final long open8mask =  ( ( ( ( open8 & MSBS_STEP_8 ) >>> 7 ) | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ MSBS_STEP_8;
+
+		long closed8 = ( ( closed8eccess | MSBS_STEP_8 ) - open8eccess ) ^ MSBS_STEP_8;
+		final long closed8mask = ( ( ( ( closed8 & MSBS_STEP_8 ) >>> 7 ) | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ MSBS_STEP_8;
+		
+		open8 = ( ( open4 & ( 0xF0 * ONES_STEP_8 ) ) >>> 4 ) + ( open8mask & open8 );
+		closed8 = ( closed4 & ( 0xF * ONES_STEP_8 ) ) + ( closed8mask & closed8 );
+
+		if ( DDEBUG ) System.err.println( "Open 8:  " + binary( open8, false ) );
+		if ( DDEBUG ) System.err.println( "Closed 8:" + binary( closed8, false ) );
+
+		final long open16eccess = ( open8 & ( 0xFF * ONES_STEP_16 ) );
+		final long closed16eccess = ( closed8 & ( 0xFF00 * ONES_STEP_16 ) ) >>> 8;
+		
+		long open16  = ( ( open16eccess | MSBS_STEP_16 ) - closed16eccess ) ^ MSBS_STEP_16;
+		final long open16mask =  ( ( ( ( open16 & MSBS_STEP_16 ) >>> 15 ) | MSBS_STEP_16 ) - ONES_STEP_16 ) ^ MSBS_STEP_16;
+
+		long closed16 = ( ( closed16eccess | MSBS_STEP_16 ) - open16eccess ) ^ MSBS_STEP_16;
+		final long closed16mask = ( ( ( ( closed16 & MSBS_STEP_16 ) >>> 15 ) | MSBS_STEP_16 ) - ONES_STEP_16 ) ^ MSBS_STEP_16;
+		
+		open16 = ( ( open8 & ( 0xFF00 * ONES_STEP_16 ) ) >>> 8 ) + ( open16mask & open16 );
+		closed16 = ( closed8 & ( 0xFF * ONES_STEP_16 ) ) + ( closed16mask & closed16 );
+
+		if ( DDEBUG ) System.err.println( "Open 16:  " + binary( open16, false ) );
+		if ( DDEBUG ) System.err.println( "Closed 16:" + binary( closed16, false ) );
+
+		final long open32eccess = ( open16 & 0xFFFF * ONES_STEP_32 );
+		final long closed32eccess = ( closed16 & ( 0xFFFF0000L * ONES_STEP_32 ) ) >>> 16;
+		
+		long open32  = ( ( open32eccess | MSBS_STEP_32 ) - closed32eccess ) ^ MSBS_STEP_32;
+		final long open32mask =  ( ( ( ( open32 & MSBS_STEP_32 ) >>> 31 ) | MSBS_STEP_32 ) - ONES_STEP_32 ) ^ MSBS_STEP_32;
+
+		long closed32 = ( ( closed32eccess | MSBS_STEP_32 ) - open32eccess ) ^ MSBS_STEP_32;
+		final long closed32mask = ( ( ( ( closed32 & MSBS_STEP_32 ) >>> 31 ) | MSBS_STEP_32 ) - ONES_STEP_32 ) ^ MSBS_STEP_32;
+		
+		open32 = ( ( open16 & ( 0xFFFF0000L * ONES_STEP_32 ) ) >>> 16 )+ ( open32mask & open32 );
+		closed32 = ( closed16 & ( 0xFFFF * ONES_STEP_32 ) ) + ( closed32mask & closed32 );
+		
+		if ( DDEBUG ) System.err.println( "Open 32:  " + binary( open32, false ) );
+		if ( DDEBUG ) System.err.println( "Closed 32:" + binary( closed32, false ) );
+		
+		final long open64eccess = ( open32 & 0xFFFFFFFFL );
+		final long closed64eccess = ( closed32 & 0xFFFFFFFF00000000L ) >>> 32;
+		
+		long open64  = ( ( open64eccess | MSBS_STEP_64 ) - closed64eccess ) ^ MSBS_STEP_64;
+		final long open64mask =  ( ( ( ( open64 & MSBS_STEP_64 ) >>> 63 ) | MSBS_STEP_64 ) - ONES_STEP_64 ) ^ MSBS_STEP_64;
+
+		long closed64 = ( ( closed64eccess | MSBS_STEP_64 ) - open64eccess ) ^ MSBS_STEP_64;
+		final long closed64mask = ( ( ( ( closed64 & MSBS_STEP_64 ) >>> 63 ) | MSBS_STEP_64 ) - ONES_STEP_64 ) ^ MSBS_STEP_64;
+		
+		open64 = ( ( open32 & 0xFFFFFFFF00000000L ) >>> 32 )+ ( open64mask & open64 );
+		closed64 = ( closed32 & 0xFFFFFFFFL ) + ( closed64mask & closed64 );
+		
+		if ( DDEBUG ) System.err.println( "Open 64:  " + binary( open64, false ) );
+		if ( DDEBUG ) System.err.println( "Closed 64:" + binary( closed64, false ) );
+
+		final long check32 = ( ( k - ( closed32 & 0xFFFFFFFFL ) ) >>> Long.SIZE - 1 ) - 1;
+		long mask = check32 & 0xFFFFFFFFL;
+		k -= closed32 & mask;
+		k += open32 & mask;
+		int shift = (int)( 32 & check32 );
+		
+		final long check16 = ( ( k - ( closed16 >>> shift & 0xFFFF ) ) >>> Long.SIZE - 1 ) - 1;
+		mask = check16 & 0xFFFF;
+		k -= closed16 >>> shift & mask;
+		k += open16 >>> shift & mask;
+		shift += 16 & check16;
+		
+		final long check8 = ( ( k - ( closed8 >>> shift & 0xFF ) ) >>> Long.SIZE - 1 ) - 1;
+		mask = check8 & 0xFF;
+		k -= closed8 >>> shift & mask;
+		k += open8 >>> shift & mask;
+		shift += 8 & check8;
+		
+		final long check4 = ( ( k - ( closed4 >>> shift & 0xF ) ) >>> Long.SIZE - 1 ) - 1;
+		mask = check4 & 0xF;
+		k -= closed4 >>> shift & mask;
+		k += open4 >>> shift & mask;
+		shift += 4 & check4;
+
+		final long check2 = ( ( k - ( closed2 >>> shift & 0x3 ) ) >>> Long.SIZE - 1 ) - 1;
+		mask = check2 & 0x3;
+		k -= closed2 >>> shift & mask;
+		k += open2 >>> shift & mask;
+		shift += 2 & check2;
+
+		return (int)( shift + k + ( word >>> shift & ( 1 | k << 1 ) ) );
 	
 	}
 	
@@ -115,7 +248,7 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
         byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 1; // Twice the number of open parentheses (cumulative by byte)
 
 		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
-        
+        // TODO: this can be simplified
 		byteSums = ( ( L | MSBS_STEP_8 ) - byteSums ) ^ ( ( L ^ ~byteSums ) & MSBS_STEP_8 ); // Closed excess per byte
 		//System.err.print( "Closed excess: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
 
@@ -395,9 +528,10 @@ public class GRRRBalancedParentheses implements BalancedParentheses {
 		final int numFarClose = matchBit - 2 * Fast.count( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
 
 		if ( DEBUG ) System.err.println( "far close before match: " + numFarClose );
-		if ( DEBUG ) System.err.println( "Finding far close of rank " + ( numFarClose - e ) + " at " + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) );		
+		if ( DEBUG ) System.err.println( "Finding far close of rank " + ( numFarClose - e ) + " at " + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) );
+		assert findFarClose( bits[ matchWord ], numFarClose - e ) == findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) : findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) + " != " + findFarClose( bits[ matchWord ], numFarClose - e ) + " [" + Long.toBinaryString( bits[ matchWord ] ) + " (" + ( numFarClose - e ) + ")";
 		if ( DEBUG ) System.err.println( "Returning value: " + ( matchWord * Long.SIZE + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) ) );
-		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], matchBit, numFarClose - e );
+		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], numFarClose - e );
 	}
 
 	public long findOpen( long pos ) {
