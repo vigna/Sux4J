@@ -144,15 +144,22 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 		assertEquals( 1, JacobsonBalancedParentheses.findFarClose( parseSmall( "))((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 1 ) );
 		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((", false ), 2 ) );
 
-		assertEquals( 62, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 61 ) );
+		assertEquals( 62, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))", false ), 62 ) );
+		assertEquals( 63, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))", false ), 63 ) );
+		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))", false ), 64 ) );
+
+		assertEquals( 61, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 61 ) );
+		System.err.println( JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 62 ));
 		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 62 ) );
 		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 63 ) );
-		assertEquals( 0, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 0 ) );
-		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 1 ) );
-		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 2 ) );
-		assertEquals( 0, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 0 ) );
-		assertEquals( 1, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 1 ) );
-		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false ), 2 ) );
+		
+		assertEquals( 61, JacobsonBalancedParentheses.findFarClose( parseSmall( ")))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))(", false ), 61 ) );
+		assertEquals( 62, JacobsonBalancedParentheses.findFarClose( parseSmall( ")))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))(", false ), 62 ) );
+		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( ")))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))(", false ), 63 ) );
+		
+		assertEquals( 61, JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))((", false ), 61 ) );
+		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))((", false ), 62 ) );
+		assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( parseSmall( "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))((", false ), 63 ) );
 	}
 		
 	public void testLong() {

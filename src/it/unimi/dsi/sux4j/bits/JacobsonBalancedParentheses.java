@@ -12,10 +12,6 @@ import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 
-
-import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
-import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
-import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
 
 public class JacobsonBalancedParentheses implements BalancedParentheses {
@@ -93,7 +89,10 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	}
 
 	
+	public static final long ONES_STEP_4 = 0x1111111111111111L;
 	public static final long MSBS_STEP_4 = 0x8L * ONES_STEP_4;
+	public static final long ONES_STEP_8 = 0x0101010101010101L;
+	public static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 	private static final long ONES_STEP_16 = 0x0001000100010001L;
 	private static final long MSBS_STEP_16 = 0x8000800080008000L;
 	private static final long ONES_STEP_32 = 0x0000000100000001L;

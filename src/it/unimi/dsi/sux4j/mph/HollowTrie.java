@@ -40,7 +40,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
+import it.unimi.dsi.sux4j.bits.JacobsonBalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 import java.io.IOException;
@@ -80,7 +80,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	/** The bit vector containing Jacobson's representation of the trie. */
 	private final BitVector trie;
 	/** A balanced parentheses structure over {@link #trie}. */
-	private GRRRBalancedParentheses balParen;
+	private JacobsonBalancedParentheses balParen;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** The number of elements in this hollow trie. */
@@ -228,7 +228,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		this.size = size;
 
 		if ( size <= 1 ) {
-			balParen = new GRRRBalancedParentheses( BitVectors.EMPTY_VECTOR );
+			balParen = new JacobsonBalancedParentheses( BitVectors.EMPTY_VECTOR );
 			trie = BitVectors.EMPTY_VECTOR;
 			return;
 		}
@@ -250,7 +250,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		root = null;		
 			
 		trie = bitVector;
-		balParen = new GRRRBalancedParentheses( bitVector, false, true, false );
+		balParen = new JacobsonBalancedParentheses( bitVector, false, true, false );
 		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
 /*		LOGGER.info( "Max depth: " + maxDepth );

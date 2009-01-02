@@ -36,7 +36,7 @@ import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
-import it.unimi.dsi.sux4j.bits.GRRRBalancedParentheses;
+import it.unimi.dsi.sux4j.bits.JacobsonBalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
@@ -452,7 +452,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			visit( intermediateTrie.root, trie, 1, skips );
 		}
 		
-		balParen = new GRRRBalancedParentheses( trie, false, true, false );
+		balParen = new JacobsonBalancedParentheses( trie, false, true, false );
 		this.skips = new EliasFanoLongBigList( skips );
 		skips = null;
 		
