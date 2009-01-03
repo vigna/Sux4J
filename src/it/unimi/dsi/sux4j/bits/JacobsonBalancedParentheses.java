@@ -73,7 +73,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		return c;
 	}
 
-	public final static int findFarClose( long word, int l, int k ) {
+	public final static int findFarClose2( long word, int l, int k ) {
 		int e = 0;
 		for( int i = 0; i < l; i++ ) {
 			if ( ( word & 1L << i ) != 0 ) {
@@ -233,7 +233,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		k += open2 >>> shift & mask;
 		shift += 2 & check2;
 
-		return (int)( shift + k + ( word >>> shift & ( 1 | k << 1 ) ) );
+		return (int)( shift + k + ( ( word >>> shift & ( ( k << 1 ) | 1 ) ) << 1 ) );
 	
 	}
 	
@@ -436,7 +436,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 									// This is an opening pioneer
 									if ( DEBUG ) System.err.println( "+( " + ( block * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
 									openingPioneers.add( block * Long.SIZE + j );
-									openingPioneerMatches.add( - ( block * Long.SIZE + j ) + ( matchingBlock * Long.SIZE + findFarClose( bits[ matchingBlock ], Long.SIZE, residual[ matchingBlock ]) ) );
+									openingPioneerMatches.add( - ( block * Long.SIZE + j ) + ( matchingBlock * Long.SIZE + findFarClose( bits[ matchingBlock ], residual[ matchingBlock ]) ) );
 									//if ( block == 14 ) System.err.println( "Adding " + block * Long.SIZE + j );
 									if ( ASSERTS ) somethingAdded = true;
 								}
@@ -527,9 +527,6 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		final int numFarClose = matchBit - 2 * Fast.count( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
 
 		if ( DEBUG ) System.err.println( "far close before match: " + numFarClose );
-		if ( DEBUG ) System.err.println( "Finding far close of rank " + ( numFarClose - e ) + " at " + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) );
-		assert findFarClose( bits[ matchWord ], numFarClose - e ) == findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) : findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) + " != " + findFarClose( bits[ matchWord ], numFarClose - e ) + " [" + Long.toBinaryString( bits[ matchWord ] ) + " (" + ( numFarClose - e ) + ")";
-		if ( DEBUG ) System.err.println( "Returning value: " + ( matchWord * Long.SIZE + findFarClose( bits[ matchWord ], matchBit, numFarClose - e ) ) );
 		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], numFarClose - e );
 	}
 
