@@ -73,9 +73,9 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		return c;
 	}
 
-	public final static int findFarClose2( long word, int l, int k ) {
+	public final static int findFarClose2( long word, int k ) {
 		int e = 0;
-		for( int i = 0; i < l; i++ ) {
+		for( int i = 0; i < Long.SIZE; i++ ) {
 			if ( ( word & 1L << i ) != 0 ) {
 				if ( e > 0 ) e = -1;
 				else --e;
