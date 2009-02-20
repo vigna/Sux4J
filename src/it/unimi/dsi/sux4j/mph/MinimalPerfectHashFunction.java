@@ -68,7 +68,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * for the random hashes (which are usually negligible). The o(<var>n</var>) part is due to
  * an embedded ranking scheme that increases space 
  * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per element.
- * At construction time, however, about 15<var>n</var> integers (i.e., 60<var>n</var> bytes) are necessary. 
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
@@ -197,7 +196,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		count = new int[ ( 2 * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ];
 		int c = 0;
 		
-		for( int i = 0; i < 2 * m / Long.SIZE; i++ ) {
+		for( int i = 0; i <= ( 2 * m ) / Long.SIZE; i++ ) {
 			if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
 			c += countNonzeroPairs( array[ i ] );
 		}
@@ -205,7 +204,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( ASSERTS ) {
 			k = 0;
 			for( int i = 0; i < m; i++ ) {
-				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( 2 * i ); 
+				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i ); 
 				if ( values.getLong( i ) != 0 ) k++;
 				assert k <= n;
 			}
@@ -262,7 +261,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 
 	public int rank( long x ) {
-		x = 2 * x;
+		x *= 2;
 		final int word = (int)( x / Long.SIZE );
 		int rank = count[ word / 8 ];
 		int wordInBlock = word & ~7;

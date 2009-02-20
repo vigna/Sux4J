@@ -13,6 +13,9 @@
 
 - New HollowTrie implementation based on balanced parentheses.
 
+- Fixed an old and severe bug in MinimalPerfectHashFunction, that
+  was causing the generated functions not to be perfect.
+
 1.0.4
 
 - New progressive hash-computation methods that provide Jenkins hash

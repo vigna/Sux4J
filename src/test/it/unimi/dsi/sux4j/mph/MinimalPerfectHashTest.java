@@ -17,10 +17,10 @@ public class MinimalPerfectHashTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		
-		String[] s = new String[ 1000 ];
+		String[] s = new String[ 10000 ];
 		for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 		
-		MinimalPerfectHashFunction<CharSequence> mph = new MinimalPerfectHashFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+		MinimalPerfectHashFunction<CharSequence> mph = new MinimalPerfectHashFunction<CharSequence>( Arrays.asList( s ), TransformationStrategies.utf16() );
 		
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );

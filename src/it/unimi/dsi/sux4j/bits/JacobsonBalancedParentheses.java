@@ -96,10 +96,8 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	private static final long ONES_STEP_16 = 0x0001000100010001L;
 	private static final long MSBS_STEP_16 = 0x8000800080008000L;
 	private static final long ONES_STEP_32 = 0x0000000100000001L;
-	private static final long ONES_STEP_64 = 0x0000000000000001L;
 	private static final long MSBS_STEP_32 = 0x8000000080000000L;
-	private static final long MSBS_STEP_64 = 0x8000000000000000L;
-
+	
 	public final static int findFarClose( long word, int k ) {
 		// 00 -> 00 01 -> 01 11 -> 10 10 -> 00
 		if ( DDEBUG ) System.err.println( "Before: " + binary( word, true ) );
@@ -188,21 +186,6 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		if ( DDEBUG ) System.err.println( "Open 32:  " + binary( open32, false ) );
 		if ( DDEBUG ) System.err.println( "Closed 32:" + binary( closed32, false ) );
 		
-		final long open64eccess = ( open32 & 0xFFFFFFFFL );
-		final long closed64eccess = ( closed32 & 0xFFFFFFFF00000000L ) >>> 32;
-		
-		long open64  = ( ( open64eccess | MSBS_STEP_64 ) - closed64eccess ) ^ MSBS_STEP_64;
-		final long open64mask =  ( ( ( ( open64 & MSBS_STEP_64 ) >>> 63 ) | MSBS_STEP_64 ) - ONES_STEP_64 ) ^ MSBS_STEP_64;
-
-		long closed64 = ( ( closed64eccess | MSBS_STEP_64 ) - open64eccess ) ^ MSBS_STEP_64;
-		final long closed64mask = ( ( ( ( closed64 & MSBS_STEP_64 ) >>> 63 ) | MSBS_STEP_64 ) - ONES_STEP_64 ) ^ MSBS_STEP_64;
-		
-		open64 = ( ( open32 & 0xFFFFFFFF00000000L ) >>> 32 )+ ( open64mask & open64 );
-		closed64 = ( closed32 & 0xFFFFFFFFL ) + ( closed64mask & closed64 );
-		
-		if ( DDEBUG ) System.err.println( "Open 64:  " + binary( open64, false ) );
-		if ( DDEBUG ) System.err.println( "Closed 64:" + binary( closed64, false ) );
-
 		final long check32 = ( ( k - ( closed32 & 0xFFFFFFFFL ) ) >>> Long.SIZE - 1 ) - 1;
 		long mask = check32 & 0xFFFFFFFFL;
 		k -= closed32 & mask;
@@ -244,7 +227,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		long zeroes, update;
 		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
 		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
-        byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ONES_STEP_8 << 1; // Twice the number of open parentheses (cumulative by byte)
+		byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ( ONES_STEP_8 << 1 ); // Twice the number of open parentheses (cumulative by byte)
 
 		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
         // TODO: this can be simplified
