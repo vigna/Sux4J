@@ -2,7 +2,7 @@
 
 - New structures for balanced parentheses.
 
-- Faster Select9 operation: some broadword operation were implemented in a redundant way.
+- Faster Select9 operation: some broadword operations were implemented in a redundant way.
 
 - SparseSelect/SparseRank would give an incorrect (or at least little
   useful) value for numBits() when using shared data.
