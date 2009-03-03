@@ -70,13 +70,16 @@ import cern.colt.function.IntComparator;
  * <h2>Support for preprocessed keys</h2>
  * 
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
- * {@link #generateAndSort(Iterator, long)} and {@link #bitVectorToEdge(long[], long, int, int[])} use
+ * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
  * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
  * then operating directly on the hash codes. This is particularly useful in bucketed constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
  * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
+ * 
+ * <strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
+ * methods. It is your responsibility to pair them correctly.
  * 
  * <h2>Implementation details</h2>
  * 
@@ -197,7 +200,7 @@ public class HypergraphSorter<T> {
 	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param e an array to store the resulting edge.
 	 */
-	public static void bitVectorToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
+	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
 		if ( numVertices == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
@@ -252,7 +255,7 @@ public class HypergraphSorter<T> {
 
 		/* We build the edge list. */
 		for( int k = 0; k < numEdges; k++ ) {
-			bitVectorToEdge( iterator.next(), seed, numVertices, e );
+			tripleToEdge( iterator.next(), seed, numVertices, e );
 			edge0[ k ] = e[ 0 ];
 			edge1[ k ] = e[ 1 ];
 			edge2[ k ] = e[ 2 ];
@@ -286,9 +289,9 @@ public class HypergraphSorter<T> {
 				d[ edge[ j ][ i ] ]++; 
 
 
-		if ( numEdges > 1 ) {
-			LOGGER.debug( "Checking for duplicate edges..." );
+		LOGGER.debug( "Checking for duplicate edges..." );
 
+		if ( numEdges > 0 ) {
 			/* Now we quicksort edges lexicographically, keeping into last their permutation. */
 			for( int i = numEdges; i-- != 0; ) last[ i ] = i;
 

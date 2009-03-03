@@ -78,7 +78,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		if ( size == 0 ) return -1;
+		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
@@ -94,6 +94,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	public PaCoTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
+		defRetValue = -1; // For the very few cases in which we can decide
 
 		long maxLength = 0;
 		long totalLength = 0;
@@ -150,10 +151,11 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		*/	
 		
 		LOGGER.info( "Bucket size: " + bucketSize );
-
+		final int bucketSizeMask = bucketSize - 1;
+		
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return index & bucketSizeMask; 
 			}
 			public int size() {
 				return size;

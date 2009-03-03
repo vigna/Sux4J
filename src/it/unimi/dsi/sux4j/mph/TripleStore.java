@@ -50,7 +50,8 @@ import cern.colt.GenericSorting;
 import cern.colt.Swapper;
 import cern.colt.function.IntComparator;
 
-/** A store of triples
+/** A store of triples.
+ * 
  * @author Sebastiano Vigna
  * @since 1.0.4
  */

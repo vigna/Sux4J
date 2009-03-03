@@ -29,19 +29,22 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import it.unimi.dsi.sux4j.bits.SparseRank;
+import it.unimi.dsi.sux4j.bits.SparseSelect;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -54,17 +57,16 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain HollowTrieDistributor hollow trie} as a distributor.
- * 
+ * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
  */
 
-public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
-	private static final Logger LOGGER = Util.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
+public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+    public static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = Util.getLogger( VLPaCoTrieMonotoneMinimalPerfectHashFunction.class );
+	private static final boolean ASSERTS = true;
 	
 	/** The number of elements. */
 	private final int size;
@@ -74,59 +76,48 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	private final int log2BucketSize;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
-	/** A hollow trie distributor assigning keys to buckets. */
-	private final HollowTrieDistributor<BitVector> distributor;
+	/** A PaCo trie assigning keys to buckets. */
+	private final VLBitstreamImmutablePaCoTrie<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
+	private SparseSelect select;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
-		// TODO: could use offset's return value to return defRetValue.
-		return ( bucket << log2BucketSize ) + offset.getLong( bv );
+		return ( bucket == 0 ? 0 : select.select( bucket - 1 ) ) + offset.getLong( bv );
 	}
-	
-	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements and transformation strategy, using the default temporary directory. 
+
+	/** Creates a new PaCo-trie-based monotone minimal perfect hash function using the given
+	 * elements and transformation strategy. 
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null );
-	}
-	
-	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements, transformation strategy, and temporary directory. 
-	 * 
-	 * @param elements the elements among which the trie must be able to rank.
-	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
-	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @param tempDir a directory for the temporary files created during construction 
-	 * by the {@link HollowTrieDistributor}, or <code>null</code> for the default temporary directory. 
-	 */
-	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
+	public VLPaCoTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		long maxLength = 0;
 		long totalLength = 0;
-		int c = 0;
 		BitVector bv;
+		final Random random = new Random();
+		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
+		tripleStore.reset( random.nextLong() );
 		for( T s: elements ) {
 			bv = transform.toBitVector( s );
+			tripleStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
-			c++;
 		}
 		
-		size = c;
+		size = tripleStore.size();
 		
-		if ( size == 0 ) {
+		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
@@ -135,46 +126,98 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
-		bucketSize = 1 << log2BucketSize;
-		LOGGER.debug( "Bucket size: " + bucketSize );
-
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
-		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
-				return index % bucketSize; 
-			}
-			public int size() {
-				return size;
-			}
-		}, log2BucketSize );
-
+		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( size ) - Math.log( averageLength - Math.log( size ) ) - 1 ) );
+		final int firstbucketSize = 1 << t;
+		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
+		
+		VLBitstreamImmutablePaCoTrie<BitVector> firstDistributor = new VLBitstreamImmutablePaCoTrie<BitVector>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
+
+		if ( firstbucketSize >= size ) log2BucketSize = t;
+		else {
+			// Reassign bucket size based on empirical estimation
+			log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
+		}
+		
+		bucketSize = 1 << log2BucketSize;
+		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
+
+		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
+		else {
+			firstDistributor = null;
+			distributor = new VLBitstreamImmutablePaCoTrie<BitVector>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
+		}
+
+		/*
+		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
+		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 1 ) );
+		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 1 ) );
+		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
+		*/	
+		
+		LOGGER.info( "Bucket size: " + bucketSize );
+
+		final SparseRank sparseRank;
+		if ( size >= bucketSize ) {
+			 sparseRank = new SparseRank( distributor.offset[ distributor.offset.length - 2 ] + 1, distributor.offset.length - 1, LongArrayList.wrap( distributor.offset, distributor.offset.length - 1 ).iterator() );
+			if ( ASSERTS ) {
+				int i = 0;
+				for( BitVector b: bitVectors ) {
+					assert distributor.getLong( b ) == sparseRank.rank( i ) : "At " + i + ": " + distributor.getLong( b ) + " != " + sparseRank.rank( i );
+					i++;
+				}
+			}
+
+			select = sparseRank.getSelect();
+		}
+		else {
+			sparseRank = null;
+			select = null;
+		}
+		
+		if ( size > 0 ) {
+			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
+				public long getLong( int index ) {
+					final int rank = sparseRank == null ? 0 : (int)sparseRank.rank( index );
+					if ( ASSERTS ) {
+						assert rank == 0 || distributor.offset[ rank - 1 ] <= index : distributor.offset[ rank - 1 ]  + " >= " + index;
+						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset[ rank - 1 ]  < bucketSize * 2;
+					}
+					return rank == 0 ? index : index - distributor.offset[ rank - 1 ]; 
+				}
+				public int size() {
+					return size;
+				}
+			}, log2BucketSize + 1, tripleStore );
+
+		}
+		else offset = null;
+
+		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( size ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
+
 
 	public int size() {
 		return size;
 	}
 
 	public long numBits() {
-		return distributor.numBits() + offset.numBits() + transform.numBits();
+		return distributor.numBits() + ( offset == null ? 0 : offset.numBits() ) + transform.numBits() + ( select == null ? 0 : select.numBits() );
 	}
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 't', "temp-dir", "A temporary directory for the files created during the construction." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
@@ -188,7 +231,6 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -204,7 +246,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, tempDir ), functionName );
+		BinIO.storeObject( new VLPaCoTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

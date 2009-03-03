@@ -33,6 +33,7 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -63,8 +64,8 @@ import org.apache.log4j.Logger;
  * @author Sebastiano Vigna
  */
 
-public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T> {
-	private final static Logger LOGGER = Util.getLogger( BitstreamImmutablePaCoTrie.class );
+public class VLBitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T> {
+	private final static Logger LOGGER = Util.getLogger( VLBitstreamImmutablePaCoTrie.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
@@ -77,12 +78,13 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 	private final int numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
+	public long[] offset;
 	
 	/** A class representing explicitly a partial trie. The {@link PartialTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
 	 */
 	private final static class PartialTrie<T> {
-		private final static boolean ASSERTS = false;
+		private final static boolean ASSERTS = true;
 
 		/** A node in the trie. */
 		protected static class Node {
@@ -127,6 +129,9 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 		/** The root of the trie. */
 		protected final Node root;
 		
+		/** The offset of each delimiter. */
+		protected final long offset[];
+		
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
 		 * @param elements the elements among which the trie must be able to rank.
@@ -135,7 +140,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 		 * distinct, lexicographically increasing (in iteration order) bit vectors.
 		 */
 		
-		public PartialTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
+		public PartialTrie( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
 			Iterator<? extends T> iterator = elements.iterator(); 
 			
 			Node node;
@@ -144,6 +149,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 
 			if ( iterator.hasNext() ) {
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+				LongArrayBitVector shortest = prev.copy();
 				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
@@ -151,6 +157,8 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 				Node root = null;
 				int cmp;
 				long maxLength = prev.length();
+				// Last element will be unused
+				offset = new long[ numElements / bucketSize + 1 ];
 				
 				while( iterator.hasNext() ) {
 					// Check order
@@ -163,11 +171,11 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 					if ( count % bucketSize == 0 ) {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
-							root = new Node( null, null, prev.copy() );
-							prevDelimiter.replace( prev );
+							root = new Node( null, null, shortest.copy() );
+							prevDelimiter.replace( shortest );
 						}
 						else {
-							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
+							prefix = (int)shortest.longestCommonPrefixLength( prevDelimiter );
 
 							pos = 0;
 							node = root;
@@ -179,7 +187,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 									node.path.length( prefix );
 									node.path.trim();
 									node.left = n;
-									node.right = new Node( null, null, prev.copy( pos + prefix + 1, prev.length() ) ); 
+									node.right = new Node( null, null, shortest.copy( pos + prefix + 1, shortest.length() ) ); 
 									break;
 								}
 
@@ -191,18 +199,29 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 
 							if ( ASSERTS ) assert node != null;
 
-							prevDelimiter.replace( prev );
+							prevDelimiter.replace( shortest );
 						}
+						
+						shortest.replace( curr );
+						offset[ count / bucketSize ] = count;
 					}
+
+					if ( curr.length() < shortest.length() ) {
+						shortest.replace( curr );
+						offset[ count / bucketSize ] = count;
+					}
+
 					prev.replace( curr );
 					maxLength = Math.max( maxLength, prev.length() );
 					count++;
 				}
+				
+				if ( DDEBUG ) System.err.println( "Offsets: " + Arrays.toString( offset ) );			
 
 				this.root = root;
 
 				if ( root != null ) {
-					if ( ASSERTS ) {
+					if ( false && ASSERTS ) {
 						iterator = elements.iterator();
 						int c = 1;
 						while( iterator.hasNext() ) {
@@ -270,7 +289,10 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 					}
 				}
 			}
-			else this.root = null;
+			else {
+				this.root = null;
+				offset = null;
+			}
 
 		}
 
@@ -376,13 +398,13 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public BitstreamImmutablePaCoTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public VLBitstreamImmutablePaCoTrie( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
-		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, bucketSize, transformationStrategy );
+		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, numElements, bucketSize, transformationStrategy );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
 		numberOfLeaves = immutableBinaryTrie.toStream( trie );
-		defRetValue = -1; // For the very few cases in which we can decide
+		offset = immutableBinaryTrie.offset;
 
 		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
 		

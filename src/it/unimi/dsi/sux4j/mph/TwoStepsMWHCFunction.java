@@ -105,6 +105,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			triplesStore.addAll( elements.iterator() );
 		}
 		n = triplesStore.size();
+		defRetValue = -1; // For the very few cases in which we can decide
 		
 		if ( n == 0 ) {
 			escape = 0;
@@ -217,7 +218,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
 		if ( firstFunction != null ) {
 			final int firstValue = (int)firstFunction.getLongByTriple( triple );
-			if ( firstValue == -1 ) return -1;
+			if ( firstValue == -1 ) return defRetValue;
 			if ( firstValue != escape ) return remap[ firstValue ];
 		}
 		return secondFunction.getLongByTriple( triple );
@@ -226,7 +227,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	public long getLongByTriple( final long[] triple ) {
 		if ( firstFunction != null ) {
 			final int firstValue = (int)firstFunction.getLongByTriple( triple );
-			if ( firstValue == -1 ) return -1;
+			if ( firstValue == -1 ) return defRetValue;
 			if ( firstValue != escape ) return remap[ firstValue ];
 		}
 		return secondFunction.getLongByTriple( triple );

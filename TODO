@@ -1,3 +1,7 @@
 - Document at package level minimal perfect hashing
 - Revamp site
 - Write documentation for .mph
+- Document TripleStore methods and ideas
+- Document each constructor w.r.t. preserving TripleStore seed
+- Document number of edges in Hypergraphsorter
+- Replace % bucketSize and / bucketSize all around

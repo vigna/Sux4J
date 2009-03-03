@@ -29,13 +29,17 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,6 +48,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
@@ -60,12 +65,14 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * longest common prefixes as distributors.
+ * longest common prefixes as distributors, and store their lengths using a {@link MinimalPerfectHashFunction}
+ * indexing an {@link EliasFanoLongBigList}. 
+ * 
  */
 
-public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( VLLcpMonotoneMinimalPerfectHashFunction.class );
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -78,28 +85,32 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	final protected int log2BucketSize;
 	/** The mask for {@link #log2BucketSize} bits. */
 	final protected int bucketSizeMask;
-	/** A function mapping each element to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
-	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	final protected MWHCFunction<BitVector> offsetLcpLength;
+	/** A function mapping each element to a distinct index. */
+	final protected MinimalPerfectHashFunction<BitVector> mph;
+	/** A list, indexed by {@link #mph}, containing the offset of each element inside its bucket. */
+	final protected LongBigList offsets;
+	/** A list, indexed by {@link #mph}, containing for each element the length of the longest common prefix of its bucket. */
+	final protected EliasFanoLongBigList lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
 	final protected MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
+	/** The seed to be used when converting keys to triples. */
 	private long seed;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bitVector, seed, triple );
-		final long value = offsetLcpLength.getLongByTriple( triple );
-		final long prefix = value >>> log2BucketSize; 
-		if ( prefix > bitVector.length() ) return defRetValue;
-		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + ( value & bucketSizeMask );
+		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
+		final long index = mph.getLongByTriple( triple );
+		final long prefix = lcpLengths.getLong( index ); 
+		if ( prefix == -1 || prefix > bitVector.length() ) return -1;
+		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLong( index );
 	}
 
 	@SuppressWarnings("unused")
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		this.transform = transform;
@@ -111,15 +122,16 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			for( T dummy: iterable ) c++;
 			n = c;
 		}
-		defRetValue = -1; // For the very few cases in which we can decide
-
+		
 		if ( n == 0 ) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
-			offsetLcpLength = null;
+			offsets = null;
+			lcpLengths = null;
+			mph = null;
 			return;
 		}
-		
+
 		int t = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( t );
 		bucketSize = 1 << log2BucketSize;
@@ -134,17 +146,15 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		int maxLcp = 0;
 		long maxLength = 0;
 
+		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
+		tripleStore.reset( r.nextLong() );
 		pl.expectedUpdates = n;
-		
-		final TripleStore<BitVector> triplesStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
-		triplesStore.reset( r.nextLong() );
-
 		pl.start( "Scanning collection..." );
 		
-		final Iterator<? extends T> iterator = iterable.iterator();
+		Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
-			triplesStore.add( prev );
+			tripleStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
@@ -152,7 +162,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr = transform.toBitVector( iterator.next() );
-				triplesStore.add( curr );
+				tripleStore.add( curr );
 				pl.lightUpdate();
 				final int cmp = prev.compareTo( curr );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted at position " + ( b * bucketSize + i ) );
@@ -171,8 +181,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		pl.done();
 		
 		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
-
-		LOGGER.info( "Generating the map from LCPs to buckets..." );
+		
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
@@ -188,31 +197,50 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 
-		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
+		// Build mph on elements.
+		mph = new MinimalPerfectHashFunction<BitVector>( bitVectors, TransformationStrategies.identity(), tripleStore );
+
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
+		offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ).length( n );
+		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) ).length( n );
+		
+		for( TripleStore.Bucket bucket: tripleStore ) {
+			int p = 0;
+			for( long[] triple: bucket ) {
+				final long index = mph.getLongByTriple( triple );
+				offsets.set( index, bucket.offset( p ) & bucketSizeMask );
+				lcpLengthsTemp.set( index, lcp[ bucket.offset( p ) >> log2BucketSize ].length() );
+				p++;
+			}
+		}
+		
+		lcpLengths = new EliasFanoLongBigList( lcpLengthsTemp );
+	
+		// Build function assigning the lcp length and the bucketing data to each element.
+		/*lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
+				return lcp[ index / bucketSize ].length(); 
 			}
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1, triplesStore );
+		}, tripleStore );*/
 
-		this.seed = triplesStore.seed();
-		
+		this.seed = tripleStore.seed();
 		if ( DEBUG ) {
 			int p = 0;
 			for( T key: iterable ) {
-				final long value = offsetLcpLength.getLong( key );
-				if ( p++ != lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask ) ) {
+				BitVector bv = transform.toBitVector( key );
+				long index = mph.getLong( bv ); 
+				if ( p++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( index ) ) ) * bucketSize + offsets.getLong( index ) ) {
 					System.err.println( "p: " + ( p - 1 ) 
 							+ "  Key: " + key 
 							+ " bucket size: " + bucketSize 
-							+ " lcp " + transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) 
-							+ " lcp length: " + ( value >>> log2BucketSize ) 
-							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) 
-							+ " offset: " + ( value & bucketSizeMask ) );
+							+ " lcp " + transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( index ) )
+							+ " lcp length: " + lcpLengths.getLong( index ) 
+							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( index ) ) ) 
+							+ " offset: " + offsets.getLong( index ) );
 					throw new AssertionError();
 				}
 			}
@@ -239,7 +267,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return offsetLcpLength.numBits() + lcp2Bucket.numBits() + transform.numBits();
+		if ( n == 0 ) return 0;
+		return offsets.length() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {
@@ -248,7 +277,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( VLLcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -282,7 +311,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new VLLcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

@@ -145,7 +145,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param transform a transformation strategy for the elements.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
-	 * @param width the bit width of the <code>values</code>. 
+	 * @param width the bit width of the <code>values</code>.
+	 * @param tripleStore a (not necessarily checked) triple store containing the elements. ALERT: check for accuracy in wording 
 	 */
 
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> tripleStore ) {
@@ -153,7 +154,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
-		Random r = new Random();
+		final Random r = new Random();
 		pl.itemsName = "keys";
 
 		final boolean givenTripleStore = tripleStore != null;
@@ -163,7 +164,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			tripleStore.addAll( elements.iterator() );
 		}
 		n = tripleStore.size();
-		
+		defRetValue = -1; // For the very few cases in which we can decide
+
 		if ( n == 0 ) {
 			this.globalSeed = bucketShift = m = this.width = 0;
 			data = null;
@@ -211,7 +213,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
 
 					/* We assign values. */
-					/** Whether a specific node has already been used as perfect hash value for an item. */
+					/** Whether a specific node has already been used as a hinge. */
 					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
 
 					int top = bucket.size(), k, v = 0;
@@ -227,9 +229,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						v = -1;
 
 						for ( int j = 0; j < 3; j++ ) {
-							if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
+							if ( ! used.getBoolean( edge[ j ][ k ] ) ) used.set( edge[ v = j ][ k ] );
 							else s ^= data.getLong( off + edge[ j ][ k ] );
-							used.set( edge[ j ][ k ] );
 						}
 
 						data.set( off + edge[ v ][ k ], ( values == null ? bucket.offset( k ) : values.getLong( bucket.offset( k ) ) ) ^ s );
@@ -305,15 +306,15 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		if ( n == 0 ) return -1;
+		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
 		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.bitVectorToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		HypergraphSorter.tripleToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		if ( e[ 0 ] == -1 ) return defRetValue;
 		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
-		if ( e0 == -1 ) return -1;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
@@ -322,13 +323,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	}
 	
 	public long getLongByTriple( final long[] triple ) {
-		if ( n == 0 ) return -1;
+		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> bucketShift );
 		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.bitVectorToEdge( triple, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		HypergraphSorter.tripleToEdge( triple, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
 		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
-		if ( e0 == -1 ) return -1;
+		if ( e0 == -1 ) return defRetValue;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^

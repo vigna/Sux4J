@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2008 Sebastiano Vigna 
+ * Copyright (C) 2002-2009 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,6 +27,8 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -37,6 +39,7 @@ import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
@@ -111,25 +114,42 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;
+	/** The logarithm of the desired bucket size. */
+	public final static int LOG2_BUCKET_SIZE = 10;
 
 	private static final long ONES_STEP_4 = 0x1111111111111111L;
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
 	
 	/** The number of elements. */
 	final protected int n;
-	/** The number of vertices of the intermediate hypergraph. */
-	final protected int m;
-	/** The seed of the underlying 3-hypergraph. */
-	final protected long seed;
+	/** The shift for buckets. */
+	final private int bucketShift;
+	/** The seed used to generate the initial hash triple. */
+	final protected long globalSeed;
+	/** The seed of the underlying 3-hypergraphs. */
+	final protected long[] seed;
+	/** The start offset of each block. */
+	final protected int[] offset;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	final protected LongBigList values;
+	/** The bit vector underlying {@link #values}. */
+	final protected LongArrayBitVector bitVector;
 	/** The bit array supporting {@link #values}. */
-	final protected long[] array;
+	protected transient long[] array;
 	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
 	final protected int count[];
 	/** The transformation strategy. */
 	final protected TransformationStrategy<? super T> transform;
     
+	/** Creates a new minimal perfect hash table for the given elements.
+	 *
+	 * @param elements the elements to hash.
+	 * @param transform a transformation strategy for the elements.
+	 */
+
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+		this( elements, transform, null );
+	}
 
 	/** Creates a new minimal perfect hash table for the given elements.
 	 *
@@ -137,81 +157,135 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param transform a transformation strategy for the elements.
 	 */
 
-	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) {
+		this.transform = transform;
+		
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final Random r = new Random();
+		pl.itemsName = "keys";
 
-		// First of all we compute the size, either by size(), if possible, or simply by iterating.
-		if ( elements instanceof Collection ) n = ((Collection<? extends T>)elements).size();
-		else {
-			int c = 0;
-			// Do not add a suppression annotation--it breaks javac
-			for( T o: elements ) c++;
-			n = c;
+		final boolean givenTripleStore = tripleStore != null;
+		if ( ! givenTripleStore ) {
+			tripleStore = new TripleStore<T>( transform, pl );
+			tripleStore.reset( r.nextLong() );
+			tripleStore.addAll( elements.iterator() );
 		}
+		n = tripleStore.size();
 		
 		defRetValue = -1; // For the very few cases in which we can decide
-		this.transform = transform;
 
-		HypergraphSorter<T> sorter = new HypergraphSorter<T>( n );
-		m = sorter.numVertices;
-		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( m * 2 );
-		values = bitVector.asLongBigList( 2 );
-		values.size( m );
+		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
+		bucketShift = tripleStore.log2Buckets( log2NumBuckets );
+		final int numBuckets = 1 << log2NumBuckets;
+		
+		//System.err.println( log2NumBuckets +  " " + numBuckets );
+		LOGGER.debug( "Number of buckets: " + numBuckets );
+		
+		seed = new long[ numBuckets ];
+		offset = new int[ numBuckets + 1 ];
+
+		bitVector = LongArrayBitVector.getInstance();
+		values = bitVector.asLongBigList( 2 ).length( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numBuckets ) );
 		array = bitVector.bits();
-
-		final Random r = new Random();
-
-		long seed;
-		do {
-			LOGGER.info( "Generating random hypergraph..." );
-			seed = r.nextLong();
-		} while ( sorter.generateAndSort( elements.iterator(), transform, seed ) != HypergraphSorter.Result.OK );
 		
-		this.seed = seed;
+		int duplicates = 0;
 		
-		/* We assign values. */
-		
-		/** Whether a specific node has already been used as perfect hash value for an item. */
-		final BitVector used = LongArrayBitVector.getInstance().length( m );
-		int value;
-		
-		final int[] stack = sorter.stack;
-		final int[][] edge = sorter.edge;
-		int top = n, k, s, v = 0;
-		while( top > 0 ) {
-			k = stack[ --top ];
+		for(;;) {
+			LOGGER.debug( "Generating minimal perfect hash function..." );
 
-			s = 0;
+			long seed = 0;
+			pl.expectedUpdates = numBuckets;
+			pl.itemsName = "buckets";
+			pl.start( "Analysing buckets... " );
 
-			for ( int j = 0; j < 3; j++ ) {
-				if ( ! used.getBoolean( edge[ j ][ k ] ) ) v = j;
-				else s += values.getLong( edge[ j ][ k ] );
-				used.set( edge[ j ][ k ] );
+			try {
+				int q = 0;
+				for( TripleStore.Bucket bucket: tripleStore ) {
+					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucket.size() );
+					do {
+						seed = r.nextLong();
+					} while ( ( sorter.generateAndSort( bucket.iterator(), seed ) ) != HypergraphSorter.Result.OK );
+
+					this.seed[ q ] = seed;
+					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
+
+					/* We assign values. */
+					/** Whether a specific node has already been used as a hinge. */
+					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
+
+					int top = bucket.size(), k, v = 0;
+					final int[] stack = sorter.stack;
+					final int[][] edge = sorter.edge;
+					final int off = offset[ q ];
+
+					long s;
+					while( top > 0 ) {
+						k = stack[ --top ];
+
+						s = 0;
+						v = -1;
+
+						for ( int j = 0; j < 3; j++ ) {
+							if ( ! used.getBoolean( edge[ j ][ k ] ) ) used.set( edge[ v = j ][ k ] );
+							else s += values.getLong( off + edge[ j ][ k ] );
+						}
+
+						long value = ( v - s + 9 ) % 3;
+						values.set( off + edge[ v ][ k ], value == 0 ? 3 : value );
+					}
+
+					q++;
+					pl.update();
+					
+					if ( ASSERTS ) {
+						final IntOpenHashSet pos = new IntOpenHashSet();
+						final int[] e = new int[ 3 ];
+						for( long[] triple: bucket ) {
+							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, e );
+							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
+						}
+					}
+				}
+
+				pl.done();
+				break;
 			}
-			
-			value = ( v - s + 9 ) % 3;
-			values.set( edge[ v ][ k ], value == 0 ? 3 : value );
+			catch( TripleStore.DuplicateException e ) {
+				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
+				LOGGER.warn( "Found duplicate. Recomputing triples..." );
+				tripleStore.reset( r.nextLong() );
+				tripleStore.addAll( elements.iterator() );
+			}
 		}
 
-		count = new int[ ( 2 * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ];
-		int c = 0;
+		globalSeed = tripleStore.seed();
+
+		if ( ! givenTripleStore ) tripleStore.close();
 		
-		for( int i = 0; i <= ( 2 * m ) / Long.SIZE; i++ ) {
-			if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
-			c += countNonzeroPairs( array[ i ] );
-		}
-		
-		if ( ASSERTS ) {
-			k = 0;
-			for( int i = 0; i < m; i++ ) {
-				assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i ); 
-				if ( values.getLong( i ) != 0 ) k++;
-				assert k <= n;
+		if ( n > 0 ) {
+			int m = (int)values.length();
+			count = new int[ ( 2 * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ];
+			int c = 0;
+
+			final int numWords = ( 2 * m + Long.SIZE - 1 ) / Long.SIZE;
+			for( int i = 0; i < numWords; i++ ) {
+				if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
+				c += countNonzeroPairs( array[ i ] );
 			}
-			
-			final Iterator<? extends T> iterator = elements.iterator();
-			for( int i = 0; i < n; i++ ) assert getLong( iterator.next() ) < n;
+
+			if ( ASSERTS ) {
+				int k = 0;
+				for( int i = 0; i < m; i++ ) {
+					assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i ); 
+					if ( values.getLong( i ) != 0 ) k++;
+					assert k <= n;
+				}
+
+				final Iterator<? extends T> iterator = elements.iterator();
+				for( int i = 0; i < n; i++ ) assert getLong( iterator.next() ) < n;
+			}
 		}
+		else count = IntArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
@@ -223,7 +297,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.length() * 2 + count.length * Integer.SIZE;
+		return values.length() * 2 + count.length * Integer.SIZE + offset.length * Integer.SIZE + seed.length * Long.SIZE;
 	}
 
 
@@ -234,8 +308,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 */
 	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
 		this.n = mph.n;
-		this.m = mph.m;
 		this.seed = mph.seed;
+		this.offset = mph.offset;
+		this.bitVector = mph.bitVector;
+		this.globalSeed = mph.globalSeed;
+		this.bucketShift = mph.bucketShift;
 		this.values = mph.values;
 		this.array = mph.array;
 		this.count = mph.count;
@@ -271,10 +348,29 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 
 	@SuppressWarnings("unchecked")
-	public long getLong( Object key ) {
+	public long getLong( final Object key ) {
+		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
-		HypergraphSorter.bitVectorToEdge( transform.toBitVector( (T)key ), seed, m, e );
-		final long result = rank( e[ (int)( values.getLong( e[ 0 ] ) + values.getLong( e[ 1 ] ) + values.getLong( e[ 2 ] ) ) % 3 ] );
+		final long[] h = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
+		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
+		final int bucketOffset = offset[ bucket ];
+		HypergraphSorter.tripleToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		if ( e[ 0 ] == -1 ) return defRetValue;
+		final long result = rank( bucketOffset + e[ (int)( values.getLong( e[ 0 ] + bucketOffset ) + values.getLong( e[ 1 ] + bucketOffset ) + values.getLong( e[ 2 ] + bucketOffset ) ) % 3 ] );
+		// Out-of-set strings can generate bizarre 3-hyperedges.
+		return result < n ? result : defRetValue;
+	}
+
+	@SuppressWarnings("unchecked")
+	public long getLongByTriple( final long[] triple ) {
+		if ( n == 0 ) return defRetValue;
+		final int[] e = new int[ 3 ];
+		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> bucketShift );
+		final int bucketOffset = offset[ bucket ];
+		HypergraphSorter.tripleToEdge( triple, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		if ( e[ 0 ] == -1 ) return defRetValue;
+		final long result = rank( bucketOffset + e[ (int)( values.getLong( e[ 0 ] + bucketOffset ) + values.getLong( e[ 1 ] + bucketOffset ) + values.getLong( e[ 2 ] + bucketOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
@@ -282,6 +378,12 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	public int size() {
 		return n;
 	}
+	
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		array = bitVector.bits();
+	}
+
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 

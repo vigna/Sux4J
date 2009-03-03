@@ -109,7 +109,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		int s = 0, r = 0;
 		
 		for(;;) {
-			if ( ( s += (int)skips.getLong( r ) ) >= length ) return -1;
+			if ( ( s += (int)skips.getLong( r ) ) >= length ) return defRetValue;
 			//System.err.println( "Skipping " + rank9.rank( p ) + " bits..." );
 			
 			//System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... \n" );
@@ -156,6 +156,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	public HollowTrie( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform ) {
 
 		this.transform = transform;
+		defRetValue = -1; // For the very few cases in which we can decide
 
 		int size = 0;
 		
