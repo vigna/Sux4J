@@ -93,7 +93,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 		if ( bv.length() == Long.SIZE ) {
 			final long word = bv.getLong( 0, Long.SIZE );
 			for( int i = 0; ; i++ ) {
-				final int result = JacobsonBalancedParentheses.findFarClose2( word, Long.SIZE, i );
+				final int result = JacobsonBalancedParentheses.findFarClose2( word, i );
 				if ( result != -1 ) assertEquals( result, JacobsonBalancedParentheses.findFarClose( word, i ) );
 				else {
 					assertTrue( Long.SIZE <= JacobsonBalancedParentheses.findFarClose( word, i ) );
