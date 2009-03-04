@@ -67,7 +67,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -526,6 +526,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		externalBehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( intermediateTrie.externalKeysFile ), externalTestFunction, intermediateTrie.externalValues ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1 );
 		falseFollowsDetector = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( intermediateTrie.falseFollowsKeyFile ), null, intermediateTrie.falseFollowsValues ), TransformationStrategies.identity(), intermediateTrie.falseFollowsValues, 1 );
 		
+		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size() - size / 2 ) );
 		LOGGER.debug( "Forecast two-way behaviour-function bit cost: " + intermediateTrie.size * GAMMA );
 		LOGGER.debug( "Actual two-way behaviour-function bit cost: " + externalBehaviour.numBits() );
 		LOGGER.debug( "Forecast behaviour-functions bit cost: " + ( 2 * intermediateTrie.numElements * GAMMA + intermediateTrie.size * GAMMA ) );
@@ -533,10 +534,9 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		
 		intermediateTrie.externalKeysFile.delete();
 
-		if ( true || DEBUG ) System.err.println( "False follows: " + falseFollows.size() + " (" + 100.0 * falseFollows.size() / size + "%)" );
-		
 		if ( ASSERTS ) {
 			if ( size > 0 ) {
+				System.err.println( "False follows: " + falseFollows.size() + " (" + 100.0 * falseFollows.size() / size + "%)" );
 				Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
 				int c = 0;
 				while( iterator.hasNext() ) {
