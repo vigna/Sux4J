@@ -553,12 +553,13 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		if ( size == 0 ) return 0;
 		final BitVector bitVector = transformationStrategy.toBitVector( (T)o ).fast();
 		LongArrayBitVector key = LongArrayBitVector.getInstance();
+		BitVector fragment;
 		long p = 1, length = bitVector.length(), index = 0, r = 0;
 		int s = 0, skip = 0, behaviour;
 		long signature = -1;
 		long lastLeftTurn = 0;
 		long lastLeftTurnIndex = 0;
-		boolean isInternal, isFollow;
+		boolean isInternal;
 			
 		if ( DEBUG ) System.err.println( "Distributing " + bitVector + "\ntrie:" + trie );
 		
@@ -572,14 +573,12 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 
 			//if ( isInternal ) System.err.println( signature == ( Hashes.jenkins( bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << SKIPBITS )- 1 ) );
 			
-			isFollow = isInternal && signature == ( Hashes.jenkins( bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << SKIPBITS )- 1 ) &&
-				falseFollowsDetector.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, Math.min( length, s + skip ) ) ) ) == 0;
+			fragment = bitVector.subVector( s, Math.min( length, s + skip ) );
 
-			if ( !isFollow ) {
-				behaviour = (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, isInternal ? Math.min( length, s + skip ) : length ) ) );
-				assert behaviour != FOLLOW;
-			}
-			else behaviour = FOLLOW;
+			if ( isInternal && signature == ( Hashes.jenkins( fragment ) & ( 1 << SKIPBITS ) - 1 ) 
+					&& falseFollowsDetector.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) == 0 )
+				behaviour = FOLLOW;
+			else behaviour = (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, isInternal ? Math.min( length, s + skip ) : length ) ) );
 			
 			if ( ASSERTS ) {
 				if ( behaviour != FOLLOW ) {
