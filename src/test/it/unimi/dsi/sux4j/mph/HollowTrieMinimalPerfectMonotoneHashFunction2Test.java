@@ -8,12 +8,19 @@ import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction2;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
 public class HollowTrieMinimalPerfectMonotoneHashFunction2Test extends TestCase {
 	
 	
+	public static String binary2(int l) {
+		String s = "1" + Integer.toBinaryString( l ) + "10000000000000000000000000000000000000000000000000000000000000000000000000";
+		return s.substring( 0, 32 );
+	}
+
+
 	public static String binary(int l) {
 		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString( l );
 		return s.substring( s.length() - 32 );
@@ -37,35 +44,38 @@ public class HollowTrieMinimalPerfectMonotoneHashFunction2Test extends TestCase 
 	
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
+		final Random r = new Random();
 		
-		for( int d = 10; d < 1000; d *= 10 ) {
-			String[] s = new String[ d ];
-			int[] v = new int[ s.length ];
-			for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
+		for( int pass = 0; pass < 2; pass++ )
+			for( int d = 10; d < 100000; d *= 10 ) {
+				String[] s = new String[ d ];
+				int[] v = new int[ s.length ];
+				for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = pass == 0 ? binary( r.nextInt() ) : binary2( r.nextInt() );
+				Arrays.sort( s );
 
-			HollowTrieMonotoneMinimalPerfectHashFunction2<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction2<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+				HollowTrieMonotoneMinimalPerfectHashFunction2<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction2<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
-			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
-			// Exercise code for negative results TODO: reinstate
-			//for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + d ) );
+				// Exercise code for negative results TODO: reinstate
+				//for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + d ) );
 
-			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-			temp.deleteOnExit();
-			BinIO.storeObject( mph, temp );
-			mph = (HollowTrieMonotoneMinimalPerfectHashFunction2<String>)BinIO.loadObject( temp );
-			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
+				mph = (HollowTrieMonotoneMinimalPerfectHashFunction2<String>)BinIO.loadObject( temp );
+				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 
-			mph = new HollowTrieMonotoneMinimalPerfectHashFunction2<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+				mph = new HollowTrieMonotoneMinimalPerfectHashFunction2<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
-			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
-			temp = File.createTempFile( getClass().getSimpleName(), "test" );
-			temp.deleteOnExit();
-			BinIO.storeObject( mph, temp );
-			mph = (HollowTrieMonotoneMinimalPerfectHashFunction2<String>)BinIO.loadObject( temp );
-			for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
-		}
+				temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
+				mph = (HollowTrieMonotoneMinimalPerfectHashFunction2<String>)BinIO.loadObject( temp );
+				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+			}
 	}
 }

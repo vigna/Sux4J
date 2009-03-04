@@ -13,7 +13,6 @@ import junit.framework.TestCase;
 
 public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 	
-	
 	public static String binary(int l) {
 		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString( l );
 		return s.substring( s.length() - 32 );
@@ -40,8 +39,7 @@ public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 		
 		for( int d = 10; d < 1000; d *= 10 ) {
 			String[] s = new String[ d ];
-			int[] v = new int[ s.length ];
-			for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
+			for( int i = s.length; i-- != 0; ) s[ i ] = binary( i );
 
 			HollowTrieMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
