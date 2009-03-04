@@ -91,6 +91,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 
 	private void recFindFarCloseTest( LongArrayBitVector bv ) {
 		if ( bv.length() == Long.SIZE ) {
+			System.err.println( bv );
 			final long word = bv.getLong( 0, Long.SIZE );
 			for( int i = 0; ; i++ ) {
 				final int result = JacobsonBalancedParentheses.findFarClose2( word, i );
@@ -105,11 +106,15 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 
 		bv.add( 0 );
 		bv.add( 0 );
+		bv.add( 0 );
+		bv.add( 0 );
 		recFindFarCloseTest( bv );
 		bv.set( bv.length() - 1 );
 		bv.set( bv.length() - 2 );
+		bv.set( bv.length() - 3 );
+		bv.set( bv.length() - 4 );
 		recFindFarCloseTest( bv );
-		bv.length( bv.length() - 2 );
+		bv.length( bv.length() - 4 );
 	}
 	
 	public void testFindFarCloseRec() {
