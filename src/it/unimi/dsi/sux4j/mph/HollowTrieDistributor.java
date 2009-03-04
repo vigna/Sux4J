@@ -435,7 +435,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy, tempDir );
 
 		size = intermediateTrie.size;
-		System.err.println( "**"+size );
 		internalTestFunction = intermediateTrie.internalTestFunction;
 		externalTestFunction = intermediateTrie.externalTestFunction;
 		
