@@ -62,12 +62,12 @@ import org.apache.log4j.Logger;
  */
 
 public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
-	private static final int SKIPBITS = 3;
+	private static final int SIGBITS = 2;
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor2.class );
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -323,8 +323,8 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 									lastNode = node;
 									lastPath = path;
 									
-									if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SKIPBITS ) - 1 ) 
-											== ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SKIPBITS ) - 1 ) )
+									if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SIGBITS ) - 1 ) 
+											== ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SIGBITS ) - 1 ) )
 												falseFollow = 1;
 
 									if ( ASSERTS ) {
@@ -332,7 +332,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 										key[ 0 ] = node.index;
 										for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = path.getLong( i, Math.min( i + Long.SIZE, pathLength ) );
 										externalTestFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), behaviour );
-										if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SKIPBITS ) - 1 ) == ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SKIPBITS ) - 1 ) ) 
+										if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SIGBITS ) - 1 ) == ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SIGBITS ) - 1 ) ) 
 											falseFollows.add( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) );
 									}
 
@@ -453,11 +453,11 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		trie = LongArrayBitVector.ofLength( size + 1 );
 		trie.set( 0 );
 		IntArrayList skips = new IntArrayList();
-		signatures = LongArrayBitVector.getInstance( ( size / 2 ) * SKIPBITS ).asLongBigList( SKIPBITS );
+		signatures = LongArrayBitVector.getInstance( ( size / 2 ) * SIGBITS ).asLongBigList( SIGBITS );
 		// Turn the compacted trie into a hollow trie.
 		if ( intermediateTrie.root != null ) {
 			if ( DDEBUG ) System.err.println( intermediateTrie );
-			visit( intermediateTrie.root, trie, 1, skips, SKIPBITS, signatures );
+			visit( intermediateTrie.root, trie, 1, skips, SIGBITS, signatures );
 		}
 		
 		balParen = new JacobsonBalancedParentheses( trie, false, true, false );
@@ -553,7 +553,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		if ( size == 0 ) return 0;
 		final BitVector bitVector = transformationStrategy.toBitVector( (T)o ).fast();
 		LongArrayBitVector key = LongArrayBitVector.getInstance();
-		BitVector fragment;
+		BitVector fragment = null;
 		long p = 1, length = bitVector.length(), index = 0, r = 0;
 		int s = 0, skip = 0, behaviour;
 		long signature = -1;
@@ -573,12 +573,12 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 
 			//if ( isInternal ) System.err.println( signature == ( Hashes.jenkins( bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << SKIPBITS )- 1 ) );
 			
-			fragment = bitVector.subVector( s, Math.min( length, s + skip ) );
 
-			if ( isInternal && signature == ( Hashes.jenkins( fragment ) & ( 1 << SKIPBITS ) - 1 ) 
+			if ( isInternal
+					&& signature == ( Hashes.jenkins( fragment = bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << SIGBITS ) - 1 ) 
 					&& falseFollowsDetector.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) == 0 )
 				behaviour = FOLLOW;
-			else behaviour = (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( bitVector.subVector( s, isInternal ? Math.min( length, s + skip ) : length ) ) );
+			else behaviour = (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( isInternal ? fragment : bitVector.subVector( s, length ) ) );
 			
 			if ( ASSERTS ) {
 				if ( behaviour != FOLLOW ) {
@@ -637,7 +637,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	public long numBits() {
-		return trie.length() + skips.numBits() + falseFollowsDetector.numBits() + signatures.length() * SKIPBITS + balParen.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
+		return trie.length() + skips.numBits() + falseFollowsDetector.numBits() + signatures.length() * SIGBITS + balParen.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {
