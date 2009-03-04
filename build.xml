@@ -71,7 +71,7 @@
 			<classpath location="${jar.base}/emma.jar"/>
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
-			<jvmarg value="-Xmx128M" />
+			<jvmarg value="-Xmx256M" />
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
