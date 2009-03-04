@@ -137,13 +137,14 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction2<T> extends AbstractHa
 		
 		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
+		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
-		distributor = new HollowTrieDistributor2<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
+		distributor = new HollowTrieDistributor2<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return index & bucketMask; 
 			}
 			public int size() {
 				return size;

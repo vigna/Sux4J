@@ -62,7 +62,6 @@ import org.apache.log4j.Logger;
  */
 
 public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
-	private static final int SIGBITS = 2;
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor2.class );
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
@@ -76,6 +75,8 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	/** An integer representing the follow-the-try behaviour. */
 	private final static int FOLLOW = 2;
 	
+	private final int signatureBits;
+	private final int signatureMask;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	/** The bitstream representing the hollow trie. */
@@ -167,18 +168,21 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
 		 * @param elements the elements among which the trie must be able to rank.
-		 * @param bucketSize the size of a bucket.
+		 * @param log2BucketSize the size of a bucket.
 		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 		 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 		 * @param tempDir a directory for the temporary files created during construction, or <code>null</code> for the default temporary directory. 
 		 */
 		
-		public IntermediateTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
+		public IntermediateTrie( final Iterable<? extends T> elements, final int log2BucketSize, final int signatureBits, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
 			if ( ASSERTS ) {
 				externalTestFunction = new Object2LongOpenHashMap<BitVector>();
 				externalTestFunction.defaultReturnValue( -1 );
 				falseFollows = new ObjectOpenHashSet<BitVector>();
 			}
+			
+			final int bucketSizeMask = ( 1 << log2BucketSize ) - 1;
+			final int signatureMask = ( 1 << signatureBits ) - 1;
 			
 			Iterator<? extends T> iterator = elements.iterator(); 
 
@@ -199,7 +203,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 					if ( curr.longestCommonPrefixLength( prev ) == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 
-					if ( count % bucketSize == 0 ) {
+					if ( ( count & bucketSizeMask ) == 0 ) {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, prev.copy() );
@@ -323,8 +327,8 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 									lastNode = node;
 									lastPath = path;
 									
-									if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SIGBITS ) - 1 ) 
-											== ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SIGBITS ) - 1 ) )
+									if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & signatureMask ) 
+											== ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & signatureMask ) )
 												falseFollow = 1;
 
 									if ( ASSERTS ) {
@@ -332,7 +336,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 										key[ 0 ] = node.index;
 										for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = path.getLong( i, Math.min( i + Long.SIZE, pathLength ) );
 										externalTestFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), behaviour );
-										if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << SIGBITS ) - 1 ) == ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << SIGBITS ) - 1 ) ) 
+										if ( ! node.isLeaf() && ( Hashes.jenkins( nodePath ) & ( 1 << signatureBits ) - 1 ) == ( Hashes.jenkins( currFromPos.subVector( 0, path.length() ) ) & ( 1 << signatureBits ) - 1 ) ) 
 											falseFollows.add( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) );
 									}
 
@@ -415,7 +419,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		bitVector.set( pos++ ); // This adds the open parentheses
 		
 		skips.add( (int)node.path.length() );
-		signatures.add( Hashes.jenkins( node.path ) & ( 1 << signatureSize ) - 1 );
+		signatures.add( Hashes.jenkins( node.path ) & signatureMask );
 		
 		pos = visit( node.left, bitVector, pos, skips, signatureSize, signatures );
 
@@ -425,26 +429,29 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
-	 * @param bucketSize the size of a bucket.
+	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public HollowTrieDistributor2( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
-		this( elements, bucketSize, transformationStrategy, null );
+	public HollowTrieDistributor2( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+		this( elements, log2BucketSize, transformationStrategy, null );
 	}
 
 	/** Creates a partial compacted trie using given elements, bucket size, transformation strategy, and temporary directory.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
-	 * @param bucketSize the size of a bucket.
+	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir the directory where temporary files will be created, or <code>for the default directory</code>.
 	 */
-	public HollowTrieDistributor2( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
+	public HollowTrieDistributor2( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
+		final int bucketSize = 1 << log2BucketSize;
+		signatureBits = log2BucketSize;
+		signatureMask = ( 1 << signatureBits ) - 1;
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
-		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, bucketSize, transformationStrategy, tempDir );
+		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, signatureBits, transformationStrategy, tempDir );
 
 		size = intermediateTrie.size;
 		externalTestFunction = intermediateTrie.externalTestFunction;
@@ -453,11 +460,11 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		trie = LongArrayBitVector.ofLength( size + 1 );
 		trie.set( 0 );
 		IntArrayList skips = new IntArrayList();
-		signatures = LongArrayBitVector.getInstance( ( size / 2 ) * SIGBITS ).asLongBigList( SIGBITS );
+		signatures = LongArrayBitVector.getInstance( ( size / 2 ) * signatureBits ).asLongBigList( signatureBits );
 		// Turn the compacted trie into a hollow trie.
 		if ( intermediateTrie.root != null ) {
 			if ( DDEBUG ) System.err.println( intermediateTrie );
-			visit( intermediateTrie.root, trie, 1, skips, SIGBITS, signatures );
+			visit( intermediateTrie.root, trie, 1, skips, signatureBits, signatures );
 		}
 		
 		balParen = new JacobsonBalancedParentheses( trie, false, true, false );
@@ -575,7 +582,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 			
 
 			if ( isInternal
-					&& signature == ( Hashes.jenkins( fragment = bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << SIGBITS ) - 1 ) 
+					&& signature == ( Hashes.jenkins( fragment = bitVector.subVector( s, Math.min( length, s + skip ) ) ) & ( 1 << signatureBits ) - 1 ) 
 					&& falseFollowsDetector.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) == 0 )
 				behaviour = FOLLOW;
 			else behaviour = (int)externalBehaviour.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( isInternal ? fragment : bitVector.subVector( s, length ) ) );
@@ -637,7 +644,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	}
 	
 	public long numBits() {
-		return trie.length() + skips.numBits() + falseFollowsDetector.numBits() + signatures.length() * SIGBITS + balParen.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
+		return trie.length() + skips.numBits() + falseFollowsDetector.numBits() + signatures.length() * signatureBits + balParen.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
 	}
 	
 	public boolean containsKey( Object o ) {
