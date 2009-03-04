@@ -67,7 +67,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -91,7 +91,7 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 	/** A debug function used to store explicitly {@link #externalBehaviour}. */
 	private final Object2LongFunction<BitVector> externalTestFunction;
 	/** A debug set used to store explicitly false follows. */
-	private ObjectOpenHashSet<BitVector> falseFollows;
+	private final ObjectOpenHashSet<BitVector> falseFollows;
 	private final BalancedParentheses balParen;
 	private final MWHCFunction<BitVector> falseFollowsDetector;
 	
@@ -450,12 +450,10 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 		externalTestFunction = intermediateTrie.externalTestFunction;
 		falseFollows = intermediateTrie.falseFollows;
 		
-		final int numExternalKeys = intermediateTrie.externalValues.size();
-		
 		trie = LongArrayBitVector.ofLength( size + 1 );
 		trie.set( 0 );
 		IntArrayList skips = new IntArrayList();
-		signatures = LongArrayBitVector.getInstance( ( size + 1 ) * SKIPBITS ).asLongBigList( SKIPBITS );
+		signatures = LongArrayBitVector.getInstance( ( size / 2 ) * SKIPBITS ).asLongBigList( SKIPBITS );
 		// Turn the compacted trie into a hollow trie.
 		if ( intermediateTrie.root != null ) {
 			if ( DDEBUG ) System.err.println( intermediateTrie );
@@ -536,7 +534,6 @@ public class HollowTrieDistributor2<T> extends AbstractObject2LongFunction<T> {
 
 		if ( ASSERTS ) {
 			if ( size > 0 ) {
-				System.err.println( "False follows: " + falseFollows.size() + " (" + 100.0 * falseFollows.size() / size + "%)" );
 				Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
 				int c = 0;
 				while( iterator.hasNext() ) {
