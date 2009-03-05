@@ -121,7 +121,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			tripleStore.add( bv );
 		}
 		
-		tripleStore.check( bitVectors );
+		tripleStore.checkAndRetry( bitVectors );
 		size = tripleStore.size();
 		
 		if ( size == 0 ) {

@@ -29,9 +29,6 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
-import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -48,7 +45,6 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
@@ -206,12 +202,10 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) ).length( n );
 		
 		for( TripleStore.Bucket bucket: tripleStore ) {
-			int p = 0;
-			for( long[] triple: bucket ) {
-				final long index = mph.getLongByTriple( triple );
-				offsets.set( index, bucket.offset( p ) & bucketSizeMask );
-				lcpLengthsTemp.set( index, lcp[ bucket.offset( p ) >> log2BucketSize ].length() );
-				p++;
+			for( long[] quadruple: bucket ) {
+				final long index = mph.getLongByTriple( quadruple );
+				offsets.set( index, quadruple[ 3 ] & bucketSizeMask );
+				lcpLengthsTemp.set( index, lcp[ (int)quadruple[ 3 ] >> log2BucketSize ].length() );
 			}
 		}
 		
