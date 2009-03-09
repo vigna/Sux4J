@@ -161,6 +161,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.transform = transform;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
 		final Random r = new Random();
 		pl.itemsName = "keys";
 

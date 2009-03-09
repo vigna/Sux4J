@@ -32,9 +32,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -49,7 +46,6 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -89,7 +85,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private final static class Node {
 		Node left, right;
 		int skip;
-		int openParentheses;
 		
 		public Node( final Node left, final Node right, final int skip ) {
 			this.left = left;
