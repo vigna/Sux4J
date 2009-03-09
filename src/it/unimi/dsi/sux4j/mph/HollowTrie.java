@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import static it.unimi.dsi.bits.Fast.length;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
@@ -30,7 +29,10 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.AbstractIntIterator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterable;
+import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -83,11 +85,12 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private int size;
 	
 	private final static class Node {
-		Node left, right;
+		Node right;
 		int skip;
+		IntArrayList skips = new IntArrayList();
+		LongArrayBitVector repr = LongArrayBitVector.getInstance();
 		
-		public Node( final Node left, final Node right, final int skip ) {
-			this.left = left;
+		public Node( final Node right, final int skip ) {
 			this.right = right;
 			this.skip = skip;
 			if ( ASSERTS ) assert skip >= 0;
@@ -125,28 +128,6 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		}
 	}
 	
-	private final static class SkipInfo {
-		private int maxSkip;
-		private long sumOfSkips;
-		private long skipsLength;
-	}
-	
-	private long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo, ProgressLogger pl ) {
-		if ( node == null ) return pos;
-
-		bitVector.set( pos++ ); // This adds the open parentheses
-		
-		if ( skipInfo.maxSkip < node.skip ) skipInfo.maxSkip = node.skip;
-		skipInfo.skipsLength += length( node.skip );
-		skipInfo.sumOfSkips += node.skip;
-		skips.add( node.skip );
-		pl.lightUpdate();
-		
-		pos = visit( node.left, bitVector, pos, skips, skipInfo, pl );
-
-		return visit( node.right, bitVector, pos + 1, skips, skipInfo, pl ); // This adds the closing parenthesis
-	}
-	
 	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 		this( iterable.iterator(), transform );
 	}
@@ -168,7 +149,9 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		pl.start( "Generating hollow trie..." );
 
 		if ( iterator.hasNext() ) {
-			BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
+			LongArrayBitVector prev = LongArrayBitVector.copy( transform.toBitVector( iterator.next() ) );
+			BitVector curr;
+			if ( DEBUG ) System.err.println( prev );
 			pl.lightUpdate();
 			maxLength = prev.length();
 			size++;
@@ -176,6 +159,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			while( iterator.hasNext() ) {
 				size++;
 				curr = transform.toBitVector( iterator.next() );
+				if ( DEBUG ) System.err.println( curr );
 				pl.lightUpdate();
 				if ( maxLength < curr.length() ) maxLength = curr.length();
 				cmp = prev.compareTo( curr );
@@ -186,21 +170,46 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 
 				node = root;
 				parent = null;
-				Node n = null;
+				Node newNode = null;
 				while( node != null ) {
 					if ( prefix < node.skip ) {
-						n = new Node( node, null, prefix );
+						newNode = new Node( null, prefix );
 						numNodes++;
 						if ( parent == null ) {
 							root.skip -= prefix + 1;
 							if ( ASSERTS ) assert root.skip >= 0;
-							root = n;
+
+
+							root = newNode;
 						}
 						else {
-							parent.right = n;
+							parent.right = newNode;
 							node.skip -= prefix + 1;
+							
 							if ( ASSERTS ) assert node.skip >= 0;
 						}
+
+						Node n = node;
+						long reprSize = 0;
+						int skipSize = 0;
+						do {
+							reprSize += n.repr.length() + 2;
+							skipSize += n.skips.size() + 1;
+						} while( ( n = n.right ) != null );
+
+						n = node;
+						newNode.repr.ensureCapacity( reprSize );
+						newNode.skips.ensureCapacity( skipSize );
+						
+						do {
+							newNode.repr.add( true );
+							newNode.repr.append( n.repr );
+							newNode.repr.add( false );
+							newNode.skips.add( n.skip );
+							newNode.skips.addAll( n.skips );
+						} while( ( n = n.right ) != null );
+						
+
 						break;
 					}
 
@@ -210,27 +219,12 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 				}
 
 				if ( node == null ) {
-					if ( parent == null ) root = new Node( null, null, prefix );
-					else parent.right = new Node( null, null, prefix );
+					if ( parent == null ) root = new Node( null, prefix );
+					else parent.right = new Node( null, prefix );
 					numNodes++;
 				}
 
-				if ( ASSERTS ) {
-					long s = 0;
-					Node m = root;
-					while( m != null ) {
-						s += m.skip;
-						if ( curr.getBoolean( s ) ) {
-							if ( m.right == null ) break;
-						}
-						else if ( m.left == null ) break;
-						m = curr.getBoolean( s ) ? m.right : m.left;
-						s++;
-					}
-					assert parent == null || ( node == null ? m == parent.right : m == n );
-				}
-
-				prev = curr.copy();
+				prev.replace( curr );
 			}
 		}
 		
@@ -244,34 +238,68 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			return;
 		}
 
-		final LongArrayBitVector bitVector = LongArrayBitVector.ofLength( 2 * numNodes + 2 );
-		final IntArrayList skips = new IntArrayList();
-		SkipInfo skipInfo = new SkipInfo();
+		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance( 2 * numNodes + 2 );
 		
-		/*StringBuilder result = new StringBuilder();
-		recToString( root, new StringBuilder(), result, new StringBuilder(), 0 );
-		System.out.println( result );*/
-		
-		pl.start( "Visiting trie..." );
-		
-		bitVector.set( 0 ); // Fake open parenthesis
-		visit( root, bitVector, 1, skips, skipInfo, pl );
+		bitVector.add( true ); // Fake open parenthesis
 
-		pl.done();
+		Node m = root;
+		do {
+			bitVector.add( true );
+			bitVector.append( m.repr );
+			bitVector.add( false );
+		} while( ( m = m.right ) != null );
 		
-		root = null;		
+		bitVector.add( false );
+		
+		if ( ASSERTS ) assert bitVector.length() == 2 * numNodes + 2;
 		
 		LOGGER.debug( "Generating succinct representations..." );
 		
 		trie = bitVector;
 		balParen = new JacobsonBalancedParentheses( bitVector, false, true, false );
-		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
-		LOGGER.debug( "Max skip: " + skipInfo.maxSkip );
-		LOGGER.debug( "Max skip width: " + skipWidth );
-		LOGGER.debug( "Bits per skip: " + ( skipInfo.skipsLength * 2.0 ) / ( numNodes - 1 ) );
+		final Node finalRoot = root;
 		
-		this.skips = new EliasFanoLongBigList( skips );
+		final IntIterable skipIterable = new IntIterable() {
+			public IntIterator iterator() {
+				return new AbstractIntIterator() {
+					Node curr = finalRoot;
+					int currElem = -1;
+					
+					public int nextInt() {
+						if ( currElem == -1 ) {
+							currElem++;
+							return curr.skip;
+						}
+						else {
+							if ( currElem < curr.skips.size() ) return curr.skips.getInt( currElem++ );
+							curr = curr.right;
+							currElem = 0;
+							return curr.skip;
+						}
+					}
+					
+					public boolean hasNext() {
+						return curr != null && ( currElem < curr.skips.size() || currElem == curr.skips.size() && curr.right != null );
+					}
+				};
+			}
+		};
+		
+		long maxSkip = 0, sumOfSkips = 0;
+		int s;
+		for( IntIterator i = skipIterable.iterator(); i.hasNext(); ) {
+			s = i.nextInt();
+			maxSkip = Math.max( s, maxSkip );
+			sumOfSkips += s;
+		}
+		
+		final int skipWidth = Fast.ceilLog2( maxSkip );
+
+		LOGGER.debug( "Max skip: " + maxSkip );
+		LOGGER.debug( "Max skip width: " + skipWidth );
+
+		this.skips = new EliasFanoLongBigList( skipIterable );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );
@@ -281,7 +309,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		final long numBits = numBits();
 		LOGGER.debug( "Bits: " + numBits );
 		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
-		final double avgSkip = (double)skipInfo.sumOfSkips / skips.size();
+		final double avgSkip = (double)sumOfSkips / skips.size();
 		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgSkip ) + Fast.log2( 1 + Fast.log2( avgSkip ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
@@ -294,24 +322,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	public long numBits() {
 		return balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 	}
-	
-	private void recToString( final Node n, final StringBuilder printPrefix, final StringBuilder result, final StringBuilder path, final int level ) {
-		if ( n == null ) return;
 		
-		result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
-		
-		if ( n.skip >= 0 ) result.append( " skip: " ).append( n.skip );
-
-		result.append( '\n' );
-		
-		path.append( '0' );
-		recToString( n.left, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
-		path.setCharAt( path.length() - 1, '1' ); 
-		recToString( n.right, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
-		path.delete( path.length() - 1, path.length() ); 
-		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
-	}
-	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of strings.",
