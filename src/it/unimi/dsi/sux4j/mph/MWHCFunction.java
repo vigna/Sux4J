@@ -122,20 +122,15 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
 
-	/** Creates a new function for the given elements, assigning to each element its ordinal position.
-	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) throws IOException {
 		this( elements, transform, null, -1, tripleStore );
 	}
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( elements, transform, null, -1, null );
 	}
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) throws IOException {
 		this( elements, transform, values, width, null );
 	}
 
@@ -149,7 +144,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param tripleStore a (not necessarily checked) triple store containing the elements. ALERT: check for accuracy in wording 
 	 */
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> tripleStore ) {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> tripleStore ) throws IOException {
 		this.transform = transform;
 	
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();

@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -33,6 +34,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
@@ -106,7 +108,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	}
 
 	@SuppressWarnings("unused")
-	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -139,12 +141,12 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		BitVector curr = null;
 		int currLcp = 0;
-		BitVector[] lcp = new BitVector[ numBuckets ];
-		int maxLcp = 0;
+		int maxLcp = 0, minLcp = Integer.MAX_VALUE;
 		long maxLength = 0, totalLength = 0;
 
 		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
 		tripleStore.reset( r.nextLong() );
+		OfflineIterable<BitVector,LongArrayBitVector> lcps = new OfflineIterable<BitVector,LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
 		
@@ -173,23 +175,22 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				totalLength += prev.length();
 			}
 
-			lcp[ b ] = prev.subVector( 0, currLcp  ).copy();
+			lcps.add( prev.subVector( 0, currLcp  ) );
 			maxLcp = Math.max( maxLcp, currLcp );
+			minLcp = Math.min( minLcp, currLcp );
 		}
 		
 		pl.done();
 		
-		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
-		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
-		final int[] lcpLength = new int[ lcp.length ];
-		for( int i = lcp.length; i-- != 0; ) lcpLength[ i ] = (int)lcp[ i ].length();
-
+		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		final int[] lcpLength = new int[ lcps.size() ];
+		int p = 0;
+		for( LongArrayBitVector bv : lcps ) lcpLength[ p++ ] = (int)bv.length();
+		
 		if ( DEBUG ) {
-			int p = 0;
-			for( BitVector v: lcp ) System.err.println( v  + " " + v.length() );
-			for( BitVector v: Arrays.asList( lcp ) ) {
+			for( BitVector v: lcps ) System.err.println( v  + " " + v.length() );
+			for( BitVector v: lcps ) {
 				final long value = lcp2Bucket.getLong( v );
 				if ( p++ != value ) {
 					System.err.println( "p: " + (p-1) + "  value: " + value + " key:" + v );
@@ -198,12 +199,13 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			}
 		}
 
-		lcp = null;
+		lcps.close();
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build mph on elements.
 		mph = new MinimalPerfectHashFunction<BitVector>( bitVectors, TransformationStrategies.identity(), tripleStore );
-
+		this.seed = tripleStore.seed();
+		
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ).length( n );
 		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) ).length( n );
@@ -215,22 +217,12 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				lcpLengthsTemp.set( index, lcpLength[ (int)quadruple[ 3 ] >> log2BucketSize ] );
 			}
 		}
-		
-		lcpLengths = new EliasFanoLongBigList( lcpLengthsTemp );
-	
-		// Build function assigning the lcp length and the bucketing data to each element.
-		/*lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length(); 
-			}
-			public int size() {
-				return n;
-			}
-		}, tripleStore );*/
 
-		this.seed = tripleStore.seed();
+		tripleStore.close();
+		lcpLengths = new EliasFanoLongBigList( lcpLengthsTemp.iterator(), minLcp, true );
+	
 		if ( DEBUG ) {
-			int p = 0;
+			p = 0;
 			for( T key: iterable ) {
 				BitVector bv = transform.toBitVector( key );
 				long index = mph.getLong( bv ); 

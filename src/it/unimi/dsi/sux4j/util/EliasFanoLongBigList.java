@@ -27,6 +27,8 @@ import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
@@ -35,6 +37,10 @@ import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.util.AbstractLongBigList;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 
@@ -52,6 +58,9 @@ import java.util.Iterator;
  * If the distribution of the elements is skewed towards small values, this method achieves very a good compression (and, in any case,
  * w.r.t. exact binary length it will not lose more than one bit per element, plus lower-order terms).
  * 
+ * <p>During the construction, the list of borders (i.e., bit positions where each stored element starts) must be temporarily stored. For very large lists,
+ * it might be useful to use a {@linkplain EliasFanoLongBigList#EliasFanoLongBigList(LongIterator, long, boolean) 
+ * constructor that provides offline storage for borders}.
  */
 public class EliasFanoLongBigList extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -149,7 +158,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	/** Creates a new Elias&ndash;Fano long big list.
 	 * 
 	 * @param iterator an iterator returning natural numbers.
-	 * @param lowerBound a (not necessarily strict) lower bound on the value returned by <code>iterator</code>.
+	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
 	public EliasFanoLongBigList( final IntIterator iterator, final int lowerBound ) {
 		this( LongIterators.wrap( iterator ), lowerBound );
@@ -158,7 +167,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	/** Creates a new Elias&ndash;Fano long big list.
 	 * 
 	 * @param iterator an iterator returning natural numbers.
-	 * @param lowerBound a (not necessarily strict) lower bound on the value returned by <code>iterator</code>.
+	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
 	public EliasFanoLongBigList( final ShortIterator iterator, final short lowerBound ) {
 		this( LongIterators.wrap( iterator ), lowerBound );
@@ -167,7 +176,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	/** Creates a new Elias&ndash;Fano long big list.
 	 * 
 	 * @param iterator an iterator returning natural numbers.
-	 * @param lowerBound a (not necessarily strict) lower bound on the value returned by <code>iterator</code>.
+	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
 	public EliasFanoLongBigList( final ByteIterator iterator, final byte lowerBound ) {
 		this( LongIterators.wrap( iterator ), lowerBound );
@@ -175,31 +184,66 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 		
 	/** Creates a new Elias&ndash;Fano long big list.
 	 * 
+	 * <p>This constructor does not use offline space.
+	 * 
 	 * @param iterator an iterator returning natural numbers.
-	 * @param lowerBound a (not necessarily strict) lower bound on the value returned by <code>iterator</code>.
+	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
 	public EliasFanoLongBigList( final LongIterator iterator, long lowerBound ) {
+		this( iterator, lowerBound, false );
+	}
+
+	/** Creates a new Elias&ndash;Fano long big list with low memory requirements.
+	 * 
+	 * <p>This constructor will use an {@link OfflineIterable} to store the border array if <code>offline</code> is true.
+	 * 
+	 * @param iterator an iterator returning natural numbers.
+	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
+	 * @param offline if true, the construction uses offline memory.
+	 */
+	public EliasFanoLongBigList( final LongIterator iterator, long lowerBound, boolean offline ) {
 		this.offset = -lowerBound + 1;
 		bits = LongArrayBitVector.getInstance();
-		LongArrayList borders = new LongArrayList();
-		borders.add( 0 );
-		long lastBorder = 0;
-		long v;
-		long c = 0;
-		int msb;
-		while( iterator.hasNext() ) {
-			v = iterator.nextLong();
-			if ( v < lowerBound ) throw new IllegalArgumentException( v + " < " + lowerBound );
-			v -= lowerBound;
-			v++;
-			msb = Fast.mostSignificantBit( v );
-			borders.add( lastBorder += msb );
-			bits.append( v & ( 1L << msb ) - 1, msb );
-			c++;
+		LongArrayList borders = null;
+		File tempFile = null;
+		DataOutputStream dos = null;
+		try {
+			if ( offline ) {
+				tempFile = File.createTempFile( EliasFanoLongBigList.class.getSimpleName(), "borders" );
+				tempFile.deleteOnExit();
+				dos = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempFile ) ) );
+			}
+			else borders = new LongArrayList();
+
+			if ( offline ) dos.writeLong( 0 );
+			else borders.add( 0 );
+
+			long lastBorder = 0, maxBorder = 0;
+			long v;
+			long c = 0;
+			int msb;
+			while( iterator.hasNext() ) {
+				v = iterator.nextLong();
+				if ( v < lowerBound ) throw new IllegalArgumentException( v + " < " + lowerBound );
+				v -= lowerBound;
+				v++;
+				msb = Fast.mostSignificantBit( v );
+				lastBorder += msb;
+				if ( offline ) dos.writeLong( lastBorder ); 
+				else borders.add( lastBorder );
+				if ( maxBorder < lastBorder ) maxBorder = lastBorder;
+				bits.append( v & ( 1L << msb ) - 1, msb );
+				c++;
+			}
+			this.length = c;
+			if ( offline ) dos.close();
+			this.borders = new EliasFanoMonotoneLongBigList( c + 1, maxBorder + 1, offline ? BinIO.asLongIterator( tempFile ) : borders.iterator() );
+			if ( offline ) tempFile.delete();
+			this.bits.trim();
 		}
-		this.length = c;
-		this.borders = new EliasFanoMonotoneLongBigList( borders );
-		this.bits.trim();
+		catch( IOException e ) {
+			throw new RuntimeException( e );
+		}
 	}
 
 	public long getLong( long index ) {

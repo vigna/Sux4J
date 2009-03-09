@@ -169,8 +169,9 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	/** Creates a triple store with given transformation strategy.
 	 * 
 	 * @param transform a transformation strategy for the elements.
+	 * @throws IOException 
 	 */	
-	public TripleStore( final TransformationStrategy<? super T> transform ) {
+	public TripleStore( final TransformationStrategy<? super T> transform ) throws IOException {
 		this( transform, null );
 	}
 		
@@ -180,24 +181,19 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 
-	public TripleStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) {
+	public TripleStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
 		
 		file = new File[ DISK_BUCKETS ];
 		dos = new DataOutputStream[ DISK_BUCKETS ];
-		try {
-			// Create disk buckets
-			for( int i = 0; i < DISK_BUCKETS; i++ ) {
-				dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( TripleStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
-				file[ i ].deleteOnExit();
-			}
+		// Create disk buckets
+		for( int i = 0; i < DISK_BUCKETS; i++ ) {
+			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( TripleStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
+			file[ i ].deleteOnExit();
+		}
 
-			count = new int[ DISK_BUCKETS ];
-		}
-		catch ( IOException e ) {
-			throw new RuntimeException( e );
-		}
+		count = new int[ DISK_BUCKETS ];
 	}
 
 	/** Return the current seed of this triple store. After calling this method, no {@link #reset(long)} will be allowed (unless the store
@@ -216,26 +212,21 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * 
 	 * @param o the element to be added.
 	 */
-	public void add( final T o ) {
+	public void add( final T o ) throws IOException {
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( o ), seed, triple );
 		add( triple );
 	}
 	
-	private void add( final long[] triple ) {
+	private void add( final long[] triple ) throws IOException {
 		final int bucket = (int)( triple[ 0 ] >>> DISK_BUCKETS_SHIFT );
 		count[ bucket ]++;
 		checkedForDuplicates = false;
-		try {
-			if ( DEBUG ) System.err.println( "Adding " + Arrays.toString( triple ));
-			dos[ bucket ].writeLong( triple[ 0 ] );
-			dos[ bucket ].writeLong( triple[ 1 ] );
-			dos[ bucket ].writeLong( triple[ 2 ] );
-			dos[ bucket ].writeInt( n );
-		}
-		catch ( IOException e ) {
-			throw new RuntimeException( e );
-		}
+		if ( DEBUG ) System.err.println( "Adding " + Arrays.toString( triple ));
+		dos[ bucket ].writeLong( triple[ 0 ] );
+		dos[ bucket ].writeLong( triple[ 1 ] );
+		dos[ bucket ].writeLong( triple[ 2 ] );
+		dos[ bucket ].writeInt( n );
 		if ( n != -1 && ( filter == null || filter.evaluate( triple ) ) ) n++;
 	}
 	
@@ -243,7 +234,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * 
 	 * @param iterator an iterator returning elements.
 	 */
-	public void addAll( final Iterator<? extends T> iterator ) {
+	public void addAll( final Iterator<? extends T> iterator ) throws IOException {
 		if ( pl != null ) pl.start( "Adding elements..." );
 		final long[] triple = new long[ 3 ];
 		while( iterator.hasNext() ) {
@@ -260,32 +251,27 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * 
 	 * @return the number of (possibly filtered) triples of this store.
 	 */
-	
-	public int size() {
+
+	public int size() throws IOException {
 		if ( n == - 1 ) {
 			int c = 0;
-			try {
-				final long[] triple = new long[ 3 ];
-				for( int i = 0; i < DISK_BUCKETS; i++ ) {
-					if ( filter == null ) c += count[ i ];
-					else {
-						for( DataOutputStream d: dos ) d.flush();
-						final DataInputStream dis = new DataInputStream( new FastBufferedInputStream( new FileInputStream( file[ i ] ) ) );
-						for( int j = 0; j < count[ i ]; j++ ) {
-							triple[ 0 ] = dis.readLong();
-							triple[ 1 ] = dis.readLong();
-							triple[ 2 ] = dis.readLong();
-							dis.readInt();
-							if ( filter.evaluate( triple ) ) c++;
-						}
-						dis.close();
+			final long[] triple = new long[ 3 ];
+			for( int i = 0; i < DISK_BUCKETS; i++ ) {
+				if ( filter == null ) c += count[ i ];
+				else {
+					for( DataOutputStream d: dos ) d.flush();
+					final DataInputStream dis = new DataInputStream( new FastBufferedInputStream( new FileInputStream( file[ i ] ) ) );
+					for( int j = 0; j < count[ i ]; j++ ) {
+						triple[ 0 ] = dis.readLong();
+						triple[ 1 ] = dis.readLong();
+						triple[ 2 ] = dis.readLong();
+						dis.readInt();
+						if ( filter.evaluate( triple ) ) c++;
 					}
+					dis.close();
 				}
 			}
-			catch ( IOException e ) {
-				throw new RuntimeException( e );
-			}
-			
+
 			n = c;
 		}
 		return n;
@@ -367,7 +353,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * @param iterable the elements with which the store will be refilled if there are duplicate triples. 
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
-	public void checkAndRetry( final Iterable<? extends T> iterable ) {
+	public void checkAndRetry( final Iterable<? extends T> iterable ) throws IOException {
 		final Random random = new Random();
 		int duplicates = 0;
 
