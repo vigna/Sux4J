@@ -21,13 +21,14 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
+import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
@@ -41,7 +42,9 @@ import it.unimi.dsi.sux4j.bits.JacobsonBalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -408,12 +411,16 @@ public class HollowTrieDistributor3<T> extends AbstractObject2LongFunction<T> {
 
 	}
 	
-	private long visit( final IntermediateTrie.Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips ) {
+	private long sumSkips;
+	
+	private long visit( final IntermediateTrie.Node node, LongArrayBitVector bitVector, long pos, DataOutputStream skips ) throws IOException {
 		if ( node.isLeaf() ) return pos;
 
 		bitVector.set( pos++ ); // This adds the open parentheses
 		
-		skips.add( (int)node.path.length() );
+		final int skip = (int)node.path.length();
+		skips.writeInt( skip );
+		sumSkips += skip;
 		
 		pos = visit( node.left, bitVector, pos, skips );
 
@@ -451,21 +458,23 @@ public class HollowTrieDistributor3<T> extends AbstractObject2LongFunction<T> {
 		
 		trie = LongArrayBitVector.ofLength( size + 1 );
 		trie.set( 0 );
-		IntArrayList skips = new IntArrayList();
+
+		File skipFile = File.createTempFile( HollowTrieDistributor3.class.getSimpleName(), "skips", tempDir );
+		skipFile.deleteOnExit();
+		final DataOutputStream skips = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( skipFile ) ) );
+		
 		// Turn the compacted trie into a hollow trie.
 		if ( intermediateTrie.root != null ) {
 			if ( DDEBUG ) System.err.println( intermediateTrie );
 			visit( intermediateTrie.root, trie, 1, skips );
 		}
+		skips.close();
 		
 		balParen = new JacobsonBalancedParentheses( trie, false, true, false );
 		
-		long mean = 0;
-		for( int s : skips ) mean += s;
-		meanSkip = (double)mean / skips.size();
+		meanSkip = (double)sumSkips / skips.size();
 		
-		this.skips = new EliasFanoLongBigList( skips );
-		skips = null;
+		this.skips = new EliasFanoLongBigList( LongIterators.wrap( BinIO.asIntIterator( skipFile ) ), 0, true );
 		
 		LOGGER.info( "Bits per skip: " + bitsPerSkip() );
 
