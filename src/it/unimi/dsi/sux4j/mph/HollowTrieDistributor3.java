@@ -108,7 +108,7 @@ public class HollowTrieDistributor3<T> extends AbstractObject2LongFunction<T> {
 		/** The root of the trie. */
 		protected final Node root;
 		/** The number of overall elements to distribute. */
-		private final int numElements;
+		protected final int numElements;
 		/** The number of internal nodes of the trie. */
 		protected final int size;
 		/** The file containing the external keys (pairs node/path). */
