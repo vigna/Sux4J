@@ -100,6 +100,12 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		long totalLength = 0;
 		BitVector bv;
 		final Random random = new Random();
+		
+		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
+		pl.itemsName = "keys";
+		
+		pl.start( "Creating triple store..." );
 		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
 		tripleStore.reset( random.nextLong() );
 		for( T s: elements ) {
@@ -107,7 +113,13 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 			tripleStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
+			pl.lightUpdate();
 		}
+		
+		pl.done();
+		
+		LOGGER.debug( "Maximum length: " + maxLength );
+		LOGGER.debug( "Average length: " + totalLength / (double)tripleStore.size() );
 		
 		size = tripleStore.size();
 		
@@ -126,6 +138,8 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
+		LOGGER.info( "Creating distributor..." );
+		
 		BitstreamImmutablePaCoTrie<BitVector> firstDistributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
 		if ( firstbucketSize >= size ) log2BucketSize = t;
@@ -143,8 +157,10 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 			distributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 		}
 		
-		LOGGER.info( "Bucket size: " + bucketSize );
+		LOGGER.debug( "Bucket size: " + bucketSize );
 		final int bucketSizeMask = bucketSize - 1;
+		
+		LOGGER.info( "Generating offset function..." );
 		
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {

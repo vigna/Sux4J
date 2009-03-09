@@ -139,7 +139,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		BitVector curr = null;
 		int currLcp = 0;
-		final BitVector[] lcp = new BitVector[ numBuckets ];
+		BitVector[] lcp = new BitVector[ numBuckets ];
 		int maxLcp = 0;
 		long maxLength = 0, totalLength = 0;
 
@@ -183,6 +183,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		final int[] lcpLength = new int[ lcp.length ];
+		for( int i = lcp.length; i-- != 0; ) lcpLength[ i ] = (int)lcp[ i ].length();
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -196,6 +198,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			}
 		}
 
+		lcp = null;
+		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build mph on elements.
 		mph = new MinimalPerfectHashFunction<BitVector>( bitVectors, TransformationStrategies.identity(), tripleStore );
@@ -208,7 +212,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			for( long[] quadruple: bucket ) {
 				final long index = mph.getLongByTriple( quadruple );
 				offsets.set( index, quadruple[ 3 ] & bucketSizeMask );
-				lcpLengthsTemp.set( index, lcp[ (int)quadruple[ 3 ] >> log2BucketSize ].length() );
+				lcpLengthsTemp.set( index, lcpLength[ (int)quadruple[ 3 ] >> log2BucketSize ] );
 			}
 		}
 		
@@ -242,8 +246,6 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				}
 			}
 		}
-		
-		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 + Fast.log2( totalLength / (double)n ) + Fast.log2( 1 + Fast.log2( totalLength / (double)n ) ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
