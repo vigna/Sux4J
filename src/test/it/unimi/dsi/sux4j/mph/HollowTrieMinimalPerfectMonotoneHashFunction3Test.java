@@ -44,7 +44,7 @@ public class HollowTrieMinimalPerfectMonotoneHashFunction3Test extends TestCase 
 	
 	@SuppressWarnings("unchecked")
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
-		final Random r = new Random();
+		final Random r = new Random( 0 );
 		
 		for( int pass = 0; pass < 2; pass++ )
 			for( int d = 10; d < 100000; d *= 10 ) {

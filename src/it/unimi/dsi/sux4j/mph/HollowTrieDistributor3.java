@@ -475,6 +475,7 @@ public class HollowTrieDistributor3<T> extends AbstractObject2LongFunction<T> {
 		meanSkip = (double)sumSkips / skips.size();
 		
 		this.skips = new EliasFanoLongBigList( LongIterators.wrap( BinIO.asIntIterator( skipFile ) ), 0, true );
+		skipFile.delete();
 		
 		LOGGER.info( "Bits per skip: " + bitsPerSkip() );
 
