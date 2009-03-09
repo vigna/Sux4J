@@ -120,10 +120,11 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return;
 		}
 		
-		int t = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
-		log2BucketSize = Fast.ceilLog2( t );
+		final int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
+		LOGGER.debug( "Bucket size: " + bucketSize );
 		
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
@@ -192,7 +193,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length() << log2BucketSize | index % bucketSize; 
+				return lcp[ index / bucketSize ].length() << log2BucketSize | index & bucketSizeMask; 
 			}
 			public int size() {
 				return n;
@@ -218,10 +219,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 		
-		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
-		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
-		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) + Fast.log2( maxLength - Fast.log2( n ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 

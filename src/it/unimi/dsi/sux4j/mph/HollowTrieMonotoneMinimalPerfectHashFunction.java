@@ -135,15 +135,16 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA + Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
+		final int bucketSizeMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return index & bucketSizeMask; 
 			}
 			public int size() {
 				return size;
@@ -153,7 +154,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		
 		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( 1 / Math.log( 2 ) + 2 + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}

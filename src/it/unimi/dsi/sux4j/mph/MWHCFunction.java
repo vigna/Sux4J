@@ -97,7 +97,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean DEBUG = false;
 		
 	/** The logarithm of the desired bucket size. */
-	public final static int LOG2_BUCKET_SIZE = 9;
+	public final static int LOG2_BUCKET_SIZE = 10;
 	/** The shift for buckets. */
 	final private int bucketShift;
 	/** The number of elements. */

@@ -54,6 +54,9 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import static it.unimi.dsi.bits.Fast.log2;
+import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
  * a {@linkplain RelativeTrieDistributor relative trie} as a distributor.
@@ -152,6 +155,15 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 			}
 		}, this.log2BucketSize, tripleStore );
 		//System.err.println( "*********" + tripleStore.seed() );
+		
+		tripleStore.close();
+		
+		final int bucketSize = 1 << this.log2BucketSize;
+		LOGGER.info( "Forecast bit cost per element: "
+				+ 1 / ( 2.0 * bucketSize )
+				* ( 5 * log2( log2( maxLength ) ) + 2 * log2( log2( log2( maxLength ) ) ) + 4 * log2( bucketSize ) + 9 * GAMMA + 3 * log2( E ) - 3 * log2( log2( E ) ) + 
+						3 * log2( log2( ( 3 / 2.0 ) * size ) ) + 3 + 2 * GAMMA * bucketSize + 2
+						* GAMMA * log2( bucketSize ) * bucketSize ) );
 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );

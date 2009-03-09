@@ -122,7 +122,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		
 		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( size ) - Math.log( averageLength - Math.log( size ) ) - 1 ) );
 		final int firstbucketSize = 1 << t;
-		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
+		LOGGER.debug( "First bucket size estimate: " + firstbucketSize );
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
@@ -142,13 +142,6 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 			firstDistributor = null;
 			distributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 		}
-
-		/*
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
-		*/	
 		
 		LOGGER.info( "Bucket size: " + bucketSize );
 		final int bucketSizeMask = bucketSize - 1;
@@ -164,7 +157,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) + 2 * Fast.log2( maxLength - Fast.log2( size ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}

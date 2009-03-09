@@ -140,7 +140,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		int currLcp = 0;
 		final BitVector[] lcp = new BitVector[ numBuckets ];
 		int maxLcp = 0;
-		long maxLength = 0;
+		long maxLength = 0, totalLength = 0;
 
 		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
 		tripleStore.reset( r.nextLong() );
@@ -153,6 +153,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			tripleStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
+			totalLength += prev.length();
 			currLcp = (int)prev.length();
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
@@ -168,6 +169,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				prev.replace( curr );
 				
 				maxLength = Math.max( maxLength, prev.length() );
+				totalLength += prev.length();
 			}
 
 			lcp[ b ] = prev.subVector( 0, currLcp  ).copy();
@@ -241,9 +243,9 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		}
 		
 		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
+		
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
-		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 + Fast.log2( totalLength / (double)n ) + Fast.log2( 1 + Fast.log2( totalLength / (double)n ) ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
@@ -262,7 +264,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return offsets.length() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + transform.numBits();
+		return offsets.length() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + mph.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {

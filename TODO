@@ -1,7 +1,9 @@
 - Document at package level minimal perfect hashing
 - Revamp site
 - Write documentation for .mph
-- Document TripleStore methods and ideas
 - Document each constructor w.r.t. preserving TripleStore seed
 - Document number of edges in Hypergraphsorter
 - Replace % bucketSize and / bucketSize all around
+- In-memory version of TripleStore
+- The hollow trie distributor could accept a triple for the key and use it to index the left/right function
+- Decide where to count transformation-strategy bits

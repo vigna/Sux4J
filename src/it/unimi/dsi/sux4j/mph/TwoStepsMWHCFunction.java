@@ -72,6 +72,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final int escape;
 	private long seed;
+	/** The mean of the rank distribution. */
+	public final double rankMean;
+	/** The width of the output of this function, in bits. */
+	public final int width;
 
 	/** Creates a new two-step function for the given elements and values.
 	 * 
@@ -108,7 +112,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		defRetValue = -1; // For the very few cases in which we can decide
 		
 		if ( n == 0 ) {
-			escape = 0;
+			rankMean = escape = width = 0;
 			firstFunction = secondFunction = null;
 			remap = null;
 			return;
@@ -126,8 +130,11 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			if ( size > w ) w = size;
 		}
 		
+		this.width = w;
 		final int m = counts.size();
 		
+		LOGGER.debug( "Generating two-steps MWHC function with " + w + " output bits..." );
+
 		// Sort keys by reverse frequency
 		final long[] keys = counts.keySet().toLongArray( new long[ m ] );
 		Sorting.quickSort( keys, 0, keys.length, new LongComparator() {
@@ -136,6 +143,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 		});
 
+		long mean = 0;
+		for( int i = 0; i < keys.length; i++ ) mean += i * counts.get( keys[ i ] );
+		rankMean = (double)mean / n;
+		
 		// Analyze data and choose a threshold
 		long post = n, pre = 0, bestCost = Long.MAX_VALUE;
 		int pos = 0, best = -1;
@@ -207,8 +218,8 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 
-		LOGGER.info( "Completed." );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info( "Completed." );
 	}
 
 
@@ -255,6 +266,8 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 */
 	protected TwoStepsMWHCFunction( final TwoStepsMWHCFunction<T> function ) {
 		this.n = function.n;
+		this.width = function.width;
+		this.rankMean = function.rankMean;
 		this.remap = function.remap;
 		this.firstFunction = function.firstFunction;
 		this.secondFunction = function.secondFunction;

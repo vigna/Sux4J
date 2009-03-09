@@ -132,21 +132,24 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	
 	private final static class SkipInfo {
 		private int maxSkip;
+		private long sumOfSkips;
 		private long skipsLength;
 	}
 	
-	private long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo ) {
+	private long visit( final Node node, LongArrayBitVector bitVector, long pos, IntArrayList skips, SkipInfo skipInfo, ProgressLogger pl ) {
 		if ( node == null ) return pos;
 
 		bitVector.set( pos++ ); // This adds the open parentheses
 		
 		if ( skipInfo.maxSkip < node.skip ) skipInfo.maxSkip = node.skip;
 		skipInfo.skipsLength += length( node.skip );
+		skipInfo.sumOfSkips += node.skip;
 		skips.add( node.skip );
+		pl.lightUpdate();
 		
-		pos = visit( node.left, bitVector, pos, skips, skipInfo );
+		pos = visit( node.left, bitVector, pos, skips, skipInfo, pl );
 
-		return visit( node.right, bitVector, pos + 1, skips, skipInfo ); // This adds the closing parenthesis
+		return visit( node.right, bitVector, pos + 1, skips, skipInfo, pl ); // This adds the closing parenthesis
 	}
 	
 	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
@@ -159,17 +162,27 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		int size = 0;
+		long maxLength = 0;
 		
 		Node root = null, node, parent;
 		int prefix, numNodes = 0, cmp;
 
+		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
+		
+		pl.start( "Generating hollow trie..." );
+
 		if ( iterator.hasNext() ) {
 			BitVector prev = transform.toBitVector( iterator.next() ).copy(), curr;
+			pl.lightUpdate();
+			maxLength = prev.length();
 			size++;
 
 			while( iterator.hasNext() ) {
 				size++;
 				curr = transform.toBitVector( iterator.next() );
+				pl.lightUpdate();
+				if ( maxLength < curr.length() ) maxLength = curr.length();
 				cmp = prev.compareTo( curr );
 				if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 				if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
@@ -228,6 +241,8 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		
 		this.size = size;
 
+		pl.done();
+		
 		if ( size <= 1 ) {
 			balParen = new JacobsonBalancedParentheses( BitVectors.EMPTY_VECTOR );
 			trie = BitVectors.EMPTY_VECTOR;
@@ -242,23 +257,24 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		recToString( root, new StringBuilder(), result, new StringBuilder(), 0 );
 		System.out.println( result );*/
 		
+		pl.start( "Visiting trie..." );
+		
 		bitVector.set( 0 ); // Fake open parenthesis
-		visit( root, bitVector, 1, skips, skipInfo );
+		visit( root, bitVector, 1, skips, skipInfo, pl );
 
-		//System.err.println( bitVector );
-		//System.err.println( skips );
+		pl.done();
 		
 		root = null;		
-			
+		
+		LOGGER.debug( "Generating succinct representations..." );
+		
 		trie = bitVector;
 		balParen = new JacobsonBalancedParentheses( bitVector, false, true, false );
 		final int skipWidth = Fast.ceilLog2( skipInfo.maxSkip );
 
-/*		LOGGER.info( "Max depth: " + maxDepth );
-		LOGGER.info( "Average depth: " + (double)sumOfDepths / size  );*/
-		LOGGER.info( "Max skip: " + skipInfo.maxSkip );
-		LOGGER.info( "Max skip width: " + skipWidth );
-		LOGGER.info( "Bits per skip: " + ( skipInfo.skipsLength * 2.0 ) / ( numNodes - 1 ) );
+		LOGGER.debug( "Max skip: " + skipInfo.maxSkip );
+		LOGGER.debug( "Max skip width: " + skipWidth );
+		LOGGER.debug( "Bits per skip: " + ( skipInfo.skipsLength * 2.0 ) / ( numNodes - 1 ) );
 		
 		this.skips = new EliasFanoLongBigList( skips );
 		
@@ -268,70 +284,14 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		}
 		
 		final long numBits = numBits();
-		LOGGER.info( "Bits: " + numBits + " bits/string: " + (double)numBits / size );
-		LOGGER.info( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
-		LOGGER.info( "Bits per trie node: " + (double)trie.length() / size );
+		LOGGER.debug( "Bits: " + numBits );
+		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
+		final double avgSkip = (double)skipInfo.sumOfSkips / skips.size();
+		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgSkip ) + Fast.log2( 1 + Fast.log2( avgSkip ) ) ) );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
 	
 	
-	/** Builds a trie recursively. 
-	 * 
-	 * <p>The trie will contain the suffixes of words in <code>words</code> starting at <code>pos</code>.
-	 * 
-	 * @param elements a list of elements.
-	 * @param pos a starting position.
-	 * @return a trie containing the suffixes of words in <code>words</code> starting at <code>pos</code>.
-	 */
-		
-	protected Node buildTrie( final ObjectList<BitVector> elements, final ObjectList<BitVector> ends, final int pos, final Reference2LongMap<BitVector> original ) {
-		// TODO: on-the-fly check for lexicographical order
-		
-		for( int i = 0; i < elements.size() - 1; i++ ) assert elements.get( i ).compareTo( elements.get( i + 1 ) ) < 0;
-		
-		if ( elements.size() == 1 ) return null;
-
-		//System.err.println( elements );
-		
-		BitVector first = elements.get( 0 ), curr;
-		int prefix = first.size(), change = -1, j;
-
-		// 	Find maximum common prefix. change records the point of change (for splitting the word set).
-		for( ListIterator<BitVector> i = elements.listIterator( 1 ); i.hasNext(); ) {
-			curr = i.next();
-			assert ! curr.equals( first );
-			assert curr.longestCommonPrefixLength( first ) != curr.length();
-			assert curr.longestCommonPrefixLength( first ) != first.length();
-			
-			if ( curr.size() < prefix ) prefix = curr.size(); 
-			for( j = pos; j < prefix; j++ ) if ( first.get( j ) != curr.get( j ) ) break;
-			if ( j < prefix ) {
-				change = i.previousIndex();
-				prefix = j;
-			}
-		}
-		
-		assert change >= 0;
-
-		ObjectArrayList<BitVector> leftList = new ObjectArrayList<BitVector>( elements.subList( 0, change ) );
-		assert ! ends.isEmpty();
-		assert ! leftList.isEmpty();
-		
-		//assert elements.get( change - 1 ).subVector( 0, prefix ).equals( elements.get( change ).subVector( 0, prefix ) );
-		assert ! elements.get( change - 1 ).subVector( 0, prefix + 1 ).equals( elements.get( change ).subVector( 0, prefix + 1 ) );
-		
-		System.err.println( "prefix: " + prefix );
-		
-		int index = (int)original.removeLong( elements.get( change - 1 ) ); 
-		if ( index >= 0 ) leftList.add( ends.get( index ) );
-		
-		if ( index >= 0 ) System.err.println( "Adding end of index " + index );
-		
-		assert index == -1 || ends.get( index ).longestCommonPrefixLength( leftList.get( 0 ) ) >= prefix;
-		
-		return new Node( buildTrie( leftList, ends, prefix + 1, original ), 
-				buildTrie( elements.subList( change, elements.size() ), ends, prefix + 1, original ), prefix - pos );
-	}
-
 	public int size() {
 		return size;
 	}

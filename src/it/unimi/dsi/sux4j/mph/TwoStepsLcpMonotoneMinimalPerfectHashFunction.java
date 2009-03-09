@@ -130,6 +130,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		log2BucketSize = Fast.ceilLog2( t );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
+		LOGGER.debug( "Bucket size: " + bucketSize );
 		
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
@@ -195,7 +196,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsets = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index % bucketSize; 
+				return index & bucketSizeMask; 
 			}
 			public int size() {
 				return n;
@@ -230,13 +231,23 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}
 		
-		final int lnLnN = (int)Math.ceil( Math.log( 1 + Math.log( n  ) ) );
-		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( bucketSize ) + Fast.log2( Math.E ) + Fast.ceilLog2( maxLength - lnLnN ) ) );
-		LOGGER.debug( "Empirical bit cost per element: " + ( HypergraphSorter.GAMMA + log2BucketSize + Fast.ceilLog2( maxLcp ) + Fast.ceilLog2( numBuckets ) / (double)bucketSize + (double)transform.numBits() / n ) );
+		final double p = 1.0 / ( lcpLengths.rankMean + 1 );
+
+		final double s = s( p, lcpLengths.width );
+		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
+		
+		LOGGER.debug( "Forecast bit cost per element: " + ( log2BucketSize + HypergraphSorter.GAMMA + secondFunctionForecastBitsPerElement + ( Fast.log2( Math.E ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
+
+	private static double W( double x ) {
+		return - Math.log( -1/x ) - Math.log( Math.log( -1/x ) );
+	}
+	
+	private static double s( double p, int r ) {
+		return Fast.log2( W( 1 / ( Math.log(2) * ( r + HypergraphSorter.GAMMA ) * ( p - 1 ) ) ) / Math.log( 1 - p ) );
+	}
 
 	/** Returns the number of terms hashed.
 	 *

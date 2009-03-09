@@ -286,7 +286,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 		 */
 		public int toStream( final OutputBitStream obs ) throws IOException {
 			final int result = toStream( root, obs );
-			LOGGER.info( "Gain: " + gain );
+			LOGGER.debug( "Gain: " + gain );
 			return result;
 		}
 		
@@ -384,7 +384,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 		numberOfLeaves = immutableBinaryTrie.toStream( trie );
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
+		LOGGER.debug( "Trie bit size: " + trie.writtenBits() );
 		
 		trie.flush();
 		fbStream.trim();

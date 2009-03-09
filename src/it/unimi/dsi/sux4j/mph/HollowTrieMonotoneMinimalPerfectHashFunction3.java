@@ -135,7 +135,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction3<T> extends AbstractHa
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA ) ) );
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
@@ -152,9 +152,10 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction3<T> extends AbstractHa
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
+		final double skipCost = 2 + Fast.log2( distributor.meanSkip ) + Fast.log2( 1 + Fast.log2( distributor.meanSkip ) ); 
+		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + skipCost ) + 2 * GAMMA * size ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA / Math.log( 2 ) + 2 * GAMMA + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + Fast.log2( 4 * Math.log( 2 ) * ( 2 + skipCost ) / GAMMA ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}

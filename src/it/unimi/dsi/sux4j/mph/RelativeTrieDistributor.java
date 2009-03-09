@@ -38,11 +38,13 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.util.LongBigList;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
+
+import static it.unimi.dsi.bits.Fast.log2;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
 /** A distributor based on a relative trie.
  *
@@ -260,7 +262,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				logW = 1 << logLogW;
 				w = 1L << logW;
 				logWMask = ( 1L << logW ) - 1;
-				signatureSize = logLogW + log2BucketSize; // A small additive constant to avoid excessively small signatures
+				signatureSize = logLogW + log2BucketSize;
 				signatureMask = ( 1L << signatureSize ) - 1;
 				
 				if ( ASSERTS ) assert logW + signatureSize <= Long.SIZE;
@@ -411,7 +413,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
-	 * @param tempDir the directory where temporary files will be created, or <code>null</code> for the default directory.
 	 */
 	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final TripleStore<BitVector> tripleStore ) {
 		this.transformationStrategy = transformationStrategy;
@@ -438,7 +439,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		if ( ! emptyTrie ) {
 			numDelimiters = intermediateTrie.delimiters.size();
-			final int numInternalNodeRepresentations = intermediateTrie.internalNodeRepresentations.size();
 
 			if ( DDEBUG ) {
 				System.err.println( "Internal node representations: " + intermediateTrie.internalNodeRepresentations );
@@ -463,6 +463,8 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 			}
 
+			System.err.println( intermediateTrie.internalNodeRepresentations.size() + " " + rankers.size() );
+			
 			intermediateTrie.internalNodeRepresentations = null;
 
 			LongArrayBitVector[] rankerArray = rankers.toArray( new LongArrayBitVector[ rankers.size() ] );
@@ -475,19 +477,19 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				System.err.println();
 			}
 
-			LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( numInternalNodeRepresentations * 3 );
+			LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( rankerArray.length );
 			int q = 0;
 
 			for( BitVector v : rankerArray ) {
 				if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( q );
 				q++;
 			}
-			leavesBitVector.length( q ).trim();
 			leaves = new Rank9( leavesBitVector );
 
 			if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
 
 			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( Arrays.asList( rankerArray ), TransformationStrategies.prefixFree() );
+			rankerArray = null;
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
@@ -530,11 +532,18 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			this.mistakeSignatures.addAll( mistakeSignatures );
 			corrections = new MWHCFunction<BitVector>( positives, TransformationStrategies.identity(), results, logW );
 
+			final int bucketSize = 1 << log2BucketSize;
 			LOGGER.debug( "Signature bits per element: " + (double)signatures.numBits() / size );
+			LOGGER.debug( "Signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
 			LOGGER.debug( "Ranker bits per element: " + (double)ranker.numBits() / size );
-			LOGGER.debug( "Leaves bits per element: " + (double)leaves.numBits() / size );
+			LOGGER.debug( "Ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
+			System.err.println( "pred: " + (3.0*size)/ bucketSize + " actual: " + leaves.bitVector().length());
+			LOGGER.debug( "Leaves bits per element: " + (double)leaves.bitVector().length() / size );
+			LOGGER.debug( "Leaves bits per element: " + ( 3.0 / bucketSize ) );
+			LOGGER.debug( "Mistake bits per element: " + (double)numBitsForMistakes() / size );
 			LOGGER.debug( "Mistake bits per element: " + (double)numBitsForMistakes() / size );
 			LOGGER.debug( "Behaviour bits per element: " + (double)behaviour.numBits() / size );
+			LOGGER.debug( "Behaviour bits per element: " + GAMMA );
 		}
 		else {
 			signatures = null;
@@ -660,7 +669,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	
 	public long numBits() {
 		if ( emptyTrie ) return 0;
-		return behaviour.numBits() + signatures.numBits() + ranker.numBits() + leaves.numBits() + transformationStrategy.numBits() + numBitsForMistakes(); 
+		return behaviour.numBits() + signatures.numBits() + ranker.numBits() + leaves.bitVector().length() + transformationStrategy.numBits() + numBitsForMistakes(); 
 	}
 	
 	public boolean containsKey( Object o ) {

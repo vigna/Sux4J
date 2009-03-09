@@ -135,7 +135,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction2<T> extends AbstractHa
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 * Math.log( 2 ) ) / GAMMA + Math.log( 2 ) ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA + Math.log( 2 ) ) ) );
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );

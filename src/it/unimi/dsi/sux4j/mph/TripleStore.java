@@ -87,7 +87,7 @@ import cern.colt.function.IntComparator;
  * 
  * <p>You can at any time {@linkplain #filter(Predicate) set a predicate} that will filter the triples returned by the store. 
  * 
- * <h2>Implementation Details</h2>
+ * <h2>Implementation details</h2>
  * 
  * <p>Internally, a triple store has a notion of disk bucket: triples are stored on disk using a fixed number of bits.
  * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk buckets or splitting them
