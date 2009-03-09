@@ -94,7 +94,7 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public SlicedMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public SlicedMinimalPerfectMonotoneHash( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 

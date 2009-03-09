@@ -30,6 +30,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.logging.ProgressLogger;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Random;
 
@@ -85,7 +86,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) throws IOException {
 		this( elements, transform, values, null );
 	}
 		
@@ -97,7 +98,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, TripleStore<T> triplesStore ) {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, TripleStore<T> triplesStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		final Random random = new Random();

@@ -19,7 +19,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 		return s.substring( s.length() - 32 );
 	}
 
-	public void testEmpty() {
+	public void testEmpty() throws IOException {
 		String[] s = {};
 		for( int b = -1; b < 3; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
@@ -28,7 +28,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 		}
 	}
 
-	public void testSingleton() {
+	public void testSingleton() throws IOException {
 		String[] s = { "a" };
 		for( int b = -1; b < 3; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
@@ -37,7 +37,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 		}
 	}
 
-	public void testDoubleton() {
+	public void testDoubleton() throws IOException {
 		String[] s = { "a", "b" };
 		for( int b = -1; b < 3; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
@@ -47,7 +47,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	}
 
 
-	public void testSmallest() {
+	public void testSmallest() throws IOException {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		for( int b = 1; b < 2; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
@@ -56,7 +56,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 		}
 	}
 
-	public void testSmall() {
+	public void testSmall() throws IOException {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
 		for( int b = -1; b < 5; b++ ) {
 			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );

@@ -72,7 +72,7 @@ public class SuperSmartHollowTrie<T> extends AbstractHashFunction<T> implements 
 
 	
 	@SuppressWarnings("unused")
-	public SuperSmartHollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public SuperSmartHollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		//this.transform = transform;
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.

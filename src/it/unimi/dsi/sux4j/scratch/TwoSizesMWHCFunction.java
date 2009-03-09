@@ -34,6 +34,7 @@ import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -74,9 +75,10 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param transform a transformation strategy for the elements.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
+	 * @throws IOException 
 	 */
 
-	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) {
+	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) throws IOException {
 		this.transform = transform;
 
 		final long[] count = new long[ Long.SIZE ];

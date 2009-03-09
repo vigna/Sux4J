@@ -147,7 +147,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param transform a transformation strategy for the elements.
 	 */
 
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( elements, transform, null );
 	}
 
@@ -155,9 +155,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 *
 	 * @param elements the elements to hash.
 	 * @param transform a transformation strategy for the elements.
+	 * @throws IOException 
 	 */
 
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) {
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) throws IOException {
 		this.transform = transform;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );

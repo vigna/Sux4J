@@ -49,7 +49,7 @@ public class MWHCFunctionTest extends TestCase {
 		}
 	}
 	
-	public void testLongNumbers() {
+	public void testLongNumbers() throws IOException {
 		LongArrayList l = new LongArrayList( new long[] { 0x234904309830498L, 0xae049345e9eeeeeL, 0x23445234959234L, 0x239234eaeaeaeL } );
 		MWHCFunction<CharSequence> mph = new MWHCFunction<CharSequence>( Arrays.asList( new String[] { "a", "b", "c", "d" } ), TransformationStrategies.utf16(), l, Long.SIZE );
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
@@ -58,7 +58,7 @@ public class MWHCFunctionTest extends TestCase {
 		assertEquals( l.getLong( 3 ), mph.getLong( "d" ) );
 	}
 	
-	public void testDuplicates() {
+	public void testDuplicates() throws IOException {
 		MWHCFunction<String> mph = new MWHCFunction<String>( 
 				new Iterable<String>() {
 					int iteration;

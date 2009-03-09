@@ -96,7 +96,7 @@ public class LcpMinimalPerfectMonotoneHash4<T> extends AbstractHashFunction<T> i
 	}
 	
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed
-	public LcpMinimalPerfectMonotoneHash4( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public LcpMinimalPerfectMonotoneHash4( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		// First of all we compute the size, either by size(), if possible, or simply by iterating.
 		if ( iterable instanceof Collection ) n = ((Collection<? extends T>)iterable).size();
