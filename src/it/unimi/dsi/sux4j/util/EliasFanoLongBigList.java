@@ -195,7 +195,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 
 	/** Creates a new Elias&ndash;Fano long big list with low memory requirements.
 	 * 
-	 * <p>This constructor will use an {@link OfflineIterable} to store the border array if <code>offline</code> is true.
+	 * <p>This constructor will use a temporary file to store the border array if <code>offline</code> is true.
 	 * 
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.

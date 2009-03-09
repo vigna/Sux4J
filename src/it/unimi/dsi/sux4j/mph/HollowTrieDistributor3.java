@@ -438,7 +438,7 @@ public class HollowTrieDistributor3<T> extends AbstractObject2LongFunction<T> {
 		this( elements, log2BucketSize, transformationStrategy, null );
 	}
 
-	/** Creates a partial compacted trie using given elements, bucket size, transformation strategy, and temporary directory.
+	/** Creates a hollow trie distributor.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param log2BucketSize the logarithm of the size of a bucket.

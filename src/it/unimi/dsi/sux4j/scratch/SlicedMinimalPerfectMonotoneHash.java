@@ -90,7 +90,8 @@ public class SlicedMinimalPerfectMonotoneHash<T> extends AbstractHashFunction<T>
 	public long getLong( final Object o ) {
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		long bucket = Long.reverse( bitVector.getLong( 0, Math.min( Long.SIZE, bitVector.length() ) ) ) >>> bucketShift;
-		return firstInBucket.getLong( bucket ) + offsets.getLong( minimalPerfectHash.getLong( bitVector ) );
+		final long index = minimalPerfectHash.getLong( bitVector );
+		return index < 0 ? - 1 : firstInBucket.getLong( bucket ) + offsets.getLong( index );
 	}
 
 	@SuppressWarnings("unused") // TODO: move it to the first for loop when javac has been fixed

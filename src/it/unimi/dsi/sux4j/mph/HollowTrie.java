@@ -29,11 +29,11 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.AbstractIntIterator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntIterable;
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
+import it.unimi.dsi.fastutil.longs.LongIterable;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -260,13 +260,13 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 
 		final Node finalRoot = root;
 		
-		final IntIterable skipIterable = new IntIterable() {
-			public IntIterator iterator() {
-				return new AbstractIntIterator() {
+		final LongIterable skipIterable = new LongIterable() {
+			public LongIterator iterator() {
+				return new AbstractLongIterator() {
 					Node curr = finalRoot;
 					int currElem = -1;
 					
-					public int nextInt() {
+					public long nextLong() {
 						if ( currElem == -1 ) {
 							currElem++;
 							return curr.skip;
@@ -286,11 +286,11 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			}
 		};
 		
-		long maxSkip = 0, sumOfSkips = 0;
-		int s;
-		for( IntIterator i = skipIterable.iterator(); i.hasNext(); ) {
-			s = i.nextInt();
+		long maxSkip = 0, minSkip = Long.MAX_VALUE, sumOfSkips = 0, s;
+		for( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
+			s = i.nextLong();
 			maxSkip = Math.max( s, maxSkip );
+			minSkip = Math.min( s, minSkip );
 			sumOfSkips += s;
 		}
 		
@@ -299,7 +299,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		LOGGER.debug( "Max skip: " + maxSkip );
 		LOGGER.debug( "Max skip width: " + skipWidth );
 
-		this.skips = new EliasFanoLongBigList( skipIterable );
+		skips = new EliasFanoLongBigList( skipIterable.iterator(), minSkip, true );
 		
 		if ( DEBUG ) {
 			System.err.println( skips );
@@ -310,7 +310,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		LOGGER.debug( "Bits: " + numBits );
 		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
 		final double avgSkip = (double)sumOfSkips / skips.size();
-		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgSkip ) + Fast.log2( 1 + Fast.log2( avgSkip ) ) ) );
+		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgSkip + 1 ) + Fast.log2( 1 + Fast.log2( avgSkip + 1 ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
 	

@@ -206,6 +206,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ).length( n );
 		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) ).length( n );
+
+		LOGGER.info( "Generating data tables..." );
 		
 		for( TripleStore.Bucket bucket: tripleStore ) {
 			for( long[] quadruple: bucket ) {
