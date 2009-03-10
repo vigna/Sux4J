@@ -464,8 +464,6 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 			}
 
-			System.err.println( intermediateTrie.internalNodeRepresentations.size() + " " + rankers.size() );
-			
 			intermediateTrie.internalNodeRepresentations = null;
 
 			LongArrayBitVector[] rankerArray = rankers.toArray( new LongArrayBitVector[ rankers.size() ] );
@@ -538,11 +536,10 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			LOGGER.debug( "Signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
 			LOGGER.debug( "Ranker bits per element: " + (double)ranker.numBits() / size );
 			LOGGER.debug( "Ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
-			System.err.println( "pred: " + (3.0*size)/ bucketSize + " actual: " + leaves.bitVector().length());
 			LOGGER.debug( "Leaves bits per element: " + (double)leaves.bitVector().length() / size );
 			LOGGER.debug( "Leaves bits per element: " + ( 3.0 / bucketSize ) );
 			LOGGER.debug( "Mistake bits per element: " + (double)numBitsForMistakes() / size );
-			LOGGER.debug( "Mistake bits per element: " + (double)numBitsForMistakes() / size );
+			LOGGER.debug( "Mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GAMMA / bucketSize ) );
 			LOGGER.debug( "Behaviour bits per element: " + (double)behaviour.numBits() / size );
 			LOGGER.debug( "Behaviour bits per element: " + GAMMA );
 		}

@@ -160,10 +160,9 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		
 		final int bucketSize = 1 << this.log2BucketSize;
 		LOGGER.info( "Forecast bit cost per element: "
-				+ 1 / ( 2.0 * bucketSize )
-				* ( 5 * log2( log2( maxLength ) ) + 2 * log2( log2( log2( maxLength ) ) ) + 4 * log2( bucketSize ) + 9 * GAMMA + 3 * log2( E ) - 3 * log2( log2( E ) ) + 
-						3 * log2( log2( ( 3 / 2.0 ) * size ) ) + 3 + 2 * GAMMA * bucketSize + 2
-						* GAMMA * log2( bucketSize ) * bucketSize ) );
+				+ 1.0 / bucketSize
+				* ( 4 * log2( maxLength ) + log2( log2( maxLength ) ) + 2 * log2( bucketSize ) + 6 * GAMMA + 3 * log2( E ) - 3 * log2( log2( E ) ) + 
+						3 * log2( log2( 3 * size ) ) + 3 + GAMMA * bucketSize + GAMMA * log2( bucketSize ) * bucketSize ) );
 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
