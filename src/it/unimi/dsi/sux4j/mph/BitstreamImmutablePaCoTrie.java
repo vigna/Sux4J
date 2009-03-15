@@ -233,20 +233,24 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 					final Node stack[] = new Node[ (int)maxLength ];
 					// The length of the path compacted in the trie up to the corresponding node, excluded
 					final int[] len = new int[ (int)maxLength ];
+
 					stack[ 0 ] = root;
-					int depth = 0;
+					// The index of the last valid element on the stack
+					int last = 0;
+					
 					boolean first = true;
 
+					// TODO: the inner for(;;) loop shouldn't be necessary
 					while( iterator.hasNext() ) {
 						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
 						if ( ! first )  {
 							// Adjust stack using lcp between present string and previous one
 							prefix = (int)prev.longestCommonPrefixLength( curr );
-							while( depth > 0 && len[ depth ] > prefix ) depth--;
+							while( last > 0 && len[ last ] > prefix ) last--;
 						}
 						else first = false;
-						node = stack[ depth ];
-						pos = len[ depth ];
+						node = stack[ last ];
+						pos = len[ last ];
 						for(;;) {
 							final LongArrayBitVector path = node.path;
 							prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( path );
@@ -262,8 +266,8 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 							if ( pos > curr.length() ) break;
 							node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
 							// Update stack
-							len[ ++depth ] = pos;
-							stack[ depth ] = node;
+							len[ ++last ] = pos;
+							stack[ last ] = node;
 						}
 
 						prev.replace( curr );
