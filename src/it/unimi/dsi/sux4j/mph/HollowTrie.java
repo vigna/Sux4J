@@ -34,6 +34,7 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -93,7 +94,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		public Node( final Node right, final int skip ) {
 			this.right = right;
 			this.skip = skip;
-			if ( ASSERTS ) assert skip >= 0;
+			if ( ASSERTS ) assert skip >= 0 : skip + " < " + 0;
 		}
 	}
 	
@@ -141,7 +142,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		long maxLength = 0;
 		
 		Node root = null, node, parent;
-		int prefix, numNodes = 0, cmp;
+		int prefix, numNodes = 0;
 
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -149,8 +150,13 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		pl.start( "Generating hollow trie..." );
 
 		if ( iterator.hasNext() ) {
-			LongArrayBitVector prev = LongArrayBitVector.copy( transform.toBitVector( iterator.next() ) );
-			BitVector curr;
+			LongArrayBitVector prev = LongArrayBitVector.copy( transform.toBitVector( iterator.next() ) ), curr = LongArrayBitVector.getInstance(), temp;
+			// The index of the last valid element on the stack
+			int last = -1;
+			// The stack of nodes forming the right border of the current trie
+			final ObjectArrayList<Node> stack = new ObjectArrayList<Node>();
+			// The length of the path compacted in the trie up to the corresponding node in stack, included
+			final IntArrayList len = new IntArrayList();
 			if ( DEBUG ) System.err.println( prev );
 			pl.lightUpdate();
 			maxLength = prev.length();
@@ -158,73 +164,92 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 
 			while( iterator.hasNext() ) {
 				size++;
-				curr = transform.toBitVector( iterator.next() );
+				curr.replace( transform.toBitVector( iterator.next() ) );
 				if ( DEBUG ) System.err.println( curr );
 				pl.lightUpdate();
 				if ( maxLength < curr.length() ) maxLength = curr.length();
-				cmp = prev.compareTo( curr );
-				if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-				if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 				prefix = (int)curr.longestCommonPrefixLength( prev );
-				if ( prefix == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
-				node = root;
-				parent = null;
+				// TODO: might use a binary search
+				while( last >= 0 && len.getInt( last ) > prefix ) last--;
+				if ( last >= 0 ) {
+					parent = stack.get( last );
+					node = parent.right;
+					prefix -= len.getInt( last );
+				}
+				else {
+					parent = null;
+					node = root;
+				}
+
+				stack.size( last + 1 );
+				len.size( last + 1 );
+
 				Node newNode = null;
-				while( node != null ) {
-					if ( prefix < node.skip ) {
-						newNode = new Node( null, prefix );
-						numNodes++;
-						if ( parent == null ) {
-							root.skip -= prefix + 1;
-							if ( ASSERTS ) assert root.skip >= 0;
+				if ( node != null ) {
+					newNode = new Node( null, prefix );
+					numNodes++;
+					if ( parent == null ) {
+						root.skip -= prefix + 1;
+						if ( ASSERTS ) assert root.skip >= 0;
 
 
-							root = newNode;
-						}
-						else {
-							parent.right = newNode;
-							node.skip -= prefix + 1;
-							
-							if ( ASSERTS ) assert node.skip >= 0;
-						}
+						root = newNode;
+					}
+					else {
+						parent.right = newNode;
+						node.skip -= prefix + 1;
 
-						Node n = node;
-						long reprSize = 0;
-						int skipSize = 0;
-						do {
-							reprSize += n.repr.length() + 2;
-							skipSize += n.skips.size() + 1;
-						} while( ( n = n.right ) != null );
-
-						n = node;
-						newNode.repr.ensureCapacity( reprSize );
-						newNode.skips.ensureCapacity( skipSize );
-						
-						do {
-							newNode.repr.add( true );
-							newNode.repr.append( n.repr );
-							newNode.repr.add( false );
-							newNode.skips.add( n.skip );
-							newNode.skips.addAll( n.skips );
-						} while( ( n = n.right ) != null );
-						
-
-						break;
+						if ( ASSERTS ) assert node.skip >= 0;
 					}
 
-					prefix -= node.skip + 1;
-					parent = node;
-					node = node.right;
-				}
+					Node n = node;
+					long reprSize = 0;
+					int skipSize = 0;
+					do {
+						reprSize += n.repr.length() + 2;
+						skipSize += n.skips.size() + 1;
+					} while( ( n = n.right ) != null );
 
-				if ( node == null ) {
-					if ( parent == null ) root = new Node( null, prefix );
-					else parent.right = new Node( null, prefix );
+					n = node;
+					newNode.repr.ensureCapacity( reprSize );
+					newNode.skips.ensureCapacity( skipSize );
+
+					do {
+						newNode.repr.add( true );
+						newNode.repr.append( n.repr );
+						newNode.repr.add( false );
+						newNode.skips.add( n.skip );
+						newNode.skips.addAll( n.skips );
+					} while( ( n = n.right ) != null );
+
+					len.push( ( last < 0 ? 0 : len.getInt( last ) ) + 1 + newNode.skip );
+					stack.push( newNode );
+					last++;
+				}
+				else {
+					newNode = new Node( null, prefix );
+					if ( parent == null ) {
+						root = newNode;
+						len.push( root.skip + 1 );
+						stack.push( root );
+					}
+					else {
+						parent.right = newNode;
+						len.push( len.getInt( last ) + 1 + newNode.skip );
+						stack.push( newNode );
+					}
+
 					numNodes++;
+					last++;
 				}
 
-				prev.replace( curr );
+				temp = prev;
+				prev = curr;
+				curr = temp;
 			}
 		}
 		
