@@ -8,3 +8,4 @@
 - The hollow trie distributor could accept a triple for the key and use it to index the left/right function
 - Decide where to count transformation-strategy bits
 - 64-bit clean?
+- Eliminate cmp from constructions and use common prefix information
