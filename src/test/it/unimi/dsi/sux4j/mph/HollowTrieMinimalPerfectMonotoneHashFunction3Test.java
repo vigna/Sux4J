@@ -3,7 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction3;
+import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction4;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +26,16 @@ public class HollowTrieMinimalPerfectMonotoneHashFunction3Test extends TestCase 
 		return s.substring( s.length() - 32 );
 	}
 
+	public void testEmpty() throws IOException {
+		String[] s = {};
+		HollowTrieMonotoneMinimalPerfectHashFunction4<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction4<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		
+	}
+
+
 	public void testSmall() throws IOException {
 		String[] s = { "a", "b", "c", "d", "e", "f" };
-		HollowTrieMonotoneMinimalPerfectHashFunction3<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction3<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		HollowTrieMonotoneMinimalPerfectHashFunction4<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction4<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 	}
@@ -36,7 +43,7 @@ public class HollowTrieMinimalPerfectMonotoneHashFunction3Test extends TestCase 
 	public void testPrefix() throws IOException {
 
 		String[] s = { "0", "00", "000", "0000", "00000", "000000", "00000001", "0000000101", "00000002" };
-		HollowTrieMonotoneMinimalPerfectHashFunction3<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction3<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+		HollowTrieMonotoneMinimalPerfectHashFunction4<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction4<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 		
 		for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 		
@@ -53,28 +60,28 @@ public class HollowTrieMinimalPerfectMonotoneHashFunction3Test extends TestCase 
 				for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = pass == 0 ? binary( r.nextInt() ) : binary2( r.nextInt() );
 				Arrays.sort( s );
 
-				HollowTrieMonotoneMinimalPerfectHashFunction3<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction3<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+				HollowTrieMonotoneMinimalPerfectHashFunction4<String> mph = new HollowTrieMonotoneMinimalPerfectHashFunction4<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
 				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
-				// Exercise code for negative results TODO: reinstate
-				//for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + d ) );
+				// Exercise code for negative results
+				// for( int i = 1000; i-- != 0; ) mph.getLong( binary( i * i + d ) );
 
 				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 				temp.deleteOnExit();
 				BinIO.storeObject( mph, temp );
-				mph = (HollowTrieMonotoneMinimalPerfectHashFunction3<String>)BinIO.loadObject( temp );
+				mph = (HollowTrieMonotoneMinimalPerfectHashFunction4<String>)BinIO.loadObject( temp );
 				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 
-				mph = new HollowTrieMonotoneMinimalPerfectHashFunction3<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+				mph = new HollowTrieMonotoneMinimalPerfectHashFunction4<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
 				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
 				temp = File.createTempFile( getClass().getSimpleName(), "test" );
 				temp.deleteOnExit();
 				BinIO.storeObject( mph, temp );
-				mph = (HollowTrieMonotoneMinimalPerfectHashFunction3<String>)BinIO.loadObject( temp );
+				mph = (HollowTrieMonotoneMinimalPerfectHashFunction4<String>)BinIO.loadObject( temp );
 				for( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 			}
 	}
