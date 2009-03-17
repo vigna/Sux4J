@@ -75,11 +75,11 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	
-	private EliasFanoLongBigList skips;
+	protected EliasFanoLongBigList skips;
 	/** The bit vector containing Jacobson's representation of the trie. */
-	private final BitVector trie;
+	protected final LongArrayBitVector trie;
 	/** A balanced parentheses structure over {@link #trie}. */
-	private JacobsonBalancedParentheses balParen;
+	protected JacobsonBalancedParentheses balParen;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** The number of elements in this hollow trie. */
@@ -259,7 +259,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		
 		if ( size <= 1 ) {
 			balParen = new JacobsonBalancedParentheses( BitVectors.EMPTY_VECTOR );
-			trie = BitVectors.EMPTY_VECTOR;
+			trie = LongArrayBitVector.getInstance( 0 );
 			return;
 		}
 
