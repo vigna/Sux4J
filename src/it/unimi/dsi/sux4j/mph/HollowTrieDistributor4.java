@@ -32,6 +32,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
+import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.LongBigList;
@@ -168,7 +169,6 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 		falseFollowsValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 
 		if ( intermediateTrie.size() > 0 ) {
-			LOGGER.info( "Computing function keys..." );
 
 			Iterator<? extends T> iterator = elements.iterator();
 			LongArrayBitVector bucketKey[] = new LongArrayBitVector[ bucketSize ];
@@ -182,11 +182,17 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 			balParen = intermediateTrie.balParen;
 			LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size() );
 
+			ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayFreeMemory = true;
+			pl.start( "Computing function keys..." );
+			
 			while( iterator.hasNext() ) {
 
 				int realBucketSize;
-				for( realBucketSize = 0; realBucketSize < bucketSize && iterator.hasNext(); realBucketSize++ )
+				for( realBucketSize = 0; realBucketSize < bucketSize && iterator.hasNext(); realBucketSize++ ) {
 					bucketKey[ realBucketSize ] = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+					pl.lightUpdate();
+				}
 
 				// The next delimiter
 				leftDelimiter = rightDelimiter;
@@ -344,6 +350,7 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 			}
 
 			size = count;
+			pl.done();
 			externalKeys.close();
 			falseFollowsKeys.close();
 		}
