@@ -153,7 +153,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			tripleStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
-			totalLength += prev.length();
+			totalLength += Fast.length( 1 + prev.length() );
 			currLcp = (int)prev.length();
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
@@ -169,7 +169,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				prev.replace( curr );
 				
 				maxLength = Math.max( maxLength, prev.length() );
-				totalLength += prev.length();
+				totalLength += Fast.length ( 1 + prev.length() );
 			}
 
 			lcps.add( prev.subVector( 0, currLcp  ) );
@@ -239,7 +239,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		}
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 + Fast.log2( totalLength / (double)n ) + Fast.log2( 1 + Fast.log2( totalLength / (double)n ) ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
+		final double avgLength = (double)totalLength / n;
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 + avgLength + Fast.log2( avgLength ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 

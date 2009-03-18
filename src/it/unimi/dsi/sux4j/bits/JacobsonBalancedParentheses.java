@@ -5,6 +5,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.sux4j.mph.HollowTrie;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 import java.io.IOException;
@@ -13,6 +14,13 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
+
+/** An implementation of Jacobson's balanced parentheses data structure.
+ * 
+ * <strong>Warning</strong>: this class is a stub implementing just those method needed by a {@link HollowTrie}.
+ * 
+ * @author Sebastiano Vigna
+ */
 
 public class JacobsonBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;

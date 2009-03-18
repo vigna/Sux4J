@@ -204,7 +204,6 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}, log2BucketSize, tripleStore );
 
-		// Build function assigning the lcp length and the bucketing data to each element.
 		lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcp[ index / bucketSize ].length(); 
@@ -214,13 +213,19 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}, tripleStore );
 
+		// Build function assigning the lcp length and the bucketing data to each element.
+		final double p = 1.0 / ( lcpLengths.rankMean + 1 );
+		final double s = s( p, lcpLengths.width );
+		
+		LOGGER.debug( "Forecast best threshold: " + s ); 
+		
 		this.seed = tripleStore.seed();
 		if ( DEBUG ) {
-			int p = 0;
+			int j = 0;
 			for( T key: iterable ) {
 				BitVector bv = transform.toBitVector( key );
-				if ( p++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( bv ) ) ) * bucketSize + offsets.getLong( bv ) ) {
-					System.err.println( "p: " + ( p - 1 ) 
+				if ( j++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( bv ) ) ) * bucketSize + offsets.getLong( bv ) ) {
+					System.err.println( "p: " + ( j - 1 ) 
 							+ "  Key: " + key 
 							+ " bucket size: " + bucketSize 
 							+ " lcp " + transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( bv ) )
@@ -231,11 +236,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 				}
 			}
 		}
-		
-		final double p = 1.0 / ( lcpLengths.rankMean + 1 );
 
-		final double s = s( p, lcpLengths.width );
-		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
+		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( Math.pow( 2, s ) - 1 ) * lcpLengths.width / n + ( lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
 		
 		LOGGER.debug( "Forecast bit cost per element: " + ( log2BucketSize + HypergraphSorter.GAMMA + secondFunctionForecastBitsPerElement + ( Fast.log2( Math.E ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );

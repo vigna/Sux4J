@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -61,7 +62,7 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor4.class );
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -82,11 +83,11 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 	private final int size;
 	private final BalancedParentheses balParen;
 	private final MWHCFunction<BitVector> falseFollowsDetector;
-	/** The average skip. */
-	protected double meanSkip;
+	/** The average skip length in bits (actually, the average length in bits of a skip length increased by one). */
+	protected double meanSkipLength;
 
 	/** A debug function used to store explicitly the internal behaviour. */
-	Object2LongFunction<BitVector> externalTestFunction = null;
+	Object2LongFunction<BitVector> externalTestFunction;
 	/** A debug function used to store explicitly the false follow detector. */
 	Object2LongFunction<BitVector> falseFollows;
 		
@@ -123,32 +124,34 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 		LongBigList falseFollowsValues;
 
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
-		final HollowTrie<T> intermediateTrie = new HollowTrie<T>( new Iterable<T>() {
-			public Iterator<T> iterator() {
-				final Iterator<? extends T> iterator = elements.iterator();
+		final int[] count = new int[ 1 ]; 
+		
+		final HollowTrie<T> intermediateTrie = new HollowTrie<T>( new AbstractObjectIterator<T>() {
+			final Iterator<? extends T> iterator = elements.iterator();
+			boolean toAdvance = true;
+			private T curr;
 
-				return new AbstractObjectIterator<T>() {
-					boolean toAdvance = true;
-					private T curr;
-
-					public boolean hasNext() {
-						if ( toAdvance ) {
-							toAdvance = false;
-							int i;
-							for( i = 0; i < bucketSize && iterator.hasNext(); i++ ) curr = iterator.next();
-							if ( i != bucketSize ) curr = null;
-						}
-						return curr != null;
+			public boolean hasNext() {
+				if ( toAdvance ) {
+					toAdvance = false;
+					int i;
+					for( i = 0; i < bucketSize && iterator.hasNext(); i++ ) {
+						curr = iterator.next();
+						count[ 0 ]++;
 					}
+					if ( i != bucketSize ) curr = null;
+				}
+				return curr != null;
+			}
 
-					public T next() {
-						if ( ! hasNext() ) throw new NoSuchElementException();
-						toAdvance = true;
-						return curr;
-					}
-				};
+			public T next() {
+				if ( ! hasNext() ) throw new NoSuchElementException();
+				toAdvance = true;
+				return curr;
 			}
 		}, transformationStrategy );
+
+		size = count[ 0 ];
 
 		if ( ASSERTS ) {
 			externalTestFunction = new Object2LongOpenHashMap<BitVector>();
@@ -167,7 +170,8 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 
 		externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		falseFollowsValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
-
+		long sumOfSkipLengths = 0;
+		
 		if ( intermediateTrie.size() > 0 ) {
 
 			Iterator<? extends T> iterator = elements.iterator();
@@ -176,7 +180,6 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 			LongArrayBitVector leftDelimiter, rightDelimiter = null;
 			long delimiterLcp = -1;
 
-			int count  = 0;
 			trie = intermediateTrie.trie;
 			skips = intermediateTrie.skips;
 			balParen = intermediateTrie.balParen;
@@ -184,6 +187,7 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 
 			ProgressLogger pl = new ProgressLogger( LOGGER );
 			pl.displayFreeMemory = true;
+			pl.expectedUpdates = size;
 			pl.start( "Computing function keys..." );
 			
 			while( iterator.hasNext() ) {
@@ -250,6 +254,7 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 						}
 
 						if ( isDelimiter && isInternal && ! emitted.getBoolean( r ) ) {
+							sumOfSkipLengths += Fast.length( skip + 1 );
 							emitted.set( r, true );
 							falseFollowsValues.add( 0 );
 							falseFollowsKeys.writeLong( p - 1, Long.SIZE );
@@ -344,12 +349,10 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 						}
 
 					}
-
-					count++;
 				}
 			}
 
-			size = count;
+			meanSkipLength = (double)sumOfSkipLengths / size;
 			pl.done();
 			externalKeys.close();
 			falseFollowsKeys.close();
@@ -358,19 +361,10 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 			trie = null; 
 			balParen = null;
 			skips = null;
-			size = 0;
 			falseFollowsDetector = null;
 			externalBehaviour = null;
 			return;
 		}
-		/*else {
-		// No elements.
-		this.root = null;
-		this.size = this.numElements = 0;
-		falseFollowsKeyFile = externalKeysFile = null;
-	}*/
-
-
 		
 		/** A class iterating over the temporary files produced by the intermediate trie. */
 		class IterableStream implements Iterable<BitVector> {
@@ -436,7 +430,7 @@ public class HollowTrieDistributor4<T> extends AbstractObject2LongFunction<T> {
 			assert falseFollowsDetector.size() == falseFollows.size();
 		}
 		
-		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size() - size / 2 ) );
+		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size() - intermediateTrie.size() ) );
 
 		externalKeysFile.delete();
 		falseFollowsKeyFile.delete();

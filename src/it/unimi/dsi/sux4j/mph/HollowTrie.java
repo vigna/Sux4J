@@ -311,12 +311,12 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 			}
 		};
 		
-		long maxSkip = 0, minSkip = Long.MAX_VALUE, sumOfSkips = 0, s;
+		long maxSkip = 0, minSkip = Long.MAX_VALUE, sumOfSkipLengths = 0, s;
 		for( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
 			s = i.nextLong();
 			maxSkip = Math.max( s, maxSkip );
 			minSkip = Math.min( s, minSkip );
-			sumOfSkips += s;
+			sumOfSkipLengths += Fast.length( s + 1 );
 		}
 		
 		final int skipWidth = Fast.ceilLog2( maxSkip );
@@ -334,8 +334,8 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		final long numBits = numBits();
 		LOGGER.debug( "Bits: " + numBits );
 		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
-		final double avgSkip = (double)sumOfSkips / skips.size();
-		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgSkip + 1 ) + Fast.log2( 1 + Fast.log2( avgSkip + 1 ) ) ) );
+		final double avgSkipLength = (double)sumOfSkipLengths / skips.size();
+		LOGGER.info( "Forecast bit cost per element: " + ( 4 + avgSkipLength + Fast.log2( avgSkipLength ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
 	

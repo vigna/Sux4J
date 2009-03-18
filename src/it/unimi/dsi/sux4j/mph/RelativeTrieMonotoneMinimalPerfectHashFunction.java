@@ -56,6 +56,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import static it.unimi.dsi.bits.Fast.log2;
+import static java.lang.Math.log;
 import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
@@ -136,15 +137,15 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 
-		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 16 + 7 * Math.log( averageLength + 1 ) + Math.log( Math.log( averageLength + 1 ) + 1 ) ) ) : log2BucketSize;
-				
+		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 10.5 + 4.05 * log( averageLength ) + 2.43 * log( log ( size ) + 1 ) + 2.43 * log( log( averageLength ) + 1 ) ) ) : log2BucketSize;
+		
 		LOGGER.debug( "Average length: " + averageLength );
+		LOGGER.debug( "Max length: " + maxLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		LOGGER.info( "Computing z-fast relative trie distributor..." );
-		//System.err.println( "*********" + tripleStore.seed() );
 		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
+
 		LOGGER.info( "Computing offsets..." );
-		//System.err.println( "*********" + tripleStore.seed() );
 		offset = new MWHCFunction<BitVector>( null, TransformationStrategies.identity(), new AbstractLongList() {
 			final long bucketSizeMask = ( 1L << RelativeTrieMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
@@ -159,11 +160,12 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		tripleStore.close();
 		
 		final int bucketSize = 1 << this.log2BucketSize;
+		double logU = averageLength * log( 2 );
 		LOGGER.info( "Forecast bit cost per element: "
 				+ 1.0 / bucketSize
-				* ( 4 * log2( maxLength ) + log2( log2( maxLength ) ) + 2 * log2( bucketSize ) + 6 * GAMMA + 3 * log2( E ) - 3 * log2( log2( E ) ) + 
-						3 * log2( log2( 3 * size ) ) + 3 + GAMMA * bucketSize + GAMMA * log2( bucketSize ) * bucketSize ) );
-
+				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( bucketSize ) + 
+						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GAMMA + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
+						+ 3 + GAMMA * bucketSize + GAMMA * bucketSize * log2( bucketSize ) ) ); 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		

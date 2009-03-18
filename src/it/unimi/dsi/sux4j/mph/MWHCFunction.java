@@ -149,6 +149,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
 		final Random r = new Random();
 		pl.itemsName = "keys";
 

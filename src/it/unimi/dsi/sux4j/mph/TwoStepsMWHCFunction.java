@@ -101,6 +101,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, TripleStore<T> triplesStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
 		final Random random = new Random();
 		pl.itemsName = "keys";
 
