@@ -9,3 +9,4 @@
 - Decide where to count transformation-strategy bits
 - 64-bit clean?
 - Eliminate cmp from constructions and use common prefix information
+- Check numbers in package.html of mph
