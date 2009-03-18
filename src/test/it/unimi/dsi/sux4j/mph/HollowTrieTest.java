@@ -5,7 +5,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.sux4j.mph.HollowTrie;
+import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +24,7 @@ public class HollowTrieTest extends TestCase {
 
 	@SuppressWarnings("unchecked")
 	public void testEmpty() {
-		HollowTrie hollowTrie = new HollowTrie( listOf( new int[][] {} ), TransformationStrategies.identity() );
+		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
 		assertEquals( 0, hollowTrie.size() );
@@ -32,7 +32,7 @@ public class HollowTrieTest extends TestCase {
 
 	@SuppressWarnings("unchecked")
 	public void testSingleton() {
-		HollowTrie hollowTrie = new HollowTrie( 
+		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
 				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -41,7 +41,7 @@ public class HollowTrieTest extends TestCase {
 	
 	@SuppressWarnings("unchecked")
 	public void testSimple() {
-		HollowTrie hollowTrie = new HollowTrie( 
+		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
 				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -51,7 +51,7 @@ public class HollowTrieTest extends TestCase {
 		assertEquals( 4, hollowTrie.size() );
 
 
-		hollowTrie = new HollowTrie( 
+		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
 				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
@@ -76,7 +76,7 @@ public class HollowTrieTest extends TestCase {
 		// Sort lexicographically
 		Arrays.sort( bitVector );
 		
-		HollowTrie<LongArrayBitVector> hollowTrie = new HollowTrie<LongArrayBitVector>( Arrays.asList( bitVector ), TransformationStrategies.identity() );
+		HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector>( Arrays.asList( bitVector ), TransformationStrategies.identity() );
 		
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 		assertEquals( n, hollowTrie.size() );
@@ -93,7 +93,7 @@ public class HollowTrieTest extends TestCase {
 		final File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( hollowTrie, temp );
-		hollowTrie = (HollowTrie<LongArrayBitVector>)BinIO.loadObject( temp );
+		hollowTrie = (HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector>)BinIO.loadObject( temp );
 
 		for( int i = 0; i < n; i++ ) assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
 

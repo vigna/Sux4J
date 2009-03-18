@@ -3,7 +3,7 @@ package test.it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.RelativeTrieMonotoneMinimalPerfectHashFunction;
+import it.unimi.dsi.sux4j.mph.ZFastTrieDistributorMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +22,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	public void testEmpty() throws IOException {
 		String[] s = {};
 		for( int b = -1; b < 3; b++ ) {
-			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			assertEquals( "Bucket size: " + (1 << b), 0, mph.size() );
 			mph.numBits();
 		}
@@ -31,7 +31,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	public void testSingleton() throws IOException {
 		String[] s = { "a" };
 		for( int b = -1; b < 3; b++ ) {
-			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
 		}
@@ -40,7 +40,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	public void testDoubleton() throws IOException {
 		String[] s = { "a", "b" };
 		for( int b = -1; b < 3; b++ ) {
-			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
 		}
@@ -50,7 +50,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	public void testSmallest() throws IOException {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		for( int b = 1; b < 2; b++ ) {
-			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
 		}
@@ -59,7 +59,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 	public void testSmall() throws IOException {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
 		for( int b = -1; b < 5; b++ ) {
-			RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 			for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 		}
 	}
@@ -73,7 +73,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 				int[] v = new int[ s.length ];
 				for( int i = s.length; i-- != 0; ) s[ v[ i ] = i ] = binary( i );
 
-				RelativeTrieMonotoneMinimalPerfectHashFunction<String> mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
+				ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b );
 				mph.numBits();
 
 				for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
@@ -84,11 +84,11 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 				temp.deleteOnExit();
 				BinIO.storeObject( mph, temp );
-				mph = (RelativeTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+				mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 				for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 
 
-				mph = new RelativeTrieMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b );
+				mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b );
 				mph.numBits();
 
 				for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
@@ -96,7 +96,7 @@ public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends 
 				temp = File.createTempFile( getClass().getSimpleName(), "test" );
 				temp.deleteOnExit();
 				BinIO.storeObject( mph, temp );
-				mph = (RelativeTrieMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
+				mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 				for( int i = s.length; i-- != 0; ) assertEquals( "Bucket size: " + (1 << b), i, mph.getLong( s[ i ] ) );
 			}
 		}
