@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class RelativeTrieMonotoneMinimalPerfectMonotoneHashFunctionTest extends TestCase {
+public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 	
 	
 	public static String binary(int l) {

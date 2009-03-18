@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class TwoStepsLcpMinimalPerfectMonotoneHashTest extends TestCase {
+public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 	
 	
 	public static String binary(int l) {

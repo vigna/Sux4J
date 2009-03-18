@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class VLPaCoTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
+public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 	
 	
 	public static String binary2(int l) {
