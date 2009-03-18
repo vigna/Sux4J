@@ -66,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	
 	/** The number of elements. */
 	private final int size;

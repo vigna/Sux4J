@@ -84,7 +84,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * writes an instance of this class to a bit stream. 
 	 */
 	private final static class PartialTrie<T> {
-		private final static boolean ASSERTS = true;
+		private final static boolean ASSERTS = false;
 
 		/** A node in the trie. */
 		protected static class Node {
