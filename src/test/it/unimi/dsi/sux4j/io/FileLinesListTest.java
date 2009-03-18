@@ -8,10 +8,10 @@ import java.io.IOException;
 
 import junit.framework.TestCase;
 
-public class FileLinesListTestCase extends TestCase {
+public class FileLinesListTest extends TestCase {
 
 	public void test() throws IOException {
-		final File t = File.createTempFile( FileLinesListTestCase.class.getName(), "tmp" );
+		final File t = File.createTempFile( FileLinesListTest.class.getName(), "tmp" );
 		t.deleteOnExit();
 		
 		FileWriter fw = new FileWriter( t );
