@@ -217,7 +217,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		secondFunction = new MWHCFunction<T>( elements, transform, values, w, triplesStore );
 		
-		this.seed = triplesStore.seed;
+		this.seed = triplesStore.seed();
 		
 		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 
