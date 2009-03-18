@@ -53,8 +53,8 @@ import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
  * <p>A relative trie behaves like a trie, but only on a subset of all possible keys.
  */
 
-public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
-	private final static Logger LOGGER = Util.getLogger( RelativeTrieDistributor.class );
+public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+	private final static Logger LOGGER = Util.getLogger( ZFastTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
@@ -416,7 +416,7 @@ public class RelativeTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final TripleStore<BitVector> tripleStore ) throws IOException {
+	public ZFastTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final TripleStore<BitVector> tripleStore ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		this.seed = tripleStore.seed();
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed );

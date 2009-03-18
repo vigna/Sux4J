@@ -61,13 +61,13 @@ import static java.lang.Math.log;
 import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain RelativeTrieDistributor relative trie} as a distributor.
+ * a {@linkplain ZFastTrieDistributor relative trie} as a distributor.
  * 
  */
 
-public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( RelativeTrieMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final int size;
@@ -76,7 +76,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** A hollow trie distributor assigning keys to buckets. */
-	private final RelativeTrieDistributor<BitVector> distributor;
+	private final ZFastTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
 	
@@ -95,7 +95,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
+	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( elements, transform, -1 );
 	}
 	
@@ -109,7 +109,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 * @param log2BucketSize the logarithm of the bucket size.
 	 */
-	public RelativeTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final int log2BucketSize ) throws IOException {
+	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final int log2BucketSize ) throws IOException {
 
 		this.transform = transform;
 
@@ -144,11 +144,11 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 		LOGGER.debug( "Max length: " + maxLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		LOGGER.info( "Computing z-fast relative trie distributor..." );
-		distributor = new RelativeTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
+		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
 
 		LOGGER.info( "Computing offsets..." );
 		offset = new MWHCFunction<BitVector>( null, TransformationStrategies.identity(), new AbstractLongList() {
-			final long bucketSizeMask = ( 1L << RelativeTrieMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
+			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
 				return index & bucketSizeMask; 
 			}
@@ -183,7 +183,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( RelativeTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -219,7 +219,7 @@ public class RelativeTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractH
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new RelativeTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize ), functionName );
+		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
