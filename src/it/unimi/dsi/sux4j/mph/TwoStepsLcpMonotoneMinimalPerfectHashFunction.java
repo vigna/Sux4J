@@ -220,6 +220,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		LOGGER.debug( "Forecast best threshold: " + s ); 
 		
 		this.seed = tripleStore.seed();
+		tripleStore.close();
+		
 		if ( DEBUG ) {
 			int j = 0;
 			for( T key: iterable ) {
