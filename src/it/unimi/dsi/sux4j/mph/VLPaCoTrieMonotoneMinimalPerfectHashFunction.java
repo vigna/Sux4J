@@ -59,7 +59,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
+ * a {@linkplain PaCoTrieDistributor partial compacted binary trie (PaCo trie)} as distributor.
  */
 
 public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {

@@ -56,7 +56,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain BitstreamImmutablePaCoTrie partial compacted binary trie (PaCo trie)} as distributor.
+ * a {@linkplain PaCoTrieDistributor partial compacted binary trie (PaCo trie)} as distributor.
  */
 
 public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
@@ -72,7 +72,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** A PaCo trie assigning keys to buckets. */
-	private final BitstreamImmutablePaCoTrie<BitVector> distributor;
+	private final PaCoTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
 	
@@ -140,7 +140,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		
 		LOGGER.info( "Creating distributor..." );
 		
-		BitstreamImmutablePaCoTrie<BitVector> firstDistributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
+		PaCoTrieDistributor<BitVector> firstDistributor = new PaCoTrieDistributor<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
 
 		if ( firstbucketSize >= size ) log2BucketSize = t;
 		else {
@@ -154,7 +154,7 @@ public class PaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashF
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
 		else {
 			firstDistributor = null;
-			distributor = new BitstreamImmutablePaCoTrie<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+			distributor = new PaCoTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
 		}
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );

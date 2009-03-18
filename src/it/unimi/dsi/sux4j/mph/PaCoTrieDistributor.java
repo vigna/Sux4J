@@ -63,8 +63,8 @@ import org.apache.log4j.Logger;
  * @author Sebastiano Vigna
  */
 
-public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T> {
-	private final static Logger LOGGER = Util.getLogger( BitstreamImmutablePaCoTrie.class );
+public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+	private final static Logger LOGGER = Util.getLogger( PaCoTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
@@ -380,7 +380,7 @@ public class BitstreamImmutablePaCoTrie<T> extends AbstractObject2LongFunction<T
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public BitstreamImmutablePaCoTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public PaCoTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, bucketSize, transformationStrategy );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
