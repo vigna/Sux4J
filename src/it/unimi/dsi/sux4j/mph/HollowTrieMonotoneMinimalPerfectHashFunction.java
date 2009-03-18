@@ -68,8 +68,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys.
  */
 
-public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializable {
-	private static final Logger LOGGER = Util.getLogger( HollowTrie.class );
+public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+	private static final Logger LOGGER = Util.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
 	private static final long serialVersionUID = 1L;
 
 	private static final boolean ASSERTS = false;
@@ -129,11 +129,11 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		}
 	}
 	
-	public HollowTrie( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
+	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 		this( iterable.iterator(), transform );
 	}
 		
-	public HollowTrie( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform ) {
+	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform ) {
 
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -350,7 +350,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 		
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrie.class.getName(), "Builds a hollow trie reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a hollow trie reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -384,7 +384,7 @@ public class HollowTrie<T> extends AbstractHashFunction<T> implements Serializab
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new HollowTrie<CharSequence>( collection, transformationStrategy ), trieName );
+		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), trieName );
 		LOGGER.info( "Completed." );
 	}
 }

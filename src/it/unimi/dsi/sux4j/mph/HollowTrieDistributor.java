@@ -126,7 +126,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
 		final int[] count = new int[ 1 ]; 
 		
-		final HollowTrie<T> intermediateTrie = new HollowTrie<T>( new AbstractObjectIterator<T>() {
+		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new AbstractObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
 			boolean toAdvance = true;
 			private T curr;
