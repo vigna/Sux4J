@@ -36,6 +36,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.bits.Rank9;
+import it.unimi.dsi.sux4j.io.TripleStore;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.io;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -28,6 +28,8 @@ import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.mph.Hashes;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.io.TripleStore;
 
 import java.io.IOException;
 import java.io.Serializable;

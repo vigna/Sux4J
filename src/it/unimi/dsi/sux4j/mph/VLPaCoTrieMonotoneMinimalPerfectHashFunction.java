@@ -37,6 +37,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
+import it.unimi.dsi.sux4j.io.TripleStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;

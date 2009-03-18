@@ -37,6 +37,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
+import it.unimi.dsi.sux4j.io.TripleStore;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
