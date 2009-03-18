@@ -63,9 +63,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * a {@linkplain PaCoTrieDistributor partial compacted binary trie (PaCo trie)} as distributor.
  */
 
-public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Util.getLogger( VLPaCoTrieMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = Util.getLogger( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = true;
 	
 	/** The number of elements. */
@@ -77,7 +77,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** A PaCo trie assigning keys to buckets. */
-	private final VLBitstreamImmutablePaCoTrie<BitVector> distributor;
+	private final VLPaCoTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
 	private SparseSelect select;
@@ -97,7 +97,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public VLPaCoTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
+	public VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -132,7 +132,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
 		
-		VLBitstreamImmutablePaCoTrie<BitVector> firstDistributor = new VLBitstreamImmutablePaCoTrie<BitVector>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
+		VLPaCoTrieDistributor<BitVector> firstDistributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
 
 		if ( firstbucketSize >= size ) log2BucketSize = t;
 		else {
@@ -146,7 +146,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
 		else {
 			firstDistributor = null;
-			distributor = new VLBitstreamImmutablePaCoTrie<BitVector>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
+			distributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
 		}
 
 		/*
@@ -212,7 +212,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
@@ -246,7 +246,7 @@ public class VLPaCoTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new VLPaCoTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
