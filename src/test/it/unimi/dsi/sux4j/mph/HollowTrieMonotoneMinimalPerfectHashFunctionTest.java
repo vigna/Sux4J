@@ -14,7 +14,7 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
-public class HollowTrieTest extends TestCase {
+public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 
 	public static ObjectArrayList<BitVector> listOf( final int[]... bit ) {
 		ObjectArrayList<BitVector> vectors = new ObjectArrayList<BitVector>();

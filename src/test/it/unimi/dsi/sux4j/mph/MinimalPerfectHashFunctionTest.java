@@ -12,7 +12,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class MinimalPerfectHashTest extends TestCase {
+public class MinimalPerfectHashFunctionTest extends TestCase {
 	
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
