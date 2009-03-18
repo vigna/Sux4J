@@ -135,16 +135,16 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA + Math.log( 2 ) ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA ) ) );
 		bucketSize = 1 << log2BucketSize;
-		final int bucketSizeMask = bucketSize - 1;
+		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
-		distributor = new HollowTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity(), tempDir );
+		distributor = new HollowTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
 		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return index & bucketSizeMask; 
+				return index & bucketMask; 
 			}
 			public int size() {
 				return size;
@@ -152,9 +152,10 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		}, log2BucketSize );
 
 		
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + Fast.log2( averageLength ) ) + 2 * GAMMA * size ) );
+		final double skipCost = 2 + distributor.meanSkipLength + Fast.log2( distributor.meanSkipLength ); 
+		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + skipCost ) + 2 * GAMMA * size ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( 1 / Math.log( 2 ) + 2 + GAMMA * Fast.log2( Fast.log2( averageLength ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GAMMA ) ) + Fast.log2( 2 + skipCost ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
