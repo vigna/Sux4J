@@ -12,7 +12,7 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
-public class HollowTrieMinimalPerfectMonotoneHashFunctionTest extends TestCase {
+public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest extends TestCase {
 	
 	
 	public static String binary2(int l) {

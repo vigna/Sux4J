@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 import junit.framework.TestCase;
 
-public class BucketedMinimalPerfectMonotoneHashTest extends TestCase {
+public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 	
 	
 	public static String binary(int l) {
