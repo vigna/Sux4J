@@ -35,6 +35,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.io.TripleStore;
 import it.unimi.dsi.util.LongBigList;
@@ -48,9 +49,8 @@ import org.apache.log4j.Logger;
 import static it.unimi.dsi.bits.Fast.log2;
 import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
-/** A distributor based on a relative trie.
+/** A distributor based on a z-fast trie.
  *
- * <p>A relative trie behaves like a trie, but only on a subset of all possible keys.
  */
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
@@ -198,24 +198,32 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			
 			Iterator<? extends T> iterator = elements.iterator(); 
 			final long bucketSizeMask = ( 1L << log2BucketSize ) - 1;
+
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.itemsName = "keys";
+			pl.displayFreeMemory = true; 
+			
 			
 			leaves = DDEBUG ? new ObjectLinkedOpenHashSet<BitVector>() : null;
 			if ( iterator.hasNext() ) {
+				pl.start( "Building trie..." );
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+				pl.lightUpdate();
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
 				Node node, root = null;
 				BitVector curr;
-				int cmp, pos, prefix, count = 1;
+				int pos, prefix, count = 1;
 				long maxLength = prev.length();
 				
 				while( iterator.hasNext() ) {
 					// Check order
 					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-					cmp = prev.compareTo( curr );
-					if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-					if ( curr.longestCommonPrefixLength( prev ) == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+					pl.lightUpdate();
+					prefix = (int)curr.longestCommonPrefixLength( prev );
+					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
 					if ( ( count & bucketSizeMask ) == 0 ) {
 						// Found delimiter. Insert into trie.
@@ -257,7 +265,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					maxLength = Math.max( maxLength, prev.length() );
 					count++;
 				}
-
+				pl.done();
 				
 				numElements = count;
 				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
@@ -300,7 +308,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						System.err.println( "Internal node signatures: " + internalNodeSignatures );
 					}
 
-					LOGGER.info( "Computing function keys..." );
+					pl.start( "Computing function keys..." );
 
 					externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 					externalParentRepresentations = new IntArrayList( numElements );
@@ -318,6 +326,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 					while( iterator.hasNext() ) {
 						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						pl.lightUpdate();
 						if ( DDDEBUG ) System.err.println( "Analysing key " + curr + "..." );
 						if ( ! first )  {
 							// Adjust stack using lcp between present string and previous one
@@ -368,7 +377,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						prev.replace( curr );
 						c++;
 					}
-
+					pl.done();
 				}
 			}
 			else {
@@ -533,17 +542,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			corrections = new MWHCFunction<BitVector>( positives, TransformationStrategies.identity(), results, logW );
 
 			final int bucketSize = 1 << log2BucketSize;
-			LOGGER.debug( "Signature bits per element: " + (double)signatures.numBits() / size );
-			LOGGER.debug( "Signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
-			LOGGER.debug( "Ranker bits per element: " + (double)ranker.numBits() / size );
-			LOGGER.debug( "Ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
-			LOGGER.debug( "Leaves bits per element: " + (double)leaves.bitVector().length() / size );
-			LOGGER.debug( "Leaves bits per element: " + ( 3.0 / bucketSize ) );
-			LOGGER.debug( "Mistake bits per element: " + (double)numBitsForMistakes() / size );
-			LOGGER.debug( "Mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GAMMA / bucketSize ) );
-			LOGGER.debug( "Behaviour bits per element: " + (double)behaviour.numBits() / size );
-			LOGGER.debug( "Behaviour bits per element: " + GAMMA );
-		}
+			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
+			LOGGER.debug( "Actual signature bits per element: " + (double)signatures.numBits() / size );
+			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
+			LOGGER.debug( "Actual ranker bits per element: " + (double)ranker.numBits() / size );
+			LOGGER.debug( "Forecast leaves bits per element: " + ( 3.0 / bucketSize ) );
+			LOGGER.debug( "Actual leaves bits per element: " + (double)leaves.bitVector().length() / size );
+			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GAMMA / bucketSize ) );
+			LOGGER.debug( "Actual mistake bits per element: " + (double)numBitsForMistakes() / size );
+			LOGGER.debug( "Forecast behaviour bits per element: " + GAMMA );
+			LOGGER.debug( "Actual behaviour bits per element: " + (double)behaviour.numBits() / size );
+					}
 		else {
 			signatures = null;
 			leaves = null;

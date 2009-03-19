@@ -61,7 +61,7 @@ import static java.lang.Math.log;
 import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain ZFastTrieDistributor relative trie} as a distributor.
+ * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
  * 
  */
 
@@ -143,7 +143,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Max length: " + maxLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
-		LOGGER.info( "Computing z-fast relative trie distributor..." );
+		LOGGER.info( "Computing z-fast trie distributor..." );
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
 
 		LOGGER.info( "Computing offsets..." );

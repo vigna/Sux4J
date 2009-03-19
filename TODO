@@ -4,9 +4,8 @@
 - Document each constructor w.r.t. preserving TripleStore seed
 - Document number of edges in Hypergraphsorter
 - Replace % bucketSize and / bucketSize all around
-- In-memory version of TripleStore
 - The hollow trie distributor could accept a triple for the key and use it to index the left/right function
 - Decide where to count transformation-strategy bits
 - 64-bit clean?
-- Eliminate cmp from constructions and use common prefix information
 - Check numbers in package.html of mph
+- Improve ZFast construction memory and time

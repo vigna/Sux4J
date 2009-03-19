@@ -155,7 +155,6 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				
 				int count = 1;
 				Node root = null;
-				int cmp;
 				long maxLength = prev.length();
 				// Last element will be unused
 				offset = new long[ numElements / bucketSize + 1 ];
@@ -163,10 +162,10 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				while( iterator.hasNext() ) {
 					// Check order
 					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
-					cmp = prev.compareTo( curr );
-					if ( cmp == 0 ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-					if ( cmp > 0 ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-					if ( curr.longestCommonPrefixLength( prev ) == prev.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+					prefix = (int)curr.longestCommonPrefixLength( prev );
+					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
 					if ( count % bucketSize == 0 ) {
 						// Found delimiter. Insert into trie.

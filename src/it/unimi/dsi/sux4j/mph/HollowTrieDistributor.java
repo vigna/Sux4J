@@ -27,6 +27,8 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
@@ -124,7 +126,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		LongBigList falseFollowsValues;
 
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
-		final int[] count = new int[ 1 ]; 
+		final int[] count = new int[ 1 ];
 		
 		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new AbstractObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
@@ -203,37 +205,45 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				rightDelimiter = realBucketSize == bucketSize ? bucketKey[ bucketSize - 1 ] : null;
 				delimiterLcp = ( rightDelimiter != null && leftDelimiter != null ) ? rightDelimiter.longestCommonPrefixLength( leftDelimiter ) : -1;
 				
-				// The stack of nodes visited the last time
-				//final Node stack[] = new Node[ (int)maxLength ];
-				// The length of the path compacted in the trie up to the corresponding node, excluded
-				//final int[] len = new int[ (int)maxLength ];
-				//stack[ 0 ] = root;
+				long stackP[] = new long[ 1024 ];
+				long stackR[] = new long[ 1024 ];
+				int stackS[] = new int[ 1024 ];
+				long stackIndex[] = new long[ 1024 ];
+				stackP[ 0 ] = 1;
+				int depth = 0;
+				
 				int pathLength;
 				long lastNode = -1;
 				BitVector lastPath = null;
-				BitVector curr;
+				BitVector curr = null, prev;
 
 				for( int j = 0; j < realBucketSize; j++ ) {
+					prev = curr;
 					curr = bucketKey[ j ];
 					if ( DEBUG ) System.err.println( curr );
-					/*if ( ! first )  {
-					// Adjust stack using lcp between present string and previous one
-					prefix = (int)prev.longestCommonPrefixLength( curr );
-					while( depth > 0 && len[ depth ] > prefix ) depth--;
-					}
-					else first = false;
-					node = stack[ depth ];
-					pos = len[ depth ];*/
 
 					long p = 1, length = curr.length(), index = 0, r = 0;
 					int s = 0, skip = 0;
 					boolean isInternal;
 					int startPath = -1, endPath = -1;
 					boolean exitLeft = false;
-					final boolean isDelimiter = j == bucketSize - 1; 
 					if ( DEBUG ) System.err.println( "Distributing " + curr + "\ntrie:" + trie );
 					long maxDescentLength; 
 					
+					if ( prev != null )  {
+						final int prefix = (int)curr.longestCommonPrefixLength( prev );
+						if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+						if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+						if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+						// Adjust stack using lcp between present string and previous one
+						while( depth > 0 && stackS[ depth ] > prefix ) depth--;
+					}
+
+					p = stackP[ depth ];
+					r = stackR[ depth ];
+					s = stackS[ depth ];
+					index = stackIndex[ depth ];
+
 					if ( leftDelimiter == null ) {
 						maxDescentLength = rightDelimiter.longestCommonPrefixLength( curr ) + 1;
 						exitLeft = true;
@@ -253,7 +263,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) + ", [" + usedLength + ", " + Integer.toHexString( usedPath.hashCode() ) + "] " + usedPath + "> " + ( isInternal ? "" : "(skip: " + skip + ")" ) ); 
 						}
 
-						if ( isDelimiter && isInternal && ! emitted.getBoolean( r ) ) {
+						if ( isInternal && s + skip < maxDescentLength && ! emitted.getBoolean( r ) ) {
 							sumOfSkipLengths += Fast.length( skip + 1 );
 							emitted.set( r, true );
 							falseFollowsValues.add( 0 );
@@ -262,7 +272,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							for( int i = 0; i < skip; i += Long.SIZE ) 
 								falseFollowsKeys.writeLong( curr.getLong( s + i, Math.min( s + i + Long.SIZE, s + skip ) ), Math.min( Long.SIZE, skip - i ) );
 
-							if ( DEBUG ) System.err.println( "Adding true follow at " + r + " [" + skip + ", " + Integer.toHexString( curr.subVector( s, s + skip ).hashCode() ) + "] " + curr.subVector( s, s + skip ) );
+							if ( DEBUG ) System.err.println( "Adding true follow at " + ( p - 1 ) + " [" + skip + ", " + Integer.toHexString( curr.subVector( s, s + skip ).hashCode() ) + "] " + curr.subVector( s, s + skip ) );
 
 							if ( ASSERTS ) {
 								long key[] = new long[ ( skip + Long.SIZE - 1 ) / Long.SIZE + 1 ];
@@ -289,10 +299,21 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 							p++;
 							r++;
 						}
-
 						if ( ASSERTS ) assert p < trie.length();
 
 						s++;
+
+						if ( ++depth >= stackP.length ) {
+							stackP = LongArrays.grow( stackP, depth + 1 );
+							stackR = LongArrays.grow( stackR, depth + 1 );
+							stackS = IntArrays.grow( stackS, depth + 1 );
+							stackIndex = LongArrays.grow(  stackIndex, depth + 1 );
+						}
+						
+						stackP[ depth ] = p;
+						stackR[ depth ] = r;
+						stackS[ depth ] = s;
+						stackIndex[ depth ] = index;
 					}
 
 					

@@ -162,11 +162,12 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				curr = transform.toBitVector( iterator.next() );
 				tripleStore.add( curr );
 				pl.lightUpdate();
-				final int cmp = prev.compareTo( curr );
-				if ( cmp > 0 ) throw new IllegalArgumentException( "The list is not sorted at position " + ( b * bucketSize + i ) );
-				if ( cmp == 0 ) throw new IllegalArgumentException( "The list contains duplicates at position " + ( b * bucketSize + i ) );
+				final int prefix = (int)curr.longestCommonPrefixLength( prev );
+				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
+				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 				
-				currLcp = (int)Math.min( curr.longestCommonPrefixLength( prev ), currLcp );
+				currLcp = Math.min( prefix, currLcp );
 				prev.replace( curr );
 				
 				maxLength = Math.max( maxLength, prev.length() );
