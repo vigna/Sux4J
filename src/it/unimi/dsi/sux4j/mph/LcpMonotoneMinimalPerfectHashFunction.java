@@ -36,7 +36,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -139,7 +139,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		pl.expectedUpdates = n;
 		
-		final TripleStore<BitVector> triplesStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
+		final ChunkedHashStore<BitVector> triplesStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
 		triplesStore.reset( r.nextLong() );
 
 		pl.start( "Scanning collection..." );

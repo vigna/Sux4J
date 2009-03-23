@@ -36,7 +36,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -143,15 +143,15 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		int maxLcp = 0;
 		long maxLength = 0;
 
-		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity(), pl );
-		tripleStore.reset( r.nextLong() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
+		chunkedHashStore.reset( r.nextLong() );
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
 		
 		Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
-			tripleStore.add( prev );
+			chunkedHashStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
@@ -159,7 +159,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr = transform.toBitVector( iterator.next() );
-				tripleStore.add( curr );
+				chunkedHashStore.add( curr );
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength( prev );
 				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
@@ -204,7 +204,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize, tripleStore );
+		}, log2BucketSize, chunkedHashStore );
 
 		lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
@@ -213,7 +213,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			public int size() {
 				return n;
 			}
-		}, tripleStore );
+		}, chunkedHashStore );
 
 		// Build function assigning the lcp length and the bucketing data to each element.
 		final double p = 1.0 / ( lcpLengths.rankMean + 1 );
@@ -221,8 +221,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		
 		LOGGER.debug( "Forecast best threshold: " + s ); 
 		
-		this.seed = tripleStore.seed();
-		tripleStore.close();
+		this.seed = chunkedHashStore.seed();
+		chunkedHashStore.close();
 		
 		if ( DEBUG ) {
 			int j = 0;

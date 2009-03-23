@@ -52,37 +52,37 @@ import cern.colt.GenericSorting;
 import cern.colt.Swapper;
 import cern.colt.function.IntComparator;
 
-/** A temporary store of hash triples.
+/** A temporary store of hash triples virtually divided into chunks.
  * 
- * <p>A triple store accumulates objects of type <code>T</code> by turning them into bit vectors (using a provided {@link TransformationStrategy})
+ * <p>A chunked hash store accumulates objects of type <code>T</code> by turning them into bit vectors (using a provided {@link TransformationStrategy})
  * and then hashing such vectors into a triple of longs (i.e., overall we get a hash of 192 bits). 
  * Elements can be added {@linkplain #add(Object) one by one}
  * or {@linkplain #addAll(Iterator) in batches}. Besides the hashes, we store the <em>offset</em> of each element added (the first element added has offset 0,
  * the second one has offset 1, and so on). Elements must be distinct, or more precisely, they must be transformed into distinct bit vectors.
  * 
- * <p>Once all elements have been added, they can be gathered into <em>buckets</em> whose 
- * tentative size can be set by calling {@link #log2Buckets(int)}. More precisely,
- * if the latter method is called with argument <var>k</var>, then each bucket
+ * <p>Once all elements have been added, they can be gathered into <em>chunks</em> whose 
+ * tentative size can be set by calling {@link #log2Chunks(int)}. More precisely,
+ * if the latter method is called with argument <var>k</var>, then each chunk
  * will be formed by grouping triples by the <var>k</var> most significant bits of their first hash.
  * 
- * <p>To obtain triples, one calls {@link #iterator()}, which returns buckets one at a time (in their
- * natural order); triples within each bucket are returned by increasing hash. Actually, the iterator
- * provided by a bucket returns a <em>quadruple</em> whose last element is the offset of the element
+ * <p>To obtain triples, one calls {@link #iterator()}, which returns chunks one at a time (in their
+ * natural order); triples within each chunk are returned by increasing hash. Actually, the iterator
+ * provided by a chunk returns a <em>quadruple</em> whose last element is the offset of the element
  * that generated the triple.
  * 
- * <p>It is possible (albeit unlikely) that different elements generate the same triple. This event is detected
- * during bucket iteration (not while accumulating triples), and it will throw a {@link ChunkedHashStore.DuplicateException}.
+ * <p>It is possible (albeit unlikely) that different elements generate the same hash. This event is detected
+ * during chunk iteration (not while accumulating hashes), and it will throw a {@link ChunkedHashStore.DuplicateException}.
  * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
  * from scratch. Note that after a few (say, three) exceptions you can assume that there are duplicate elements. If you 
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable}, 
- * {@link #checkAndRetry(Iterable)} will try three times to build a checked triple store.
+ * {@link #checkAndRetry(Iterable)} will try three times to build a checked chunked hash store.
  * 
  * <p>Note that every {@link #reset(long)} changes the seed used by the store to generate triples. So, if this seed has to be
  * stored this must happen <em>after</em> the last call to {@link #reset(long)}. To help tracking this fact, a call to 
  * {@link #seed()} will <em>lock</em> the store; any further call to {@link #reset(long)} will throw an {@link IllegalStateException}.
  * In case the store needs to be reused, you can call {@link #clear()}, that will bring back the store to after-creation state.
  * 
- * <p>When you have finished using a triple store, you should {@link #close()} it. This class implements
+ * <p>When you have finished using a chunked hash store, you should {@link #close()} it. This class implements
  * {@link SafelyCloseable}, and thus provides a safety-net finalizer.
  * 
  * <h2>Filtering</h2>
@@ -91,84 +91,89 @@ import cern.colt.function.IntComparator;
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>Internally, a triple store has a notion of disk bucket: triples are stored on disk using a fixed number of bits.
- * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk buckets or splitting them
+ * <p>Internally, a chunked hash store has a notion of disk chunk: triples are stored on disk using a fixed number of bits.
+ * Once the user chooses a chunk size, the store exhibits the data on disk by grouping disk chunks or splitting them
  * in a suitable way. This process is transparent to the user.
+ * 
+ * <p>An instance of this class will save triples into {@link #DISK_CHUNKS} disk chunks. Triples have to
+ * be loaded into memory only chunk by chunk, so to be sorted and tested for uniqueness. As long as
+ * {@link #DISK_CHUNKS} is larger than eight, the store will need less than one bit per element of main
+ * memory. {@link #DISK_CHUNKS} can be increased arbitrarily at compile time, but each store
+ * will open {@link #DISK_CHUNKS} files at the same time. (For the same reason, it is
+ * <strong>strongly</strong> suggested that you close your stores as soon as you do not need them).
  * 
  * <h2>Intended usage</h2>
  * 
- * <p>Triple stores should be built by classes that need to manipulate elements in buckets of approximate given 
+ * <p>Chunked hash stores should be built by classes that need to manipulate elements in chunks of approximate given 
  * size without needing access to the elements themselves, but just to their triples, a typical
  * example being {@link MinimalPerfectHashFunction}, which uses the triples to compute a 3-hyperedge. Once a triple
  * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
  * collection need not to be scanned again).
  * 
- * <p>To compute the bucket corresponding to given element, compute
+ * <p>To compute the chunk corresponding to given element, compute
  * <pre>
  * final long[] h = new long[ 3 ];
  * Hashes.jenkins( transform.toBitVector( (T)key ), seed, h );
- * final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
+ * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
  * </pre>
- * where <code>seed</code> is the store seed, and <code>bucketShift</code> 
- * is the return value of {@link #log2Buckets(int)} and should be stored by the caller. Note
- * that you do not need the triple store to compute these data, but just its seed and the bucket shift. 
+ * where <code>seed</code> is the store seed, and <code>chunkShift</code> 
+ * is the return value of {@link #log2Chunks(int)} and should be stored by the caller. Note
+ * that you do not need the chunked hash store to compute these data, but just its seed and the chunk shift. 
  * 
  * @author Sebastiano Vigna
  * @since 1.0.4
  */
 
-public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Bucket> {
+public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Chunk> {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = Util.getLogger( ChunkedHashStore.class );
 	private static final boolean DEBUG = false;
 
-	/** Denotes that the triple store contains a duplicate hash triple. */
+	/** Denotes that the chunked hash store contains a duplicate hash triple. */
 	public static class DuplicateException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 	}
 	
-	/** The logarithm of the number of physical disk buckets. */
-	public final static int LOG2_DISK_BUCKETS = 8;
-	/** The number of physical disk buckets. */
-	public final static int DISK_BUCKETS = 1 << LOG2_DISK_BUCKETS;
-	/** The shift for physical disk buckets. */
-	public final static int DISK_BUCKETS_SHIFT = Long.SIZE - LOG2_DISK_BUCKETS;
-	/** The logarithm of the desired bucket size. */
-	public final static int LOG2_BUCKET_SIZE = 9;
+	/** The logarithm of the number of physical disk chunks. */
+	public final static int LOG2_DISK_CHUNKS = 8;
+	/** The number of physical disk chunks. */
+	public final static int DISK_CHUNKS = 1 << LOG2_DISK_CHUNKS;
+	/** The shift for physical disk chunks. */
+	public final static int DISK_CHUNKS_SHIFT = Long.SIZE - LOG2_DISK_CHUNKS;
 	/** The number of elements that pass the current filter. */
 	protected int n;
 	/** The seed used to generate the hash triples. */
 	protected long seed;
-	/** The number of triples in each disk bucket. */
+	/** The number of triples in each disk chunk. */
 	private int[] count;
-	/** The number of buckets. */
-	private int buckets;
-	/** The files containing disk buckets. */
+	/** The number of chunks. */
+	private int chunks;
+	/** The files containing disk chunks. */
 	private File file[];
-	/** The number of disk buckets making up a bucket, or 1 if a bucket is smaller than or equal to a disk bucket. */
-	private int diskBucketStep;
-	/** The shift to be applied to the first hash to obtain the bucket index, set by {@link #log2Buckets(int)} (watch out: it can be {@link Long#SIZE}). */
-	private int bucketShift;
+	/** The number of disk chunks making up a chunk, or 1 if a chunk is smaller than or equal to a disk chunk. */
+	private int diskChunkStep;
+	/** The shift to be applied to the first hash to obtain the chunk index, set by {@link #log2Chunks(int)} (watch out: it can be {@link Long#SIZE}). */
+	private int chunkShift;
 	/** If true, this store has been checked for duplicates. */
 	private boolean checkedForDuplicates;
 	/** The transformation strategy provided at construction time. */
 	private final TransformationStrategy<? super T> transform;
 	/** A progress logger. */
 	private final ProgressLogger pl;
-	/** The data output streams for the disk buckets. */
+	/** The data output streams for the disk chunks. */
 	private DataOutputStream[] dos;
-	/** The number of disk buckets divided by {@link #diskBucketStep}. */
-	private int virtualDiskBuckets;
+	/** The number of disk chunks divided by {@link #diskChunkStep}. */
+	private int virtualDiskChunks;
 	/** If not <code>null</code>, a filter that will be used to select triples. */
 	private Predicate filter;
-	/** The maximum number of triples in a disk bucket. */
+	/** The maximum number of triples in a disk chunk. */
 	private int maxCount;
 	/** Whether this store is locked. Any attempt to {@link #reset(long)} the store will cause an {@link IllegalStateException} if this variable is true.*/
 	private boolean locked;
 	/** Whether this store has already been closed. */
 	private boolean closed;
 
-	/** Creates a triple store with given transformation strategy.
+	/** Creates a chunked hash store with given transformation strategy.
 	 * 
 	 * @param transform a transformation strategy for the elements.
 	 * @throws IOException 
@@ -177,7 +182,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		this( transform, null );
 	}
 		
-	/** Creates a triple store with given transformation strategy and progress logger.
+	/** Creates a chunked hash store with given transformation strategy and progress logger.
 	 * 
 	 * @param transform a transformation strategy for the elements.
 	 * @param pl a progress logger, or <code>null</code>.
@@ -187,21 +192,21 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		this.transform = transform;
 		this.pl = pl;
 		
-		file = new File[ DISK_BUCKETS ];
-		dos = new DataOutputStream[ DISK_BUCKETS ];
-		// Create disk buckets
-		for( int i = 0; i < DISK_BUCKETS; i++ ) {
+		file = new File[ DISK_CHUNKS ];
+		dos = new DataOutputStream[ DISK_CHUNKS ];
+		// Create disk chunks
+		for( int i = 0; i < DISK_CHUNKS; i++ ) {
 			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
 			file[ i ].deleteOnExit();
 		}
 
-		count = new int[ DISK_BUCKETS ];
+		count = new int[ DISK_CHUNKS ];
 	}
 
-	/** Return the current seed of this triple store. After calling this method, no {@link #reset(long)} will be allowed (unless the store
+	/** Return the current seed of this chunked hash store. After calling this method, no {@link #reset(long)} will be allowed (unless the store
 	 * is {@linkplain #clear() cleared}).
 	 * 
-	 * @return the current seed of this triple store.
+	 * @return the current seed of this chunked hash store.
 	 */
 	
 	public long seed() {
@@ -221,14 +226,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	}
 	
 	private void add( final long[] triple ) throws IOException {
-		final int bucket = (int)( triple[ 0 ] >>> DISK_BUCKETS_SHIFT );
-		count[ bucket ]++;
+		final int chunk = (int)( triple[ 0 ] >>> DISK_CHUNKS_SHIFT );
+		count[ chunk ]++;
 		checkedForDuplicates = false;
 		if ( DEBUG ) System.err.println( "Adding " + Arrays.toString( triple ));
-		dos[ bucket ].writeLong( triple[ 0 ] );
-		dos[ bucket ].writeLong( triple[ 1 ] );
-		dos[ bucket ].writeLong( triple[ 2 ] );
-		dos[ bucket ].writeInt( n );
+		dos[ chunk ].writeLong( triple[ 0 ] );
+		dos[ chunk ].writeLong( triple[ 1 ] );
+		dos[ chunk ].writeLong( triple[ 2 ] );
+		dos[ chunk ].writeInt( n );
 		if ( n != -1 && ( filter == null || filter.evaluate( triple ) ) ) n++;
 	}
 	
@@ -258,7 +263,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		if ( n == - 1 ) {
 			int c = 0;
 			final long[] triple = new long[ 3 ];
-			for( int i = 0; i < DISK_BUCKETS; i++ ) {
+			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				if ( filter == null ) c += count[ i ];
 				else {
 					for( DataOutputStream d: dos ) d.flush();
@@ -333,7 +338,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		Arrays.fill( count, 0 );
 		try {
 			for( DataOutputStream d: dos ) d.close();
-			for( int i = 0; i < DISK_BUCKETS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ) ) );
+			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ) ) );
 		}
 		catch ( IOException e ) {
 			throw new RuntimeException( e );
@@ -347,7 +352,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	
 	public void check() throws DuplicateException {
-		for( ChunkedHashStore.Bucket b: this ) b.iterator();
+		for( ChunkedHashStore.Chunk b: this ) b.iterator();
 	}
 	
 	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
@@ -374,31 +379,31 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		checkedForDuplicates = true;
 	}
 	
-	/** Sets the number of buckets.
+	/** Sets the number of chunks.
 	 * 
-	 * <p>Once the store is filled, you must call this method to set the number of buckets. The store will take
-	 * care of merging or fragmenting disk buckets to get exactly the desired buckets.
+	 * <p>Once the store is filled, you must call this method to set the number of chunks. The store will take
+	 * care of merging or fragmenting disk chunks to get exactly the desired chunks.
 	 * 
-	 * @param log2Buckets the base-2 logarithm of the number of buckets.
-	 * @return the shift to be applied to the first hash of a triple to get the bucket number (see the {@linkplain ChunkedHashStore introduction}).
+	 * @param log2chunks the base-2 logarithm of the number of chunks.
+	 * @return the shift to be applied to the first hash of a triple to get the chunk number (see the {@linkplain ChunkedHashStore introduction}).
 	 */
 	
-	public int log2Buckets( final int log2Buckets ) {
-		this.buckets = 1 << log2Buckets;
-		diskBucketStep = Math.max( DISK_BUCKETS / buckets, 1 );
-		virtualDiskBuckets = DISK_BUCKETS / diskBucketStep;
+	public int log2Chunks( final int log2chunks ) {
+		this.chunks = 1 << log2chunks;
+		diskChunkStep = Math.max( DISK_CHUNKS / chunks, 1 );
+		virtualDiskChunks = DISK_CHUNKS / diskChunkStep;
 		maxCount = 0;
-		for( int i = 0; i < virtualDiskBuckets; i++ ) {
+		for( int i = 0; i < virtualDiskChunks; i++ ) {
 			int s = 0;
-			for( int j = 0; j < diskBucketStep; j++ ) s += count[ i * diskBucketStep + j ];
+			for( int j = 0; j < diskChunkStep; j++ ) s += count[ i * diskChunkStep + j ];
 			if ( s > maxCount ) maxCount = s;
 		}
 
 		if ( DEBUG ) {
-			System.err.print( "Bucket sizes: " );
-			double avg = n / (double)DISK_BUCKETS;
+			System.err.print( "Chunk sizes: " );
+			double avg = n / (double)DISK_CHUNKS;
 			double var = 0;
-			for( int i = 0; i < DISK_BUCKETS; i++ ) {
+			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				System.err.print( i + ":" + count[ i ] + " " );
 				var += ( count[ i ] - avg  ) * ( count[ i ] - avg );
 			}
@@ -408,27 +413,27 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 		}
 
-		bucketShift = Long.SIZE - log2Buckets;
+		chunkShift = Long.SIZE - log2chunks;
 
-		LOGGER.debug( "Number of buckets: " + buckets );
-		LOGGER.debug( "Number of disk buckets: " + DISK_BUCKETS );
-		LOGGER.debug( "Number of virtual disk buckets: " + virtualDiskBuckets );
+		LOGGER.debug( "Number of chunks: " + chunks );
+		LOGGER.debug( "Number of disk chunks: " + DISK_CHUNKS );
+		LOGGER.debug( "Number of virtual disk chunks: " + virtualDiskChunks );
 
-		return bucketShift;
+		return chunkShift;
 	}
 
-	/** A bucket returned by a {@link ChunkedHashStore}. */
-	public final static class Bucket implements Iterable<long[]> {
-		/** The start position of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
+	/** A chunk returned by a {@link ChunkedHashStore}. */
+	public final static class Chunk implements Iterable<long[]> {
+		/** The start position of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
 		private final int start;
-		/** The final position (excluded) of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
+		/** The final position (excluded) of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
 		private final int end;
 		private final long[] buffer0;
 		private final long[] buffer1;
 		private final long[] buffer2;
 		private final int[] offset;
 		
-		private Bucket( final long[] buffer0, final long[] buffer1, final long[] buffer2, final int[] offset, final int start, final int end ) {
+		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final int[] offset, final int start, final int end ) {
 			this.start = start;
 			this.end = end;
 			this.offset = offset;
@@ -437,15 +442,15 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			this.buffer2 = buffer2;
 		}
 		
-		/** The number of triples in this bucket.
+		/** The number of triples in this chunk.
 		 * 
-		 * @return the number of triples in this bucket.
+		 * @return the number of triples in this chunk.
 		 */
 		public int size() {
 			return end - start;
 		}
 		
-		/** Returns the offset of the <code>k</code>-th triple returned by this bucket.
+		/** Returns the offset of the <code>k</code>-th triple returned by this chunk.
 		 * 
 		 * <p>This method provides an alternative random access to offset data (w.r.t. indexing the fourth element of the
 		 * quadruples returned by {@link #iterator()}). 
@@ -459,7 +464,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		}
 		
 		
-		/** Returns an iterator over the triples associated to this bucket; the returned array of longs is reused at each call.
+		/** Returns an iterator over the triples associated to this chunk; the returned array of longs is reused at each call.
 		 * 
 		 * @return an iterator over quadruples formed by a triple (indices 0, 1, 2) and the associated offset (index 3).
 		 */
@@ -497,12 +502,12 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		n = -1;
 	}
 
-	/** Returns an iterator over the buckets of this triple store.
+	/** Returns an iterator over the chunks of this chunked hash store.
 	 *
-	 * @return an iterator over the buckets of this triple store.
+	 * @return an iterator over the chunks of this chunked hash store.
 	 */
 	
-	public Iterator<Bucket> iterator() {
+	public Iterator<Chunk> iterator() {
 		for( DataOutputStream d: dos )
 			try {
 				d.flush();
@@ -511,40 +516,40 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				throw new RuntimeException( e );
 			}
 		
-		return new AbstractObjectIterator<Bucket>() {
-			private int bucket = 0;
+		return new AbstractObjectIterator<Chunk>() {
+			private int chunk = 0;
 			private FastBufferedInputStream fbis;
 			private int last;
-			private int bucketSize;
+			private int chunkSize;
 			private final long[] buffer0 = new long[ maxCount ];
 			private final long[] buffer1 = new long[ maxCount ];
 			private final long[] buffer2 = new long[ maxCount ];
 			private final int[] offset = new int[ maxCount ];
 			
 			public boolean hasNext() {
-				return bucket < buckets;
+				return chunk < chunks;
 			}
 			
 			@SuppressWarnings("unchecked")
-			public Bucket next() {
+			public Chunk next() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
 				final long[] buffer0 = this.buffer0;
 
-				if ( bucket % ( buckets / virtualDiskBuckets ) == 0 ) {
-					final int diskBucket = bucket / ( buckets / virtualDiskBuckets );
+				if ( chunk % ( chunks / virtualDiskChunks ) == 0 ) {
+					final int diskChunk = chunk / ( chunks / virtualDiskChunks );
 					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 
-					bucketSize = 0;
+					chunkSize = 0;
 					try {
-						if ( diskBucketStep == 1 ) {
-							fbis = new FastBufferedInputStream( new FileInputStream( file[ diskBucket ] ) );
-							bucketSize = count[ diskBucket ];
+						if ( diskChunkStep == 1 ) {
+							fbis = new FastBufferedInputStream( new FileInputStream( file[ diskChunk ] ) );
+							chunkSize = count[ diskChunk ];
 						}
 						else {
-							final FileInputStream[] fis = new FileInputStream[ diskBucketStep ];
+							final FileInputStream[] fis = new FileInputStream[ diskChunkStep ];
 							for( int i = 0; i < fis.length; i++ ) {
-								fis[ i ] = new FileInputStream( file[ diskBucket * diskBucketStep + i ] );
-								bucketSize += count[ diskBucket * diskBucketStep + i ];
+								fis[ i ] = new FileInputStream( file[ diskChunk * diskChunkStep + i ] );
+								chunkSize += count[ diskChunk * diskChunkStep + i ];
 							}
 							fbis = new FastBufferedInputStream( new SequenceInputStream( new IteratorEnumeration( Arrays.asList( fis ).iterator() ) ) );
 						}
@@ -552,7 +557,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 						final long triple[] = new long[ 3 ];
 						int count = 0;
-						for( int j = 0; j < bucketSize; j++ ) {
+						for( int j = 0; j < chunkSize; j++ ) {
 							triple[ 0 ] = dis.readLong();
 							triple[ 1 ] = dis.readLong();
 							triple[ 2 ] = dis.readLong();
@@ -569,14 +574,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 							else dis.readInt(); // Discard offset
 						}
 						
-						bucketSize = count;
+						chunkSize = count;
 						dis.close();
 					}
 					catch ( IOException e ) {
 						throw new RuntimeException( e );
 					}
 
-					GenericSorting.quickSort( 0, bucketSize, new IntComparator() {
+					GenericSorting.quickSort( 0, chunkSize, new IntComparator() {
 						public int compare( final int x, final int y ) {
 							return Long.signum( buffer0[ x ] - buffer0[ y ] );
 						}
@@ -597,20 +602,20 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					});
 
 					if ( DEBUG ) {
-						for( int i = 0; i < bucketSize; i++ ) System.err.println( buffer0[ i ] + ", " + buffer1[ i ] + ", " + buffer2[ i ] );
+						for( int i = 0; i < chunkSize; i++ ) System.err.println( buffer0[ i ] + ", " + buffer1[ i ] + ", " + buffer2[ i ] );
 					}
 					
-					if ( ! checkedForDuplicates && bucketSize > 1 )
-						for( int i = bucketSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new ChunkedHashStore.DuplicateException();
-					if ( bucket == buckets - 1 ) checkedForDuplicates = true;
+					if ( ! checkedForDuplicates && chunkSize > 1 )
+						for( int i = chunkSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new ChunkedHashStore.DuplicateException();
+					if ( chunk == chunks - 1 ) checkedForDuplicates = true;
 					last = 0;
 				}
 
 				final int start = last;
-				while( last < bucketSize && ( bucketShift == Long.SIZE ? 0 : buffer0[ last ] >>> bucketShift ) == bucket ) last++;
-				bucket++;
+				while( last < chunkSize && ( chunkShift == Long.SIZE ? 0 : buffer0[ last ] >>> chunkShift ) == chunk ) last++;
+				chunk++;
 
-				return new Bucket( buffer0, buffer1, buffer2, offset, start, last );
+				return new Chunk( buffer0, buffer1, buffer2, offset, start, last );
 			}
 		};
 	}

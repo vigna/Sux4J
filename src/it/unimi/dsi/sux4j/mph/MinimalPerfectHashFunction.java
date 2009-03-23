@@ -35,7 +35,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
@@ -159,7 +159,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @throws IOException 
 	 */
 
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) throws IOException {
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -167,18 +167,18 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final Random r = new Random();
 		pl.itemsName = "keys";
 
-		final boolean givenTripleStore = tripleStore != null;
-		if ( ! givenTripleStore ) {
-			tripleStore = new TripleStore<T>( transform, pl );
-			tripleStore.reset( r.nextLong() );
-			tripleStore.addAll( elements.iterator() );
+		final boolean givenchunkedHashStore = chunkedHashStore != null;
+		if ( ! givenchunkedHashStore ) {
+			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore.reset( r.nextLong() );
+			chunkedHashStore.addAll( elements.iterator() );
 		}
-		n = tripleStore.size();
+		n = chunkedHashStore.size();
 		
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
-		bucketShift = tripleStore.log2Buckets( log2NumBuckets );
+		bucketShift = chunkedHashStore.log2Chunks( log2NumBuckets );
 		final int numBuckets = 1 << log2NumBuckets;
 		
 		//System.err.println( log2NumBuckets +  " " + numBuckets );
@@ -203,11 +203,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			try {
 				int q = 0;
-				for( TripleStore.Bucket bucket: tripleStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucket.size() );
+				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
 					do {
 						seed = r.nextLong();
-					} while ( ( sorter.generateAndSort( bucket.iterator(), seed ) ) != HypergraphSorter.Result.OK );
+					} while ( ( sorter.generateAndSort( chunk.iterator(), seed ) ) != HypergraphSorter.Result.OK );
 
 					this.seed[ q ] = seed;
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
@@ -216,7 +216,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					/** Whether a specific node has already been used as a hinge. */
 					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
 
-					int top = bucket.size(), k, v = 0;
+					int top = chunk.size(), k, v = 0;
 					final int[] stack = sorter.stack;
 					final int[][] edge = sorter.edge;
 					final int off = offset[ q ];
@@ -243,7 +243,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					if ( ASSERTS ) {
 						final IntOpenHashSet pos = new IntOpenHashSet();
 						final int[] e = new int[ 3 ];
-						for( long[] triple: bucket ) {
+						for( long[] triple: chunk ) {
 							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, e );
 							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
 						}
@@ -253,17 +253,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				pl.done();
 				break;
 			}
-			catch( TripleStore.DuplicateException e ) {
+			catch( ChunkedHashStore.DuplicateException e ) {
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				tripleStore.reset( r.nextLong() );
-				tripleStore.addAll( elements.iterator() );
+				chunkedHashStore.reset( r.nextLong() );
+				chunkedHashStore.addAll( elements.iterator() );
 			}
 		}
 
-		globalSeed = tripleStore.seed();
+		globalSeed = chunkedHashStore.seed();
 
-		if ( ! givenTripleStore ) tripleStore.close();
+		if ( ! givenchunkedHashStore ) chunkedHashStore.close();
 		
 		if ( n > 0 ) {
 			int m = (int)values.length();

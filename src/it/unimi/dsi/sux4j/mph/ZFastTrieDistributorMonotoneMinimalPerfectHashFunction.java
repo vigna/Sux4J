@@ -34,7 +34,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -116,18 +116,18 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		long maxLength = 0;
 		long totalLength = 0;
 		Random r = new Random();
-		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
-		tripleStore.reset( r.nextLong() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
+		chunkedHashStore.reset( r.nextLong() );
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 
 		for( BitVector bv: bitVectors ) {
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
-			tripleStore.add( bv );
+			chunkedHashStore.add( bv );
 		}
 		
-		tripleStore.checkAndRetry( bitVectors );
-		size = tripleStore.size();
+		chunkedHashStore.checkAndRetry( bitVectors );
+		size = chunkedHashStore.size();
 		
 		if ( size == 0 ) {
 			this.log2BucketSize = -1;
@@ -144,7 +144,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		LOGGER.debug( "Max length: " + maxLength );
 		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
 		LOGGER.info( "Computing z-fast trie distributor..." );
-		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), tripleStore );
+		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
 		offset = new MWHCFunction<BitVector>( null, TransformationStrategies.identity(), new AbstractLongList() {
@@ -155,10 +155,10 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			public int size() {
 				return size;
 			}
-		}, this.log2BucketSize, tripleStore );
-		//System.err.println( "*********" + tripleStore.seed() );
+		}, this.log2BucketSize, chunkedHashStore );
+		//System.err.println( "*********" + chunkedHashStore.seed() );
 		
-		tripleStore.close();
+		chunkedHashStore.close();
 		
 		final int bucketSize = 1 << this.log2BucketSize;
 		double logU = averageLength * log( 2 );

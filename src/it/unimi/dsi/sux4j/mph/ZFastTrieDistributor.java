@@ -37,7 +37,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
@@ -425,9 +425,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public ZFastTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final TripleStore<BitVector> tripleStore ) throws IOException {
+	public ZFastTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ChunkedHashStore<BitVector> chunkedHashStore ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
-		this.seed = tripleStore.seed();
+		this.seed = chunkedHashStore.seed();
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed );
 
 		size = intermediateTrie.numElements;
@@ -445,7 +445,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		logW =  intermediateTrie.logW;
 		signatureMask =  intermediateTrie.signatureMask;
 
-		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1, tripleStore );
+		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1, chunkedHashStore );
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {

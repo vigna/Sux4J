@@ -29,7 +29,7 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -99,7 +99,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, TripleStore<T> triplesStore ) throws IOException {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, ChunkedHashStore<T> triplesStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -107,7 +107,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		pl.itemsName = "keys";
 
 		if ( triplesStore == null ) {
-			triplesStore = new TripleStore<T>( transform, pl );
+			triplesStore = new ChunkedHashStore<T>( transform, pl );
 			triplesStore.reset( random.nextLong() );
 			triplesStore.addAll( elements.iterator() );
 		}

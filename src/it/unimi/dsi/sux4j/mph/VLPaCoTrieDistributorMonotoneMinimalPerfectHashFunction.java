@@ -37,7 +37,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -106,16 +106,16 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		long totalLength = 0;
 		BitVector bv;
 		final Random random = new Random();
-		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
-		tripleStore.reset( random.nextLong() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
+		chunkedHashStore.reset( random.nextLong() );
 		for( T s: elements ) {
 			bv = transform.toBitVector( s );
-			tripleStore.add( bv );
+			chunkedHashStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 		}
 		
-		size = tripleStore.size();
+		size = chunkedHashStore.size();
 		
 		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
@@ -189,7 +189,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 				public int size() {
 					return size;
 				}
-			}, log2BucketSize + 1, tripleStore );
+			}, log2BucketSize + 1, chunkedHashStore );
 
 		}
 		else offset = null;

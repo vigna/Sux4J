@@ -34,7 +34,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -106,12 +106,12 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
 		
-		pl.start( "Creating triple store..." );
-		final TripleStore<BitVector> tripleStore = new TripleStore<BitVector>( TransformationStrategies.identity() );
-		tripleStore.reset( random.nextLong() );
+		pl.start( "Creating chunked hash store..." );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
+		chunkedHashStore.reset( random.nextLong() );
 		for( T s: elements ) {
 			bv = transform.toBitVector( s );
-			tripleStore.add( bv );
+			chunkedHashStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 			pl.lightUpdate();
@@ -120,9 +120,9 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		pl.done();
 		
 		LOGGER.debug( "Maximum length: " + maxLength );
-		LOGGER.debug( "Average length: " + totalLength / (double)tripleStore.size() );
+		LOGGER.debug( "Average length: " + totalLength / (double)chunkedHashStore.size() );
 		
-		size = tripleStore.size();
+		size = chunkedHashStore.size();
 		
 		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
@@ -170,7 +170,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 			public int size() {
 				return size;
 			}
-		}, log2BucketSize, tripleStore );
+		}, log2BucketSize, chunkedHashStore );
 
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );

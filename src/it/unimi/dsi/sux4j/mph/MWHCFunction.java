@@ -37,7 +37,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
-import it.unimi.dsi.sux4j.io.TripleStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
@@ -123,8 +123,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, TripleStore<T> tripleStore ) throws IOException {
-		this( elements, transform, null, -1, tripleStore );
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, null, -1, chunkedHashStore );
 	}
 
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
@@ -142,10 +142,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param tripleStore a (not necessarily checked) triple store containing the elements. ALERT: check for accuracy in wording 
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements. ALERT: check for accuracy in wording 
 	 */
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, TripleStore<T> tripleStore ) throws IOException {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 	
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
@@ -154,13 +154,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final Random r = new Random();
 		pl.itemsName = "keys";
 
-		final boolean givenTripleStore = tripleStore != null;
-		if ( ! givenTripleStore ) {
-			tripleStore = new TripleStore<T>( transform, pl );
-			tripleStore.reset( r.nextLong() );
-			tripleStore.addAll( elements.iterator() );
+		final boolean givenchunkedHashStore = chunkedHashStore != null;
+		if ( ! givenchunkedHashStore ) {
+			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore.reset( r.nextLong() );
+			chunkedHashStore.addAll( elements.iterator() );
 		}
-		n = tripleStore.size();
+		n = chunkedHashStore.size();
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		if ( n == 0 ) {
@@ -174,7 +174,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		}
 
 		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
-		bucketShift = tripleStore.log2Buckets( log2NumBuckets );
+		bucketShift = chunkedHashStore.log2Chunks( log2NumBuckets );
 		final int numBuckets = 1 << log2NumBuckets;
 		
 		//System.err.println( log2NumBuckets +  " " + numBuckets );
@@ -200,11 +200,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				int q = 0;
-				for( TripleStore.Bucket bucket: tripleStore ) {
-					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( bucket.size() );
+				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
 					do {
 						seed = r.nextLong();
-					} while ( ( sorter.generateAndSort( bucket.iterator(), seed ) ) != HypergraphSorter.Result.OK );
+					} while ( ( sorter.generateAndSort( chunk.iterator(), seed ) ) != HypergraphSorter.Result.OK );
 
 					this.seed[ q ] = seed;
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
@@ -213,7 +213,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					/** Whether a specific node has already been used as a hinge. */
 					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
 
-					int top = bucket.size(), k, v = 0;
+					int top = chunk.size(), k, v = 0;
 					final int[] stack = sorter.stack;
 					final int[][] edge = sorter.edge;
 					final int off = offset[ q ];
@@ -230,9 +230,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 							else s ^= data.getLong( off + edge[ j ][ k ] );
 						}
 
-						data.set( off + edge[ v ][ k ], ( values == null ? bucket.offset( k ) : values.getLong( bucket.offset( k ) ) ) ^ s );
-						if ( ASSERTS ) assert ( values == null ? bucket.offset( k ) : values.getLong( bucket.offset( k ) ) ) == ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) ) :
-							"<" + edge[ 0 ][ k ] + "," + edge[ 1 ][ k ] + "," + edge[ 2 ][ k ] + ">: " + ( values == null ? bucket.offset( k ) : values.getLong( bucket.offset( k ) ) ) + " != " + ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) );
+						data.set( off + edge[ v ][ k ], ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) ^ s );
+						if ( ASSERTS ) assert ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) == ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) ) :
+							"<" + edge[ 0 ][ k ] + "," + edge[ 1 ][ k ] + "," + edge[ 2 ][ k ] + ">: " + ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) + " != " + ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) );
 					}
 
 					q++;
@@ -242,19 +242,19 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				pl.done();
 				break;
 			}
-			catch( TripleStore.DuplicateException e ) {
+			catch( ChunkedHashStore.DuplicateException e ) {
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				tripleStore.reset( r.nextLong() );
-				tripleStore.addAll( elements.iterator() );
+				chunkedHashStore.reset( r.nextLong() );
+				chunkedHashStore.addAll( elements.iterator() );
 			}
 		}
 
 		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offset ) );
 
-		globalSeed = tripleStore.seed();
+		globalSeed = chunkedHashStore.seed();
 
-		if ( ! givenTripleStore ) tripleStore.close();
+		if ( ! givenchunkedHashStore ) chunkedHashStore.close();
 		
 		// Check for compaction
 		long nonZero = 0;
