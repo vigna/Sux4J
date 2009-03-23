@@ -99,20 +99,27 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + ( value & bucketSizeMask );
 	}
 
-	@SuppressWarnings("unused")
 	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( iterable, -1, transform );
+	}
 
+		@SuppressWarnings("unused")
+	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final int numElements, final TransformationStrategy<? super T> transform ) throws IOException {
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		this.transform = transform;
 		final Random r = new Random();
 
-		if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
-		else {
-			int c = 0;
-			for( T dummy: iterable ) c++;
-			n = c;
+		if ( numElements == -1 ) {
+			if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
+			else {
+				int c = 0;
+				for( T dummy: iterable ) c++;
+				n = c;
+			}
 		}
+		else n = numElements;
+		
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		if ( n == 0 ) {

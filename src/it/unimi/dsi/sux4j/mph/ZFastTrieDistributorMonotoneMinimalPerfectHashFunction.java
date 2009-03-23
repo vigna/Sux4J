@@ -119,12 +119,17 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
 		chunkedHashStore.reset( r.nextLong() );
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
-
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.itemsName = "keys";
+		pl.start( "Scanning collection..." );
 		for( BitVector bv: bitVectors ) {
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 			chunkedHashStore.add( bv );
+			pl.lightUpdate();
 		}
+		
+		pl.done();
 		
 		chunkedHashStore.checkAndRetry( bitVectors );
 		size = chunkedHashStore.size();
