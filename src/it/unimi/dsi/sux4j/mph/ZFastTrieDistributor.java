@@ -21,8 +21,11 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import static it.unimi.dsi.bits.Fast.log2;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -34,6 +37,7 @@ import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
@@ -46,9 +50,6 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-
 /** A distributor based on a z-fast trie.
  *
  */
@@ -59,7 +60,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -103,9 +104,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private long logWMask;
 		private int signatureSize;
 		private long signatureMask;
-		private ObjectArrayList<LongArrayBitVector> internalNodeKeys;
-		private ObjectArrayList<LongArrayBitVector> internalNodeRepresentations;
-		private LongArrayList internalNodeSignatures;
+		private OfflineIterable<BitVector, LongArrayBitVector> internalNodeKeys;
+		private OfflineIterable<BitVector, LongArrayBitVector> internalNodeRepresentations;
+		private LongBigList internalNodeSignatures;
 		private ObjectLinkedOpenHashSet<BitVector> delimiters;
 		private ObjectLinkedOpenHashSet<BitVector> leaves;
 		
@@ -117,8 +118,6 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			private Node right;
 			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
 			private final LongArrayBitVector path;
-			/** The index of this node in breadth-first order. */
-			private int index;
 
 			/** Creates a node. 
 			 * 
@@ -147,11 +146,11 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		
 		void labelIntermediateTrie( final Node node, final LongArrayBitVector path,
 				final ObjectLinkedOpenHashSet<BitVector> delimiters, 
-				final ObjectArrayList<LongArrayBitVector> representations, 
-				final ObjectArrayList<LongArrayBitVector>keys, 
-				final LongArrayList values,
+				final OfflineIterable<BitVector, LongArrayBitVector> representations, 
+				final OfflineIterable<BitVector, LongArrayBitVector> keys, 
+				final LongBigList internalNodeSignatures,
 				final long seed,
-				final boolean left ) {
+				final boolean left ) throws IOException {
 			if ( ASSERTS ) assert ( node.left != null ) == ( node.right != null );
 
 			long parentPathLength = Math.max( 0, path.length() - 1 );
@@ -159,7 +158,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			if ( node.left != null ) {
 				path.append( node.path );
 
-				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, values, seed, true );
+				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, true );
 				path.remove( (int)( path.length() - 1 ) );
 
 				final long h = Hashes.jenkins( path, seed );
@@ -173,9 +172,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( ASSERTS ) assert Fast.length( path.length() ) <= logW;
 				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key (" + p + "," + path.subVector( 0, p ).hashCode() + ") " + path.subVector( 0, p ) + ", signature " + ( h & signatureMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & signatureMask ) << logW | ( path.length() & logWMask )) + ")" );
 
-				values.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
+				internalNodeSignatures.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
 				
-				labelIntermediateTrie( node.right, path.append( 1, 1 ), delimiters, representations, keys, values, seed, false );
+				labelIntermediateTrie( node.right, path.append( 1, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, false );
 
 				path.length( path.length() - node.path.length() - 1 );
 			}
@@ -185,16 +184,8 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 		}
 
-		
-		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
-		 * 
-		 * @param elements the elements among which the trie must be able to rank.
-		 * @param log2BucketSize the logarithm of the size of a bucket.
-		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
-		 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-		 */
-		
-		public IntermediateTrie( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final long seed ) {
+				
+		public IntermediateTrie( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final long seed ) throws IOException {
 			
 			Iterator<? extends T> iterator = elements.iterator(); 
 			final long bucketSizeMask = ( 1L << log2BucketSize ) - 1;
@@ -285,13 +276,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					System.err.println( this );
 				}
 				
-				internalNodeRepresentations = new ObjectArrayList<LongArrayBitVector>();
+				internalNodeRepresentations = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 
 				if ( root != null ) {
 					LOGGER.info( "Computing approximate structure..." );
 
-					internalNodeSignatures = new LongArrayList();
-					internalNodeKeys = new ObjectArrayList<LongArrayBitVector>();
+					internalNodeSignatures = LongArrayBitVector.getInstance().asLongBigList( logW + signatureSize );
+					internalNodeKeys = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 					delimiters = new ObjectLinkedOpenHashSet<BitVector>();
 					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), delimiters, internalNodeRepresentations, internalNodeKeys, internalNodeSignatures, seed, true );
 
@@ -355,7 +346,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 								externalParentRepresentations.add( depth == 0 ? pos : pos - 1 );
 								
 								if ( DDDEBUG ) {
-									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping " + c + " <" + node.index + ", " + path + "> -> " + behaviour );
+									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping " + c + " <" + node.hashCode() + ", " + path + "> -> " + behaviour );
 									System.err.println( "Root: " + root + " node: " + node + " representation length: " + ( depth == 0 ? pos : pos - 1 ) );
 								}
 
@@ -431,7 +422,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed );
 
 		size = intermediateTrie.numElements;
-		emptyTrie = intermediateTrie.internalNodeRepresentations.isEmpty();
+		emptyTrie = intermediateTrie.internalNodeRepresentations.length() == 0;
 		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.isEmpty();
 
 		if ( noDelimiters ) {
@@ -457,8 +448,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 
 			signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize );
-			intermediateTrie.internalNodeKeys = null;
 			intermediateTrie.internalNodeSignatures = null;
+			intermediateTrie.internalNodeKeys.close();
+			intermediateTrie.internalNodeKeys = null;
 
 			ObjectOpenHashSet<LongArrayBitVector> rankers = new ObjectOpenHashSet<LongArrayBitVector>();
 
@@ -474,6 +466,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 			}
 
+			intermediateTrie.internalNodeRepresentations.close();
 			intermediateTrie.internalNodeRepresentations = null;
 
 			LongArrayBitVector[] rankerArray = rankers.toArray( new LongArrayBitVector[ rankers.size() ] );
@@ -493,6 +486,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( q );
 				q++;
 			}
+			intermediateTrie.delimiters = null;
 			leaves = new Rank9( leavesBitVector );
 
 			if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
@@ -502,7 +496,6 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
-
 			final IntOpenHashSet mistakeSignatures = new IntOpenHashSet();
 			int c;
 
@@ -538,7 +531,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 
 			LOGGER.info( "False errors: " + ( positives.size() - mistakes ) + ( positives.size() != 0 ? " (" +  100 * ( positives.size() - mistakes ) / ( positives.size() ) + "%)" : "" ) );
-			this.mistakeSignatures.addAll( mistakeSignatures );
+			this.mistakeSignatures = mistakeSignatures;
 			corrections = new MWHCFunction<BitVector>( positives, TransformationStrategies.identity(), results, logW );
 
 			final int bucketSize = 1 << log2BucketSize;
