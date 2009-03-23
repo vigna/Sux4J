@@ -71,7 +71,7 @@ import cern.colt.function.IntComparator;
  * that generated the triple.
  * 
  * <p>It is possible (albeit unlikely) that different elements generate the same triple. This event is detected
- * during bucket iteration (not while accumulating triples), and it will throw a {@link TripleStore.DuplicateException}.
+ * during bucket iteration (not while accumulating triples), and it will throw a {@link ChunkedHashStore.DuplicateException}.
  * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
  * from scratch. Note that after a few (say, three) exceptions you can assume that there are duplicate elements. If you 
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable}, 
@@ -117,9 +117,9 @@ import cern.colt.function.IntComparator;
  * @since 1.0.4
  */
 
-public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<TripleStore.Bucket> {
+public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Bucket> {
     public static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = Util.getLogger( TripleStore.class );
+    private static final Logger LOGGER = Util.getLogger( ChunkedHashStore.class );
 	private static final boolean DEBUG = false;
 
 	/** Denotes that the triple store contains a duplicate hash triple. */
@@ -173,7 +173,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * @param transform a transformation strategy for the elements.
 	 * @throws IOException 
 	 */	
-	public TripleStore( final TransformationStrategy<? super T> transform ) throws IOException {
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform ) throws IOException {
 		this( transform, null );
 	}
 		
@@ -183,7 +183,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 
-	public TripleStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
 		
@@ -191,7 +191,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 		dos = new DataOutputStream[ DISK_BUCKETS ];
 		// Create disk buckets
 		for( int i = 0; i < DISK_BUCKETS; i++ ) {
-			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( TripleStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
+			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
 			file[ i ].deleteOnExit();
 		}
 
@@ -347,7 +347,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 
 	
 	public void check() throws DuplicateException {
-		for( TripleStore.Bucket b: this ) b.iterator();
+		for( ChunkedHashStore.Bucket b: this ) b.iterator();
 	}
 	
 	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
@@ -380,7 +380,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 	 * care of merging or fragmenting disk buckets to get exactly the desired buckets.
 	 * 
 	 * @param log2Buckets the base-2 logarithm of the number of buckets.
-	 * @return the shift to be applied to the first hash of a triple to get the bucket number (see the {@linkplain TripleStore introduction}).
+	 * @return the shift to be applied to the first hash of a triple to get the bucket number (see the {@linkplain ChunkedHashStore introduction}).
 	 */
 	
 	public int log2Buckets( final int log2Buckets ) {
@@ -417,7 +417,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 		return bucketShift;
 	}
 
-	/** A bucket returned by a {@link TripleStore}. */
+	/** A bucket returned by a {@link ChunkedHashStore}. */
 	public final static class Bucket implements Iterable<long[]> {
 		/** The start position of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
 		private final int start;
@@ -601,7 +601,7 @@ public class TripleStore<T> implements Serializable, SafelyCloseable, Iterable<T
 					}
 					
 					if ( ! checkedForDuplicates && bucketSize > 1 )
-						for( int i = bucketSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new TripleStore.DuplicateException();
+						for( int i = bucketSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new ChunkedHashStore.DuplicateException();
 					if ( bucket == buckets - 1 ) checkedForDuplicates = true;
 					last = 0;
 				}
