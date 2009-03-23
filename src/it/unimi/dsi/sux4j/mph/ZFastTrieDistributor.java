@@ -60,7 +60,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -522,7 +522,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			c = 0;
 			int mistakes = 0;
 			while( iterator.hasNext() ) {
-				BitVector curr = iterator.next();
+				BitVector curr = iterator.next().fast();
 				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % ( 1L << log2BucketSize ) == 0 ? " (bucket)" : "" ));
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
