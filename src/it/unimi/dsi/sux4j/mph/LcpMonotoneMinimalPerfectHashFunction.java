@@ -96,7 +96,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final long value = offsetLcpLength.getLongByTriple( triple );
 		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return defRetValue;
-		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + ( value & bucketSizeMask );
+		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + ( value & bucketSizeMask );
 	}
 
 	@SuppressWarnings("unused")

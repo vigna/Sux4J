@@ -139,7 +139,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		int size = 0;
-		long maxLength = 0;
+		long maxLength = 0, totalLength = 0;
 		
 		Node root = null, node, parent;
 		int prefix, numNodes = 0;
@@ -159,7 +159,8 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			final IntArrayList len = new IntArrayList();
 			if ( DEBUG ) System.err.println( prev );
 			pl.lightUpdate();
-			maxLength = prev.length();
+			totalLength = maxLength = prev.length();
+			
 			size++;
 
 			while( iterator.hasNext() ) {
@@ -168,6 +169,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				if ( DEBUG ) System.err.println( curr );
 				pl.lightUpdate();
 				if ( maxLength < curr.length() ) maxLength = curr.length();
+				totalLength += curr.length();
 				prefix = (int)curr.longestCommonPrefixLength( prev );
 				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
@@ -334,8 +336,12 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		final long numBits = numBits();
 		LOGGER.debug( "Bits: " + numBits );
 		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
-		final double avgSkipLength = (double)sumOfSkipLengths / skips.size();
-		LOGGER.info( "Forecast bit cost per element: " + ( 4 + avgSkipLength + Fast.log2( avgSkipLength ) ) );
+		final double avgLength = (double)totalLength / size;
+
+		// This is empirical--based on statistics about the average skip length in bits
+		// final double avgSkipLength = (double)sumOfSkipLengths / skips.size();
+		// LOGGER.info( "Empirical bit cost per element: " + ( 4 + avgSkipLength + Fast.log2( avgSkipLength ) ) );
+		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgLength ) + 1 + Fast.log2( Fast.log2( avgLength + 1 ) + 1 ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
 	

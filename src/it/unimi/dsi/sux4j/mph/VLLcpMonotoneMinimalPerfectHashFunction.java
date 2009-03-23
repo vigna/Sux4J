@@ -102,7 +102,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		final long index = mph.getLongByTriple( triple );
 		final long prefix = lcpLengths.getLong( index ); 
 		if ( prefix == -1 || prefix > bitVector.length() ) return -1;
-		return lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) * bucketSize + offsets.getLong( index );
+		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLong( index );
 	}
 
 	@SuppressWarnings("unused")

@@ -175,18 +175,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
 		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
-		final int numBuckets = 1 << log2NumChunks;
+		final int numChunks = 1 << log2NumChunks;
 		
-		//System.err.println( log2NumBuckets +  " " + numBuckets );
-		LOGGER.debug( "Number of buckets: " + numBuckets );
+		LOGGER.debug( "Number of chunks: " + numChunks );
 		
-		seed = new long[ numBuckets ];
-		offset = new int[ numBuckets + 1 ];
+		seed = new long[ numChunks ];
+		offset = new int[ numChunks + 1 ];
 		
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numBuckets );
+		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numChunks );
 
 		int duplicates = 0;
 		
@@ -194,9 +193,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
 
 			long seed = 0;
-			pl.expectedUpdates = numBuckets;
-			pl.itemsName = "buckets";
-			pl.start( "Analysing buckets... " );
+			pl.expectedUpdates = numChunks;
+			pl.itemsName = "chunks";
+			pl.start( "Analysing chunks... " );
 
 			try {
 				int q = 0;

@@ -73,7 +73,7 @@ import cern.colt.function.IntComparator;
  * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
  * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
- * then operating directly on the hash codes. This is particularly useful in bucketed constructions, where
+ * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
  * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
