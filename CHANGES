@@ -1,6 +1,12 @@
 1.1
 
-- New structures for balanced parentheses.
+- General revamp, restructuring, improvements, new coherent names for
+  classes. Most of the code has been rewritten or improved.
+
+- New build system based on ChunkedHashStore that works for billions
+  of keys.
+
+- New structures for balanced parentheses (partially implemented).
 
 - Faster Select9 operation: some broadword operations were implemented in a redundant way.
 
@@ -11,7 +17,7 @@
   EliasFanoMonotoneBigList were causing exceptions because the size of the
   SparseSelect is the number of bits, not the number of ones.
 
-- New HollowTrie implementation based on balanced parentheses.
+- New hollow trie implementation based on balanced parentheses.
 
 - Fixed an old and severe bug in MinimalPerfectHashFunction, that
   was causing the generated functions not to be perfect.
