@@ -97,10 +97,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 		
-	/** The logarithm of the desired bucket size. */
-	public final static int LOG2_BUCKET_SIZE = 10;
-	/** The shift for buckets. */
-	final private int bucketShift;
+	/** The logarithm of the desired chunk size. */
+	public final static int LOG2_CHUNK_SIZE = 10;
+	/** The shift for chunks. */
+	final private int chunkShift;
 	/** The number of elements. */
 	final protected int n;
 	/** The number of vertices of the intermediate hypergraph. */
@@ -154,8 +154,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final Random r = new Random();
 		pl.itemsName = "keys";
 
-		final boolean givenchunkedHashStore = chunkedHashStore != null;
-		if ( ! givenchunkedHashStore ) {
+		final boolean givenChunkedHashStore = chunkedHashStore != null;
+		if ( ! givenChunkedHashStore ) {
 			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
 			chunkedHashStore.reset( r.nextLong() );
 			chunkedHashStore.addAll( elements.iterator() );
@@ -164,7 +164,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		if ( n == 0 ) {
-			this.globalSeed = bucketShift = m = this.width = 0;
+			this.globalSeed = chunkShift = m = this.width = 0;
 			data = null;
 			marker = null;
 			rank = null;
@@ -173,9 +173,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return;
 		}
 
-		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
-		bucketShift = chunkedHashStore.log2Chunks( log2NumBuckets );
-		final int numBuckets = 1 << log2NumBuckets;
+		int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
+		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int numBuckets = 1 << log2NumChunks;
 		
 		//System.err.println( log2NumBuckets +  " " + numBuckets );
 		LOGGER.debug( "Number of buckets: " + numBuckets );
@@ -254,7 +254,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		globalSeed = chunkedHashStore.seed();
 
-		if ( ! givenchunkedHashStore ) chunkedHashStore.close();
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 		
 		// Check for compaction
 		long nonZero = 0;
@@ -307,11 +307,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
-		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
-		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.tripleToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
+		final int chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
+		final int e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
@@ -322,10 +322,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
-		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> bucketShift );
-		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.tripleToEdge( triple, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
-		final int e0 = e[ 0 ] + bucketOffset, e1 = e[ 1 ] + bucketOffset, e2 = e[ 2 ] + bucketOffset;
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+		final int chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		final int e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
@@ -361,7 +361,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
 		this.m = function.m;
-		this.bucketShift = function.bucketShift;
+		this.chunkShift = function.chunkShift;
 		this.globalSeed = function.globalSeed;
 		this.offset = function.offset;
 		this.width = function.width;

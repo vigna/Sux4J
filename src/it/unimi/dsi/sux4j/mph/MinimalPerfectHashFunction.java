@@ -115,16 +115,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;
-	/** The logarithm of the desired bucket size. */
-	public final static int LOG2_BUCKET_SIZE = 10;
+	/** The logarithm of the desired chunk size. */
+	public final static int LOG2_CHUNK_SIZE = 10;
 
 	private static final long ONES_STEP_4 = 0x1111111111111111L;
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
 	
 	/** The number of elements. */
 	final protected int n;
-	/** The shift for buckets. */
-	final private int bucketShift;
+	/** The shift for chunks. */
+	final private int chunkShift;
 	/** The seed used to generate the initial hash triple. */
 	final protected long globalSeed;
 	/** The seed of the underlying 3-hypergraphs. */
@@ -167,8 +167,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final Random r = new Random();
 		pl.itemsName = "keys";
 
-		final boolean givenchunkedHashStore = chunkedHashStore != null;
-		if ( ! givenchunkedHashStore ) {
+		final boolean givenChunkedHashStore = chunkedHashStore != null;
+		if ( ! givenChunkedHashStore ) {
 			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
 			chunkedHashStore.reset( r.nextLong() );
 			chunkedHashStore.addAll( elements.iterator() );
@@ -177,9 +177,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		int log2NumBuckets = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_BUCKET_SIZE ) );
-		bucketShift = chunkedHashStore.log2Chunks( log2NumBuckets );
-		final int numBuckets = 1 << log2NumBuckets;
+		int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
+		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int numBuckets = 1 << log2NumChunks;
 		
 		//System.err.println( log2NumBuckets +  " " + numBuckets );
 		LOGGER.debug( "Number of buckets: " + numBuckets );
@@ -263,7 +263,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		globalSeed = chunkedHashStore.seed();
 
-		if ( ! givenchunkedHashStore ) chunkedHashStore.close();
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 		
 		if ( n > 0 ) {
 			int m = (int)values.length();
@@ -315,7 +315,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.offset = mph.offset;
 		this.bitVector = mph.bitVector;
 		this.globalSeed = mph.globalSeed;
-		this.bucketShift = mph.bucketShift;
+		this.chunkShift = mph.chunkShift;
 		this.values = mph.values;
 		this.array = mph.array;
 		this.count = mph.count;
@@ -356,11 +356,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
-		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> bucketShift );
-		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.tripleToEdge( h, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
+		final int chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( bucketOffset + e[ (int)( values.getLong( e[ 0 ] + bucketOffset ) + values.getLong( e[ 1 ] + bucketOffset ) + values.getLong( e[ 2 ] + bucketOffset ) ) % 3 ] );
+		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
@@ -369,11 +369,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
-		final int bucket = bucketShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> bucketShift );
-		final int bucketOffset = offset[ bucket ];
-		HypergraphSorter.tripleToEdge( triple, seed[ bucket ], offset[ bucket + 1 ] - bucketOffset, e );
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+		final int chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( bucketOffset + e[ (int)( values.getLong( e[ 0 ] + bucketOffset ) + values.getLong( e[ 1 ] + bucketOffset ) + values.getLong( e[ 2 ] + bucketOffset ) ) % 3 ] );
+		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
