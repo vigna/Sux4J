@@ -106,14 +106,14 @@ import cern.colt.function.IntComparator;
  * 
  * <p>Chunked hash stores should be built by classes that need to manipulate elements in chunks of approximate given 
  * size without needing access to the elements themselves, but just to their triples, a typical
- * example being {@link MinimalPerfectHashFunction}, which uses the triples to compute a 3-hyperedge. Once a triple
+ * example being {@link MinimalPerfectHashFunction}, which uses the triples to compute a 3-hyperedge. Once a chunked hash
  * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
  * collection need not to be scanned again).
  * 
- * <p>To compute the chunk corresponding to given element, compute
+ * <p>To compute the chunk corresponding to given element, use
  * <pre>
  * final long[] h = new long[ 3 ];
- * Hashes.jenkins( transform.toBitVector( (T)key ), seed, h );
+ * Hashes.jenkins( transform.toBitVector( key ), seed, h );
  * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
  * </pre>
  * where <code>seed</code> is the store seed, and <code>chunkShift</code> 

@@ -9,3 +9,4 @@
 - 64-bit clean?
 - Check numbers in package.html of mph
 - Improve ZFast construction memory and time
+- Change ALL serialVersionIds
