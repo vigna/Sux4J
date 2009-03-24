@@ -450,12 +450,6 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				System.err.println( "Internal node keys: " + intermediateTrie.internalNodeKeys );
 			}
 
-			LOGGER.info( "Computing length/signature map..." );
-			signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize );
-			intermediateTrie.internalNodeSignatures = null;
-			intermediateTrie.internalNodeKeys.close();
-			intermediateTrie.internalNodeKeys = null;
-
 			ObjectOpenHashSet<LongArrayBitVector> rankers = new ObjectOpenHashSet<LongArrayBitVector>();
 
 			pl.start( "Computing leaf ranker keys..." );
@@ -508,6 +502,12 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			LOGGER.info( "Creating leaf ranker..." );
 			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( Arrays.asList( rankerArray ), rankerArray.length, TransformationStrategies.prefixFree() );
 			rankerArray = null;
+
+			LOGGER.info( "Computing length/signature map..." );
+			signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize );
+			intermediateTrie.internalNodeSignatures = null;
+			intermediateTrie.internalNodeKeys.close();
+			intermediateTrie.internalNodeKeys = null;
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
