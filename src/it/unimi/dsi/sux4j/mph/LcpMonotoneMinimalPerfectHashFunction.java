@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -34,6 +35,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
@@ -42,7 +44,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
@@ -140,7 +141,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		BitVector curr = null;
 		int currLcp = 0;
-		final BitVector[] lcp = new BitVector[ numBuckets ];
+		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
 		int maxLcp = 0;
 		long maxLength = 0;
 
@@ -175,22 +177,38 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 				maxLength = Math.max( maxLength, prev.length() );
 			}
 
-			lcp[ b ] = prev.subVector( 0, currLcp  ).copy();
+			lcps.add( prev.subVector( 0, currLcp  ) );
+			lcpLengths[ b ] = currLcp;
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
 		pl.done();
 		
-		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
+		if ( ASSERTS ) {
+			ObjectOpenHashSet<BitVector> s = new ObjectOpenHashSet<BitVector>();
+			for( LongArrayBitVector bv: lcps ) s.add( bv.copy() );
+			assert s.size() == lcps.size() : s.size() + " != " + lcps.size(); // No duplicates.
+		}
 
+		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
+		// Build function assigning the lcp length and the bucketing data to each element.
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
+			public long getLong( int index ) {
+				return lcpLengths[ index / bucketSize ] << log2BucketSize | index & bucketSizeMask; 
+			}
+			public int size() {
+				return n;
+			}
+		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1, triplesStore );
+		
 		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
 		if ( DEBUG ) {
 			int p = 0;
-			for( BitVector v: lcp ) System.err.println( v  + " " + v.length() );
-			for( BitVector v: Arrays.asList( lcp ) ) {
+			for( BitVector v: lcps ) System.err.println( v  + " " + v.length() );
+			for( BitVector v: lcps ) {
 				final long value = lcp2Bucket.getLong( v );
 				if ( p++ != value ) {
 					System.err.println( "p: " + (p-1) + "  value: " + value + " key:" + v );
@@ -199,17 +217,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 
-		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
-		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length() << log2BucketSize | index & bucketSizeMask; 
-			}
-			public int size() {
-				return n;
-			}
-		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1, triplesStore );
-
+		lcps.close();
 		this.seed = triplesStore.seed();
 		
 		if ( DEBUG ) {

@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -34,6 +35,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
@@ -42,7 +44,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
@@ -146,7 +147,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		BitVector curr = null;
 		int currLcp = 0;
-		final BitVector[] lcp = new BitVector[ numBuckets ];
+		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
 		int maxLcp = 0;
 		long maxLength = 0;
 
@@ -179,21 +181,26 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 				maxLength = Math.max( maxLength, prev.length() );
 			}
 
-			lcp[ b ] = prev.subVector( 0, currLcp  ).copy();
+			lcps.add( prev.subVector( 0, currLcp  ) );
+			lcpLengths[ b ] = currLcp;
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
 		pl.done();
 		
-		if ( ASSERTS ) assert new ObjectOpenHashSet<BitVector>( lcp ).size() == lcp.length; // No duplicates.
-		
+		if ( ASSERTS ) {
+			ObjectOpenHashSet<BitVector> s = new ObjectOpenHashSet<BitVector>();
+			for( LongArrayBitVector bv: lcps ) s.add( bv.copy() );
+			assert s.size() == lcps.size() : s.size() + " != " + lcps.size(); // No duplicates.
+		}
+
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( Arrays.asList( lcp ), TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
 
 		if ( DEBUG ) {
 			int p = 0;
-			for( BitVector v: lcp ) System.err.println( v  + " " + v.length() );
-			for( BitVector v: Arrays.asList( lcp ) ) {
+			for( BitVector v: lcps ) System.err.println( v  + " " + v.length() );
+			for( BitVector v: lcps ) {
 				final long value = lcp2Bucket.getLong( v );
 				if ( p++ != value ) {
 					System.err.println( "p: " + (p-1) + "  value: " + value + " key:" + v );
@@ -201,6 +208,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 				}
 			}
 		}
+
+		lcps.close();
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build function assigning the lcp length and the bucketing data to each element.
@@ -213,9 +222,9 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}, log2BucketSize, chunkedHashStore );
 
-		lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
+		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return lcp[ index / bucketSize ].length(); 
+				return lcpLengths[ index / bucketSize ]; 
 			}
 			public int size() {
 				return n;
@@ -223,11 +232,11 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}, chunkedHashStore );
 
 		// Build function assigning the lcp length and the bucketing data to each element.
-		final double p = 1.0 / ( lcpLengths.rankMean + 1 );
-		final double s = s( p, lcpLengths.width );
+		final double p = 1.0 / ( this.lcpLengths.rankMean + 1 );
+		final double s = s( p, this.lcpLengths.width );
 		
 		LOGGER.debug( "Forecast best threshold: " + s ); 
-		
+
 		this.seed = chunkedHashStore.seed();
 		chunkedHashStore.close();
 		
@@ -235,20 +244,20 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			int j = 0;
 			for( T key: iterable ) {
 				BitVector bv = transform.toBitVector( key );
-				if ( j++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( bv ) ) ) * bucketSize + offsets.getLong( bv ) ) {
+				if ( j++ != lcp2Bucket.getLong( bv.subVector( 0, this.lcpLengths.getLong( bv ) ) ) * bucketSize + offsets.getLong( bv ) ) {
 					System.err.println( "p: " + ( j - 1 ) 
 							+ "  Key: " + key 
 							+ " bucket size: " + bucketSize 
-							+ " lcp " + transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( bv ) )
-							+ " lcp length: " + lcpLengths.getLong( bv ) 
-							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( bv ) ) ) 
+							+ " lcp " + transform.toBitVector( key ).subVector( 0, this.lcpLengths.getLong( bv ) )
+							+ " lcp length: " + this.lcpLengths.getLong( bv ) 
+							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, this.lcpLengths.getLong( bv ) ) ) 
 							+ " offset: " + offsets.getLong( bv ) );
 					throw new AssertionError();
 				}
 			}
 		}
 
-		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( Math.pow( 2, s ) - 1 ) * lcpLengths.width / n + ( lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
+		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( Math.pow( 2, s ) - 1 ) * this.lcpLengths.width / n + ( this.lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
 		
 		LOGGER.debug( "Forecast bit cost per element: " + ( log2BucketSize + HypergraphSorter.GAMMA + secondFunctionForecastBitsPerElement + ( Fast.log2( Math.E ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
