@@ -38,6 +38,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.OfflineIterable;
+import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
@@ -107,7 +108,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		private OfflineIterable<BitVector, LongArrayBitVector> internalNodeKeys;
 		private OfflineIterable<BitVector, LongArrayBitVector> internalNodeRepresentations;
 		private LongBigList internalNodeSignatures;
-		private ObjectLinkedOpenHashSet<BitVector> delimiters;
+		private OfflineIterable<BitVector, LongArrayBitVector> delimiters;
 		private ObjectLinkedOpenHashSet<BitVector> leaves;
 		
 		/** A node in the trie. */
@@ -145,7 +146,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 		
 		void labelIntermediateTrie( final Node node, final LongArrayBitVector path,
-				final ObjectLinkedOpenHashSet<BitVector> delimiters, 
+				final OfflineIterable<BitVector, LongArrayBitVector> delimiters, 
 				final OfflineIterable<BitVector, LongArrayBitVector> representations, 
 				final OfflineIterable<BitVector, LongArrayBitVector> keys, 
 				final LongBigList internalNodeSignatures,
@@ -282,12 +283,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 					internalNodeSignatures = LongArrayBitVector.getInstance().asLongBigList( logW + signatureSize );
 					internalNodeKeys = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-					delimiters = new ObjectLinkedOpenHashSet<BitVector>();
+					delimiters = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), delimiters, internalNodeRepresentations, internalNodeKeys, internalNodeSignatures, seed, true );
 
 					if ( DDEBUG ) {
 						System.err.println( "Delimiters (" + delimiters.size() + "): " + delimiters );
-						Iterator<BitVector> d = delimiters.iterator(), l = leaves.iterator();
+						Iterator<LongArrayBitVector> d = delimiters.iterator();
+						Iterator<BitVector> l = leaves.iterator();
 						for( int i = 0; i < delimiters.size(); i++ ) {
 							BitVector del = d.next(), leaf = l.next();
 							assert del.longestCommonPrefixLength( leaf ) == del.length() : del.longestCommonPrefixLength( leaf ) + " != " + del.length() + "\n" + del + "\n" + leaf + "\n";
@@ -298,6 +300,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						System.err.println( "Internal node signatures: " + internalNodeSignatures );
 					}
 
+					pl.expectedUpdates = numElements;
 					pl.start( "Computing function keys..." );
 
 					externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
@@ -425,7 +428,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		size = intermediateTrie.numElements;
 		emptyTrie = intermediateTrie.internalNodeRepresentations.length() == 0;
-		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.isEmpty();
+		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.length() == 0;
 
 		if ( noDelimiters ) {
 			behaviour = null;
@@ -452,9 +455,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 			ObjectOpenHashSet<LongArrayBitVector> rankers = new ObjectOpenHashSet<LongArrayBitVector>();
 
-			pl.start( "Computing leaf ranker keys..." );
 			pl.itemsName = "nodes";
 			pl.expectedUpdates = intermediateTrie.internalNodeRepresentations.size();
+			pl.start( "Computing leaf ranker keys..." );
 			
 			for( BitVector bv: intermediateTrie.internalNodeRepresentations ) {
 				rankers.add( LongArrayBitVector.copy( bv.subVector( 0, bv.lastOne() + 1 ) ) );
@@ -490,11 +493,22 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 			LOGGER.info( "Setting up leaf ranker bit vector..." );
 
+			final OfflineIterator<BitVector, LongArrayBitVector> delimiterIterator = intermediateTrie.delimiters.iterator();
+			LongArrayBitVector bv = delimiterIterator.next();
+			int cmp;
 			for( BitVector v : rankerArray ) {
-				if ( intermediateTrie.delimiters.contains( v ) ) leavesBitVector.set( q );
+				while( bv != null ) {
+					cmp = bv.compareTo( v );
+					if ( cmp == 0 ) leavesBitVector.set( q );
+					if ( cmp >= 0 ) break;
+					bv = delimiterIterator.hasNext() ? delimiterIterator.next() : null;
+				}
+				
 				q++;
 			}
-			intermediateTrie.delimiters = null;
+			delimiterIterator.close();
+			intermediateTrie.delimiters.close();
+			
 			leaves = new Rank9( leavesBitVector );
 
 			if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
