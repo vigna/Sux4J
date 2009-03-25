@@ -199,7 +199,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize + Fast.ceilLog2( maxLcp ) + 1, triplesStore );
+		}, log2BucketSize + Fast.length( maxLcp ), triplesStore );
 		
 		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
