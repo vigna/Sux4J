@@ -227,8 +227,9 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		}
 
 		chunkedHashStore.close();
+
 		lcpLengths = new EliasFanoLongBigList( lcpLengthsTemp.iterator(), minLcp, true );
-	
+		
 		if ( DEBUG ) {
 			p = 0;
 			for( T key: iterable ) {
