@@ -152,10 +152,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}, log2BucketSize );
 
 		
-		final double skipCost = 2 + distributor.meanSkipLength + Fast.log2( distributor.meanSkipLength ); 
-		LOGGER.debug( "Forecast distributor bit cost: " + (long)(( size / bucketSize ) * ( GAMMA + 2 + skipCost ) + 2 * GAMMA * size ) );
-		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GAMMA ) ) + Fast.log2( 2 + skipCost ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GAMMA ) ) + Fast.log2( 4 + Fast.log2( averageLength ) + 1 + Fast.log2( Fast.log2( averageLength + 1 ) + 1 ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
