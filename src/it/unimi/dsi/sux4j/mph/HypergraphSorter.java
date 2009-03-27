@@ -45,7 +45,7 @@ import cern.colt.function.IntComparator;
  * it is clear it can be used to store any function). More generally, the procedure 
  * first generates a random 3-hypergraph whose edges correspond to elements of the function domain.
  * The, it sorts the edges of the random 3-hypergraph so that for each edge at least one vertex, the <em>hinge</em>, never
- * appeared before in the sorted edge list (this happens with positive probability if the number of vertices is at
+ * appeared before in the sorted edge list (this happens with high probability if the number of vertices is at
  * least {@linkplain #GAMMA &gamma;} times the number of edges).
  * 
  * <p>Instances of this class contain the data necessary to generate the random hypergraph
@@ -112,8 +112,8 @@ public class HypergraphSorter<T> {
 
 	public static enum Result { OK, DUPLICATE, CYCLIC }; 
 	
-	/** The mythical threshold (or better, a reasonable upper bound of): random 3-hypergraphs
-	 * are acyclic with positive probability if the ratio edges/vertices exceeds this constant. */
+	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
+	 * are acyclic with high probability if the ratio vertices/edges exceeds this constant. */
 	public static final double GAMMA = 1.23;
 
 	/** The internal state of a visit. */
