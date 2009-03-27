@@ -31,6 +31,7 @@ import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.NullOutputStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -128,6 +129,9 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			
 		/** The root of the trie. */
 		protected final Node root;
+
+		/** Leaves in the trie. */
+		protected final int size;
 		
 		/** The offset of each delimiter. */
 		protected final long offset[];
@@ -138,9 +142,10 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param bucketSize the size of a bucket.
 		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 		 * distinct, lexicographically increasing (in iteration order) bit vectors.
+		 * @param pl 
 		 */
 		
-		public PartialTrie( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) {
+		public PartialTrie( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, ProgressLogger pl ) {
 			Iterator<? extends T> iterator = elements.iterator(); 
 			
 			Node node;
@@ -148,7 +153,9 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			int pos, prefix;
 
 			if ( iterator.hasNext() ) {
+				pl.start( "Building trie..." );
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+				pl.lightUpdate();
 				LongArrayBitVector shortest = prev.copy();
 				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
@@ -162,6 +169,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				while( iterator.hasNext() ) {
 					// Check order
 					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+					pl.lightUpdate();
 					prefix = (int)curr.longestCommonPrefixLength( prev );
 					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
@@ -214,6 +222,9 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					maxLength = Math.max( maxLength, prev.length() );
 					count++;
 				}
+				pl.done();
+				
+				size = count;
 				
 				if ( DDEBUG ) System.err.println( "Offsets: " + Arrays.toString( offset ) );			
 
@@ -243,7 +254,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						}
 					}
 
-					LOGGER.info( "Reducing paths..." );
+					pl.start( "Reducing paths..." );
 
 					iterator = elements.iterator();
 
@@ -257,6 +268,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 					while( iterator.hasNext() ) {
 						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						pl.lightUpdate();
 						if ( ! first )  {
 							// Adjust stack using lcp between present string and previous one
 							prefix = (int)prev.longestCommonPrefixLength( curr );
@@ -286,10 +298,13 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 						prev.replace( curr );
 					}
+					
+					pl.done();
 				}
 			}
 			else {
 				this.root = null;
+				this.size = 0;
 				offset = null;
 			}
 
@@ -305,13 +320,13 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param obs an output bit stream.
 		 * @return the number of leaves in the trie.
 		 */
-		public int toStream( final OutputBitStream obs ) throws IOException {
-			final int result = toStream( root, obs );
+		public int toStream( final OutputBitStream obs, final ProgressLogger pl ) throws IOException {
+			final int result = toStream( root, obs, pl );
 			LOGGER.info( "Gain: " + gain );
 			return result;
 		}
 		
-		private int toStream( final Node n, final OutputBitStream obs ) throws IOException {
+		private int toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -319,15 +334,17 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			// We recursively create the stream of the left and right trees
 			final FastByteArrayOutputStream leftStream = new FastByteArrayOutputStream();
 			final OutputBitStream left = new OutputBitStream( leftStream, 0 );
-			int leavesLeft = toStream( n.left, left );
+			int leavesLeft = toStream( n.left, left, pl );
 			long leftBits = left.writtenBits();
 			left.flush();
 			
 			final FastByteArrayOutputStream rightStream = new FastByteArrayOutputStream();
 			final OutputBitStream right = new OutputBitStream( rightStream, 0 );
-			int leavesRight = toStream( n.right, right );
+			int leavesRight = toStream( n.right, right, pl );
 			long rightBits = right.writtenBits();
 			right.flush();
+			
+			pl.lightUpdate();
 			
 			obs.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
 			
@@ -345,6 +362,8 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 			// Nothing after the path in leaves.
 			if ( n.isLeaf() ) return 1;
+
+			n.left = n.right = null;
 			
 			// We count the missing bit as a gain, but of course in an internal node we must subtract the space needed to represent their cardinality.
 			gain -= obs.writeDelta( missing );
@@ -399,10 +418,16 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 */
 	public VLPaCoTrieDistributor( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
-		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, numElements, bucketSize, transformationStrategy );
+		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
+		pl.itemsName = "keys";
+		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, numElements, bucketSize, transformationStrategy, pl );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
-		numberOfLeaves = immutableBinaryTrie.toStream( trie );
+		pl.expectedUpdates = immutableBinaryTrie.size;
+		pl.start( "Converting to bitstream..." );
+		numberOfLeaves = immutableBinaryTrie.toStream( trie, pl );
+		pl.done();
 		offset = immutableBinaryTrie.offset;
 
 		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
