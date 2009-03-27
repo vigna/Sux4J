@@ -106,6 +106,11 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		long totalLength = 0;
 		BitVector bv;
 		final Random random = new Random();
+		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
+		pl.itemsName = "keys";
+		
+		pl.start( "Creating chunked hash store..." );
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
 		chunkedHashStore.reset( random.nextLong() );
 		for( T s: elements ) {
@@ -113,7 +118,10 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			chunkedHashStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
+			pl.lightUpdate();
 		}
+		
+		pl.done();
 		
 		size = chunkedHashStore.size();
 		
