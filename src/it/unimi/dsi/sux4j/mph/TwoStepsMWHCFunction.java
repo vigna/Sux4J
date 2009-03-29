@@ -99,19 +99,19 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, ChunkedHashStore<T> triplesStore ) throws IOException {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		final Random random = new Random();
 		pl.itemsName = "keys";
 
-		if ( triplesStore == null ) {
-			triplesStore = new ChunkedHashStore<T>( transform, pl );
-			triplesStore.reset( random.nextLong() );
-			triplesStore.addAll( elements.iterator() );
+		if ( chunkedHashStore == null ) {
+			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore.reset( random.nextLong() );
+			chunkedHashStore.addAll( elements.iterator() );
 		}
-		n = triplesStore.size();
+		n = chunkedHashStore.size();
 		defRetValue = -1; // For the very few cases in which we can decide
 		
 		if ( n == 0 ) {
@@ -203,21 +203,21 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 					return n;
 				}
 
-			}, best, triplesStore );
+			}, best, chunkedHashStore );
 
 			LOGGER.debug( "Actual bit cost per element of first function: " + (double)firstFunction.numBits() / n );
 		}
 		else firstFunction = null;
 
-		triplesStore.filter( new Predicate() {
+		chunkedHashStore.filter( new Predicate() {
 			public boolean evaluate( Object triple ) {
 				return firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape;
 			}
 		});
 		
-		secondFunction = new MWHCFunction<T>( elements, transform, values, w, triplesStore );
+		secondFunction = new MWHCFunction<T>( elements, transform, values, w, chunkedHashStore );
 		
-		this.seed = triplesStore.seed();
+		this.seed = chunkedHashStore.seed();
 		
 		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
 

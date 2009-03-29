@@ -142,7 +142,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
-		BitVector curr = null;
+		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
@@ -151,23 +151,23 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		pl.expectedUpdates = n;
 		
-		final ChunkedHashStore<BitVector> triplesStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
-		triplesStore.reset( r.nextLong() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
+		chunkedHashStore.reset( r.nextLong() );
 
 		pl.start( "Scanning collection..." );
 		
 		final Iterator<? extends T> iterator = iterable.iterator();
 		for( int b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
-			triplesStore.add( prev );
+			chunkedHashStore.add( prev );
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
-				curr = transform.toBitVector( iterator.next() );
-				triplesStore.add( curr );
+				curr.replace( transform.toBitVector( iterator.next() ) );
+				chunkedHashStore.add( curr );
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength( prev );
 				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
@@ -202,7 +202,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize + Fast.length( maxLcp ), triplesStore );
+		}, log2BucketSize + Fast.length( maxLcp ), chunkedHashStore );
 		
 		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
@@ -221,7 +221,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		}
 
 		lcps.close();
-		this.seed = triplesStore.seed();
+		this.seed = chunkedHashStore.seed();
 		
 		if ( DEBUG ) {
 			int p = 0;
