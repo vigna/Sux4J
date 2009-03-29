@@ -21,6 +21,9 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import static it.unimi.dsi.bits.Fast.log2;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import static java.lang.Math.E;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
@@ -194,7 +197,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		// Build function assigning the lcp length and the bucketing data to each element.
 		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return lcpLengths[ index / bucketSize ] << log2BucketSize | index & bucketSizeMask; 
+				return lcpLengths[ index >>> log2BucketSize ] << log2BucketSize | index & bucketSizeMask; 
 			}
 			public int size() {
 				return n;
@@ -237,7 +240,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) + Fast.log2( maxLength - Fast.log2( n ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GAMMA - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 

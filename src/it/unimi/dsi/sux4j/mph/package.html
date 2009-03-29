@@ -24,22 +24,23 @@ a very small number of bits per element, providing different space/time tradeoff
 <ul>
 <li>{@link it.unimi.dsi.sux4j.mph.LcpMonotoneMinimalPerfectHashFunction} is very fast, as it has just to evaluate three {@link it.unimi.dsi.sux4j.mph.MWHCFunction}s
 (so if the length of the strings is a constant multiplied by the machine word, it is actually constant time); however it uses 
-2.7 + log log <var>n</var> + log <var>l</var> bits per element. {@link it.unimi.dsi.sux4j.mph.TwoStepsLcpMonotoneMinimalPerfectHashFunction} gains
-a few bits by performing some additional compression, but it is usually slower (albeit always constant time).</li>
+2.14 + log log <var>n</var> + log <var>l</var> bits per element. {@link it.unimi.dsi.sux4j.mph.TwoStepsLcpMonotoneMinimalPerfectHashFunction} gains
+a few bits by performing some additional compression, but it is usually slightly slower (albeit always constant time).</li>
 <li>{@link it.unimi.dsi.sux4j.mph.PaCoTrieDistributorMonotoneMinimalPerfectHashFunction} is slower, as it uses a <em>{@linkplain it.unimi.dsi.sux4j.mph.PaCoTrieDistributor partial compacted trie}</em>
 (which requires linear time to be accessed) to distribute keys between buckets; theoretically it uses 
-2.7 + 2 log <var>l</var> bits per element, but the partial compacted trie is every efficiency in exploiting data redundancy, so the actual
+2.14 + log(<var>l</var> - log <var>n</var>)  bits per element, but the partial compacted trie is every efficiency in exploiting data redundancy, so the actual
 occupancy is in general half with respect to the previous function.</li>
-<li>{@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction} is <em>very</em> slow as it has to traverse a succinct trie on the whole key set; it
-is mainly of theoretical interest, as it uses just 2 + log <var>l</var> bits per element, and also in practice it
-occupies less space than the previous two functions.</li>
+<li>{@link it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction} is <em>rather</em> slow as it has to traverse a succinct trie on the whole key set; 
+it uses just 4 + log <var>l</var> + log log <var>l</var>var> bits per element, and in practice it
+is the monotone minimal perfect hash function that uses less space.</li>
 <li>{@link it.unimi.dsi.sux4j.mph.HollowTrieDistributorMonotoneMinimalPerfectHashFunction} is slow, as it
 uses a {@linkplain it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction enriched hollow trie as a distributor}, but it is faster than a hollow trie,
-and it has the (quite surprising) property of using 3.44 + 1.23 log log <var>l</var> bits per element (note the double log). In practice,
+and it has the (quite surprising) property of using 3.21 + 1.23 log log <var>l</var> bits per element (note the double log). In practice,
 it will use less than a byte per element for strings of length up to a billion bits.</li>
 <li>{@link it.unimi.dsi.sux4j.mph.ZFastTrieDistributorMonotoneMinimalPerfectHashFunction} is faster than
-{@link it.unimi.dsi.sux4j.mph.HollowTrieDistributorMonotoneMinimalPerfectHashFunction}, but occupies in practice more space
-(even if, from an asymptotic viewpoint, the space required is the same). Presently it is mainly of theoretical interest.</li>
+{@link it.unimi.dsi.sux4j.mph.HollowTrieDistributorMonotoneMinimalPerfectHashFunction}, but occupies in practice more space,
+even if, from an asymptotic viewpoint, the space required is the same. Presently it is mainly of theoretical interest, but
+it has the best behaviour when scaling to very large data sets (billions of strings).</li>
 </ul>
 </ul>
 
@@ -56,7 +57,7 @@ of the classical {@linkplain it.unimi.dsi.sux4j.mph.HypergraphSorter 3-hypergrap
 
 <p>Functions in this package implement the {@link it.unimi.dsi.fastutil.objects.Object2LongFunction} interface. However,
 the underlying machinery manipulates {@linkplain it.unimi.dsi.bits.BitVector bit vectors} only. To bring you own data
-into the bit vector world, each contructor requires to specify a {@linkplain it.unimi.dsi.bits.TransformationStrategy transformation strategy}
+into the bit vector world, each constructor requires to specify a {@linkplain it.unimi.dsi.bits.TransformationStrategy transformation strategy}
 that maps your objects into bit vectors. For instance, {@link it.unimi.dsi.bits.TransformationStrategies#utf16()},
 {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeUtf16()}, {@link it.unimi.dsi.bits.TransformationStrategies#iso()},
 and {@link it.unimi.dsi.bits.TransformationStrategies#prefixFreeIso()} are ready-made strategies that can be used with character sequences.
@@ -72,13 +73,16 @@ words, they will produce false positives; in the few cases in which it is possib
 value. </p>
 
 <p>If you are interested in getting a more precise behaviour (e.g., you are migrating from the deprecated <code>SignedMinimalPerfectHash</code>
-class that was distributed with <a href="http://mg4j.dsi.unimi.it/">MG4J</a>), you can <em>sign</em> a map, that is, you can record
+class that was distributed with <a href="http://mg4j.dsi.unimi.it/">MG4J</a>), you can <em>sign</em> a function, that is, you can record
 a signature for each key and use it to filter false positives. A signing class for character sequences is provided 
 by the <a href="http://dsiutils.dsi.unimi.it/">DSI utilities</a> class
 <a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/ShiftAddXorSignedStringMap.html">ShiftAddXorSignedStringMap</a>. By
 creating a function using one of the implementation provided with Sux4J and signing it using the above class, you can obtain the same functionality of
 the old signed classes, but you can choose the size of the signature, whether to require monotonicity, and also the space/time tradeoff
-of your function.
+of your function. Alternatively, by signing with 
+<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/LiterallySignedStringMap.html">LiterallySignedStringMap</a>
+we will get a two-way function (i.e., a full 
+<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/StringMap.html">StringMap</a> implementation).
  
 </body>
 </html>

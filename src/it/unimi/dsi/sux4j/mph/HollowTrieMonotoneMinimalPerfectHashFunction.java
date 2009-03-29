@@ -341,6 +341,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		// This is empirical--based on statistics about the average skip length in bits
 		// final double avgSkipLength = (double)sumOfSkipLengths / skips.size();
 		// LOGGER.info( "Empirical bit cost per element: " + ( 4 + avgSkipLength + Fast.log2( avgSkipLength ) ) );
+		// TODO: remove + 1
 		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgLength ) + 1 + Fast.log2( Fast.log2( avgLength + 1 ) + 1 ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}

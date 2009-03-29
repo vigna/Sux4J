@@ -57,7 +57,8 @@ import cern.colt.function.IntComparator;
  * of the desired order (so enumerating edges starting from the last in {@link #stack} you
  * are guaranteed to find each time a vertex that never appeared before). The public fields
  * {@link #edge}, {@link #numEdges} and {@link #numVertices} expose the structure of the generated
- * 3-hypergraph.
+ * 3-hypergraph. For <var>m</var> edges, the number of vertices will be &lceil {@linkplain #GAMMA &gamma;}<var>m</var> &rceil; + 1,
+ * unless <var>m</var> is zero, in which case the number of vertices will be zero, too. 
  * 
  * <p>To guarantee the same results when reading a Majewski-Wormald-Havas-Czech-like structure,
  * the method {@link #bitVectorToEdge(BitVector, long, int, int[]) bitVectorToEdge()} can be used to retrieve, starting from
@@ -78,7 +79,7 @@ import cern.colt.function.IntComparator;
  * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
  * 
- * <strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
+ * <p><strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
  * methods. It is your responsibility to pair them correctly.
  * 
  * <h2>Implementation details</h2>
@@ -98,10 +99,11 @@ import cern.colt.function.IntComparator;
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
  * <P>To help diagnosing problem with the generation process
- * class, this class will log at {@link org.apache.log4j.Level#INFO INFO} level
+ * class, this class will log at {@link org.apache.log4j.Level#DEBUG DEBUG} level
  * what's happening.
  *
- * <P>Note that if during the generation process the log warns more than once about duplicate edges, you should
+ * <P>Note that if during the generation process the log warns more than once about duplicate edges (this happens
+ * at {@link org.apache.log4j.Level#INFO INFO} level), you should
  * suspect that there are duplicates in the string list, as duplicate edges are <em>extremely</em> unlikely.
  *
  * @author Sebastiano Vigna

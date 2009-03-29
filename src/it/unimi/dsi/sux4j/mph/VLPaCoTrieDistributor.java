@@ -322,7 +322,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 */
 		public int toStream( final OutputBitStream obs, final ProgressLogger pl ) throws IOException {
 			final int result = toStream( root, obs, pl );
-			LOGGER.info( "Gain: " + gain );
+			LOGGER.debug( "Gain: " + gain );
 			return result;
 		}
 		
@@ -430,7 +430,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		pl.done();
 		offset = immutableBinaryTrie.offset;
 
-		LOGGER.info(  "trie bit size:" + trie.writtenBits() );
+		LOGGER.debug(  "Trie bit size: " + trie.writtenBits() );
 		
 		trie.flush();
 		fbStream.trim();

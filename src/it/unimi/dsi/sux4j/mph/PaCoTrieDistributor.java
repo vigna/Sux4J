@@ -134,17 +134,18 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
 		 * @param elements the elements among which the trie must be able to rank.
-		 * @param bucketSize the size of a bucket.
+		 * @param log2BucketSize the logarithm of the size of a bucket.
 		 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 		 * distinct, lexicographically increasing (in iteration order) bit vectors.
 		 */
 		
-		public PartialTrie( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final ProgressLogger pl ) {
+		public PartialTrie( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ProgressLogger pl ) {
 			Iterator<? extends T> iterator = elements.iterator(); 
 			
 			Node node;
 			BitVector curr;
 			int pos, prefix;
+			int bucketMask = ( 1 << log2BucketSize ) - 1;
 
 			if ( iterator.hasNext() ) {
 				pl.start( "Building trie..." );
@@ -166,7 +167,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
-					if ( count % bucketSize == 0 ) {
+					if ( ( count & bucketMask ) == 0 ) {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, prev.copy() );
@@ -216,13 +217,13 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						int c = 1;
 						while( iterator.hasNext() ) {
 							curr = transformationStrategy.toBitVector( iterator.next() );
-							if ( c++ % bucketSize == 0 ) {
+							if ( ( c++ & bucketMask ) == 0 ) {
 								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
 								node = root;
 								pos = 0;
 								while( node != null ) {
 									prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
+									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / ( 1 << log2BucketSize );
 									pos += node.path.length() + 1;
 									if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
 									else {
@@ -395,16 +396,16 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
-	 * @param bucketSize the size of a bucket.
+	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public PaCoTrieDistributor( final Iterable<? extends T> elements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public PaCoTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
-		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, bucketSize, transformationStrategy, pl );
+		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, log2BucketSize, transformationStrategy, pl );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
 		pl.start( "Converting to bitstream..." );
@@ -412,7 +413,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		pl.done();
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		LOGGER.debug( "Trie bit size: " + trie.writtenBits() );
+		LOGGER.info( "Trie bit size: " + trie.writtenBits() );
 		
 		trie.flush();
 		fbStream.trim();

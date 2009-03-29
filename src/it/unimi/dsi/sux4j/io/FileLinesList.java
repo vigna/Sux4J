@@ -36,6 +36,7 @@ import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -73,7 +74,7 @@ import java.util.RandomAccess;
  * @author Sebastiano Vigna
  * @since 1.1
  */
-public class FileLinesList extends AbstractObjectList<MutableString> implements RandomAccess {
+public class FileLinesList extends AbstractObjectList<MutableString> implements RandomAccess, Serializable {
 
 	/** The filename upon which this file-lines collection is based. */
 	private final String filename;

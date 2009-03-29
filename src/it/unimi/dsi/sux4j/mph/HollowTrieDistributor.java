@@ -455,20 +455,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 		externalKeysFile.delete();
 		falseFollowsKeyFile.delete();
-
-		/*		if ( ASSERTS ) {
-			if ( size > 0 ) {
-				Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
-				int c = 0;
-				while( iterator.hasNext() ) {
-					BitVector curr = iterator.next();
-					if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % bucketSize == 0 ? " (bucket)" : "" ));
-					long t = getLong( curr );
-					assert c / bucketSize == t : c / bucketSize + " != " + t;
-					c++;
-				}		
-			}
-		}*/
 	}
 
 

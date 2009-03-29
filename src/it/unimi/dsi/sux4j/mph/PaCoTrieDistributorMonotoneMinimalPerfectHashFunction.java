@@ -141,7 +141,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		LOGGER.info( "Creating distributor..." );
 		
-		PaCoTrieDistributor<BitVector> firstDistributor = new PaCoTrieDistributor<BitVector>( bitVectors, firstbucketSize, TransformationStrategies.identity() );
+		PaCoTrieDistributor<BitVector> firstDistributor = new PaCoTrieDistributor<BitVector>( bitVectors, t, TransformationStrategies.identity() );
 
 		if ( firstbucketSize >= size ) log2BucketSize = t;
 		else {
@@ -155,7 +155,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
 		else {
 			firstDistributor = null;
-			distributor = new PaCoTrieDistributor<BitVector>( bitVectors, bucketSize, TransformationStrategies.identity() );
+			distributor = new PaCoTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity() );
 		}
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );

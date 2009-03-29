@@ -143,7 +143,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 
-		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( (long)Math.ceil( 10.5 + 4.05 * log( averageLength ) + 2.43 * log( log ( size ) + 1 ) + 2.43 * log( log( averageLength ) + 1 ) ) ) : log2BucketSize;
+		final long forecastBucketSize = (long)Math.ceil( 10.5 + 4.05 * log( averageLength ) + 2.43 * log( log ( size ) + 1 ) + 2.43 * log( log( averageLength ) + 1 ) );
+		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( forecastBucketSize ) : log2BucketSize;
 		
 		LOGGER.debug( "Average length: " + averageLength );
 		LOGGER.debug( "Max length: " + maxLength );
@@ -165,13 +166,12 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		
 		chunkedHashStore.close();
 		
-		final int bucketSize = 1 << this.log2BucketSize;
 		double logU = averageLength * log( 2 );
 		LOGGER.info( "Forecast bit cost per element: "
-				+ 1.0 / bucketSize
-				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( bucketSize ) + 
+				+ 1.0 / forecastBucketSize
+				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( forecastBucketSize ) + 
 						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GAMMA + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
-						+ 3 + GAMMA * bucketSize + GAMMA * bucketSize * log2( bucketSize ) ) ); 
+						+ 3 + GAMMA * forecastBucketSize + GAMMA * forecastBucketSize * log2( forecastBucketSize ) ) ); 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		

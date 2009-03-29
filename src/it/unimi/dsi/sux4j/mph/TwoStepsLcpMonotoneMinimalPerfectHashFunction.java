@@ -224,7 +224,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
 			public long getLong( int index ) {
-				return lcpLengths[ index / bucketSize ]; 
+				return lcpLengths[ index >>> log2BucketSize ]; 
 			}
 			public int size() {
 				return n;
