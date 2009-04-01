@@ -212,5 +212,4 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 		//assertEquals( 3, bp.enclose( 5 ) );
 
 	}
-		
 }
