@@ -144,7 +144,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
-		BitVector curr = null;
+		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		int maxLcp = 0, minLcp = Integer.MAX_VALUE;
 		long maxLength = 0, totalLength = 0;
@@ -166,7 +166,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
-				curr = transform.toBitVector( iterator.next() );
+				curr.replace( transform.toBitVector( iterator.next() ) );
 				chunkedHashStore.add( curr );
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength( prev );

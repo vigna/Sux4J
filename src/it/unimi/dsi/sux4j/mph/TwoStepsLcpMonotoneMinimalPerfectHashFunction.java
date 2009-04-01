@@ -145,7 +145,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
-		BitVector curr = null;
+		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
@@ -167,7 +167,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
-				curr = transform.toBitVector( iterator.next() );
+				curr.replace( transform.toBitVector( iterator.next() ) );
 				chunkedHashStore.add( curr );
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength( prev );

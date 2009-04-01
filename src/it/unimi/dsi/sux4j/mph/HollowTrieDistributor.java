@@ -215,7 +215,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				int pathLength;
 				long lastNode = -1;
 				BitVector lastPath = null;
-				BitVector curr = null, prev;
+				LongArrayBitVector curr = null, prev;
 
 				for( int j = 0; j < realBucketSize; j++ ) {
 					prev = curr;

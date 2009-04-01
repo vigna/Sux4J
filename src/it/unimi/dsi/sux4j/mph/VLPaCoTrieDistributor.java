@@ -149,7 +149,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			Iterator<? extends T> iterator = elements.iterator(); 
 			
 			Node node;
-			BitVector curr;
+			LongArrayBitVector curr = LongArrayBitVector.getInstance();
 			int pos, prefix;
 
 			if ( iterator.hasNext() ) {
@@ -168,7 +168,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				
 				while( iterator.hasNext() ) {
 					// Check order
-					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+					curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 					pl.lightUpdate();
 					prefix = (int)curr.longestCommonPrefixLength( prev );
 					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
@@ -235,7 +235,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 						iterator = elements.iterator();
 						int c = 1;
 						while( iterator.hasNext() ) {
-							curr = transformationStrategy.toBitVector( iterator.next() );
+							curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 							if ( c++ % bucketSize == 0 ) {
 								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
 								node = root;
@@ -267,7 +267,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					boolean first = true;
 
 					while( iterator.hasNext() ) {
-						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 						pl.lightUpdate();
 						if ( ! first )  {
 							// Adjust stack using lcp between present string and previous one

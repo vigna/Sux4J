@@ -203,13 +203,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
 				Node node, root = null;
-				BitVector curr;
+				LongArrayBitVector curr = LongArrayBitVector.getInstance();
 				int pos, prefix, count = 1;
 				long maxLength = prev.length();
 				
 				while( iterator.hasNext() ) {
 					// Check order
-					curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+					curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 					pl.lightUpdate();
 					prefix = (int)curr.longestCommonPrefixLength( prev );
 					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
@@ -318,7 +318,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					LongArrayBitVector nodePath;
 
 					while( iterator.hasNext() ) {
-						curr = transformationStrategy.toBitVector( iterator.next() ).fast();
+						curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 						pl.lightUpdate();
 						if ( DDDEBUG ) System.err.println( "Analysing key " + curr + "..." );
 						if ( ! first )  {
