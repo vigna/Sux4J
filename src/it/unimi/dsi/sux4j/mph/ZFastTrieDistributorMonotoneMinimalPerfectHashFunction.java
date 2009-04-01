@@ -120,6 +120,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		chunkedHashStore.reset( r.nextLong() );
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
 		pl.start( "Scanning collection..." );
 		for( BitVector bv: bitVectors ) {

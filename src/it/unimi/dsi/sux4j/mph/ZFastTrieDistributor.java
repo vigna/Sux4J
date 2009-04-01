@@ -424,6 +424,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		this.transformationStrategy = transformationStrategy;
 		this.seed = chunkedHashStore.seed();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayFreeMemory = true;
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed, pl );
 
 		size = intermediateTrie.numElements;

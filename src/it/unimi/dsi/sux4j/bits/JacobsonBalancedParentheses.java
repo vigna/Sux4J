@@ -228,9 +228,125 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	
 	}
 	
-	private final static long L = 0x3830282018100800L + 0x0202020202020202L;
+	public final static int findNearClose2( final long word ) {
+		int c = 1;
+		for( int i = 1; i < 64; i++ ) {
+			if ( ( word & 1L << i ) != 0 ) c++;
+			else c--;
+			if ( c == 0 ) return i;
+		}
+		return 64;
+	}
 
-	public final static int findNearClose( long word ) {
+
+	private final static long L = 0x4038302820181008L;
+
+	public final static int findNearClose( final long word ) {
+		long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+		long zeroes, update;
+		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ( ONES_STEP_8 << 1 ); // Twice the number of open parentheses (cumulative by byte)
+
+		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+        // TODO: this can be simplified
+		byteSums = ( ( L | MSBS_STEP_8 ) - byteSums ) ^ ( ( L ^ ~byteSums ) & MSBS_STEP_8 ); // Closed excess per byte
+		//System.err.print( "Closed excess: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+
+		// Set up flags for excess values that are already zero
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes = ( MSBS_STEP_8 | ONES_STEP_8 * 7 ) & update;
+		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
+		
+		byteSums += ( word >>> 7 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 7 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 );
+		//System.err.print( "Sums: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 6 ) & update;
+		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
+		
+		byteSums += ( word >>> 6 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 6 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		//System.err.print( "Sums: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		//System.err.print( "Updates: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(update >>> i * 8 & 0xFF) + " " ); System.err.println();
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 5 ) & update;
+		//System.err.print( "Zeroes: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
+		
+		byteSums += ( word >>> 5 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 5 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 4 ) & update;
+		
+		byteSums += ( word >>> 4 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 4 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 3 ) & update;
+		
+		byteSums += ( word >>> 3 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 3 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 2 ) & update;
+		
+		byteSums += ( word >>> 2 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 2 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		zeroes = zeroes & ~update | ( MSBS_STEP_8 | ONES_STEP_8 * 1 ) & update;
+		
+		byteSums += ( word >>> 1 & ONES_STEP_8 );
+		byteSums = ( ( byteSums | MSBS_STEP_8 ) - ( ~( word >>> 1 ) & ONES_STEP_8 ) ) ^ ( ( byteSums ^ MSBS_STEP_8 ) & MSBS_STEP_8 ); 
+		update = ( ~( byteSums | ( ( byteSums | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7;
+		update = ( ( update | MSBS_STEP_8 ) - ONES_STEP_8 ) ^ ( ( update ^ ONES_STEP_8 ) | ~MSBS_STEP_8 );
+		zeroes = zeroes & ~update | MSBS_STEP_8 & update;
+		
+		
+		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
+		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
+		
+		// TODO: check that in this case MSB(x&-x) isn't better.
+		final int block = Fast.leastSignificantBit( zeroes >>> 7 & ONES_STEP_8 );
+		// A simple trick to return 127 if block < 0 (i.e., no match)
+		return ( (int)( block + ( zeroes >>> block & 0x7F ) ) | ( block >> 8 ) ) & 0x7F;
+
+		/*		//assert block != -1;
+		//block = block == -1 ? 0 : block / 8;
+		assert block >= 7;
+		excess = excess >>> block - 7 & 0xFF;
+		System.out.println( "LSB: " + Fast.leastSignificantBit( zeroes & MSBS_STEP_8 ) + " Block: " + block ); 
+		System.out.println("Excess: " + excess );
+		
+		if ( excess != 0 ) {
+			for( int i = 0; i < 8; i++ ) {
+				if ( ( origWord & 1L << block - 7 + i ) != 0 ) excess++;
+				else excess--;
+				if ( excess == 0 ) {
+					assert ( zeroes >>> block -7 & 0x7F ) - 1 == i : (( zeroes >>> block -7 & 0x7F ) - 1 )+ " != " + i;
+
+					return block -7 + i;
+				}
+			}
+		}
+		else {
+			//assert ( zeroes >>> block -7 & 0x7F ) - 1 == 1 : ( ( zeroes >>> block -7 & 0x7F ) - 1 ) + " != " + 1;
+			return (int)( block - 7 + ( zeroes >>> block -7 & 0x7F ) - 1 );
+		}
+		
+        return -1;*/
+        
+	}
+	
+	private final static long L_ALT = 0x3830282018100800L + 0x0202020202020202L;
+
+	public final static int findNearCloseAlt( long word ) {
 		long byteSums = ( word << 6 ) - ( ( ( word << 6 ) & 0xa * ONES_STEP_4 ) >>> 1 );
 		long zeroes, update;
 		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
@@ -238,7 +354,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		byteSums = ( ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8 ) * ( ONES_STEP_8 << 1 ); // Twice the number of open parentheses (cumulative by byte)
 
 		//System.err.print( "**** " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
-		byteSums = ( ( MSBS_STEP_8 | byteSums ) - L ) ^ MSBS_STEP_8; // Closed excess per byte
+		byteSums = ( ( MSBS_STEP_8 | byteSums ) - L_ALT ) ^ MSBS_STEP_8; // Closed excess per byte
 		//System.err.print( "Closed excess: " ); for( int i = 0; i < 8; i++ ) System.err.print( (byte)(byteSums >>> i * 8 & 0xFF) + " " ); System.err.println();
 
 		// Set up flags for excess values that are already zero
@@ -298,17 +414,6 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		
         return -1;*/
         
-	}
-
-	public final static int findNearClose2( final long word ) {
-		int e = 1;
-		for( int i = 1; i < 64; i++ ) {
-			if ( ( word & 1L << i ) != 0 ) e++;
-			else e--;
-			if (e == 0) return i;
-		}
-
-		return 64;
 	}
 
 	public JacobsonBalancedParentheses( final BitVector bv ) {
