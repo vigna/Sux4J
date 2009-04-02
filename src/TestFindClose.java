@@ -59,21 +59,21 @@ public class TestFindClose {
 				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearClose( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Broadword: " + start + "ms " + ( start * 1000.0 ) / (n / 2) + " ns/find" );
+			System.err.println( "Broadword: " + start + "ms " + ( start * 1000000.0 ) / (n / 2) + " ns/find" );
 
 			start = - System.currentTimeMillis();
 			for( long i = n; i -- != 0; ) {
 				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearCloseAlt( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Broadword 2: " + start + "ms " + ( start * 1000.0 ) /( n / 2 ) + " ns/find" );
+			System.err.println( "Broadword 2: " + start + "ms " + ( start * 1000000.0 ) /( n / 2 ) + " ns/find" );
 
 			start = - System.currentTimeMillis();
 			for( long i = n; i -- != 0; ) {
 				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearClose2( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Loop: " + start + "ms " + ( start * 1000.0 ) / ( n / 2 ) + " ns/find" );
+			System.err.println( "Loop: " + start + "ms " + ( start * 1000000.0 ) / ( n / 2 ) + " ns/find" );
 		
 		}
 
