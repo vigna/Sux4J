@@ -1,4 +1,3 @@
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.sux4j.bits.JacobsonBalancedParentheses;
 
 import java.util.Random;
@@ -26,10 +25,6 @@ public class TestFindClose {
 		return t.toString();
 	}
 
-	public final static long SPREAD = 0x0101010101010101L;
-	public final static long BYTE_MSBS = 0x80 * SPREAD;
-	public final static long INCR = 0xffL << 56 | 0x7fL << 48 | 0x3fL << 40 | 0x1FL << 32 | 0xF << 24 | 0x7 << 16 | 0x3 << 8 | 0x1; 
-	
 	public static void fillParen( long bits[], long num_bits ) {
 		Random random = new Random();
 		bits[ 0 ] = 1; // First open parenthesis
@@ -47,33 +42,53 @@ public class TestFindClose {
 
 	
 	public static void main( String a[] ) {
-		Random random = new Random( 1 );
+		Random random = new Random();
 		final long n = Long.parseLong( a[ 0 ] );
+		final double p = a.length > 1 ? Double.parseDouble( a[ 1 ] ) : .5;
 		
 		long test[] = new long[ (int)( ( n + 63 ) / 64 ) ];
+		boolean[] take = new boolean[ test.length ];
 		fillParen( test, n );
+		long m = 0, far = 0;
+		int res;
+		for( long i = n; i -- != 0; ) {
+			if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) {
+				res =  JacobsonBalancedParentheses.findNearClose( test[(int)( i / 64 ) ] );
+				if ( res >= 64 ) {
+					take[ (int)(i / 64) ] = true;
+					m++;
+					far++;
+				}
+				else {
+					take[ (int)(i / 64) ] = random.nextDouble() < p;
+					m++;
+				}
+			}
+		}
+		
+		System.err.println( "m: " + m + " far: " + far );
 		
 		for( int k = 10; k-- != 0; ) {
 			long start = - System.currentTimeMillis();
 			for( long i = n; i -- != 0; ) {
-				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearClose( test[(int)(i / 64)] );
+				if ( take[ (int)(i / 64) ] ) JacobsonBalancedParentheses.findNearClose( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Broadword: " + start + "ms " + ( start * 1000000.0 ) / (n / 2) + " ns/find" );
+			System.err.println( "Broadword: " + start + "ms " + ( start * 1000000.0 ) / m + " ns/find" );
 
 			start = - System.currentTimeMillis();
 			for( long i = n; i -- != 0; ) {
-				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearCloseAlt( test[(int)(i / 64)] );
+				if ( take[ (int)(i / 64) ] ) JacobsonBalancedParentheses.findNearCloseAlt( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Broadword 2: " + start + "ms " + ( start * 1000000.0 ) /( n / 2 ) + " ns/find" );
+			System.err.println( "Broadword 2: " + start + "ms " + ( start * 1000000.0 ) / m+ " ns/find" );
 
 			start = - System.currentTimeMillis();
 			for( long i = n; i -- != 0; ) {
-				if ( ( test[ (int)(i / 64) ] & 1 ) != 0 ) JacobsonBalancedParentheses.findNearClose2( test[(int)(i / 64)] );
+				if ( take[ (int)(i / 64) ] ) JacobsonBalancedParentheses.findNearClose2( test[(int)(i / 64)] );
 			}
 			start += System.currentTimeMillis();
-			System.err.println( "Loop: " + start + "ms " + ( start * 1000000.0 ) / ( n / 2 ) + " ns/find" );
+			System.err.println( "Loop: " + start + "ms " + ( start * 1000000.0 ) / m + " ns/find" );
 		
 		}
 
