@@ -59,10 +59,7 @@ public class TestFindClose {
 					m++;
 					far++;
 				}
-				else {
-					take[ (int)(i / 64) ] = random.nextDouble() < p;
-					m++;
-				}
+				else if ( take[ (int)(i / 64) ] = random.nextDouble() < p ) m++;
 			}
 		}
 		
