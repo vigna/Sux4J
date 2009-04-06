@@ -61,7 +61,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 1L;
+    public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */

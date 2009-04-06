@@ -111,7 +111,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = Util.getLogger( MinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
-	public static final long serialVersionUID = 1L;
+	public static final long serialVersionUID = 2L;
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;

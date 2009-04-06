@@ -54,7 +54,7 @@ import cern.colt.function.LongComparator;
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 1L;
+    public static final long serialVersionUID = 2L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;

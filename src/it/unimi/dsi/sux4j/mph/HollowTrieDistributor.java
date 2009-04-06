@@ -62,7 +62,7 @@ import org.apache.log4j.Logger;
 
 public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor.class );
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 

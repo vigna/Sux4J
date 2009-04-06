@@ -63,7 +63,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = Util.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */

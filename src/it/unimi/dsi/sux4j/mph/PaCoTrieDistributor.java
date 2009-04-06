@@ -66,7 +66,7 @@ import org.apache.log4j.Logger;
 
 public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	private final static Logger LOGGER = Util.getLogger( PaCoTrieDistributor.class );
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	/** Infinity-like value for initialising node prefixes. It's one less than {@link Integer#MAX_VALUE} because we need to be able to add one

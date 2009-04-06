@@ -92,7 +92,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
-    public static final long serialVersionUID = 1L;
+    public static final long serialVersionUID = 2L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
