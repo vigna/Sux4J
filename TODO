@@ -3,6 +3,4 @@
 - Decide where to count transformation-strategy bits
 - 64-bit clean?
 - Improve ZFast construction memory and time
-- Change ALL serialVersionIds
-- Check all "BitVector curr"
 - Add logging line in main methods to start counters correctly

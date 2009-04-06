@@ -1,7 +1,9 @@
-1.1
+2.0
 
 - General revamp, restructuring, improvements, new coherent names for
   classes. Most of the code has been rewritten or improved.
+
+- New (partial) structures for balanced parentheses.
 
 - New build system based on ChunkedHashStore that works for billions
   of keys.
