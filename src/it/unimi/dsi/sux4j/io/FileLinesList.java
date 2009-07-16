@@ -75,7 +75,7 @@ import java.util.RandomAccess;
  * @since 1.1
  */
 public class FileLinesList extends AbstractObjectList<MutableString> implements RandomAccess, Serializable {
-
+	private static final long serialVersionUID = 1L;
 	/** The filename upon which this file-lines collection is based. */
 	private final String filename;
 	/** The size of the list. */
@@ -89,7 +89,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	/** A character buffer for character decoding. It is enough large to hold any line in the file. */
 	private final CharBuffer charBuffer;
 	/** A sparse selection structure keeping track of the start of each line in the file. */
-	private EliasFanoMonotoneLongBigList borders;
+	private final EliasFanoMonotoneLongBigList borders;
 	/** The fast buffered input stream used by {@link #get(int)}. */
 	private final FastBufferedInputStream inputStream;
 	/** A decoder used by {@link #get(int)}. */

@@ -142,7 +142,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements. ALERT: check for accuracy in wording 
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
 	 */
 
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
