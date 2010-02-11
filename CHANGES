@@ -1,3 +1,8 @@
+2.0.1
+
+- Fixed bug in MinimalPerfetHashFunction that was causing exceptions
+  when using more than a billion keys.
+
 2.0
 
 - General revamp, restructuring, improvements, new coherent names for
