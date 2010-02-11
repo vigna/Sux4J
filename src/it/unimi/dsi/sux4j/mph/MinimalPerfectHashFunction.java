@@ -266,10 +266,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		
 		if ( n > 0 ) {
 			int m = (int)values.length();
-			count = new int[ (int)( ( 2 * (long)m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
+			count = new int[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
 			int c = 0;
 
-			final int numWords = ( 2 * m + Long.SIZE - 1 ) / Long.SIZE;
+			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
 			for( int i = 0; i < numWords; i++ ) {
 				if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
 				c += countNonzeroPairs( array[ i ] );
