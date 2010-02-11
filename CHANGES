@@ -1,7 +1,8 @@
 2.0.1
 
 - Fixed bug in MinimalPerfetHashFunction that was causing exceptions
-  when using more than a billion keys.
+  when using more than a billion keys (thanks to Wei Liu for reporting
+  and fixing this bug).
 
 2.0
 
