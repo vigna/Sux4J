@@ -265,7 +265,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 		
 		if ( n > 0 ) {
-			int m = (int)values.length();
+			long m = values.length();
 			count = new int[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
 			int c = 0;
 
