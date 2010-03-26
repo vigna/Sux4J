@@ -97,9 +97,9 @@ public class SimpleSelect implements Select {
 		// First phase: we build an inventory for each one out of onesPerInventory.
 		for( int i = 0; i < numWords; i++ )
 			for( int j = 0; j < 64; j++ ) {
-				if ( i * 64 + j >= length ) break;
+				if ( i * 64L + j >= length ) break;
 				if ( ( bits[ i ] & 1L << j ) != 0 ) {
-					if ( ( d & onesPerInventoryMask ) == 0 ) inventory[ (int)( d >>> log2OnesPerInventory ) ] = i * 64 + j;
+					if ( ( d & onesPerInventoryMask ) == 0 ) inventory[ (int)( d >>> log2OnesPerInventory ) ] = i * 64L + j;
 					d++;
 				}
 			}
@@ -122,7 +122,7 @@ public class SimpleSelect implements Select {
 			for( int i = 0; i < numWords; i++ )
 				// We estimate the subinventory and exact spill size
 				for( int j = 0; j < 64; j++ ) {
-					if ( i * 64 + j >= length ) break;
+					if ( i * 64L + j >= length ) break;
 					if ( ( bits[ i ] & 1L << j ) != 0 ) {
 						if ( ( d & onesPerInventoryMask ) == 0 ) {
 							inventoryIndex = (int)( d >>> log2OnesPerInventory );
@@ -156,7 +156,7 @@ public class SimpleSelect implements Select {
 
 			for( int i = 0; i < numWords; i++ )
 				for( int j = 0; j < 64; j++ ) {
-					if ( i * 64 + j >= length ) break;
+					if ( i * 64L + j >= length ) break;
 					if ( ( bits[ i ] & 1L << j ) != 0 ) {
 						if ( ( d & onesPerInventoryMask ) == 0 ) {
 							inventoryIndex = (int)( d >>> log2OnesPerInventory );
@@ -166,21 +166,21 @@ public class SimpleSelect implements Select {
 						}
 
 						if ( span < (1<<16) ) {
-							assert( i * 64 + j - start <= (1<<16) );
+							assert( i * 64L + j - start <= (1<<16) );
 							if ( ( d & onesPerSub16Mask ) == 0 ) {
-								subinventory16.set( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) +  offset++, i * 64 + j - start );
+								subinventory16.set( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) +  offset++, i * 64L + j - start );
 							}
 						}
 						else {
 							if ( onesPerSub64 == 1 ) {
-								subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + offset++ ] = i * 64 + j;
+								subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + offset++ ] = i * 64L + j;
 							}
 							else {
 								if ( ( d & onesPerInventoryMask ) == 0 ) {
 									inventory[ inventoryIndex ] |= 1L << 63;
 									subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] = spilled;
 								}
-								exactSpill[ spilled++ ] = i * 64 + j;
+								exactSpill[ spilled++ ] = i * 64L + j;
 							}
 						}
 
@@ -251,7 +251,7 @@ public class SimpleSelect implements Select {
         // Compute the inside-byte location and return the sum
         final long byteRankStep8 = byteRank * ONES_STEP_8;
 
-        return wordIndex * 64 + byteOffset + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 );
+        return wordIndex * 64L + byteOffset + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 );
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {

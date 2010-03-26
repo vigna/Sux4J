@@ -108,7 +108,7 @@ public class HintedBsearchSelect implements Select {
 		final long word = blockLeft * 4 + offsetInBlock;
 		final long rankInWord = rankInBlock - ( subcounts >>> ( offsetInBlock - 1 & 7 ) * 9 & 0x1FF );
 
-        return word * 64 + Fast.select( bits[ (int)word ], (int)rankInWord );
+        return word * 64L + Fast.select( bits[ (int)word ], (int)rankInWord );
 	}
 
 	public long numBits() {

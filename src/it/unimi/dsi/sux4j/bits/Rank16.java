@@ -68,7 +68,7 @@ public class Rank16 extends AbstractRank implements Rank {
 			if ( i % BLOCK_LENGTH == 0 ) superCount[ i / BLOCK_LENGTH ] = c;
 			if ( i % 2 == 0 ) count[ i / 2 ] = (short)( c - superCount[ i / BLOCK_LENGTH ] );
 			c += Fast.count( bits[ i ] );
-			if ( bits[ i ] != 0 ) l = i * 64 + Fast.mostSignificantBit( bits[ i ] );
+			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
 		}
 		
 		numOnes = c;

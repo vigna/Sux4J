@@ -77,7 +77,7 @@ public class Select9 implements Select {
 		for ( int i = 0; i < numWords; i++ )
 			for ( int j = 0; j < 64; j++ )
 				if ( ( bits[ i ] & 1L << j ) != 0 ) {
-					if ( ( d & INVENTORY_MASK ) == 0 ) inventory[ (int)( d >> LOG2_ONES_PER_INVENTORY ) ] = i * 64 + j;
+					if ( ( d & INVENTORY_MASK ) == 0 ) inventory[ (int)( d >> LOG2_ONES_PER_INVENTORY ) ] = i * 64L + j;
 					d++;
 				}
 
@@ -99,7 +99,7 @@ public class Select9 implements Select {
 			for( int j = 0; j < 64; j++ )
 				if ( ( bits[ i ] & 1L << j ) != 0 ) {
 					if ( ( d & INVENTORY_MASK ) == 0 ) {
-						firstBit = i * 64 + j;
+						firstBit = i * 64L + j;
 						index = (int)( d >> LOG2_ONES_PER_INVENTORY );
 						if ( ASSERTS ) assert inventory[ index ] == firstBit;
 
@@ -161,17 +161,17 @@ public class Select9 implements Select {
 					switch( state ) {
 					case 0: 
 						if ( ASSERTS ) assert subinventory[ subinventoryPosition + (int)( d & INVENTORY_MASK ) ] == 0;
-						subinventory[ subinventoryPosition + (int)( d & INVENTORY_MASK ) ] = i * 64 + j;
+						subinventory[ subinventoryPosition + (int)( d & INVENTORY_MASK ) ] = i * 64L + j;
 						break;
 					case 1: 
 						if ( ASSERTS ) assert subinventoryasInts.getLong( subinventoryPosition * 2 + ( d & INVENTORY_MASK ) ) == 0;
-						if ( ASSERTS ) assert i * 64 + j - firstBit < (1L << 32);
-						subinventoryasInts.set(  subinventoryPosition * 2 + ( d & INVENTORY_MASK ), i * 64 + j - firstBit );
+						if ( ASSERTS ) assert i * 64L + j - firstBit < (1L << 32);
+						subinventoryasInts.set(  subinventoryPosition * 2 + ( d & INVENTORY_MASK ), i * 64L + j - firstBit );
 						break;
 					case 2: 
 						if ( ASSERTS ) assert subinventoryAsShorts.getLong( subinventoryPosition * 4 + ( d & INVENTORY_MASK ) ) == 0;
-						if ( ASSERTS ) assert i * 64 + j - firstBit < (1 << 16);
-						subinventoryAsShorts.set( subinventoryPosition * 4 + ( d & INVENTORY_MASK ), i * 64 + j - firstBit );
+						if ( ASSERTS ) assert i * 64L + j - firstBit < (1 << 16);
+						subinventoryAsShorts.set( subinventoryPosition * 4 + ( d & INVENTORY_MASK ), i * 64L + j - firstBit );
 						break;
 					}
 
@@ -269,7 +269,7 @@ public class Select9 implements Select {
 		if ( ASSERTS ) assert rankInWord < 64;
 		if ( ASSERTS ) assert rankInWord >= 0;
 
-		return word * 64 + Fast.select( bits[ word ], rankInWord );
+		return word * 64L + Fast.select( bits[ word ], rankInWord );
 	}
 
 	public long numBits() {
