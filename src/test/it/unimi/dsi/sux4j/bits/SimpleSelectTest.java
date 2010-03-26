@@ -207,4 +207,11 @@ public class SimpleSelectTest extends RankSelectTestCase {
 			for( int i = size; i-- != 0; ) assertEquals( i, r.select( i ) );
 		}
 	}
+	
+	public void testVeryLarge() {
+		LongArrayBitVector v = LongArrayBitVector.getInstance( 2200000000L );
+		for( int i = 0; i < 2200000000L / 64; i++ ) v.append( 0x5555555555555555L, 64 );
+		SimpleSelect simpleSelect = new SimpleSelect( v );
+		for( int i = 0; i < 1100000000; i++ ) assertEquals( i * 2L, simpleSelect.select( i ) );
+	}
 }
