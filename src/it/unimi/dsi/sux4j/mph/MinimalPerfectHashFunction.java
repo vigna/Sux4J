@@ -110,7 +110,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = Util.getLogger( MinimalPerfectHashFunction.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	public static final long serialVersionUID = 2L;
 
 	/** The number of bits per block in the rank structure. */
@@ -187,7 +187,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		offset = new int[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
-		values = bitVector.asLongBigList( 2 ).length( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numChunks ) );
+		values = bitVector.asLongBigList( 2 ).length( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 3 * numChunks ) );
 		array = bitVector.bits();
 		
 		int duplicates = 0;
@@ -203,7 +203,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			try {
 				int q = 0;
 				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
+					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size(), true );
 					do {
 						seed = r.nextLong();
 					} while ( ( sorter.generateAndSort( chunk.iterator(), seed ) ) != HypergraphSorter.Result.OK );
@@ -212,28 +212,21 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
 
 					/* We assign values. */
-					/** Whether a specific node has already been used as a hinge. */
-					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
-
 					int top = chunk.size(), k, v = 0;
 					final int[] stack = sorter.stack;
-					final int[][] edge = sorter.edge;
+					final int[] vertex1 = sorter.vertex1;
+					final int[] vertex2 = sorter.vertex2;
+					final byte[] hinge = sorter.hinge;
 					final int off = offset[ q ];
 
-					long s;
 					while( top > 0 ) {
-						k = stack[ --top ];
-
-						s = 0;
-						v = -1;
-
-						for ( int j = 0; j < 3; j++ ) {
-							if ( ! used.getBoolean( edge[ j ][ k ] ) ) used.set( edge[ v = j ][ k ] );
-							else s += values.getLong( off + edge[ j ][ k ] );
-						}
-
-						long value = ( v - s + 9 ) % 3;
-						values.set( off + edge[ v ][ k ], value == 0 ? 3 : value );
+						v = stack[ --top ];
+						k = hinge[ v ];
+						if ( ASSERTS ) assert k >= 0 && k < 3 : Integer.toString( k );
+						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> ( " + k + ")" );
+						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
+						final long value = ( k - s + 9 ) % 3;
+						values.set( off + v, value == 0 ? 3 : value );
 					}
 
 					q++;
@@ -243,7 +236,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						final IntOpenHashSet pos = new IntOpenHashSet();
 						final int[] e = new int[ 3 ];
 						for( long[] triple: chunk ) {
-							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, e );
+							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, sorter.partSize, e );
 							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
 						}
 					}

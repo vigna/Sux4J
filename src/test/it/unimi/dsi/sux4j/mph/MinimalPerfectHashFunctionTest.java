@@ -17,8 +17,8 @@ public class MinimalPerfectHashFunctionTest extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
 
-		for( int size: new int[] { 0, 1, 8, 20, 64, 100, 1000, 10000, 1000000 } ) {
-			System.err.println( size );
+		for( int size: new int[] { 0, 1, 4, 8, 20, 64, 100, 1000, 10000, 100000 } ) {
+			System.err.println( "Size: " + size );
 			String[] s = new String[ size ];
 			for( int i = s.length; i-- != 0; ) s[ i ] = Integer.toString( i );
 

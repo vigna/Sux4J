@@ -16,23 +16,26 @@ public class HypergraphFunctionTest extends TestCase {
 	
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
-		
-		String[] s = new String[ 1000 ];
-		long[] v = new long[ 1000 ];
-		for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = Integer.toString( i );
-		
-		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
-		
-		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
-		
-		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( function, temp );
-		function = (MWHCFunction<String>)BinIO.loadObject( temp );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
-		
-		function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), null, 12 );
-		for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
+		for( int size: new int[] { 0, 1, 4, 8, 20, 64, 100, 1000 } ) {
+			System.err.println( "Size: " + size );
+
+			String[] s = new String[ size ];
+			long[] v = new long[ s.length ];
+			for( int i = s.length; i-- != 0; ) s[ (int)( v[ i ] = i  )] = Integer.toString( i );
+
+			MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
+
+			for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
+
+			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+			temp.deleteOnExit();
+			BinIO.storeObject( function, temp );
+			function = (MWHCFunction<String>)BinIO.loadObject( temp );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
+
+			function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), null, 12 );
+			for( int i = s.length; i-- != 0; ) assertEquals( i, function.getLong( s[ i ] ) );
+		}
 	}
 	
 	public static String binary(int l) {

@@ -92,9 +92,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 		
 	/** The logarithm of the desired chunk size. */
@@ -185,7 +185,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 2 * numChunks );
+		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 3 * numChunks );
 
 		int duplicates = 0;
 		
@@ -200,7 +200,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			try {
 				int q = 0;
 				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
+					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size(), false );
 					do {
 						seed = r.nextLong();
 					} while ( ( sorter.generateAndSort( chunk.iterator(), seed ) ) != HypergraphSorter.Result.OK );
@@ -209,29 +209,22 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
 
 					/* We assign values. */
-					/** Whether a specific node has already been used as a hinge. */
-					final BitVector used = LongArrayBitVector.ofLength( sorter.numVertices );
 
-					int top = chunk.size(), k, v = 0;
+					int top = chunk.size(), v, k;
 					final int[] stack = sorter.stack;
-					final int[][] edge = sorter.edge;
+					final int[] vertex1 = sorter.vertex1;
+					final int[] vertex2 = sorter.vertex2;
+					final int[] edge = sorter.edge;
 					final int off = offset[ q ];
 
-					long s;
 					while( top > 0 ) {
-						k = stack[ --top ];
-
-						s = 0;
-						v = -1;
-
-						for ( int j = 0; j < 3; j++ ) {
-							if ( ! used.getBoolean( edge[ j ][ k ] ) ) used.set( edge[ v = j ][ k ] );
-							else s ^= data.getLong( off + edge[ j ][ k ] );
-						}
-
-						data.set( off + edge[ v ][ k ], ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) ^ s );
-						if ( ASSERTS ) assert ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) == ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) ) :
-							"<" + edge[ 0 ][ k ] + "," + edge[ 1 ][ k ] + "," + edge[ 2 ][ k ] + ">: " + ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) + " != " + ( data.getLong( off + edge[ 0 ][ k ] ) ^ data.getLong( off + edge[ 1 ][ k ] ) ^ data.getLong( off + edge[ 2 ][ k ] ) );
+						v = stack[ --top ];
+						k = edge[ v ];
+						final long s = data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] );
+						data.set( off + v, ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) ^ s );
+						
+						if ( ASSERTS ) assert ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) == ( data.getLong( off + v ) ^ data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] ) ) :
+							"<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + ">: " + ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) + " != " + ( data.getLong( off + v ) ^ data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] ) );
 					}
 
 					q++;
