@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -195,18 +195,18 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform), TransformationStrategies.identity(), new AbstractLongList() {
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), chunkedHashStore,  new AbstractLongList() {
 			public long getLong( int index ) {
 				return lcpLengths[ index >>> log2BucketSize ] << log2BucketSize | index & bucketSizeMask; 
 			}
 			public int size() {
 				return n;
 			}
-		}, log2BucketSize + Fast.length( maxLcp ), chunkedHashStore );
+		}, log2BucketSize + Fast.length( maxLcp ) );
 		
 		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity() );
 
 		if ( DEBUG ) {
 			int p = 0;

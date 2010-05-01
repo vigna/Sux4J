@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -190,7 +190,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.done();
 		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity(), null, Fast.ceilLog2( numBuckets ) );
+		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity() );
 		final int[] lcpLength = new int[ lcps.size() ];
 		int p = 0;
 		for( LongArrayBitVector bv : lcps ) lcpLength[ p++ ] = (int)bv.length();

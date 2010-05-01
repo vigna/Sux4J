@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -443,7 +443,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		signatureMask =  intermediateTrie.signatureMask;
 
 		LOGGER.info( "Computing behaviour function..." );
-		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), intermediateTrie.externalValues, 1, chunkedHashStore );
+		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), chunkedHashStore, intermediateTrie.externalValues, 1 );
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {

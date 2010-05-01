@@ -1,4 +1,4 @@
-package test.it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs;
 import it.unimi.dsi.bits.TransformationStrategies;

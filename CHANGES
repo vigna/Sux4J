@@ -1,4 +1,10 @@
-2.0.1
+2.1
+
+- Major rewriting of the hypergraph peeling code. Now we use less memory
+  and we are definitely faster.
+
+- Improved ChunkedHashStore architecture that allow arbitrary values,
+  so functions can be built without keeping values in memory.
 
 - Fixed bug in MinimalPerfetHashFunction that was causing exceptions
   when using more than a billion keys (thanks to Wei Liu for reporting

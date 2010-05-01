@@ -5,6 +5,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
@@ -13,7 +14,6 @@ import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
 
 /** An implementation of Jacobson's balanced parentheses data structure.
  * 
@@ -23,6 +23,19 @@ import static test.it.unimi.dsi.sux4j.bits.BalancedParenthesesTestCase.binary;
  */
 
 public class JacobsonBalancedParentheses implements BalancedParentheses {
+	public static String binary( long l, boolean reverse ) {
+		if ( reverse ) l = Long.reverse( l );
+		MutableString s = new MutableString().append( "0000000000000000000000000000000000000000000000000000000000000000000000000" ).append( Long.toBinaryString( l ) );
+		s.delete( 0, s.length() - 64 );
+		s.insert( 0, '\n' );
+		s.append( '\n' );
+		for( int i = 0; i < 32; i++ ) s.append( " " ).append( Long.toHexString( ( l >>> ( 31 - i ) * 2 ) & 0x3 ) );
+		s.append( '\n' );
+		for( int i = 0; i < 16; i++ ) s.append( "   " ).append( Long.toHexString( ( l >>> ( 15 - i ) * 4 ) & 0xF ) );
+		s.append( '\n' );
+		return s.toString();
+	}
+
 	private static final long serialVersionUID = 1L;
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;

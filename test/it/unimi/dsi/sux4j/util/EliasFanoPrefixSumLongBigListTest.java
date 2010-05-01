@@ -1,4 +1,4 @@
-package test.it.unimi.dsi.sux4j.util;
+package it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;

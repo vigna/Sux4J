@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -163,14 +163,14 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		LOGGER.info( "Generating offset function..." );
 		
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
 			public long getLong( int index ) {
 				return index & bucketSizeMask; 
 			}
 			public int size() {
 				return size;
 			}
-		}, log2BucketSize, chunkedHashStore );
+		}, log2BucketSize );
 
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );

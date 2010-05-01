@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -192,7 +192,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new MWHCFunction<T>( elements, transform, new AbstractLongList() {
+			firstFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, new AbstractLongList() {
 				public long getLong( int index ) {
 					long value = map.get( values.getLong( index ) );
 					if ( value != -1 ) return value;
@@ -203,7 +203,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 					return n;
 				}
 
-			}, best, chunkedHashStore );
+			}, best );
 
 			LOGGER.debug( "Actual bit cost per element of first function: " + (double)firstFunction.numBits() / n );
 		}
@@ -215,7 +215,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 		});
 		
-		secondFunction = new MWHCFunction<T>( elements, transform, values, w, chunkedHashStore );
+		secondFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, values, w );
 		
 		this.seed = chunkedHashStore.seed();
 		

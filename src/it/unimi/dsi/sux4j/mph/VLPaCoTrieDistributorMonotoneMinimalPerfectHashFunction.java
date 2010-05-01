@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -185,7 +185,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		
 		if ( size > 0 ) {
-			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
+			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
 				public long getLong( int index ) {
 					final int rank = sparseRank == null ? 0 : (int)sparseRank.rank( index );
 					if ( ASSERTS ) {
@@ -197,7 +197,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 				public int size() {
 					return size;
 				}
-			}, log2BucketSize + 1, chunkedHashStore );
+			}, log2BucketSize + 1 );
 
 		}
 		else offset = null;

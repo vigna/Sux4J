@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.io;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -25,6 +25,8 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
+import it.unimi.dsi.fastutil.longs.LongIterable;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -56,9 +58,10 @@ import cern.colt.function.IntComparator;
  * 
  * <p>A chunked hash store accumulates objects of type <code>T</code> by turning them into bit vectors (using a provided {@link TransformationStrategy})
  * and then hashing such vectors into a triple of longs (i.e., overall we get a hash of 192 bits). 
- * Elements can be added {@linkplain #add(Object) one by one}
- * or {@linkplain #addAll(Iterator) in batches}. Besides the hashes, we store the <em>offset</em> of each element added (the first element added has offset 0,
- * the second one has offset 1, and so on). Elements must be distinct, or more precisely, they must be transformed into distinct bit vectors.
+ * Elements can be added {@linkplain #add(Object, long) one by one}
+ * or {@linkplain #addAll(Iterator, LongIterator) in batches}. Besides the hashes, we store some data associated with each element:
+ * if no data is specified, we store the <em>offset</em> of each element added (the first element added has offset 0,
+ * the second one has offset 1, and so on). Elements must be distinct, or, more precisely, they must be transformed into distinct bit vectors.
  * 
  * <p>Once all elements have been added, they can be gathered into <em>chunks</em> whose 
  * tentative size can be set by calling {@link #log2Chunks(int)}. More precisely,
@@ -67,7 +70,7 @@ import cern.colt.function.IntComparator;
  * 
  * <p>To obtain triples, one calls {@link #iterator()}, which returns chunks one at a time (in their
  * natural order); triples within each chunk are returned by increasing hash. Actually, the iterator
- * provided by a chunk returns a <em>quadruple</em> whose last element is the offset of the element
+ * provided by a chunk returns a <em>quadruple</em> whose last element is the data associated with the element
  * that generated the triple.
  * 
  * <p>It is possible (albeit unlikely) that different elements generate the same hash. This event is detected
@@ -218,14 +221,28 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** Adds an element to this store.
 	 * 
 	 * @param o the element to be added.
+	 * @param value the associated value.
 	 */
-	public void add( final T o ) throws IOException {
+	public void add( final T o, final long value ) throws IOException {
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( o ), seed, triple );
-		add( triple );
+		add( triple, value );
 	}
 	
-	private void add( final long[] triple ) throws IOException {
+	/** Adds an element to this store, associating it with its ordinal position.
+	 * 
+	 * @param o the element to be added.
+	 */
+	public void add( final T o ) throws IOException {
+		add( o, n );
+	}
+	
+	/** Adds a triple to this store.
+	 * 
+	 * @param triple the triple to be added.
+	 * @param value the associated value.
+	 */
+	private void add( final long[] triple, final long value ) throws IOException {
 		final int chunk = (int)( triple[ 0 ] >>> DISK_CHUNKS_SHIFT );
 		count[ chunk ]++;
 		checkedForDuplicates = false;
@@ -233,23 +250,32 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		dos[ chunk ].writeLong( triple[ 0 ] );
 		dos[ chunk ].writeLong( triple[ 1 ] );
 		dos[ chunk ].writeLong( triple[ 2 ] );
-		dos[ chunk ].writeInt( n );
+		dos[ chunk ].writeLong( value );
 		if ( n != -1 && ( filter == null || filter.evaluate( triple ) ) ) n++;
 	}
 	
 	/** Adds the elements returned by an iterator to this store.
 	 * 
-	 * @param iterator an iterator returning elements.
+	 * @param elements an iterator returning elements.
 	 */
-	public void addAll( final Iterator<? extends T> iterator ) throws IOException {
+	public void addAll( final Iterator<? extends T> elements, final LongIterator values ) throws IOException {
 		if ( pl != null ) pl.start( "Adding elements..." );
 		final long[] triple = new long[ 3 ];
-		while( iterator.hasNext() ) {
-			Hashes.jenkins( transform.toBitVector( iterator.next() ), seed, triple );
-			add( triple );
+		while( elements.hasNext() ) {
+			Hashes.jenkins( transform.toBitVector( elements.next() ), seed, triple );
+			add( triple, values != null ? values.nextLong() : n );
 			if ( pl != null ) pl.lightUpdate();
 		}
+		if ( values != null && values.hasNext() ) throw new IllegalStateException( "The iterator on values contains more entries than the iterator on keys" );
 		if ( pl != null ) pl.done();
+	}
+
+	/** Adds the elements returned by an iterator to this store.
+	 * 
+	 * @param elements an iterator returning elements.
+	 */
+	public void addAll( final Iterator<? extends T> elements ) throws IOException {
+		addAll( elements, null );
 	}
 
 	/** Returns the size of this store. Note that if you set up 
@@ -272,7 +298,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 						triple[ 0 ] = dis.readLong();
 						triple[ 1 ] = dis.readLong();
 						triple[ 2 ] = dis.readLong();
-						dis.readInt();
+						dis.readLong();
 						if ( filter.evaluate( triple ) ) c++;
 					}
 					dis.close();
@@ -357,10 +383,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	
 	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
 	 * 
-	 * @param iterable the elements with which the store will be refilled if there are duplicate triples. 
+	 * @param iterable the elements with which the store will be refilled if there are duplicate triples.
+	 * @param values the values that will be associated with the elements returned by <code>iterable</code>. 
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
-	public void checkAndRetry( final Iterable<? extends T> iterable ) throws IOException {
+	public void checkAndRetry( final Iterable<? extends T> iterable, final LongIterable values ) throws IOException {
 		final Random random = new Random();
 		int duplicates = 0;
 
@@ -373,12 +400,21 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				reset( random.nextLong() );
-				addAll( iterable.iterator() );
+				addAll( iterable.iterator(), values.iterator() );
 			}
 			
 		checkedForDuplicates = true;
 	}
 	
+	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
+	 * 
+	 * @param iterable the elements with which the store will be refilled if there are duplicate triples. 
+	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
+	 */
+	public void checkAndRetry( final Iterable<? extends T> iterable ) throws IOException {
+		checkAndRetry( iterable, null );
+	}
+		
 	/** Sets the number of chunks.
 	 * 
 	 * <p>Once the store is filled, you must call this method to set the number of chunks. The store will take
@@ -424,19 +460,19 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	/** A chunk returned by a {@link ChunkedHashStore}. */
 	public final static class Chunk implements Iterable<long[]> {
-		/** The start position of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
+		/** The start position of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
 		private final int start;
-		/** The final position (excluded) of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #offset}. */
+		/** The final position (excluded) of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
 		private final int end;
 		private final long[] buffer0;
 		private final long[] buffer1;
 		private final long[] buffer2;
-		private final int[] offset;
+		private final long[] data;
 		
-		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final int[] offset, final int start, final int end ) {
+		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final int start, final int end ) {
 			this.start = start;
 			this.end = end;
-			this.offset = offset;
+			this.data = data;
 			this.buffer0 = buffer0;
 			this.buffer1 = buffer1;
 			this.buffer2 = buffer2;
@@ -450,29 +486,29 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			return end - start;
 		}
 		
-		/** Returns the offset of the <code>k</code>-th triple returned by this chunk.
+		/** Returns the data of the <code>k</code>-th triple returned by this chunk.
 		 * 
-		 * <p>This method provides an alternative random access to offset data (w.r.t. indexing the fourth element of the
+		 * <p>This method provides an alternative random access to data (w.r.t. indexing the fourth element of the
 		 * quadruples returned by {@link #iterator()}). 
 		 * 
 		 * @param k the index (in iteration order) of a triple.
-		 * @return the corresponding offset.
+		 * @return the corresponding data.
 		 */
 		
-		public int offset( final int k ) {
-			return offset[ start + k ];
+		public long data( final int k ) {
+			return data[ start + k ];
 		}
 		
 		
-		/** Returns an iterator over the triples associated to this chunk; the returned array of longs is reused at each call.
+		/** Returns an iterator over the quadruples associated with this chunk; the returned array of longs is reused at each call.
 		 * 
-		 * @return an iterator over quadruples formed by a triple (indices 0, 1, 2) and the associated offset (index 3).
+		 * @return an iterator over quadruples formed by a triple (indices 0, 1, 2) and the associated data (index 3).
 		 */
 		
 		public Iterator<long[]> iterator() {
 			return new AbstractObjectIterator<long[]>() {
 				private int pos = start;
-				private long[] triple = new long[ 4 ];
+				private long[] quadruple = new long[ 4 ];
 
 				public boolean hasNext() {
 					return pos < end;
@@ -480,13 +516,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 				public long[] next() {
 					if ( ! hasNext() ) throw new NoSuchElementException();
-					final long[] triple = this.triple;
-					triple[ 0 ] = buffer0[ pos ];
-					triple[ 1 ] = buffer1[ pos ];
-					triple[ 2 ] = buffer2[ pos ];
-					triple[ 3 ] = offset[ pos ];
+					final long[] quadruple = this.quadruple;
+					quadruple[ 0 ] = buffer0[ pos ];
+					quadruple[ 1 ] = buffer1[ pos ];
+					quadruple[ 2 ] = buffer2[ pos ];
+					quadruple[ 3 ] = data[ pos ];
 					pos++;
-					return triple;
+					return quadruple;
 				}
 
 			};
@@ -524,7 +560,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			private final long[] buffer0 = new long[ maxCount ];
 			private final long[] buffer1 = new long[ maxCount ];
 			private final long[] buffer2 = new long[ maxCount ];
-			private final int[] offset = new int[ maxCount ];
+			private final long[] data = new long[ maxCount ];
 			
 			public boolean hasNext() {
 				return chunk < chunks;
@@ -568,10 +604,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 								buffer0[ count ] = triple[ 0 ]; 
 								buffer1[ count ] = triple[ 1 ]; 
 								buffer2[ count ] = triple[ 2 ]; 
-								offset[ count ] = dis.readInt();
+								data[ count ] = dis.readLong();
 								count++;
 							}
-							else dis.readInt(); // Discard offset
+							else dis.readLong(); // Discard data
 						}
 						
 						chunkSize = count;
@@ -589,15 +625,15 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					new Swapper() {
 						public void swap( final int x, final int y ) {
 							final long e0 = buffer0[ x ], e1 = buffer1[ x ], e2 = buffer2[ x ];
-							final int v = offset[ x ];
+							final long v = data[ x ];
 							buffer0[ x ] = buffer0[ y ];
 							buffer1[ x ] = buffer1[ y ];
 							buffer2[ x ] = buffer2[ y ];
-							offset[ x ] = offset[ y ];
+							data[ x ] = data[ y ];
 							buffer0[ y ] = e0;
 							buffer1[ y ] = e1;
 							buffer2[ y ] = e2;
-							offset[ y ] = v;
+							data[ y ] = v;
 						}
 					});
 
@@ -615,7 +651,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				while( last < chunkSize && ( chunkShift == Long.SIZE ? 0 : buffer0[ last ] >>> chunkShift ) == chunk ) last++;
 				chunk++;
 
-				return new Chunk( buffer0, buffer1, buffer2, offset, start, last );
+				return new Chunk( buffer0, buffer1, buffer2, data, start, last );
 			}
 		};
 	}

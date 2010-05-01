@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -24,7 +24,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 
@@ -53,20 +52,18 @@ import org.apache.log4j.Logger;
  * and a corresponding {@link TransformationStrategy}. If the method returns true, the sorting was
  * successful and in the public field {@link #stack} you can retrieve hinges in the <em>opposite</em>
  * of the desired order (so enumerating hinges starting from the last in {@link #stack} you
- * are guaranteed to find each time a vertex that never appeared before). For each hinge, the corresponding values
- * in {@link #vertex1} and {@link #vertex2} complete the 3-hyperedge associated to the hinge.
- * 
- * <p>This class is able to compute two kind of data associated to each hinge: the index of the {@linkplain #edge edge} associated
- * to the hinge, or the index of {@linkplain #hinge} (i.e., by which of the three hash functions it was generated).
- * The kind of computation is chosen at {@linkplain #HypergraphSorter(int, boolean) construction time}: 
- * for instance, {@link MWHCFunction} uses the first
- * kind of data, but {@link MinimalPerfectHashFunction} uses the second kind.
+ * are guaranteed to find each time a vertex that never appeared in some 3-hyperedge associated with previous hinges). For each hinge, the corresponding values
+ * in {@link #vertex1} and {@link #vertex2} complete the 3-hyperedge associated with the hinge, and the corresponding
+ * value in {@link #edge} contains the index of the 3-hyperedge (i.e., the index of the key that generated the hyperedge).
+ * The computation of the last value can be {@linkplain #HypergraphSorter(int, boolean) disabled} if you do not need it.
  * 
  * <p>The public fields {@link #numEdges} and {@link #numVertices} expose information about the generated
  * 3-hypergraph. For <var>m</var> edges, the number of vertices will be &lceil {@linkplain #GAMMA &gamma;}<var>m</var> &rceil; + 1, rounded up 
- * to the nearest multiple of 3, unless <var>m</var> is zero, in which case the number of vertices will be zero, too. 
+ * to the nearest multiple of 3, unless <var>m</var> is zero, in which case the number of vertices will be zero, too.
+ * Note that index of the hash function that generated a particular vertex of a 3-hyperedge can be recovered
+ * dividing by {@link #partSize}, which is exactly {@link #numVertices}/3. 
  * 
- * <p>To guarantee the same results when reading a Majewski-Wormald-Havas-Czech-like structure,
+ * <p>To guarantee consistent results when reading a Majewski-Wormald-Havas-Czech-like structure,
  * the method {@link #bitVectorToEdge(BitVector, long, int, int, int[]) bitVectorToEdge()} can be used to retrieve, starting from
  * a bit vector, the corresponding edge. While having a function returning the edge starting
  * from a key would be more object-oriented and avoid hidden dependencies, it would also require
@@ -103,12 +100,9 @@ import org.apache.log4j.Logger;
  * 
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
  * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node
- * two additional values that contain a XOR of the other two nodes of each edge incident on the node. Some
- * care must be taken, because at that point a lot of information is no longer available.
- * 
- * <p>When computing hinge indices, however, the situation is slightly more complicated, as we keep track
- * of the XOR over all edges incident on a node of the index of the hash function that generated the vertex.
- * This makes it possible to get, in the end, the index for the edges associated to hinges.
+ * two additional values that contain a XOR of the other two nodes of each edge incident on the node. This
+ * approach simplifies considerably the code as every 3-hyperedge is presented to us as a distinguished vertex (the
+ * hinge) plus two additional vertices.
  * 
  * <h3>Rounds and Logging</h3>
  * 
@@ -124,75 +118,80 @@ import org.apache.log4j.Logger;
  * class, this class will log at {@link org.apache.log4j.Level#DEBUG DEBUG} level
  * what's happening.
  *
- * <P>Note that if during the generation process the log warns more than once about duplicate edges (this happens
- * at {@link org.apache.log4j.Level#INFO INFO} level), you should
- * suspect that there are duplicates in the string list, as duplicate edges are <em>extremely</em> unlikely.
+ * <P>Note that if the the peeling process fails more than twice, you should
+ * suspect that there are duplicates in the string list (unless the number of vertices is very small).
  *
  * @author Sebastiano Vigna
  */
 
 
 public class HypergraphSorter<T> {
-	private static final boolean ASSERTS = true;
+	/** The initial size of the queue used to peel the 3-hypergraph. */
 	private static final int INITIAL_QUEUE_SIZE = 1024;
 	private final static Logger LOGGER = Util.getLogger( HypergraphSorter.class );
-	
-	public static enum Result { OK, DUPLICATE, CYCLIC }; 
 	
 	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
 	 * are acyclic with high probability if the ratio vertices/edges exceeds this constant. */
 	public static final double GAMMA = 1.23;
-	/** The number of vertices in the hypergraph ( &lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1 ). */
+	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
 	public final int numVertices;
 	/** {@link #numVertices} / 3. */
 	public final int partSize;
 	/** The number of edges in the hypergraph. */
 	public final int numEdges;
-	/** An 2&times;n array recording the edges incident to a vertex. It is *reversed*
-		   w.r.t. what you would expect to reduce object creation. The first value is the 
-		   XOR of the smallest other vertex of the edges, the second value the XOR of the largest other vertex of the edges. */
+	/** For each vertex, the XOR of the values of the smallest other vertex in each incident 3-hyperedge. */
 	public final int[] vertex1;
+	/** For each vertex, the XOR of the values of the largest other vertex in each incident 3-hyperedge. */
 	public final int[] vertex2;
+	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
-	public final byte[] hinge;
-	/** The edge stack. Used also to invert the edge permutation. */
+	/** The edge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
 	public final int[] stack;
-	/** The degree of each vertex of the intermediate hypergraph. */
+	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
+	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
+	private final boolean noEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
 	private int top;
-	/** The queue used for visiting the graph. */
+	/** The queue used for peeling the graph. */
 	private final IntArrayList queue;
-	private final boolean computeHinges;
 
 	/** Creates a hypergraph sorter for a given number of edges.
 	 * 
 	 * @param numEdges the number of edges of this hypergraph sorter.
+	 * @param computeEdges if false, the index of the edge associated with each hinge will not be computed.
 	 */
-	public HypergraphSorter( final int numEdges, final boolean computeHinges ) {
+	public HypergraphSorter( final int numEdges, final boolean computeEdges ) {
 		this.numEdges = numEdges;
-		this.computeHinges = computeHinges;
+		this.noEdges = computeEdges;
 		// The theoretically sufficient number of vertices
 		final int m = numEdges == 0 ? 0 : (int)Math.ceil( GAMMA * numEdges ) + 1;
 		// This guarantees that the number of vertices is a multiple of 3
 		numVertices = m + ( 3 - m % 3 ) % 3;
-		if ( ASSERTS ) assert numVertices % 3 == 0;
 		partSize = numVertices / 3;
 		vertex1 = new int[ numVertices ];
 		vertex2 = new int[ numVertices ];
-		edge = computeHinges ? null : new int[ numVertices ];
-		hinge = computeHinges ? new byte[ numVertices ] : null;
+		edge = computeEdges ? new int[ numVertices ] : null;
 		stack = new int[ numEdges ];
 		d = new int[ numVertices ];
 		queue = new IntArrayList( INITIAL_QUEUE_SIZE );
 		neverUsed = true;
 	}
 
-	/** Turns a bit vector into an edge.
+	/** Creates a hypergraph sorter for a given number of edges.
 	 * 
-	 * <p>This method will never return a degenerate edge. However, if there are no edges
+	 * @param numEdges the number of edges of this hypergraph sorter.
+	 */
+	public HypergraphSorter( final int numEdges ) {
+		this( numEdges, true );
+	}
+	
+	/** Turns a bit vector into a 3-hyperedge.
+	 * 
+	 * <p>The returned edge satisfies the property that the <var>i</var>-th vertex is in the interval
+	 * [<var>i</var>&middot;{@link #partSize}..<var>i</var>+1&middot;{@link #partSize}). However, if there are no edges
 	 * the vector <code>e</code> will be filled with -1.
 	 * 
 	 * @param bv a bit vector.
@@ -202,8 +201,6 @@ public class HypergraphSorter<T> {
 	 * @param e an array to store the resulting edge.
 	 */
 	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int partSize, final int e[] ) {
-		// TODO: eliminate numVertices at some point
-		if ( ASSERTS ) assert numVertices % 3 == 0;
 		if ( numVertices == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
@@ -212,39 +209,31 @@ public class HypergraphSorter<T> {
 		Hashes.jenkins( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
-		e[ 2 ] = (int)( partSize * 2 + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
 	
-	/** Turns a bit vector into an edge.
-	 * 
-	 * <p>This method will never return a degenerate edge. However, if there are no edges
-	 * the vector <code>e</code> will be filled with -1.
+	/** Turns a bit vector into a 3-hyperedge.
 	 * 
 	 * @param bv a bit vector.
 	 * @param seed the seed for the hash function.
 	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param e an array to store the resulting edge.
-	 * @deprecated As of Sux4J 2.1, replaced by {@link #bitVectorToEdge(BitVector, long, int, int, int[])}.
+	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
 	 */
-	@Deprecated
 	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int e[] ) {
 		bitVectorToEdge( bv, seed, numVertices, (int)( numVertices * 0xAAAAAAABL >>> 33 ), e ); // Fast division by 3
 	}
 	
-	/** Turns a triple of longs into an edge.
-	 * 
-	 * <p>This method will never return a degenerate edge. However, if there are no edges
-	 * the vector <code>e</code> will be filled with -1.
+	/** Turns a triple of longs into a 3-hyperedge.
 	 * 
 	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
 	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param partSize <code>numVertices</code>/3 (to avoid a division).
 	 * @param e an array to store the resulting edge.
+	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
 	 */
 	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int partSize, final int e[] ) {
-		// TODO: eliminate numVertices at some point
-		if ( ASSERTS ) assert numVertices % 3 == 0;
 		if ( numVertices == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
@@ -253,92 +242,70 @@ public class HypergraphSorter<T> {
 		Hashes.jenkins( triple, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
-		e[ 2 ] = (int)( partSize * 2 + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
-
 	
 
-	/** Turns a triple of longs into an edge.
-	 * 
-	 * <p>This method will never return a degenerate edge. However, if there are no edges
-	 * the vector <code>e</code> will be filled with -1.
+	/** Turns a triple of longs into a 3-hyperedge.
 	 * 
 	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
 	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param e an array to store the resulting edge.
-	 * @deprecated As of Sux4J 2.1, replaced by {@link #tripleToEdge(long[], long, int, int, int[])}.
+	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
 	 */
-	@Deprecated
 	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
 		tripleToEdge( triple, seed, numVertices, (int)( numVertices * 0xAAAAAAABL >>> 33 ), e );  // Fast division by 3
 	}
-
 	
 	private final void cleanUpIfNecessary() {
 		if ( ! neverUsed ) { 
 			IntArrays.fill( d, 0 );
 			IntArrays.fill( vertex1, 0 );
 			IntArrays.fill( vertex2, 0 );
-			if ( computeHinges ) ByteArrays.fill( hinge, (byte)0 );
-			else IntArrays.fill( edge, 0 );
+			if ( noEdges ) IntArrays.fill( edge, (byte)0 );
 		}
 		neverUsed = false;
 	}
 
 	private final void xorEdge( final int k, final int x, final int y, final int z, boolean partial ) {
 		//if ( partial ) System.err.println( "Stripping <" + x + ", " + y + ", " + z + ">: " + Arrays.toString( edge ) + " " + Arrays.toString( hinge ) );
-		if ( computeHinges ) {
-			if ( ! partial || k != 0 ) {
+		if ( noEdges ) {
+			if ( ! partial ) edge[ x ] ^= k;
+			edge[ y ] ^= k;
+			edge[ z ] ^= k;
+		}
+
+		if ( ! partial ) {
+			if ( y < z ) {
 				vertex1[ x ] ^= y;
 				vertex2[ x ] ^= z;
 			}
-			if ( ! partial || k != 1 ) {
-				hinge[ y ] ^= 1;
-				vertex1[ y ] ^= x;
-				vertex2[ y ] ^= z;
+			else {
+				vertex1[ x ] ^= z;
+				vertex2[ x ] ^= y;
 			}
-			if ( ! partial || k != 2 ) {
-				hinge[ z ] ^= 2;
-				vertex1[ z ] ^= x;
-				vertex2[ z ] ^= y;
-			}
+		}
+
+		if ( x < z ) {
+			vertex1[ y ] ^= x;
+			vertex2[ y ] ^= z;
 		}
 		else {
-			if ( ! partial ) {
-				edge[ x ] ^= k;
-				if ( y < z ) {
-					vertex1[ x ] ^= y;
-					vertex2[ x ] ^= z;
-				}
-				else {
-					vertex1[ x ] ^= z;
-					vertex2[ x ] ^= y;
-				}
-			}
-
-			edge[ y ] ^= k;
-			edge[ z ] ^= k;
-
-			if ( x < z ) {
-				vertex1[ y ] ^= x;
-				vertex2[ y ] ^= z;
-			}
-			else {
-				vertex1[ y ] ^= z;
-				vertex2[ y ] ^= x;
-			}
-			if ( x < y ) {
-				vertex1[ z ] ^= x;
-				vertex2[ z ] ^= y;
-			}
-			else {
-				vertex1[ z ] ^= y;
-				vertex2[ z ] ^= x;
-			}
+			vertex1[ y ] ^= z;
+			vertex2[ y ] ^= x;
 		}
-		//if ( ! partial ) System.err.println( "After adding <" + x + ", " + y + ", " + z + ">: " + Arrays.toString( edge ) + " " + Arrays.toString( hinge ) );
+		if ( x < y ) {
+			vertex1[ z ] ^= x;
+			vertex2[ z ] ^= y;
+		}
+		else {
+			vertex1[ z ] ^= y;
+			vertex2[ z ] ^= x;
+		}
+		//if ( ! partial ) System.err.println( "After adding <" + x + ", " + y + ", " + z + ">" );
 	}
+
 	/** Generates a random 3-hypergraph and tries to sort its edges.
 	 * 
 	 * @param iterator an iterator returning {@link #numEdges} keys.
@@ -346,7 +313,7 @@ public class HypergraphSorter<T> {
 	 * @param seed a 64-bit random seed.
 	 * @return true if the sorting procedure succeeded.
 	 */
-	public Result generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
+	public boolean generateAndSort( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform, final long seed ) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] e = new int[ 3 ];
@@ -373,7 +340,7 @@ public class HypergraphSorter<T> {
 	 * @param seed a 64-bit random seed.
 	 * @return true if the sorting procedure succeeded.
 	 */
-	public Result generateAndSort( final Iterator<long[]> iterator, final long seed ) {
+	public boolean generateAndSort( final Iterator<long[]> iterator, final long seed ) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] e = new int[ 3 ];
@@ -397,27 +364,26 @@ public class HypergraphSorter<T> {
 	 * 
 	 * @return true if the sorting procedure succeeded.
 	 */
-	private Result sort() {
+	private boolean sort() {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		LOGGER.debug( "Visiting hypergraph..." );
+		LOGGER.debug( "Peeling hypergraph..." );
 
 		top = 0;
-		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) visit( i );
+		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
 
-		if ( top == numEdges ) LOGGER.debug( "Visit completed." );
+		if ( top == numEdges ) LOGGER.debug( "Peeling completed." );
 		else {
-			LOGGER.debug( "Visit failed: stripped " + top + " edges out of " + numEdges + "." );
-			return Result.CYCLIC;
+			LOGGER.debug( "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
+			return false;
 		}
 
-		return Result.OK;
+		return true;
 	}
 
-
-	private void visit( int x ) {
-		//System.err.println( "Visiting " + x + "..." );
+	private void peel( final int x ) {
+		// System.err.println( "Visiting " + x + "..." );
 		final int[] vertex1 = this.vertex1;
 		final int[] vertex2 = this.vertex2;
 		final int[] edge = this.edge;
@@ -426,30 +392,17 @@ public class HypergraphSorter<T> {
 		final IntArrayList queue = this.queue;
 		
 		// Queue initialization
-		int v, start = 0; // Initial top of the recursion stack.
+		int v, start = 0;
 		queue.clear();
 		queue.add( x );
 
 		while ( start < queue.size() ) {
 			v = queue.getInt( start++ );
 			if ( d[ v ] == 1 ) {
-				
 				stack[ top++ ] = v;
 				--d[ v ];
-				if ( computeHinges ) {
-					if ( ASSERTS ) assert hinge[ v ] >= 0 && hinge[ v ] < 3 : Byte.toString( hinge[ v ] );
-					switch( hinge[ v ] ) {
-					case 0: xorEdge( hinge[ v ], v, vertex1[ v ], vertex2[ v ], true ); break;
-					case 1: xorEdge( hinge[ v ], vertex1[ v ], v, vertex2[ v ], true ); break;
-					case 2: xorEdge( hinge[ v ], vertex1[ v ], vertex2[ v ], v, true ); break;
-					default: throw new IllegalStateException();
-					}
-					
-				}
-				else {
-					//System.err.println( "Stripping <" + k + ", " + vertex1[ k ] + ", " + vertex2[ k ] + ">" );
-					xorEdge( edge[ v ], v, vertex1[ v ], vertex2[ v ], true );
-				}
+				// System.err.println( "Stripping <" + v + ", " + vertex1[ v ] + ", " + vertex2[ v ] + ">" );
+				xorEdge( noEdges ? edge[ v ] : -1, v, vertex1[ v ], vertex2[ v ], true );
 				if ( --d[ vertex1[ v ] ] == 1 ) queue.add( vertex1[ v ] );
 				if ( --d[ vertex2[ v ] ] == 1 ) queue.add( vertex2[ v ] );				
 			}

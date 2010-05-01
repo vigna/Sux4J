@@ -1,4 +1,4 @@
-package test.it.unimi.dsi.sux4j.io;
+package it.unimi.dsi.sux4j.io;
 
 import it.unimi.dsi.sux4j.io.FileLinesList;
 

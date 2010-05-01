@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2009 Sebastiano Vigna 
+ * Copyright (C) 2008-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -154,7 +154,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction<BitVector>( null, TransformationStrategies.identity(), new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( int index ) {
 				return index & bucketSizeMask; 
@@ -162,7 +162,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			public int size() {
 				return size;
 			}
-		}, this.log2BucketSize, chunkedHashStore );
+		}, this.log2BucketSize );
 		//System.err.println( "*********" + chunkedHashStore.seed() );
 		
 		chunkedHashStore.close();

@@ -1,4 +1,4 @@
-package test.it.unimi.dsi.sux4j.bits;
+package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;

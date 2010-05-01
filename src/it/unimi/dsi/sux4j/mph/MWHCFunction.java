@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2009 Sebastiano Vigna 
+ * Copyright (C) 2002-2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -28,6 +28,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.FastBufferedReader;
@@ -63,20 +64,51 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** An immutable function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
  * 
+ * <p><strong>Warning:</strong> With Sux4J 2.1, the semantics of a few constructors has changed significantly.
+ * 
  * <p>Instance of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
- * must return elements in a consistent order), whereas values are provided by a {@link LongList}. 
+ * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. 
  * A convenient {@linkplain #MWHCFunction(Iterable, TransformationStrategy) constructor} 
  * automatically assigns to each key its rank (e.g., its position in iteration order). 
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
  * writes a serialised function mapping each element of the list to its position.
+ *
+ * <h2>Building a function</h2>
+ * 
+ * <p>This class provides a great amount of flexibility when creating a new function. This is reflected in the large number of constructors,
+ * which can be quite confusing. To exploit the various possibilities, you must understand some details of the construction.
+ * 
+ * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys and associated values. Depending
+ * on the constructor chosen, the store will associate each hash either with the ordinal position of the key, or with the
+ * value that must be associated with the key. It is easy to tell the difference because in constructors associating the ordinal
+ * position the store appears just after the keys and the transformation strategy as, for example, in 
+ * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongList, int)} or
+ * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore)}. If the store appears after keys and values
+ * (e.g., {@link #MWHCFunction(Iterable, TransformationStrategy, LongIterable, int, ChunkedHashStore)}) the store associates
+ * each key with its value instead.
+ * 
+ * <p>It is important to understand this difference because many constructors makes it possible to pass a chunked hash store.
+ * This class will try to use the store before building a new one (possibly because of a {@link ChunkedHashStore.DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link ChunkedHashStore.DuplicateException} is
+ * thrown, the constructors will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available. Constructors
+ * without keys (e.g., {@link #MWHCFunction(TransformationStrategy, ChunkedHashStore, int)}) assume that the store is checked.
+ * Note that it is your responsibility to pass a correct store.
+ * 
+ * <p>The reason for this proliferation of constructors is that they are useful in different situations. The constructors
+ * that store associations with values are extremely scalable because the values must just be a {@link LongIterable} that
+ * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
+ * associates ordinal positions, and you want to build a new function for which a {@link LongList} of values needs little space (e.g.,
+ * because it is described implicitly), you can use a constructor that accepts a {@link LongList} but uses the already built store. 
+ * 
  * 
  * <h2>Implementation Details</h2>
  * 
- * <p>After generating a {@link HypergraphSorter random 3-hypergraph with suitably sorted edges},
- * we assign to each vertex a value in such a way that for each 3-hyperedge the 
- * xor of the three values associated to its vertices is the required value for the corresponding
+ * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges
+ * to that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>,
+ * never appeared before. We then assign to each vertex a value in such a way that for each 3-hyperedge the 
+ * XOR of the three values associated to its vertices is the required value for the corresponding
  * element of the function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
  * 
  * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
@@ -94,45 +126,70 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
     public static final long serialVersionUID = 3L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 		
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 10;
 	/** The shift for chunks. */
-	final private int chunkShift;
+	private final int chunkShift;
 	/** The number of elements. */
-	final protected int n;
+	protected final int n;
 	/** The number of vertices of the intermediate hypergraph. */
-	final protected int m;
+	protected final int m;
 	/** The data width. */
-	final protected int width;
+	protected final int width;
 	/** The seed used to generate the initial hash triple. */
-	final protected long globalSeed;
+	protected final long globalSeed;
 	/** The seed of the underlying 3-hypergraphs. */
-	final protected long[] seed;
+	protected final long[] seed;
 	/** The start offset of each block. */
-	final protected int[] offset;
+	protected final int[] offset;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
-	final protected LongBigList data;
+	protected final LongBigList data;
 	/** Optionally, a {@link #rank} structure built on this bit array is used to mark positions containing non-zero value; indexing in {@link #data} is
 	 * made by ranking if this field is non-<code>null</code>. */
-	final protected LongArrayBitVector marker;
+	protected final LongArrayBitVector marker;
 	/** The ranking structure on {@link #marker}. */
-	final protected Rank16 rank;
+	protected final Rank16 rank;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
-	final protected TransformationStrategy<? super T> transform;
+	protected final TransformationStrategy<? super T> transform;
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, null, -1, chunkedHashStore );
+	/** Creates a new function for the given elements that will map them to their ordinal position.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, null, -1, chunkedHashStore, false );
 	}
 
+	/** Creates a new function for the given elements that will map them to their ordinal position.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null, -1, null );
+		this( elements, transform, null );
 	}
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width ) throws IOException {
-		this( elements, transform, values, width, null );
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * <p><strong>Warning</strong>: if you were using this constructor before Sux4J 2.1, you should switch
+	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongList, int)}, as the
+	 * semantics has changed (see the {@linkplain MWHCFunction class documentation}).
+	 * 
+	 * @param elements the elements in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
+	 * @param chunkedHashStore a chunked hash store containing the elements associated with their value, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, values, width, chunkedHashStore, false );
 	}
 
 	/** Creates a new function for the given elements and values.
@@ -142,12 +199,65 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
 	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width ) throws IOException {
+		this( elements, transform, values, width, null );
+	}
 
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, final int width, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	/** Creates a new function using a given checked chunked hash store.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param chunkedHashStore a checked chunked hash store containing the elements associated with their value. 
+	 * @param width the bit width of the values contained in <code>chunkedHashStore</code>.
+	 */
+	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, int width ) throws IOException {
+		this( null, transform, null, width, chunkedHashStore, false );
+	}
+
+
+	/** Creates a new function for the given elements using a chunked hash store containing ordinal positions.
+	 * 
+	 * @param elements the elements in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>.
+	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+		this( elements, transform, values, width, chunkedHashStore, true );
+	}
+
+	/** Creates a new function using a given checked chunked hash store containing ordinal positions and a list of values.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param chunkedHashStore a checked chunked hash store containing the elements associated with their ordinal position. 
+	 * @param values values to be assigned to each element.
+	 * @param width the bit width of the <code>values</code>.
+	 */
+	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+		this( null, transform, values, width, chunkedHashStore, true );
+	}
+
+
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>.
+	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongList} that
+	 * must be accessed to retrieve the actual values. 
+	 */
+	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
 		this.transform = transform;
-	
+		
+		// If we have no elements, values must be a random-access list of longs.
+		final LongList valueList = override ? (LongList)values : null;
+		
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -156,9 +266,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( ! givenChunkedHashStore ) {
+			if ( elements == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the elements" );
 			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
 			chunkedHashStore.reset( r.nextLong() );
-			chunkedHashStore.addAll( elements.iterator() );
+			if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
+			else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
 		}
 		n = chunkedHashStore.size();
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -185,7 +297,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 3 * numChunks );
+		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks );
 
 		int duplicates = 0;
 		
@@ -200,17 +312,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			try {
 				int q = 0;
 				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size(), false );
+					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
 					do {
 						seed = r.nextLong();
-					} while ( ( sorter.generateAndSort( chunk.iterator(), seed ) ) != HypergraphSorter.Result.OK );
+					} while ( ! sorter.generateAndSort( chunk.iterator(), seed ) );
 
 					this.seed[ q ] = seed;
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
 
 					/* We assign values. */
 
-					int top = chunk.size(), v, k;
+					int top = chunk.size(), x, k;
 					final int[] stack = sorter.stack;
 					final int[] vertex1 = sorter.vertex1;
 					final int[] vertex2 = sorter.vertex2;
@@ -218,13 +330,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					final int off = offset[ q ];
 
 					while( top > 0 ) {
-						v = stack[ --top ];
-						k = edge[ v ];
-						final long s = data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] );
-						data.set( off + v, ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) ^ s );
+						x = stack[ --top ];
+						k = edge[ x ];
+						final long s = data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] );
+						final long value = override ? valueList.getLong( (int)chunk.data( k ) ) : chunk.data( k );
+						data.set( off + x, value ^ s );
 						
-						if ( ASSERTS ) assert ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) == ( data.getLong( off + v ) ^ data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] ) ) :
-							"<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + ">: " + ( values == null ? chunk.offset( k ) : values.getLong( chunk.offset( k ) ) ) + " != " + ( data.getLong( off + v ) ^ data.getLong( off + vertex1[ v ] ) ^ data.getLong( off + vertex2[ v ] ) );
+						if ( ASSERTS ) assert ( value == ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) ) ) :
+							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) );
 					}
 
 					q++;
@@ -235,10 +348,12 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				break;
 			}
 			catch( ChunkedHashStore.DuplicateException e ) {
+				if ( elements == null ) throw new IllegalStateException( "You provided no elements, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
-				chunkedHashStore.addAll( elements.iterator() );
+				if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
+				else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
 			}
 		}
 

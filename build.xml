@@ -36,6 +36,10 @@
 		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
 	</target>
 	
+	<target name="compile-tests" depends="init" description="Compile all sources">
+		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
+	</target>
+	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
 		<jar jarfile="sux4j-${version}.jar">
 			<fileset dir="${build}"/>
@@ -68,17 +72,20 @@
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
 			<classpath location="${instrumented}/classes"/>
 			<classpath location="${src}"/>
+			<classpath location="${test}"/>
 			<classpath location="${jar.base}/emma.jar"/>
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
-			<jvmarg value="-Xmx256M" />
+			<jvmarg value="-Xmx1G" />
+			<jvmarg value="-ea" />
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
 
 			<batchtest fork="yes" todir="${reports}">
 				<fileset dir="${instrumented}/classes">
-					<include name="test/**/*Test.class"/>
+					<include name="**/*Test.class"/>
+					<exclude name="**/test/*.class"/>
 				</fileset>
 			</batchtest>
 		</junit>
@@ -99,7 +106,7 @@
 		</emma>
 	</target>
 
-	<target name="instrument" depends="compile" description="Generate instrumented classes">
+	<target name="instrument" depends="compile-tests" description="Generate instrumented classes">
 		<emma>
 			<instr mode="fullcopy"
 				 outdir="${instrumented}"
