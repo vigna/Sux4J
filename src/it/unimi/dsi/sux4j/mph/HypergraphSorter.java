@@ -150,7 +150,7 @@ public class HypergraphSorter<T> {
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
 	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
-	private final boolean noEdges;
+	private final boolean computeEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
@@ -165,7 +165,7 @@ public class HypergraphSorter<T> {
 	 */
 	public HypergraphSorter( final int numEdges, final boolean computeEdges ) {
 		this.numEdges = numEdges;
-		this.noEdges = computeEdges;
+		this.computeEdges = computeEdges;
 		// The theoretically sufficient number of vertices
 		final int m = numEdges == 0 ? 0 : (int)Math.ceil( GAMMA * numEdges ) + 1;
 		// This guarantees that the number of vertices is a multiple of 3
@@ -263,14 +263,14 @@ public class HypergraphSorter<T> {
 			IntArrays.fill( d, 0 );
 			IntArrays.fill( vertex1, 0 );
 			IntArrays.fill( vertex2, 0 );
-			if ( noEdges ) IntArrays.fill( edge, (byte)0 );
+			if ( computeEdges ) IntArrays.fill( edge, 0 );
 		}
 		neverUsed = false;
 	}
 
 	private final void xorEdge( final int k, final int x, final int y, final int z, boolean partial ) {
 		//if ( partial ) System.err.println( "Stripping <" + x + ", " + y + ", " + z + ">: " + Arrays.toString( edge ) + " " + Arrays.toString( hinge ) );
-		if ( noEdges ) {
+		if ( computeEdges ) {
 			if ( ! partial ) edge[ x ] ^= k;
 			edge[ y ] ^= k;
 			edge[ z ] ^= k;
@@ -402,7 +402,7 @@ public class HypergraphSorter<T> {
 				stack[ top++ ] = v;
 				--d[ v ];
 				// System.err.println( "Stripping <" + v + ", " + vertex1[ v ] + ", " + vertex2[ v ] + ">" );
-				xorEdge( noEdges ? edge[ v ] : -1, v, vertex1[ v ], vertex2[ v ], true );
+				xorEdge( computeEdges ? edge[ v ] : -1, v, vertex1[ v ], vertex2[ v ], true );
 				if ( --d[ vertex1[ v ] ] == 1 ) queue.add( vertex1[ v ] );
 				if ( --d[ vertex2[ v ] ] == 1 ) queue.add( vertex2[ v ] );				
 			}
