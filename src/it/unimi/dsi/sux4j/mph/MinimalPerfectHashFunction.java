@@ -133,7 +133,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
 
 	/** The number of elements. */
-	protected final int n;
+	protected final long n;
 
 	/** The shift for chunks. */
 	private final int chunkShift;
@@ -402,7 +402,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 
 	public int size() {
-		return n;
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {

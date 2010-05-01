@@ -285,7 +285,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @return the number of (possibly filtered) triples of this store.
 	 */
 
-	public int size() throws IOException {
+	public long size() throws IOException {
 		if ( n == - 1 ) {
 			int c = 0;
 			final long[] triple = new long[ 3 ];
@@ -495,8 +495,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 * @return the corresponding data.
 		 */
 		
-		public long data( final int k ) {
-			return data[ start + k ];
+		public long data( final long k ) {
+			return data[ (int)( start + k ) ];
 		}
 		
 		

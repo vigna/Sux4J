@@ -70,7 +70,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	private static final Logger LOGGER = Util.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
-	private final int size;
+	private final long size;
 	/** The logarithm of the bucket size. */
 	private final int log2BucketSize;
 	/** The transformation strategy. */
@@ -160,7 +160,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 				return index & bucketSizeMask; 
 			}
 			public int size() {
-				return size;
+				return size > Integer.MAX_VALUE ? -1 : (int)size;
 			}
 		}, this.log2BucketSize );
 		//System.err.println( "*********" + chunkedHashStore.seed() );
@@ -179,7 +179,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	}
 
 	public int size() {
-		return size;
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}
 
 	public long numBits() {

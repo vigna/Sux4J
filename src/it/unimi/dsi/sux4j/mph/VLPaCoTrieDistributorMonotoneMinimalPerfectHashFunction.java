@@ -69,7 +69,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	private static final boolean ASSERTS = false;
 	
 	/** The number of elements. */
-	private final int size;
+	private final long size;
 	/** The size of a bucket. */
 	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -195,7 +195,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 					return rank == 0 ? index : index - distributor.offset[ rank - 1 ]; 
 				}
 				public int size() {
-					return size;
+					return size > Integer.MAX_VALUE ? -1 : (int)size;
 				}
 			}, log2BucketSize + 1 );
 
@@ -211,7 +211,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 
 	public int size() {
-		return size;
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}
 
 	public long numBits() {

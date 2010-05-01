@@ -145,7 +145,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param pl 
 		 */
 		
-		public PartialTrie( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, ProgressLogger pl ) {
+		public PartialTrie( final Iterable<? extends T> elements, final long size, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, ProgressLogger pl ) {
 			Iterator<? extends T> iterator = elements.iterator(); 
 			
 			Node node;
@@ -164,7 +164,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				Node root = null;
 				long maxLength = prev.length();
 				// Last element will be unused
-				offset = new long[ numElements / bucketSize + 1 ];
+				offset = new long[ (int)( size / bucketSize + 1 ) ];
 				
 				while( iterator.hasNext() ) {
 					// Check order
@@ -224,7 +224,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				}
 				pl.done();
 				
-				size = count;
+				this.size = count;
 				
 				if ( DDEBUG ) System.err.println( "Offsets: " + Arrays.toString( offset ) );			
 
@@ -416,12 +416,12 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
-	public VLPaCoTrieDistributor( final Iterable<? extends T> elements, final int numElements, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public VLPaCoTrieDistributor( final Iterable<? extends T> elements, final long size, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
-		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, numElements, bucketSize, transformationStrategy, pl );
+		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, size, bucketSize, transformationStrategy, pl );
 		FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
 		OutputBitStream trie = new OutputBitStream( fbStream, 0 );
 		pl.expectedUpdates = immutableBinaryTrie.size;

@@ -65,7 +65,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 	private static final Logger LOGGER = Util.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
-	private final int size;
+	private final long size;
 	/** The size of a bucket. */
 	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -168,7 +168,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 				return index & bucketSizeMask; 
 			}
 			public int size() {
-				return size;
+				return size > Integer.MAX_VALUE ? -1 : (int)size;
 			}
 		}, log2BucketSize );
 
@@ -181,7 +181,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 
 
 	public int size() {
-		return size;
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}
 
 	public long numBits() {

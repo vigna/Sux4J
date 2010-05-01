@@ -60,7 +60,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
     private final static boolean ASSERTS = false;
     
 	/** The number of elements. */
-	final protected int n;
+	final protected long n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
 	/** The first function, or <code>null</code>. The special output value {@link #escape} denotes that {@link #secondFunction} 
@@ -200,7 +200,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 				}
 
 				public int size() {
-					return n;
+					return n > Integer.MAX_VALUE ? -1 : (int)n;
 				}
 
 			}, best );
@@ -252,7 +252,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @return the number of the elements in the function domain.
 	 */
 	public int size() {
-		return n;
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

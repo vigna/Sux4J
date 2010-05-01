@@ -134,7 +134,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The shift for chunks. */
 	private final int chunkShift;
 	/** The number of elements. */
-	protected final int n;
+	protected final long n;
 	/** The number of vertices of the intermediate hypergraph. */
 	protected final int m;
 	/** The data width. */
@@ -449,7 +449,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the number of the elements in the function domain.
 	 */
 	public int size() {
-		return n;
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.
