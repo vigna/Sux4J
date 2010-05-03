@@ -155,8 +155,8 @@ public class HypergraphSorter<T> {
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
 	private int top;
-	/** The queue used for peeling the graph. */
-	private final IntArrayList queue;
+	/** The stack used for peeling the graph. */
+	private final IntArrayList visitStack;
 
 	/** Creates a hypergraph sorter for a given number of edges.
 	 * 
@@ -176,7 +176,7 @@ public class HypergraphSorter<T> {
 		edge = computeEdges ? new int[ numVertices ] : null;
 		stack = new int[ numEdges ];
 		d = new int[ numVertices ];
-		queue = new IntArrayList( INITIAL_QUEUE_SIZE );
+		visitStack = new IntArrayList( INITIAL_QUEUE_SIZE );
 		neverUsed = true;
 	}
 
@@ -389,22 +389,22 @@ public class HypergraphSorter<T> {
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
-		final IntArrayList queue = this.queue;
+		final IntArrayList visitStack = this.visitStack;
 		
 		// Queue initialization
-		int v, start = 0;
-		queue.clear();
-		queue.add( x );
+		int v;
+		visitStack.clear();
+		visitStack.push( x );
 
-		while ( start < queue.size() ) {
-			v = queue.getInt( start++ );
+		while ( ! visitStack.isEmpty() ) {
+			v = visitStack.popInt();
 			if ( d[ v ] == 1 ) {
 				stack[ top++ ] = v;
 				--d[ v ];
 				// System.err.println( "Stripping <" + v + ", " + vertex1[ v ] + ", " + vertex2[ v ] + ">" );
 				xorEdge( computeEdges ? edge[ v ] : -1, v, vertex1[ v ], vertex2[ v ], true );
-				if ( --d[ vertex1[ v ] ] == 1 ) queue.add( vertex1[ v ] );
-				if ( --d[ vertex2[ v ] ] == 1 ) queue.add( vertex2[ v ] );				
+				if ( --d[ vertex1[ v ] ] == 1 ) visitStack.add( vertex1[ v ] );
+				if ( --d[ vertex2[ v ] ] == 1 ) visitStack.add( vertex2[ v ] );				
 			}
 		}
 	}
