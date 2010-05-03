@@ -218,7 +218,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		dos = new DataOutputStream[ DISK_CHUNKS ];
 		// Create disk chunks
 		for( int i = 0; i < DISK_CHUNKS; i++ ) {
-			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ) ) ) ) );
+			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ) ) );
 			file[ i ].deleteOnExit();
 		}
 
