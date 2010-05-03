@@ -41,6 +41,7 @@ import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.LongBigList;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
@@ -60,6 +61,7 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** An immutable function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
@@ -162,7 +164,18 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
 	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, null, -1, chunkedHashStore, false );
+		this( elements, transform, null, -1, null, chunkedHashStore, false );
+	}
+
+	/** Creates a new function for the given elements that will map them to their ordinal position.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, null, -1, tempDir, chunkedHashStore, false );
 	}
 
 	/** Creates a new function for the given elements that will map them to their ordinal position.
@@ -171,7 +184,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param transform a transformation strategy for the elements.
 	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null );
+		this( elements, transform, null, -1, null, null, false );
+	}
+
+	/** Creates a new function for the given elements that will map them to their ordinal position.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+		this( elements, transform, tempDir, null );
 	}
 
 	/** Creates a new function for the given elements and values.
@@ -189,7 +212,22 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, values, width, chunkedHashStore, false );
+		this( elements, transform, values, width, null, chunkedHashStore, false );
+	}
+
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the elements associated with their value, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, values, width, tempDir, chunkedHashStore, false );
 	}
 
 	/** Creates a new function for the given elements and values.
@@ -201,7 +239,20 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the <code>values</code>.
 	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width ) throws IOException {
-		this( elements, transform, values, width, null );
+		this( elements, transform, values, width, null, null, false );
+	}
+
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir ) throws IOException {
+		this( elements, transform, values, width, tempDir, null, false );
 	}
 
 	/** Creates a new function using a given checked chunked hash store.
@@ -211,7 +262,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the values contained in <code>chunkedHashStore</code>.
 	 */
 	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, int width ) throws IOException {
-		this( null, transform, null, width, chunkedHashStore, false );
+		this( null, transform, null, width, null, chunkedHashStore, false );
 	}
 
 
@@ -226,9 +277,26 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
 	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
-		this( elements, transform, values, width, chunkedHashStore, true );
+		this( elements, transform, values, width, null, chunkedHashStore, true );
 	}
 
+	/** Creates a new function for the given elements using a chunked hash store containing ordinal positions.
+	 * 
+	 * @param elements the elements in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 * @param width the bit width of the <code>values</code>.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+		this( elements, transform, values, width, tempDir, chunkedHashStore, true );
+	}
+
+
+	
 	/** Creates a new function using a given checked chunked hash store containing ordinal positions and a list of values.
 	 * 
 	 * @param transform a transformation strategy for the elements.
@@ -237,22 +305,22 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the <code>values</code>.
 	 */
 	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
-		this( null, transform, values, width, chunkedHashStore, true );
+		this( null, transform, values, width, null, chunkedHashStore, true );
 	}
-
 
 	/** Creates a new function for the given elements and values.
 	 * 
-	 * @param elements the elements in the domain of the function.
+	 * @param elements the elements in the domain of the function, or <code>null</code>.
 	 * @param transform a transformation strategy for the elements.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>.
+	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongList} that
 	 * must be accessed to retrieve the actual values. 
 	 */
-	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
+	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
 		this.transform = transform;
 		
 		// If we have no elements, values must be a random-access list of longs.
@@ -267,7 +335,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( ! givenChunkedHashStore ) {
 			if ( elements == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the elements" );
-			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, pl );
 			chunkedHashStore.reset( r.nextLong() );
 			if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
 			else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
@@ -488,6 +556,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final SimpleJSAP jsap = new SimpleJSAP( MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new FlaggedOption( "tempDir", FileStringParser.getParser(), "temp-dir", JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
@@ -515,7 +584,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				? TransformationStrategies.iso() 
 				: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir" ) ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

@@ -189,7 +189,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * 
 	 * @param transform a transformation strategy for the elements.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the current directory.
-	 * @throws IOException 
 	 */	
 	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
 		this( transform, tempDir, null );

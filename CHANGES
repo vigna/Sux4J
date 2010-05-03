@@ -3,6 +3,9 @@
 - Major rewriting of the hypergraph peeling code. Now we use less memory
   and we are definitely faster.
 
+- MWHCFunction and MinimalPerfectHashFunction accept a temporary directory
+  for the chunked hash store files.
+
 - Improved ChunkedHashStore architecture that allow arbitrary values,
   so functions can be built without keeping values in memory.
 

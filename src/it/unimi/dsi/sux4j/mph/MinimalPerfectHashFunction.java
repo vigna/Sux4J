@@ -38,6 +38,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.LongBigList;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -58,6 +59,7 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /**
@@ -68,7 +70,12 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * return a distinct number for each elements in the list. For elements out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that an
  * element was not in the original list, and in that case -1 will be returned. The class can then be
- * saved by serialisation and reused later.
+ * saved by serialisation and reused later. 
+ * 
+ * <p>This class uses {@link ChunkedHashStore} to provide highly scalable constructors. Note that at construction time
+ * you can {@linkplain #MinimalPerfectHashFunction(Iterable, TransformationStrategy, File, ChunkedHashStore) pass}
+ * a {@link ChunkedHashStore} containing the elements associated with any value; note that, however, that if the store is rebuilt because of a
+ * {@link ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
  * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
  * o(<var>n</var>) bits per element, plus the bits for the random hashes (which are usually
@@ -171,7 +178,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 */
 
 	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null );
+		this( elements, transform, null, null );
 	}
 
 	/**
@@ -179,10 +186,48 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * 
 	 * @param elements the elements to hash.
 	 * @param transform a transformation strategy for the elements.
-	 * @throws IOException
+	 * @param tempDir a temporary directory for the chunked hash store files, or <code>null</code> for the current directory.
+	 */
+
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+		this( elements, transform, tempDir, null );
+	}
+
+	/**
+	 * Creates a new minimal perfect hash table for elements provided by a {@link ChunkedHashStore}.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param chunkedHashStore a checked chunked hash store containing the elements. 
+	 */
+
+	public MinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( null, transform, null, chunkedHashStore );
+	}
+	
+	/**
+	 * Creates a new minimal perfect hash table for the given elements.
+	 * 
+	 * @param elements the elements to hash, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param chunkedHashStore a chunked hash store containing the elements, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
 
 	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( elements, transform, null, chunkedHashStore );
+	}
+	
+	/**
+	 * Creates a new minimal perfect hash table for the given elements.
+	 * 
+	 * @param elements the elements to hash, or <code>null</code>.
+	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the elements, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+
+	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -192,7 +237,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( !givenChunkedHashStore ) {
-			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, pl );
 			chunkedHashStore.reset( r.nextLong() );
 			chunkedHashStore.addAll( elements.iterator() );
 		}
@@ -269,6 +314,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				break;
 			}
 			catch ( ChunkedHashStore.DuplicateException e ) {
+				if ( elements == null ) throw new IllegalStateException( "You provided no elements, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
@@ -413,6 +459,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
 				new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+				new FlaggedOption( "tempDir", FileStringParser.getParser(), "temp-dir", JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
@@ -438,7 +485,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.iso() : TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir") ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
