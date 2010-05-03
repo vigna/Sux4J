@@ -182,16 +182,36 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @throws IOException 
 	 */	
 	public ChunkedHashStore( final TransformationStrategy<? super T> transform ) throws IOException {
-		this( transform, null );
+		this( transform, null, null );
+	}
+		
+	/** Creates a chunked hash store with given transformation strategy and temporary file directory.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the current directory.
+	 * @throws IOException 
+	 */	
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+		this( transform, tempDir, null );
+	}
+
+	/** Creates a chunked hash store with given transformation strategy.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param pl a progress logger, or <code>null</code>.
+	 */
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
+		this( transform, null, pl );
 	}
 		
 	/** Creates a chunked hash store with given transformation strategy and progress logger.
 	 * 
 	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the current directory.
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir , final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
 		
