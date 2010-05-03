@@ -76,9 +76,9 @@ import cern.colt.function.IntComparator;
  * <p>It is possible (albeit unlikely) that different elements generate the same hash. This event is detected
  * during chunk iteration (not while accumulating hashes), and it will throw a {@link ChunkedHashStore.DuplicateException}.
  * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
- * from scratch. Note that after a few (say, three) exceptions you can assume that there are duplicate elements. If you 
+ * from scratch. Note that after a few (say, three) exceptions you can safely assume that there are duplicate elements. If you 
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable}, 
- * {@link #checkAndRetry(Iterable)} will try three times to build a checked chunked hash store.
+ * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked chunked hash store.
  * 
  * <p>Note that every {@link #reset(long)} changes the seed used by the store to generate triples. So, if this seed has to be
  * stored this must happen <em>after</em> the last call to {@link #reset(long)}. To help tracking this fact, a call to 
@@ -137,6 +137,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		private static final long serialVersionUID = 1L;
 	}
 	
+	/** The size of the output buffers. */
+	public final static int OUTPUT_BUFFER_SIZE = 32768;	
 	/** The logarithm of the number of physical disk chunks. */
 	public final static int LOG2_DISK_CHUNKS = 8;
 	/** The number of physical disk chunks. */
@@ -218,7 +220,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		dos = new DataOutputStream[ DISK_CHUNKS ];
 		// Create disk chunks
 		for( int i = 0; i < DISK_CHUNKS; i++ ) {
-			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ) ) );
+			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ), OUTPUT_BUFFER_SIZE ) );
 			file[ i ].deleteOnExit();
 		}
 

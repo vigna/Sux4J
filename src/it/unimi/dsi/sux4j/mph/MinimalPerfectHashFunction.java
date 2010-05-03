@@ -72,7 +72,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * element was not in the original list, and in that case -1 will be returned. The class can then be
  * saved by serialisation and reused later. 
  * 
- * <p>This class uses {@link ChunkedHashStore} to provide highly scalable constructors. Note that at construction time
+ * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable constructors. Note that at construction time
  * you can {@linkplain #MinimalPerfectHashFunction(Iterable, TransformationStrategy, File, ChunkedHashStore) pass}
  * a {@link ChunkedHashStore} containing the elements associated with any value; note that, however, that if the store is rebuilt because of a
  * {@link ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
