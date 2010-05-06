@@ -90,11 +90,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The number of lower bits. */
 	protected final int l;
 	/** The list of lower bits of each element, stored explicitly. */
-	protected final LongArrayBitVector lowerBits;
+	protected final LongBigList lowerBits;
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
 	
-	protected EliasFanoMonotoneLongBigList( final long length, final int l, final LongArrayBitVector lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneLongBigList( final long length, final int l, final LongBigList lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
@@ -235,14 +235,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final long upperBound = a[ 1 ];
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		final LongBigList lowerBitsList = ( lowerBits = LongArrayBitVector.getInstance() ).asLongBigList( l ).length( length );
+		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( length );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();
 			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
-			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
+			if ( l != 0 ) lowerBits.set( i, v & lowerBitsMask );
 			upperBits.set( ( v >> l ) + i );
 			last = v;
 		}
@@ -254,13 +254,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length();
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
 	}
 
 	public long getLong( final long index ) {
 		if ( index < 0 || index >= length ) throw new IndexOutOfBoundsException( Long.toString( index ) );
-		final long start = index * l; 
-		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( start, start + l );
+		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( index );
 	}
 
 	public long length() {
