@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.util;
  */
 
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
@@ -90,11 +91,13 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The number of lower bits. */
 	protected final int l;
 	/** The list of lower bits of each element, stored explicitly. */
-	protected final LongBigList lowerBits;
+	protected final LongArrayBitVector lowerBits;
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
+
+	private long[] bits;
 	
-	protected EliasFanoMonotoneLongBigList( final long length, final int l, final LongBigList lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneLongBigList( final long length, final int l, final LongArrayBitVector lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
@@ -235,31 +238,36 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final long upperBound = a[ 1 ];
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		lowerBits = LongArrayBitVector.getInstance().asLongBigList( l ).length( length );
+		final LongBigList lowerBitsList = ( lowerBits = LongArrayBitVector.getInstance() ).asLongBigList( l ).length( length );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();
 			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
-			if ( l != 0 ) lowerBits.set( i, v & lowerBitsMask );
+			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
 			upperBits.set( ( v >> l ) + i );
 			last = v;
 		}
 		
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
-		
+		this.bits = lowerBits.bits();
 		selectUpper = new SimpleSelect( upperBits );
 	}
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length() * l;
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length();
 	}
 
 	public long getLong( final long index ) {
 		if ( index < 0 || index >= length ) throw new IndexOutOfBoundsException( Long.toString( index ) );
-		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( index );
+		final long start = index * l; 
+		final int startWord = (int)( start >> Long.SIZE );
+		final int startBit = (int)( start & ( Long.SIZE - 1 ) );
+		
+		return ( selectUpper.select( index ) - index ) << l | ( ( startBit <= l ) ? bits[ startWord ] << l - startBit >>> l 
+		: bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + l - startBit >>> l );
 	}
 
 	public long length() {
