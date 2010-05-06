@@ -260,7 +260,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	public long getLong( final long index ) {
 		if ( index < 0 || index >= length ) throw new IndexOutOfBoundsException( Long.toString( index ) );
 		final long start = index * l; 
-		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( start, start + index );
+		return ( selectUpper.select( index ) - index ) << l | lowerBits.getLong( start, start + l );
 	}
 
 	public long length() {
