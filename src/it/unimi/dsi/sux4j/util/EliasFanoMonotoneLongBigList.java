@@ -266,7 +266,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final int startWord = (int)( start >>> Long.SIZE );
 		final int startBit = (int)( start & ( Long.SIZE - 1 ) );
 		
-		return ( selectUpper.select( index ) - index ) << l | ( ( startBit <= l ) ? bits[ startWord ] << l - startBit >>> l 
+		return ( selectUpper.select( index ) - index ) << l | ( startBit <= l ? bits[ startWord ] << l - startBit >>> l 
 		: bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + l - startBit >>> l );
 	}
 
