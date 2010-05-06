@@ -262,6 +262,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	public long getLong( final long index ) {
 		if ( index < 0 || index >= length ) throw new IndexOutOfBoundsException( Long.toString( index ) );
+		final int l = this.l;
 		final long start = index * l; 
 		final int startWord = (int)( start >> Long.SIZE );
 		final int startBit = (int)( start & ( Long.SIZE - 1 ) );
