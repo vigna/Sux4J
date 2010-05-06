@@ -262,7 +262,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	public long getLong( final long index ) {
 		final int l = Long.SIZE - this.l;
-		final long start = index * l; 
+		final long start = index * this.l; 
 		final int startWord = (int)( start >>> Long.SIZE );
 		final int startBit = (int)( start & ( Long.SIZE - 1 ) );
 		
