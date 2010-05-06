@@ -261,13 +261,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	public long getLong( final long index ) {
-		final int l = Long.SIZE - this.l;
-		final long start = index * this.l; 
-		final int startWord = (int)( start >>> Long.SIZE );
-		final int startBit = (int)( start & ( Long.SIZE - 1 ) );
-		
-		return ( selectUpper.select( index ) - index ) << l | ( startBit <= l ? bits[ startWord ] << l - startBit >>> l 
-		: bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + l - startBit >>> l );
+		final int l = this.l;
+		final int m = Long.SIZE - l;
+		final long start = index * l; 
+		final int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
+		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
+
+		return ( selectUpper.select( index ) - index ) << l | 
+			( startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
 	}
 
 	public long length() {
