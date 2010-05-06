@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.util;
  */
 
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
@@ -129,11 +130,23 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		});
 	}
 	
+	private final static long getDiff( long[] bits, long index, int l ) {
+		if ( l == 0 ) return 0;
+		final int m = Long.SIZE - l;
+		final long start = index * l; 
+		int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
+		int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
+		final long a = startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m;
+		startWord = (int)( ( start + l ) >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
+		startBit = (int)( ( start + l ) & LongArrayBitVector.WORD_MASK );
+		return ( startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m ) - a;
+	}
+
 	public long getLong( final long index ) {
 		if ( index < 0 || index >= length - 1 ) throw new IndexOutOfBoundsException( Long.toString( index ) );
 		final long pos = selectUpper.select( index + 1 );
-		if ( upperBits.getBoolean( pos - 1 ) ) return lowerBits.getLong( index + 1 ) - lowerBits.getLong( index );
-		else return ( pos - upperBits.previousOne( pos ) - 1 ) * ( 1L << l ) + lowerBits.getLong( index + 1 ) - lowerBits.getLong( index );
+		if ( upperBits.getBoolean( pos - 1 ) ) return getDiff( lowerBits, index, l );
+		else return ( pos - upperBits.previousOne( pos ) - 1 ) * ( 1L << l ) + getDiff( lowerBits, index, l );
 	}
 	
 	/** Returns the prefix sum of this list up to the given index.

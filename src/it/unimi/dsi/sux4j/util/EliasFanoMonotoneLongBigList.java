@@ -22,7 +22,6 @@ package it.unimi.dsi.sux4j.util;
  */
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
@@ -91,13 +90,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The number of lower bits. */
 	protected final int l;
 	/** The list of lower bits of each element, stored explicitly. */
-	protected final LongArrayBitVector lowerBits;
+	protected final long[] lowerBits;
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
-
-	private long[] bits;
 	
-	protected EliasFanoMonotoneLongBigList( final long length, final int l, final LongArrayBitVector lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneLongBigList( final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
@@ -238,7 +235,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final long upperBound = a[ 1 ];
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		final LongBigList lowerBitsList = ( lowerBits = LongArrayBitVector.getInstance() ).asLongBigList( l ).length( length );
+		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
+		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l ).length( length );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
@@ -251,24 +249,25 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		}
 		
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
-		this.bits = lowerBits.bits();
+		this.lowerBits = lowerBitsVector.bits();
 		selectUpper = new SimpleSelect( upperBits );
 	}
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length();
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * Long.SIZE;
 	}
 
 	public long getLong( final long index ) {
 		final int l = this.l;
+		if ( l == 0 ) return selectUpper.select( index ) - index;
 		final int m = Long.SIZE - l;
 		final long start = index * l; 
 		final int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
 		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
 
 		return ( selectUpper.select( index ) - index ) << l | 
-			( startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
+			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
 	}
 
 	public long length() {

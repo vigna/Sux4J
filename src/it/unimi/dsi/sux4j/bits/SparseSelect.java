@@ -108,7 +108,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 		fromRank = false;
 	}	
 	
-	protected SparseSelect( long n, long m, int l, LongBigList lowerBits, SimpleSelect selectUpper ) {
+	protected SparseSelect( final long n, final long m, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
 		super( m, l, lowerBits, selectUpper );
 		this.n = n;
 		this.fromRank = true;
@@ -138,12 +138,21 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	public long numBits() {
-		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length() * l );
+		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * Long.SIZE );
 	}
 
 	public long select( final long rank ) {
 		if ( rank >= length ) return -1;
-		return ( selectUpper.select( rank ) - rank ) << l | lowerBits.getLong( rank );
+
+		final int l = this.l;
+		if ( l == 0 ) return selectUpper.select( rank ) - rank;
+		final int m = Long.SIZE - l;
+		final long start = rank * l; 
+		final int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
+		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
+
+		return ( selectUpper.select( rank ) - rank ) << l | 
+			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
 	}
 
 	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
