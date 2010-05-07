@@ -16,6 +16,8 @@
 - Fixed bug in some rank/select classes that was causing integer overflow
   errors when building structure over bit vectors with >2Gi bits.
 
+- AbstractLongBitVector.equals() now uses getLong() on word boundaries.
+
 2.0
 
 - General revamp, restructuring, improvements, new coherent names for

@@ -210,7 +210,7 @@ public class Hashes {
 		while ( length - from >= Long.SIZE * 3 ) {
 			a += bv.getLong( from, from + Long.SIZE );
 			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, length ) );
+			c += bv.getLong( from + 2 * Long.SIZE, from + 3 * Long.SIZE );
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
