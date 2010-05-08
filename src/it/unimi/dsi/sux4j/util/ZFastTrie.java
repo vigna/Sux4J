@@ -214,7 +214,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		leaf.extent = LongArrayBitVector.copy( v );
 		leaf.nameLength = lcp + 1;
-		//map.put( leaf.extent.copy( 0, twoFattest( lcp, v.length() ) ), leaf );
 
 		if ( DDDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; exit to the " + ( exitDirection ? "right" : "left") );
 		
@@ -227,7 +226,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			exitNode.extent = internal.extent.copy( 0, lcp );
 			internal.nameLength = lcp + 1;
 
-
+			/* Depending on whether the exit node is a leaf, we might need to insert into the table
+			 * either the exit node or the new internal node. */
 			if ( exitNode.right == null ) map.put( Hashes.jenkins( exitNode.extent.subVector( 0, twoFattest( exitNode.nameLength - 1, lcp ) ) ), exitNode );
 			else map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( lcp, internal.extent.length() ) ) ), internal );
 
@@ -288,7 +288,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			System.err.println( "getParentExitNode(" + v + ")" );
 			//System.err.println( "Map: " + map );
 		}
-		long r = v.length();
+		final long length = v.length();
+		long r = length;
 		
 		final long state[][] = Hashes.preprocessJenkins( v, 0 );
 		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
@@ -313,7 +314,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 					long g = node.extent.length();
 					if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
 
-					if ( g <= v.length() && node.extent.subVector( f, g ).equals( v.subVector( f, g ) ) ) {
+					if ( g <= length && node.extent.subVector( f, g ).equals( v.subVector( f, g ) ) ) {
 						parent = node;
 						l = g;
 					}
@@ -392,7 +393,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new ZFastTrie<CharSequence>( collection, transformationStrategy ), functionName );
+		ZFastTrie<CharSequence> zFastTrie = new ZFastTrie<CharSequence>( transformationStrategy );
+		ProgressLogger pl = new ProgressLogger();
+		pl.itemsName = "keys";
+		pl.start( "Adding keys..." );
+		for( MutableString s : collection ) {
+			zFastTrie.add ( s );
+			pl.lightUpdate();
+		}
+		pl.done();
+		BinIO.storeObject( zFastTrie, functionName );
 		LOGGER.info( "Completed." );
 	}
 
