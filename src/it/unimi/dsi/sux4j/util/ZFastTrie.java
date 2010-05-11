@@ -71,8 +71,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
 	private static final boolean ASSERTS = true;
-	private static final boolean DDEBUG = true;
-	private static final boolean DDDEBUG = true;
+	private static final boolean DDEBUG = false;
+	private static final boolean DDDEBUG = false;
 	
 	
 	private final static class Node implements Serializable {
@@ -100,13 +100,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public boolean intercepts( long h ) {
-			return h >= nameLength && h < extent.length();
+			// TODO: eliminate -1
+			return h > nameLength - 1 && ( isLeaf() || h <= extent.length() );
 		}
 		
 		public String toString() {
 			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF ) + 
 				( extent == null ? "" : 
-					( extent.length() > 16 ? extent.subVector( 0, 8 ) + "..." + extent.subVector( extent.length() - 8 ): extent ) +
+					" " + ( extent.length() > 16 ? extent.subVector( 0, 8 ) + "..." + extent.subVector( extent.length() - 8 ): extent ) +
 					" (" + ( nameLength - 1 ) + ".." + extent.length() + "], " + handleLength() + "->" + jumpLength() ) +
 				( isLeaf() ? "]" : ")" );
 		}
@@ -197,13 +198,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			assert nodes.remove( n ) : n;
 			assert map.keySet().contains( Hashes.jenkins( n.extent.subVector( 0, twoFattest( n.nameLength - 1, n.extent.length() ) ) ) ) : n;
 			
-			final long crossPoint = n.handleLength() + ( n.handleLength() & -n.handleLength() );
+			final long jumpLength = n.jumpLength();
 			Node jumpLeft = n.left;
-			while( jumpLeft.left != null && crossPoint >= jumpLeft.extent.length() ) jumpLeft = jumpLeft.left;
+			while( jumpLeft.left != null && jumpLength > jumpLeft.extent.length() ) jumpLeft = jumpLeft.left;
 			assert jumpLeft == n.jumpLeft : jumpLeft + " != " + n.jumpLeft + " (node: " + n + ")";
 
 			Node jumpRight = n.right;
-			while( jumpRight.right != null && crossPoint >= jumpRight.extent.length() ) jumpRight = jumpRight.right;
+			while( jumpRight.right != null && jumpLength > jumpRight.extent.length() ) jumpRight = jumpRight.right;
 			assert jumpRight == n.jumpRight : jumpRight + " != " + n.jumpRight + " (node: " + n + ")";
 		}
 
@@ -223,15 +224,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long jumpLength = node.jumpLength();
 		Node jump;
 
-		for( jump = node.left; jump.isInternal() && jump.extent.length() <= jumpLength; ) {
-			System.err.println( "Moving to node " + jump + "..." );
-			jump = jump.jumpLeft;
-		}
-		System.err.println( "Exiting with node " + jump );
-		if ( ASSERTS ) assert jump.nameLength - 1 <= jumpLength;
+		for( jump = node.left; jump.isInternal() && jumpLength > jump.extent.length(); ) jump = jump.jumpLeft;
+		if ( ASSERTS ) assert jump.intercepts( jumpLength );
 		node.jumpLeft = jump;
-		for( jump = node.right; jump.isInternal() && jump.extent.length() <= jumpLength; ) jump = jump.jumpRight;
-		if ( ASSERTS ) assert jump.nameLength - 1 <= jumpLength;
+		for( jump = node.right; jump.isInternal() && jumpLength > jump.extent.length(); ) jump = jump.jumpRight;
+		if ( ASSERTS ) assert jump.intercepts( jumpLength );
 		node.jumpRight = jump;
 	}
 
@@ -251,7 +248,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		while( ! stack.isEmpty() ) {
 			toBeFixed = stack.pop();
 			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpRight != exitNode || jumpLength >= lcp ) {
+			if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) {
 				stack.push( toBeFixed );
 				break;
 			}
@@ -261,13 +258,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		while( ! stack.isEmpty() ) {
 			toBeFixed = stack.pop();
 			jumpLength = toBeFixed.jumpLength();
-			System.err.println( "node " + toBeFixed + " el: " + exitNode.extent.length() + " jl:" + jumpLength + " jumpRight: " + toBeFixed.jumpRight ) ;
-			while( exitNode != null && toBeFixed.jumpRight != exitNode ) {
-				exitNode = exitNode.jumpRight;
-				System.err.println( "Moving to node " + exitNode );
-			}
+			while( exitNode != null && toBeFixed.jumpRight != exitNode ) exitNode = exitNode.jumpRight;
 			if ( exitNode == null ) return;
-			System.err.println( "Fixing" + toBeFixed + " jumpLength:"  + jumpLength + " lcp: "  + lcp );
 			toBeFixed.jumpRight = leaf;
 		}
 	}
@@ -288,7 +280,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		while( ! stack.isEmpty() ) {
 			toBeFixed = stack.pop();
 			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpLeft != exitNode || jumpLength >= lcp ) {
+			if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) {
 				stack.push( toBeFixed );
 				break;
 			}
@@ -298,13 +290,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		while( ! stack.isEmpty() ) {
 			toBeFixed = stack.pop();
 			jumpLength = toBeFixed.jumpLength();
-			System.err.println( "node " + toBeFixed + " el: " + exitNode.extent.length() + " jl:" + jumpLength + " jumpLeft: " + toBeFixed.jumpLeft ) ;
-			while( exitNode != null && toBeFixed.jumpLeft != exitNode ) {
-				exitNode = exitNode.jumpLeft;
-				System.err.println( "Moving to node " + exitNode );
-			}
+			while( exitNode != null && toBeFixed.jumpLeft != exitNode ) exitNode = exitNode.jumpLeft;
 			if ( exitNode == null ) return;
-			System.err.println( "Fixing" + toBeFixed + " jumpLength:"  + jumpLength + " lcp: "  + lcp );
 			toBeFixed.jumpLeft = leaf;
 		}
 	}
@@ -358,8 +345,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			internal.left = exitNode.left;
 			internal.right = exitNode.right;
-			setJumps( internal );
-			
+			if ( internal.isInternal() ) setJumps( internal );
+
+			/* Depending on whether the exit node is a leaf, we might need to insert into the table
+			 * either the exit node or the new internal node. */
+			if ( exitNode.isLeaf() ) {
+				assert map.put( Hashes.jenkins( exitNode.extent.subVector( 0, twoFattest( exitNode.nameLength - 1, lcp ) ) ), exitNode ) == null;
+				if ( exitDirection ) exitNode.jumpLeft = internal;
+				else exitNode.jumpRight = internal;
+			}
+			else assert map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( lcp, internal.extent.length() ) ) ), internal ) == null;
+
 			if ( exitDirection ) {
 				exitNode.right = exitNode.jumpRight = leaf;
 				exitNode.left = internal;
@@ -367,13 +363,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			else {				
 				exitNode.right = internal;				
 				exitNode.left = exitNode.jumpLeft = leaf;
-			}	
-
-			/* Depending on whether the exit node is a leaf, we might need to insert into the table
-			 * either the exit node or the new internal node. */
-			if ( exitNode.right == null ) map.put( Hashes.jenkins( exitNode.extent.subVector( 0, twoFattest( exitNode.nameLength - 1, lcp ) ) ), exitNode );
-			else map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( lcp, internal.extent.length() ) ) ), internal );
-
+			}
 		}
 		else {
 			// internal is the node above
@@ -401,7 +391,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}			
 
 			
-			map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( internal.nameLength - 1, lcp ) ) ), internal );
+			assert map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( internal.nameLength - 1, lcp ) ) ), internal ) == null;
 		}
 
 		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
@@ -500,7 +490,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 					 * the top for nodes to fix. */
 					long left = 0;
 					for( i = 0; i < stack.size(); i++ ) {
-						System.err.println( left + " " + parent.extent.length() );
 						assert stack.get( i ).handleLength() == twoFattest( left, parent.extent.length() ) :
 							stack.get( i ).handleLength() + " != " + twoFattest( left, parent.extent.length() ) + " " + i + " " + stack ;
 						left = stack.get( i ).extent.length();
