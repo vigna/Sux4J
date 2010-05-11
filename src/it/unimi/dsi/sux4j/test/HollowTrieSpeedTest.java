@@ -4,7 +4,6 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,7 +26,7 @@ public class HollowTrieSpeedTest {
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a hollow trie reading a newline-separated list of terms.",
+		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieSpeedTest.class.getName(), "Tests the speed of a hollow trie.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
