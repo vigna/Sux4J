@@ -115,10 +115,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	/** The number of elements. */
 	private long size;
-	private Node root;
+	private transient Node root;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
-	private final Long2ObjectOpenHashMap<Node> map; 
+	private transient Long2ObjectOpenHashMap<Node> map; 
 	
 	public ZFastTrie( final TransformationStrategy<? super T> transform ) {
 		this.transform = transform;
@@ -350,11 +350,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			/* Depending on whether the exit node is a leaf, we might need to insert into the table
 			 * either the exit node or the new internal node. */
 			if ( exitNode.isLeaf() ) {
-				assert map.put( Hashes.jenkins( exitNode.extent.subVector( 0, twoFattest( exitNode.nameLength - 1, lcp ) ) ), exitNode ) == null;
+				map.put( Hashes.jenkins( exitNode.extent.subVector( 0, twoFattest( exitNode.nameLength - 1, lcp ) ) ), exitNode );
 				if ( exitDirection ) exitNode.jumpLeft = internal;
 				else exitNode.jumpRight = internal;
 			}
-			else assert map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( lcp, internal.extent.length() ) ) ), internal ) == null;
+			else map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( lcp, internal.extent.length() ) ) ), internal );
 
 			if ( exitDirection ) {
 				exitNode.right = exitNode.jumpRight = leaf;
@@ -389,9 +389,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				internal.left = internal.jumpLeft = leaf;
 				internal.right = internal.jumpRight = exitNode;
 			}			
-
 			
-			assert map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( internal.nameLength - 1, lcp ) ) ), internal ) == null;
+			map.put( Hashes.jenkins( internal.extent.subVector( 0, twoFattest( internal.nameLength - 1, lcp ) ) ), internal );
 		}
 
 		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
@@ -512,6 +511,30 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return ( v.getBoolean( parentExitNode.extent.length() ) ? parentExitNode.right : parentExitNode.left ).extent.equals( v );
 	}
 
+	
+	/*private void writeObject( final ObjectOutputStream s ) throws IOException {
+		s.defaultWriteObject();
+		writeNode( root, s );
+	}
+	
+	private static void writeNode( final Node node, final ObjectOutputStream s ) throws IOException {
+		s.writeBoolean( node.isInternal() );
+		s.writeLong( node.extent.length() - node.nameLength );
+		if ( node.isInternal() ) {
+			writeNode( node.left, s );
+			writeNode( node.right, s );
+		}
+		else {
+			// TODO: write somehow reference to node referring to this string?
+			s.writeObject( node.extent );
+		}
+	}
+
+	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+	}*/
+
+	
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
