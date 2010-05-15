@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -551,7 +552,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			writeNode( node.right, s );
 		}
 		else {
-			s.writeObject( node.key );
+			BitVectors.writeFast( node.key, s );
 		}
 	}
 
@@ -577,19 +578,23 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			node.left = readNode( s, node.extentLength, leafStack, map, jumpStack );
 			node.right = readNode( s, node.extentLength, leafStack, map, jumpStack );
 			node.key = leafStack.pop();
+
 			
-			Node t;
-			t = node.left; 
-			while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.left;
-			node.jumpLeft = t;
-			t = node.right;
-			while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.right;
-			node.jumpRight = t;
+			
+			if ( ASSERTS ) {
+				Node t;
+				t = node.left; 
+				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.left;
+				assert node.jumpLeft == t;
+				t = node.right;
+				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.right;
+				assert node.jumpRight == t;
+			}
 
 			map.put( node.handleHash(), node );
 		}
 		else {
-			node.key = (LongArrayBitVector)s.readObject();
+			node.key = BitVectors.readFast( s );
 			leafStack.push( node.key );
 		}
 
