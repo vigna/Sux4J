@@ -31,7 +31,6 @@ public class ZFastTrieSpeedTest {
 
 		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieSpeedTest.class.getName(), "Tests the speed of a z-fast trie.",
 				new Parameter[] {
-					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 					new Switch( "bitVector", 'b', "bit-vector", "Test a trie of bit vectors, rather than a trie of strings." ),
