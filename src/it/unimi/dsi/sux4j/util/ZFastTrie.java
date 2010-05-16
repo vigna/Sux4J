@@ -37,9 +37,7 @@ import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSortedSet;
 import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.ZFastTrieDistributor;
@@ -52,7 +50,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
@@ -133,7 +130,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 	
 	/** The number of elements. */
-	private long size;
+	private int size;
 	private transient Node root;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
@@ -575,7 +572,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		ObjectArrayList<LongArrayBitVector> leafStack = new ObjectArrayList<LongArrayBitVector>();
 		ObjectArrayList<Node> jumpStack = new ObjectArrayList<Node>();
 		BooleanArrayList dirStack = new BooleanArrayList();
-		map = new Long2ObjectOpenHashMap<Node>();
+		map = new Long2ObjectOpenHashMap<Node>( size );
 		if ( size > 0 ) root = readNode( s, 0, leafStack, map, jumpStack, dirStack );
 		
 		if ( ASSERTS ) assert dirStack.isEmpty();
@@ -629,10 +626,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				Node t;
 				t = node.left; 
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.left;
-			 node.jumpLeft = t;
+				node.jumpLeft = t;
 				t = node.right;
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.right;
- node.jumpRight = t;
+				node.jumpRight = t;
 
 			map.put( node.handleHash(), node );
 		}
