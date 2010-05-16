@@ -43,7 +43,6 @@ public class ZFastTrieSpeedTest {
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 		
-		final int bufferSize = jsapResult.getInt( "bufferSize" );
 		final String trieName = jsapResult.getString( "trie" );
 		final String termFile = jsapResult.getString( "termFile" );
 		//final Class<?> tableClass = jsapResult.getClass( "class" );
@@ -58,8 +57,8 @@ public class ZFastTrieSpeedTest {
 		
 		Iterator<? extends CharSequence> i;
 
-		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
-		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
+		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ) ) );
+		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ) ) );
 
 		final int inc = zFastTrie.size() / n;
 		if ( bitVector ) {
