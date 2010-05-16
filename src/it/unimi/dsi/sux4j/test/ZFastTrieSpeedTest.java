@@ -73,7 +73,7 @@ public class ZFastTrieSpeedTest {
 			for( int k = 10; k-- != 0; ) {
 				long time = -System.currentTimeMillis();
 				for( int j = n; j-- != 0; ) {
-					zFastTrie.contains( i.next() );
+					zFastTrie.contains( test[ j ] );
 					if ( j++ % 10000 == 0 ) System.err.print('.');
 				}
 				System.err.println();
