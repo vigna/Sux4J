@@ -44,7 +44,9 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.ZFastTrieDistributor;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -52,6 +54,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -144,13 +147,24 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
 	 * elements and transformation strategy. 
 	 * 
-	 * @param elements the elements among which the trie must be able to rank.
+	 * @param elements an iterator returning the elements among which the trie must be able to rank.
+	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
+	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
+	 */
+	public ZFastTrie( final Iterator<? extends T> elements, final TransformationStrategy<? super T> transform ) {
+		this( transform );
+		while( elements.hasNext() ) add( elements.next() );
+	}
+
+	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
+	 * elements and transformation strategy. 
+	 * 
+	 * @param elements an iterable containing the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 */
 	public ZFastTrie( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
-		this( transform );
-		for( T e : elements ) add( e );
+		this( elements.iterator(), transform );
 	}
 
 	public int size() {
@@ -564,6 +578,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		map = new Long2ObjectOpenHashMap<Node>();
 		if ( size > 0 ) root = readNode( s, 0, leafStack, map, jumpStack, dirStack );
 		
+		if ( ASSERTS ) assert dirStack.isEmpty();
+		if ( ASSERTS ) assert jumpStack.isEmpty();
 		if ( ASSERTS ) assertTrie();
 	}
 
@@ -583,16 +599,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				if ( jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
-					break;
 				}
-				
-				if ( jumpLength > node.extentLength ) {
+				else if ( jumpLength > node.extentLength ) {
 					dirStack.push( dir );
 					jumpStack.push( anc );
 					break;
 				}
-				
-				assert false;
 				
 				if ( dirStack.isEmpty() ) break;
 				
@@ -604,12 +616,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 */		
 		if ( isInternal ) {
-			jumpStack.push( node );
-			dirStack.push( false );
+			//jumpStack.push( node );
+			//dirStack.push( false );
 			node.left = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
 			if ( ASSERTS ) assert ! jumpStack.contains( node );
-			jumpStack.push( node );
-			dirStack.push( true );
+			//jumpStack.push( node );
+			//dirStack.push( true );
 			node.right = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
 			if ( ASSERTS ) assert ! jumpStack.contains( node );
 			node.key = leafStack.pop();			
@@ -654,24 +666,22 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
 
-		final Collection<MutableString> collection;
-		if ( "-".equals( stringFile ) ) {
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
-		}
-		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );
+
+		final LineIterator lineIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( inputStream ) : inputStream, encoding ) ) );
+		
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
-				? TransformationStrategies.prefixFreeIso() 
+		? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-				ProgressLogger pl = new ProgressLogger();
-				pl.itemsName = "keys";
-				pl.start( "Adding keys..." );
+		ProgressLogger pl = new ProgressLogger();
+		pl.itemsName = "keys";
+		pl.start( "Adding keys..." );
 
 		if ( bitVector ) {
 			ZFastTrie<LongArrayBitVector> zFastTrie = new ZFastTrie<LongArrayBitVector>( TransformationStrategies.identity() );
-			for( MutableString s : collection ) {
-				zFastTrie.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( s ) ) );
+			while( lineIterator.hasNext() ) {
+				zFastTrie.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( lineIterator.next() ) ) );
 				pl.lightUpdate();
 			}
 			pl.done();
@@ -679,8 +689,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		else {
 			ZFastTrie<CharSequence> zFastTrie = new ZFastTrie<CharSequence>( transformationStrategy );
-			for( MutableString s : collection ) {
-				zFastTrie.add( s );
+			while( lineIterator.hasNext() ) {
+				zFastTrie.add( lineIterator.next() );
 				pl.lightUpdate();
 			}
 			pl.done();
