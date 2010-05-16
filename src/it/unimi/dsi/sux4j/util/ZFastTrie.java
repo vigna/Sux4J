@@ -574,7 +574,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		node.parentExtentLength = parentExtentLength;
 		node.extentLength = parentExtentLength + pathLength;
 
-		if ( ! dirStack.isEmpty() ) {
+/*		if ( ! dirStack.isEmpty() ) {
 			final boolean dir = dirStack.popBoolean();
 			Node anc;
 			long jumpLength;
@@ -602,7 +602,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				}
 			}
 		}
-		
+*/		
 		if ( isInternal ) {
 			jumpStack.push( node );
 			dirStack.push( false );
@@ -614,15 +614,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( ASSERTS ) assert ! jumpStack.contains( node );
 			node.key = leafStack.pop();			
 			
-			if ( ASSERTS ) {
 				Node t;
 				t = node.left; 
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.left;
-				assert node.jumpLeft == t;
+			 node.jumpLeft = t;
 				t = node.right;
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.right;
-				assert node.jumpRight == t;
-			}
+ node.jumpRight = t;
 
 			map.put( node.handleHash(), node );
 		}
