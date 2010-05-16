@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
@@ -30,7 +33,10 @@ public class ZFastTrieSpeedTest {
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
+					new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+					new Switch( "bitVector", 'b', "bit-vector", "Test a trie of bit vectors, rather than a trie of strings." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
+					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "100000", JSAP.NOT_REQUIRED, 'n', "n", "The number of elements to test." ),
 					new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
 					new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised z-fast trie." )
 		});
@@ -44,24 +50,57 @@ public class ZFastTrieSpeedTest {
 		//final Class<?> tableClass = jsapResult.getClass( "class" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
+		final int n = jsapResult.getInt( "n" );
 		
 		@SuppressWarnings("unchecked")
 		final ZFastTrie zFastTrie = (ZFastTrie)BinIO.loadObject( trieName );
 		
 		Iterator<? extends CharSequence> i;
 
-		for( int k = 10; k-- != 0; ) {
-			if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
-			else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
-			long time = -System.currentTimeMillis();
-			int j = 0;
-			while( i.hasNext() ) {
-				zFastTrie.contains( i.next() );
-				if ( j++ % 10000 == 0 ) System.err.print('.');
+		if ( termFile == null ) i = new LineIterator( new FastBufferedReader( new InputStreamReader( System.in, encoding ), bufferSize ) );
+		else i = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ), encoding ), bufferSize ) );
+
+		final int inc = zFastTrie.size() / n;
+		if ( bitVector ) {
+			final TransformationStrategy<CharSequence> transformationStrategy = iso
+			? TransformationStrategies.prefixFreeIso() 
+			: TransformationStrategies.prefixFreeUtf16();
+			final LongArrayBitVector[] test = new LongArrayBitVector[ n ];
+			for( int j = 0; j < n; j++ ) {
+				test[ j ] = LongArrayBitVector.copy( transformationStrategy.toBitVector( i.next() ) );
+				if ( inc > 0 ) for( int k = inc - 1; k-- != 0; ) i.next();
 			}
-			System.err.println();
-			time += System.currentTimeMillis();
-			System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/vector" );
+			for( int k = 10; k-- != 0; ) {
+				long time = -System.currentTimeMillis();
+				for( int j = n; j-- != 0; ) {
+					zFastTrie.contains( i.next() );
+					if ( j++ % 10000 == 0 ) System.err.print('.');
+				}
+				System.err.println();
+				time += System.currentTimeMillis();
+				System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / n + " ns/vector" );
+			}
+			
+		}
+		else {
+			final String[] test = new String[ n ];
+			for( int j = 0; j < n; j++ ) {
+				test[ j ] = i.next().toString();
+				if ( inc > 0 ) for( int k = inc - 1; k-- != 0; ) i.next();
+			}
+
+			for( int k = 10; k-- != 0; ) {
+				long time = -System.currentTimeMillis();
+				for( int j = n; j-- != 0; ) {
+					zFastTrie.contains( test[ j ] );
+					if ( j++ % 10000 == 0 ) System.err.print('.');
+				}
+				System.err.println();
+				time += System.currentTimeMillis();
+				System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / n + " ns/vector" );
+			}
 		}
 	}
 }
