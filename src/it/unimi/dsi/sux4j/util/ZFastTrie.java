@@ -659,9 +659,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
-			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
