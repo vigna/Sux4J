@@ -28,6 +28,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSortedSet;
@@ -116,15 +117,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public boolean intercepts( long h ) {
-			// TODO: eliminate -1
 			return h > parentExtentLength && ( isLeaf() || h <= extentLength );
 		}
 		
 		public String toString() {
 			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF ) + 
 				( key == null ? "" : 
-					" " + ( extentLength > 16 ? key.subVector( 0, 8 ) + "..." + key.subVector( extentLength - 8, extentLength ): key.subVector( 0, extentLength ) ) +
-					" (" + parentExtentLength + ".." + extentLength + "], " + handleLength() + "->" + jumpLength() ) +
+					" " + ( extentLength > 16 ? key.subVector( 0, 8 ) + "..." + key.subVector( extentLength - 8, extentLength ): key.subVector( 0, extentLength ) ) ) +
+					" (" + parentExtentLength + ".." + extentLength + "], " + handleLength() + "->" + jumpLength() +
 				( isLeaf() ? "]" : ")" );
 		}
 	}
@@ -541,7 +541,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
-		writeNode( root, s );
+		if ( size > 0 ) writeNode( root, s );
 	}
 	
 	private static void writeNode( final Node node, final ObjectOutputStream s ) throws IOException {
@@ -560,26 +560,59 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		s.defaultReadObject();
 		ObjectArrayList<LongArrayBitVector> leafStack = new ObjectArrayList<LongArrayBitVector>();
 		ObjectArrayList<Node> jumpStack = new ObjectArrayList<Node>();
+		BooleanArrayList dirStack = new BooleanArrayList();
 		map = new Long2ObjectOpenHashMap<Node>();
-		root = readNode( s, 0, leafStack, map, jumpStack );
+		if ( size > 0 ) root = readNode( s, 0, leafStack, map, jumpStack, dirStack );
 		
 		if ( ASSERTS ) assertTrie();
 	}
 
-	private static Node readNode( final ObjectInputStream s, final long parentExtentLength, final ObjectArrayList<LongArrayBitVector> leafStack, final Long2ObjectOpenHashMap<Node> map, ObjectArrayList<Node> jumpStack ) throws IOException, ClassNotFoundException {
+	private static Node readNode( final ObjectInputStream s, final long parentExtentLength, final ObjectArrayList<LongArrayBitVector> leafStack, final Long2ObjectOpenHashMap<Node> map, final ObjectArrayList<Node> jumpStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
 		final long pathLength = s.readLong();
 		final Node node = new Node();
 		node.parentExtentLength = parentExtentLength;
 		node.extentLength = parentExtentLength + pathLength;
 
+		if ( ! dirStack.isEmpty() ) {
+			final boolean dir = dirStack.popBoolean();
+			Node anc;
+			long jumpLength;
+			for(;;) {
+				jumpLength = ( anc = jumpStack.pop() ).jumpLength();
+				if ( jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
+					if ( dir ) anc.jumpRight = node; 
+					else anc.jumpLeft = node;
+					break;
+				}
+				
+				if ( jumpLength > node.extentLength ) {
+					dirStack.push( dir );
+					jumpStack.push( anc );
+					break;
+				}
+				
+				assert false;
+				
+				if ( dirStack.isEmpty() ) break;
+				
+				if ( dirStack.popBoolean() != dir ) {
+					dirStack.push( ! dir );
+					break;
+				}
+			}
+		}
+		
 		if ( isInternal ) {
 			jumpStack.push( node );
-			node.left = readNode( s, node.extentLength, leafStack, map, jumpStack );
-			node.right = readNode( s, node.extentLength, leafStack, map, jumpStack );
-			node.key = leafStack.pop();
-
-			
+			dirStack.push( false );
+			node.left = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
+			if ( ASSERTS ) assert ! jumpStack.contains( node );
+			jumpStack.push( node );
+			dirStack.push( true );
+			node.right = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
+			if ( ASSERTS ) assert ! jumpStack.contains( node );
+			node.key = leafStack.pop();			
 			
 			if ( ASSERTS ) {
 				Node t;
@@ -607,19 +640,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "bitVector", 'b', "bit-vector", "Build a trie of bit vectors, rather than a trie of strings." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+			new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised z-fast trie." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input." ),
 		});
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
-		final String functionName = jsapResult.getString( "function" );
+		final String functionName = jsapResult.getString( "trie" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -633,16 +668,28 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				? TransformationStrategies.prefixFreeIso() 
 				: TransformationStrategies.prefixFreeUtf16();
 
-		ZFastTrie<CharSequence> zFastTrie = new ZFastTrie<CharSequence>( transformationStrategy );
-		ProgressLogger pl = new ProgressLogger();
-		pl.itemsName = "keys";
-		pl.start( "Adding keys..." );
-		for( MutableString s : collection ) {
-			zFastTrie.add ( s );
-			pl.lightUpdate();
+				ProgressLogger pl = new ProgressLogger();
+				pl.itemsName = "keys";
+				pl.start( "Adding keys..." );
+
+		if ( bitVector ) {
+			ZFastTrie<LongArrayBitVector> zFastTrie = new ZFastTrie<LongArrayBitVector>( TransformationStrategies.identity() );
+			for( MutableString s : collection ) {
+				zFastTrie.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( s ) ) );
+				pl.lightUpdate();
+			}
+			pl.done();
+			BinIO.storeObject( zFastTrie, functionName );
 		}
-		pl.done();
-		BinIO.storeObject( zFastTrie, functionName );
+		else {
+			ZFastTrie<CharSequence> zFastTrie = new ZFastTrie<CharSequence>( transformationStrategy );
+			for( MutableString s : collection ) {
+				zFastTrie.add( s );
+				pl.lightUpdate();
+			}
+			pl.done();
+			BinIO.storeObject( zFastTrie, functionName );
+		}
 		LOGGER.info( "Completed." );
 	}
 
