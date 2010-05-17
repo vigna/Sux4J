@@ -74,7 +74,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
 	
@@ -100,11 +100,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public boolean isLeaf() {
-			return left == null;
+			return jumpLeft == null;
 		}
 		
 		public boolean isInternal() {
-			return left != null;
+			return jumpLeft != null;
 		}
 		
 		public long handleLength() {
@@ -134,11 +134,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private transient Node root;
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
-	private transient Long2ObjectOpenHashMap<Node> map; 
+	private transient Long2ObjectOpenHashMap<Node> map;
+	private transient Node head;
+	private transient Node tail; 
 	
 	public ZFastTrie( final TransformationStrategy<? super T> transform ) {
 		this.transform = transform;
 		this.map = new Long2ObjectOpenHashMap<Node>();
+		initHeadTail();
+	}
+	
+	private void initHeadTail() {
+		head = new Node();
+		tail = new Node();
+		head.right = tail;
+		tail.left = head;
 	}
 
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
@@ -191,14 +201,40 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public final static long twoFattest( final long l, final long r ) {
 		return ( -1L << Fast.mostSignificantBit( l ^ r ) & r );
 	}
+
+	
+	private static void remove( final Node node ) {
+		node.right.left = node.left;
+		node.left.right = node.right;
+	}
+	
+	private static void addAfter( final Node pred, final Node node ) {
+		node.right = pred.right;
+		node.left = pred;
+		pred.right.left = node;
+		pred.right = node;
+	}
+	
+	private static void addBefore( final Node succ, final Node node ) {
+		node.left = succ.left;
+		node.right = succ;
+		succ.left.right = node;
+		succ.left = node;
+	}
 	
 	private void assertTrie() {
 		// Shortest key
 		long root = -1;
+		/* Keeps track of which nodes in map are reachable using left/right from the root. */
 		ObjectOpenHashSet<Node> nodes = new ObjectOpenHashSet<Node>();
+		/* Keeps track of leaves. */
 		ObjectOpenHashSet<Node> leaves = new ObjectOpenHashSet<Node>();
+		/* Keeps track of reference to leaf keys in internal nodes. */
 		ObjectOpenHashSet<BitVector> references = new ObjectOpenHashSet<BitVector>();
+		
 		assert size == 0 && map.size() == 0 || size == map.size() + 1;
+		
+		/* Search for the root (shortest handle) and check that nodes and handles do match. */
 		for( long v : map.keySet() ) {
 			final long vHandleLength = map.get( v ).handleLength();
 			if ( root == -1 || map.get( root ).handleLength() > vHandleLength ) root = v;
@@ -206,15 +242,32 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			nodes.add( node );
 			assert v == node.handleHash() : node;
 		}
+		
 		assert nodes.size() == map.size();
 		assert size == 1 || this.root == map.get( root );
+		
 		if ( size > 1 ) {
+			/* Verify doubly linked list of leaves. */
+			Node toRight = head.right, toLeft = tail.left;
+			for( int i = 1; i < size; i++ ) {
+				assert toRight.key.compareTo( toRight.right.key ) < 0 : toRight.key + " >= " + toRight.right.key + " " + toRight;
+				assert toLeft.key.compareTo( toLeft.left.key ) > 0 : toLeft.key + " >= " + toLeft.left.key + " " + toLeft;
+				toRight = toRight.right;
+				toLeft = toLeft.left;
+			}
+
 			final int numNodes = visit( map.get( root ), null, 0, 0, nodes, leaves, references );
 			assert numNodes == 2 * size - 1 : numNodes + " != " + ( 2 * size - 1 );
 			assert leaves.size() == size;
 			int c = 0;
+
 			for( Node leaf: leaves ) if ( references.contains( leaf.key ) ) c++;
+
 			assert c++ == size - 1;
+		}
+		else if ( size == 1 ) {
+			assert head.right == this.root;
+			assert tail.left == this.root;
 		}
 		assert nodes.isEmpty();
 	}
@@ -225,28 +278,33 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			for( int i = depth; i-- != 0; ) System.err.print( '\t' );
 			System.err.println( "Node " + n + " (parent extent length: " + parentExtentLength + ") Jump left: " + n.jumpLeft + " Jump right: " + n.jumpRight );
 		}
-		assert ( n.left == null ) == ( n.right == null );
-		
-		if ( n.left != null ) {
-			assert references.add( n.key );
-			assert nodes.remove( n ) : n;
-			assert map.keySet().contains( n.handleHash() ) : n;
-			
-			final long jumpLength = n.jumpLength();
-			Node jumpLeft = n.left;
-			while( jumpLeft.left != null && jumpLength > jumpLeft.extentLength ) jumpLeft = jumpLeft.left;
-			assert jumpLeft == n.jumpLeft : jumpLeft + " != " + n.jumpLeft + " (node: " + n + ")";
 
-			Node jumpRight = n.right;
-			while( jumpRight.right != null && jumpLength > jumpRight.extentLength ) jumpRight = jumpRight.right;
-			assert jumpRight == n.jumpRight : jumpRight + " != " + n.jumpRight + " (node: " + n + ")";
-		}
-		else assert leaves.add( n );
 		assert parent == null || parent.extent().equals( n.extent().subVector( 0, parent.extentLength ) );
 		
 		assert parentExtentLength < n.extentLength;
 		assert n.parentExtentLength == parentExtentLength : n.parentExtentLength + " != " + parentExtentLength + " " + n;
-		return 1 + visit( n.left, n, n.extentLength, depth + 1, nodes, leaves, references ) + visit( n.right, n, n.extentLength, depth + 1, nodes, leaves, references );
+		assert n.isLeaf() == ( n.extentLength == n.key.length() ); 
+		
+		if ( n.isInternal() ) {
+			assert references.add( n.key );
+			assert nodes.remove( n ) : n;
+			assert map.keySet().contains( n.handleHash() ) : n;
+
+			/* Check that jumps are correct. */
+			final long jumpLength = n.jumpLength();
+			Node jumpLeft = n.left;
+			while( jumpLeft.isInternal() && jumpLength > jumpLeft.extentLength ) jumpLeft = jumpLeft.left;
+			assert jumpLeft == n.jumpLeft : jumpLeft + " != " + n.jumpLeft + " (node: " + n + ")";
+
+			Node jumpRight = n.right;
+			while( jumpRight.isInternal() && jumpLength > jumpRight.extentLength ) jumpRight = jumpRight.right;
+			assert jumpRight == n.jumpRight : jumpRight + " != " + n.jumpRight + " (node: " + n + ")";
+			return 1 + visit( n.left, n, n.extentLength, depth + 1, nodes, leaves, references ) + visit( n.right, n, n.extentLength, depth + 1, nodes, leaves, references );
+		}
+		else {
+			assert leaves.add( n );
+			return 1;
+		}
 	}
 
 	/** Sets the jump pointers of a node by searching exhaustively for
@@ -272,22 +330,39 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param exitNode the exit node.
 	 * @param above the above node in the new trie.
 	 * @param leaf the new leaf.
+	 * @param leaf2 
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
+	 * @param cutLow 
 	 */
-	private void fixRightJumps( Node exitNode, final Node above, final Node leaf, final ObjectArrayList<Node> stack ) {
+	private void fixRightJumps( Node exitNode, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack, boolean cutLow ) {
 		if ( DDEBUG ) System.err.println( "fixRightJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack );
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
+
+		/* There could be nodes whose left jumps point to exit node above the lcp. In this
+		 * case, they must point to the node above. This is a no-op for low cuts, but it moves
+		 * the jump pointer to the new internal node for high cuts. */
+		if ( cutLow ) 
+			for( int i = stack.size(); i-- != 0; ) {
+				toBeFixed = stack.get( i );
+				jumpLength = toBeFixed.jumpLength();
+				if ( toBeFixed.jumpLeft == exitNode && jumpLength > lcp ) toBeFixed.jumpLeft = below;
+			}
+		else
+			for( int i = stack.size(); i-- != 0; ) {
+				toBeFixed = stack.get( i );
+				jumpLength = toBeFixed.jumpLength();
+				if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
+				toBeFixed.jumpLeft = above;
+			}
 		
 		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.pop();
+			toBeFixed = stack.top();
 			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) {
-				stack.push( toBeFixed );
-				break;
-			}
+			if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
 			toBeFixed.jumpRight = above;
+			stack.pop();
 		}
 
 		while( ! stack.isEmpty() ) {
@@ -304,22 +379,39 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param exitNode the exit node.
 	 * @param above the above node in the new trie.
 	 * @param leaf the new leaf.
+	 * @param leaf2 
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
+	 * @param cutLow 
 	 */
-	private void fixLeftJumps( Node exitNode, final Node above, final Node leaf, final ObjectArrayList<Node> stack ) {
+	private void fixLeftJumps( Node exitNode, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack, boolean cutLow ) {
 		if ( DDEBUG ) System.err.println( "fixLeftJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack ); 
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
 		
-		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.pop();
-			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) {
-				stack.push( toBeFixed );
-				break;
+		/* There could be nodes whose right jumps point to exit node above the lcp. In this
+		 * case, they must point to the node above. This is a no-op for low cuts, but it moves
+		 * the jump pointer to the new internal node for high cuts. */
+		if ( cutLow ) 
+			for( int i = stack.size(); i-- != 0; ) {
+				toBeFixed = stack.get( i );
+				jumpLength = toBeFixed.jumpLength();
+				if ( toBeFixed.jumpRight == exitNode && jumpLength > lcp ) toBeFixed.jumpRight = below;
 			}
+		else 
+		for( int i = stack.size(); i-- != 0; ) {
+			toBeFixed = stack.get( i );
+			jumpLength = toBeFixed.jumpLength();
+			if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
+			toBeFixed.jumpRight = above;
+		}
+
+		while( ! stack.isEmpty() ) {
+			toBeFixed = stack.top();
+			jumpLength = toBeFixed.jumpLength();
+			if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
 			toBeFixed.jumpLeft = above;
+			stack.pop();
 		}
 
 		while( ! stack.isEmpty() ) {
@@ -342,6 +434,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			root.key = LongArrayBitVector.copy( v );
 			root.extentLength = v.length();
 			root.parentExtentLength = 0; // A trick to get 0 the first time
+			addAfter( head, root );
 			size++;
 			assertTrie();
 			return true;
@@ -370,9 +463,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( DDDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; exit to the " + ( exitDirection ? "right" : "left") );
 
 		final Node above = cutLow ? exitNode : internal;
-		if ( exitDirection ) fixRightJumps( exitNode, above, leaf, stack );
-		else fixLeftJumps( exitNode, above, leaf, stack );
+		Node below = cutLow ? internal : exitNode;
 		
+		if ( exitDirection ) fixRightJumps( exitNode, above, below, leaf, stack, cutLow );
+		else fixLeftJumps( exitNode, above, below, leaf, stack, cutLow );
+
 		if ( cutLow ) {
 			// internal is the node below
 
@@ -381,18 +476,22 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			exitNode.key = leaf.key;
 			exitNode.extentLength = internal.parentExtentLength = lcp;
 
-			internal.left = exitNode.left;
-			internal.right = exitNode.right;
-			if ( internal.isInternal() ) setJumps( internal );
-
-			/* Depending on whether the exit node is a leaf, we might need to insert into the table
-			 * either the exit node or the new internal node. */
+			
+			/* Depending on whether the exit node is a leaf, we might need 
+			 * to insert into the table either the exit node or the new internal node. */
 			if ( exitNode.isLeaf() ) {
+				remove( exitNode );
+				addAfter( exitNode.left, internal );
 				map.put( exitNode.handleHash(), exitNode );
 				if ( exitDirection ) exitNode.jumpLeft = internal;
 				else exitNode.jumpRight = internal;
 			}
-			else map.put( internal.handleHash(), internal );
+			else {
+				internal.left = exitNode.left;
+				internal.right = exitNode.right;
+				setJumps( internal );
+				map.put( internal.handleHash(), internal );
+			}
 
 			if ( exitDirection ) {
 				exitNode.right = exitNode.jumpRight = leaf;
@@ -402,6 +501,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				exitNode.right = internal;				
 				exitNode.left = exitNode.jumpLeft = leaf;
 			}
+			
+			
 		}
 		else {
 			// internal is the node above
@@ -429,12 +530,22 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}			
 			
 			map.put( internal.handleHash(), internal );
+
 		}
 
 		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
 
 		size++;
 
+		if ( exitDirection ) {
+			while( below.isInternal() ) below = below.jumpRight;
+			addAfter( below, leaf );
+		}
+		else {
+			while( below.isInternal() ) below = below.jumpLeft;
+			addBefore( below, leaf );
+		}
+		
 		if ( ASSERTS ) assertTrie();
 		if ( ASSERTS ) assert contains( k );
 		
@@ -549,6 +660,43 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return ( v.getBoolean( parentExitNode.extentLength ) ? parentExitNode.right : parentExitNode.left ).key.equals( v );
 	}
 
+	@SuppressWarnings("unchecked")
+	public Node pred( final Object o ) {
+		if ( size == 0 ) return null;
+		final BitVector v = transform.toBitVector( (T)o ).fast();
+		final Node parentExitNode = getParentExitNode( v, null );
+		final boolean exitDirection = v.getBoolean( parentExitNode.extentLength );
+		Node exitNode = parentExitNode == null ? root : ( exitDirection ? parentExitNode.right : parentExitNode.left );
+		
+		if ( exitDirection ) {
+			while( exitNode.jumpRight != null ) exitNode = exitNode.jumpRight;
+			return exitNode;
+		}
+		else {
+			while( exitNode.jumpLeft != null ) exitNode = exitNode.jumpLeft;
+			return exitNode.left;
+		}
+		
+	}
+
+	@SuppressWarnings("unchecked")
+	public Node succ( final Object o ) {
+		if ( size == 0 ) return null;
+		final BitVector v = transform.toBitVector( (T)o ).fast();
+		final Node parentExitNode = getParentExitNode( v, null );
+		final boolean exitDirection = v.getBoolean( parentExitNode.extentLength );
+		Node exitNode = parentExitNode == null ? root : ( exitDirection ? parentExitNode.right : parentExitNode.left );
+		
+		if ( exitDirection ) {
+			while( exitNode.jumpRight != null ) exitNode = exitNode.jumpRight;
+			return exitNode.right;
+		}
+		else {
+			while( exitNode.jumpLeft != null ) exitNode = exitNode.jumpLeft;
+			return exitNode;
+		}
+	}
+
 	
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
@@ -569,6 +717,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
+		initHeadTail();
 		ObjectArrayList<LongArrayBitVector> leafStack = new ObjectArrayList<LongArrayBitVector>();
 		ObjectArrayList<Node> jumpStack = new ObjectArrayList<Node>();
 		BooleanArrayList dirStack = new BooleanArrayList();
@@ -580,7 +729,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( ASSERTS ) assertTrie();
 	}
 
-	private static Node readNode( final ObjectInputStream s, final long parentExtentLength, final ObjectArrayList<LongArrayBitVector> leafStack, final Long2ObjectOpenHashMap<Node> map, final ObjectArrayList<Node> jumpStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
+	private Node readNode( final ObjectInputStream s, final long parentExtentLength, final ObjectArrayList<LongArrayBitVector> leafStack, final Long2ObjectOpenHashMap<Node> map, final ObjectArrayList<Node> jumpStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
 		final long pathLength = s.readLong();
 		final Node node = new Node();
@@ -636,6 +785,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else {
 			node.key = BitVectors.readFast( s );
 			leafStack.push( node.key );
+			addBefore( tail, node );
 		}
 
 		return node;

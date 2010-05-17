@@ -8,6 +8,8 @@ import it.unimi.dsi.sux4j.util.ZFastTrie;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -92,6 +94,31 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	public void testExitNodeIsLeaf() throws IOException, ClassNotFoundException {
+		String[] s = { "a", "aa", "aaa" };
+		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+		temp.deleteOnExit();
+		BinIO.storeObject( zft, temp );
+		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
+		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+	}
+
+	@SuppressWarnings("unchecked")
+	public void testExitNodeIsLeaf3() throws IOException, ClassNotFoundException {
+		String[] s = { "a", "aa", "aaa" };
+		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+		temp.deleteOnExit();
+		BinIO.storeObject( zft, temp );
+		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
+		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+	}
+
+
+	@SuppressWarnings("unchecked")
 	public void testSmallest() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
@@ -130,39 +157,52 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void testSortedNumbers() throws IOException, ClassNotFoundException {
+	public void testNumbers() throws IOException, ClassNotFoundException {
+		ZFastTrie<String> zft;
+		File temp;
+		Random random = new Random( 0 );
 
 		for ( int d = 10; d < 10000; d *= 10 ) {
 			String[] s = new String[ d ];
-			int[] v = new int[ s.length ];
+
+			for( int rand = 0; rand < 2; rand++ ) {
+				for ( int i = s.length; i-- != 0; )
+					s[ i ] = binary( i );
+
+				for( int pass = 0; pass < 2; pass++ ) {
+
+					zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
+					zft.numBits();
+
+					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+					// Exercise code for negative results
+					for ( int i = 1000; i-- != 0; ) zft.contains( binary( i * i + d ) );
+
+					temp = File.createTempFile( getClass().getSimpleName(), "test" );
+					temp.deleteOnExit();
+					BinIO.storeObject( zft, temp );
+					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
+					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+					zft = new ZFastTrie<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+					zft.numBits();
+
+					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+					temp = File.createTempFile( getClass().getSimpleName(), "test" );
+					temp.deleteOnExit();
+					BinIO.storeObject( zft, temp );
+					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
+					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+					Collections.shuffle( Arrays.asList( s ), new Random( 0 ) );
+				}
+			}
+			
 			for ( int i = s.length; i-- != 0; )
-				s[ v[ i ] = i ] = binary( i );
+				s[ i ] = binary( random.nextInt( Integer.MAX_VALUE ) );
 
-			ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-			zft.numBits();
-
-			for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
-
-			// Exercise code for negative results
-			for ( int i = 1000; i-- != 0; )
-				zft.contains( binary( i * i + d ) );
-
-			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-			temp.deleteOnExit();
-			BinIO.storeObject( zft, temp );
-			zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-			for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
-
-			zft = new ZFastTrie<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
-			zft.numBits();
-
-			for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
-
-			temp = File.createTempFile( getClass().getSimpleName(), "test" );
-			temp.deleteOnExit();
-			BinIO.storeObject( zft, temp );
-			zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-			for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 		}
 	}
 }
