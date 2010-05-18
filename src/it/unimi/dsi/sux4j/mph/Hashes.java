@@ -23,9 +23,8 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.BitVector;
 
-/** Basic hash functions.
- * 
- */
+/** Basic hash functions. */
+
 public class Hashes {
 
 	private Hashes() {}
@@ -185,7 +184,7 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @return an array of three element; each element is an array containing the state of the variables <code>a</code>, <code>b</code> and <code>c</code>
 	 * during the hash computation; these vector must be passed to {@link #jenkins(BitVector, long, long[], long[], long[])} (and analogous functions) in this order. 
-	 * @see #jenkins(BitVector)
+	 * @see #jenkins(BitVector, long)
 	 */
 	
 	public static long[][] preprocessJenkins( final BitVector bv, final long seed )  {
@@ -416,9 +415,20 @@ public class Hashes {
 		h[ 2 ] = c;
 	}
 
-	public static final long M = 0xc6a4a7935bd1e995L; 
-	public static final int R = 47;
+	private static final long M = 0xc6a4a7935bd1e995L; 
+	private static final int R = 47;
 	
+	/** MurmurHash 64-bit
+	 * 
+	 * <p>This code is based on a mix of the sources that can be found at
+	 * <a href="http://sites.google.com/site/murmurhash/">MurmurHash's web site</a>, and in particular
+	 * on the version consuming 64 bits at a time, which has been merged with the 2A version to obtain
+	 * an {@linkplain #preprocessMurmur(BitVector, long) incremental implementation}.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @return the hash.
+	 */
 	public static long murmur( final BitVector bv, final long seed ) {
 		long h = seed, k;
 		long from = 0;
@@ -455,6 +465,14 @@ public class Hashes {
 		return h;
 	}
 
+	/** Constant-time MurmurHash 64-bit hashing for any prefix.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param state the state array returned by {@link #preprocessMurmur(BitVector, long)}.
+	 * @return the hash for the prefix of <code>bv</code> or <code>prefixLength</code> bits.
+	 */
+
 	public static long murmur( final BitVector bv, final long prefixLength, final long[] state ) {
 		final long precomputedUpTo = prefixLength - prefixLength % Long.SIZE;
 		long h = state[ (int)( precomputedUpTo / Long.SIZE ) ], k;
@@ -480,6 +498,15 @@ public class Hashes {
 		
 	}
 	
+	/** Preprocesses a bit vector so that MurmurHash 64-bit can be computed in constant time on all prefixes.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @return an array containing the state of the variables <code>h</code>
+	 * during the hash computation; these vector must be passed to {@link #murmur(BitVector, long, long[])} 
+	 * (and analogous functions) in this order. 
+	 * @see #murmur(BitVector, long)
+	 */
 	public static long[] preprocessMurmur( final BitVector bv, final long seed ) {
 		long h = seed, k;
 		long from = 0;
