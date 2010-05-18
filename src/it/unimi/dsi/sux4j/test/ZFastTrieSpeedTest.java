@@ -38,6 +38,7 @@ public class ZFastTrieSpeedTest {
 					new Switch( "bitVector", 'b', "bit-vector", "Test a trie of bit vectors, rather than a trie of strings." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
 					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "100000", JSAP.NOT_REQUIRED, 'n', "n", "The number of elements to test." ),
+					new FlaggedOption( "times", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 't', "times", "The number of times the set must be repeated." ),
 					new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised z-fast trie." ),
 					new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input." ),
 		});
@@ -52,6 +53,7 @@ public class ZFastTrieSpeedTest {
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
 		final int n = jsapResult.getInt( "n" );
+		final int times = jsapResult.getInt( "times" );
 		
 		System.out.println( "Loading trie..." );
 		@SuppressWarnings("unchecked")
@@ -62,6 +64,7 @@ public class ZFastTrieSpeedTest {
 		final LineIterator lineIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( inputStream ) : inputStream, encoding ) ) );
 
 		final int inc = zFastTrie.size() / n;
+
 		if ( bitVector ) {
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 			? TransformationStrategies.prefixFreeIso() 
@@ -76,7 +79,7 @@ public class ZFastTrieSpeedTest {
 			
 			Collections.shuffle( Arrays.asList( test ) );
 			System.out.println( "Testing..." );
-			for( int k = 100; k-- != 0; ) {
+			for( int k = times; k-- != 0; ) {
 				long time = -System.currentTimeMillis();
 				for( int j = n; j-- != 0; ) {
 					zFastTrie.contains( test[ j ] );
@@ -86,7 +89,6 @@ public class ZFastTrieSpeedTest {
 				time += System.currentTimeMillis();
 				System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / n + " ns/vector" );
 			}
-			
 		}
 		else {
 			final String[] test = new String[ n ];
@@ -98,7 +100,7 @@ public class ZFastTrieSpeedTest {
 
 			Collections.shuffle( Arrays.asList( test ) );
 			System.out.println( "Testing..." );
-			for( int k = 100; k-- != 0; ) {
+			for( int k = times; k-- != 0; ) {
 				long time = -System.currentTimeMillis();
 				for( int j = n; j-- != 0; ) {
 					zFastTrie.contains( test[ j ] );
