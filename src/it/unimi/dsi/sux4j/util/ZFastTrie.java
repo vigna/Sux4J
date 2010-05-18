@@ -78,7 +78,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -306,7 +306,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public Node get( final BitVector v, final boolean exact ) {
-			return get( Hashes.jenkins( v, 0 ), v, exact );
+			return get( Hashes.murmur( v, 0 ), v, exact );
 		}
 	}
 
@@ -342,7 +342,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public long handleHash() {
-			return Hashes.jenkins( handle(), 0 );
+			return Hashes.murmur( handle(), 0 );
 		}
 		
 		public boolean isLeaf() {
@@ -860,8 +860,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 		long r = length;
 		
-		final long state[][] = Hashes.preprocessJenkins( v, 0 );
-		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
+		final long state[] = Hashes.preprocessMurmur( v, 0 );
 
 		long l = 0;
 		int i = Fast.mostSignificantBit( r );
@@ -875,7 +874,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 				
-				node = map.get( Hashes.jenkins( v, f, a, b, c ), v.subVector( 0, f ), exact );
+				node = map.get( Hashes.murmur( v, f, state ), v.subVector( 0, f ), exact );
 				
 				if ( node == null ) {
 					if ( DDDEBUG ) System.err.println( "Missing" );

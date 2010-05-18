@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 public class HashesTest extends TestCase {
 
 	
-	public void testPreprocessing() {
+	public void testJenkinsPreprocessing() {
 		Random r = new Random( 0 );
 		for ( int l = 0; l < 1000; l++ ) {
 			LongArrayBitVector bv = LongArrayBitVector.getInstance();
@@ -21,6 +21,17 @@ public class HashesTest extends TestCase {
 				Hashes.jenkins( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], h );
 				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), h[ 0 ] ); 
 			}
+		}
+	}
+	
+	public void testMurmurPreprocessing() {
+		Random r = new Random( 0 );
+		for ( int l = 0; l < 1000; l++ ) {
+			LongArrayBitVector bv = LongArrayBitVector.getInstance();
+			for( int i = 0; i < l; i++ ) bv.add( r.nextBoolean() );
+			long[] state = Hashes.preprocessMurmur( bv, 0 );
+			for( int i = 0; i < l; i++ ) 				
+				assertEquals( "Prefix length " + i, Hashes.murmur( bv.subVector( 0, i ), 0 ), Hashes.murmur( bv, i, state ) ); 
 		}
 	}
 	

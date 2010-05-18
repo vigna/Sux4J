@@ -190,7 +190,7 @@ public class Hashes {
 	
 	public static long[][] preprocessJenkins( final BitVector bv, final long seed )  {
 		final long length = bv.length();
-		final int wordLength = (int)( bv.length() / ( Long.SIZE * 3 ) ) + 1;
+		final int wordLength = (int)( length / ( Long.SIZE * 3 ) ) + 1;
 		final long aa[] = new long[ wordLength ], bb[] = new long[ wordLength ], cc[] = new long[ wordLength ];
 		long a, b, c, from = 0;
 
@@ -416,4 +416,93 @@ public class Hashes {
 		h[ 2 ] = c;
 	}
 
+	public static final long M = 0xc6a4a7935bd1e995L; 
+	public static final int R = 47;
+	
+	public static long murmur( final BitVector bv, final long seed ) {
+		long h = seed, k;
+		long from = 0;
+		final long length = bv.length();
+		
+		while( length - from >= Long.SIZE ) {
+			k = bv.getLong( from, from += Long.SIZE );
+
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+		}
+	
+		if ( length > from ) {
+			k = bv.getLong( from, length );
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+		}
+		
+		k = length;
+		k *= M; 
+		k ^= k >>> R; 
+		k *= M; 
+
+		h ^= k;
+		h *= M;
+		return h;
+	}
+
+	public static long murmur( final BitVector bv, final long prefixLength, final long[] state ) {
+		final long precomputedUpTo = prefixLength - prefixLength % Long.SIZE;
+		long h = state[ (int)( precomputedUpTo / Long.SIZE ) ], k;
+		
+		if ( prefixLength > precomputedUpTo ) {
+			k = bv.getLong( precomputedUpTo, prefixLength );
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+		}
+		
+		k = prefixLength;
+		k *= M; 
+		k ^= k >>> R; 
+		k *= M; 
+
+		h ^= k;
+		h *= M;
+		return h;
+		
+	}
+	
+	public static long[] preprocessMurmur( final BitVector bv, final long seed ) {
+		long h = seed, k;
+		long from = 0;
+		final long length = bv.length();
+
+		final int wordLength = (int)( length / Long.SIZE );
+		final long state[] = new long[ wordLength + 1 ];
+
+		int i = 0;
+		state[ i++ ] = h;
+		
+		for( ; length - from >= Long.SIZE; i++ ) {
+			k = bv.getLong( from, from += Long.SIZE );
+
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+			state[ i ] = h;
+		}
+	
+		return state;
+	}
 }
