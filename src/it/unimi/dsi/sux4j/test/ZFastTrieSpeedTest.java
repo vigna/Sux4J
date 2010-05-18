@@ -15,7 +15,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
 import com.martiansoftware.jsap.FlaggedOption;
@@ -77,7 +76,7 @@ public class ZFastTrieSpeedTest {
 			
 			Collections.shuffle( Arrays.asList( test ) );
 			System.out.println( "Testing..." );
-			for( int k = 10; k-- != 0; ) {
+			for( int k = 100; k-- != 0; ) {
 				long time = -System.currentTimeMillis();
 				for( int j = n; j-- != 0; ) {
 					zFastTrie.contains( test[ j ] );
@@ -99,7 +98,7 @@ public class ZFastTrieSpeedTest {
 
 			Collections.shuffle( Arrays.asList( test ) );
 			System.out.println( "Testing..." );
-			for( int k = 10; k-- != 0; ) {
+			for( int k = 100; k-- != 0; ) {
 				long time = -System.currentTimeMillis();
 				for( int j = n; j-- != 0; ) {
 					zFastTrie.contains( test[ j ] );

@@ -830,7 +830,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	
-	public boolean equals( LongArrayBitVector a, LongArrayBitVector b, long start, long end ) {
+	private static final boolean equals( LongArrayBitVector a, LongArrayBitVector b, long start, long end ) {
 		int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
 		final int endWord = (int)( end >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
 		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
