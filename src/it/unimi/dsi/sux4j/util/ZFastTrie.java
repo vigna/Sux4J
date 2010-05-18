@@ -78,7 +78,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -134,11 +134,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			collision = new boolean[ length ];
 		}
 
-		private int findPos( final BitVector v, final long signature ) {
+		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
-				if ( key[ pos ] == signature && ( ! collision[ pos ] || v.equals( value[ pos ].handle() ) ) ) break;
+				if ( key[ pos ] == signature && ( ! collision[ pos ] ||
+						prefixLength == value[ pos ].handleLength() && v.longestCommonPrefixLength( value[ pos ].key ) >= prefixLength ) )
+					break;
 				pos = ( pos + 1 ) & mask;
 				//i++;
 			}
@@ -146,11 +148,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return pos;
 		}
 		
-		private int findExactPos( final BitVector v, final long signature ) {
+		private int findExactPos( final BitVector v, final long prefixLength, final long signature ) {
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
-				if ( key[ pos ] == signature && v.equals( value[ pos ].handle() ) ) break;
+				if ( key[ pos ] == signature &&
+						prefixLength == value[ pos ].handleLength() && v.longestCommonPrefixLength( value[ pos ].key ) >= prefixLength )
+					break;
+
 				pos = ( pos + 1 ) & mask;
 				//i++;
 			}
@@ -300,8 +305,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 
 		public Node get( long signature, final BitVector v, final boolean exact ) {
+			return get( signature, v, v.length(), exact );
+		}
+
+		public Node get( long signature, final BitVector v, final long prefixLength, final boolean exact ) {
 			if ( SHORT_SIGNATURES ) signature &= 0xF;
-			final int pos = exact ? findExactPos( v, signature ) : findPos( v, signature );
+			final int pos = exact ? findExactPos( v, prefixLength, signature ) : findPos( v, prefixLength, signature );
 			return value[ pos ];
 		}
 
@@ -874,7 +883,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 				
-				node = map.get( Hashes.murmur( v, f, state ), v.subVector( 0, f ), exact );
+				node = map.get( Hashes.murmur( v, f, state ), v, f, exact );
 				
 				if ( node == null ) {
 					if ( DDDEBUG ) System.err.println( "Missing" );
