@@ -78,8 +78,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
-	private static final boolean SHORT_SIGNATURES = false;
+	private static final boolean ASSERTS = false;
+	private static final boolean SHORT_SIGNATURES = true;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
 	
@@ -584,8 +584,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * 
 	 * @param exitNode the exit node.
 	 * @param above the above node in the new trie.
+	 * @param below the below node in the new trie. 
 	 * @param leaf the new leaf.
-	 * @param leaf2 
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
 	 * @param cutLow 
 	 */
@@ -633,8 +633,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * 
 	 * @param exitNode the exit node.
 	 * @param above the above node in the new trie.
+	 * @param below the below node in the new trie. 
 	 * @param leaf the new leaf.
-	 * @param leaf2 
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
 	 * @param cutLow 
 	 */
@@ -980,8 +980,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			parentExitNode = getParentExitNode( v, null, true );
 			rightChild = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
 			exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
-			lcp = exitNode.key.longestCommonPrefixLength( v );
-			if ( ASSERTS ) assert exitNode.intercepts( lcp );
+			if ( ASSERTS ) assert exitNode.intercepts( exitNode.key.longestCommonPrefixLength( v ) );
 		}
 		
 		return exitNode.key.equals( v );
@@ -1024,7 +1023,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 	}
 
-	
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
 		s.defaultWriteObject();
 		if ( size > 0 ) writeNode( root, s );
