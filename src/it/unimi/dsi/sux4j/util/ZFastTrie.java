@@ -269,7 +269,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				for( int i = key.length; i-- != 0; ) {
 					if ( value[ i ] != null ) {
 						signature = key[ i ];
-						pos = (int)rehash( (int)( signature ^ signature >>> 32 ) ) & mask; 
+						pos = (int)( signature & mask ); 
 						while( newValue[ pos ] != null ) {
 							if ( newKey[ pos ] == signature ) newCollision[ pos ] = true;
 							pos = ( pos + 1 ) & mask;
