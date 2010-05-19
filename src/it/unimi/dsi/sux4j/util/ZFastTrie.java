@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.util;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2010 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -44,8 +44,6 @@ import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
-import it.unimi.dsi.sux4j.mph.ZFastTrieDistributor;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,15 +69,24 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
+/** A z-fast trie, that is, a predecessor/successor data structure using low linear (in the number of keys) additional space and
+ * answering in time &#x2113;/<var>w</var> + log(max(&#x2113;, &#x2113;<sup>-</sup>, &#x2113;<sup>+</sup>)) with high probability,
+ * where <var>w</var> is the machine word size, and &#x2113;, &#x2113;<sup>-</sup>, and &#x2113;<sup>+</sup> are the
+ * lengths of the query string, of its predecessor and of its successor (in the currently stored set), respectively.
+ * 
+ * <p>In rough terms, the z-fast trie uses &#x2113;/<var>w</var> (which is optimal) to actually look at the string content,
+ * and log(max(&#x2113;, &#x2113;<sup>-</sup>, &#x2113;<sup>+</sup>)) to perform the search. This is known to be (essentially) optimal.
+ * String lengths are up to {@link Long#MAX_VALUE}, and not limited to be a constant multiple of <var>w</var> for the bounds to hold. 
+ * 
+ * <p>The linear overhead of a z-fast trie is very low. For <var>n</var> keys we allocate 2<var>n</var> &minus; 1 nodes containing six references and 
+ * two longs, plus a dictionary containing <var>n</var> &minus; 1 nodes (thus using around 2<var>n</var> references and 2<var>n</var> longs).  
  * 
  */
 
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -88,13 +95,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected final static class Map {
 		private static final long serialVersionUID = 1L;
 
-		protected long[] key;
-		protected Node[] value;
-		protected boolean collision[];
+		private long[] key;
+		private Node[] value;
+		private boolean collision[];
 
-		protected int mask;
-		protected int size;
-		protected int length;	
+		private int mask;
+		private int size;
+		private int length;	
 
 		protected final static long PRIME = ( 1L << 61 ) - 1;
 		protected final static long LOW = ( 1L << 32 ) - 1;
