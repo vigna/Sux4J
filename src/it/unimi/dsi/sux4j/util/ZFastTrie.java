@@ -885,16 +885,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		final long state[] = Hashes.preprocessMurmur( v, 0 );
 		final long length = v.length();
-		final int logL = Fast.mostSignificantBit( length );
+		final int logLength = Fast.mostSignificantBit( length );
 
 		long l = 0, r = length;
-		long checkMask = 1L << logL;
-		long computeMask = -1L << logL;
+		long checkMask = 1L << logLength;
+		long computeMask = -1L << logLength;
 		Node node = null, parent = null;
 		
 		while( r - l > 1 ) {
-			if ( ASSERTS ) assert logL > -1;
-			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + logL );
+			if ( ASSERTS ) assert logLength > -1;
+			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + logLength );
 			if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
 				final long f = ( r - 1 ) & computeMask;
 
@@ -1192,6 +1192,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		ProgressLogger pl = new ProgressLogger();
 		pl.itemsName = "keys";
+		pl.displayFreeMemory = true;
 		pl.start( "Adding keys..." );
 
 		if ( bitVector ) {
