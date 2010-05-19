@@ -86,7 +86,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -103,28 +103,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		private int size;
 		private int length;	
 
-		protected final static long PRIME = ( 1L << 61 ) - 1;
-		protected final static long LOW = ( 1L << 32 ) - 1;
-		protected final static long HIGH = LOW << 32;
-		
-		private final static long multAdd( int x, long a, long b ) {
-			final long a0 = ( a & LOW ) * x;
-			final long a1 = ( a & HIGH ) * x;
-			final long c0 = a0 + ( a1 << 32 );
-			final long c1 = ( a0 >>> 32 ) + a1;
-			return ( c0 & PRIME ) + ( c1 >>> 29 ) + b;
-		}
-		
-		private final static long rehash( final int x ) {
-			// TODO: we should really use tabulation-based 5-way independent hashing.
-			final long h = multAdd( x, 104659742703825433L, 8758810104009432107L );  
-			return ( h & PRIME ) + ( h >>> 61 );
-		}
-		
 		private void assertTable() {
 			for( int i = key.length; i-- != 0; ) if ( value[ i ] != null ) assert get( value[ i ].handle(), false ) == value[ i ];
 		}
-		
 		
 		public Map( int size ) {
 			length = 1 << Fast.ceilLog2( 1 + size * 4 / 3 );
@@ -143,7 +124,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
 				if ( key[ pos ] == signature && ( ! collision[ pos ] ||
@@ -157,7 +138,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findExactPos( final BitVector v, final long prefixLength, final long signature ) {
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
 				if ( key[ pos ] == signature &&
@@ -172,7 +153,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findFreePos( final long signature ) {
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
 				if ( key[ pos ] == signature ) collision[ pos ] = true;
@@ -1087,7 +1068,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		node.extentLength = parentExtentLength + pathLength;
 
 		if ( ! dirStack.isEmpty() ) {
-			final int max = segmentStack.topInt();
+			/* We cannot fix the jumps of nodes that are more than this number of levels up in the tree. */
+			final int maxDepthDelta = segmentStack.topInt();
 			Node anc;
 			boolean dir;
 			int d;
@@ -1096,7 +1078,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				dir = dirStack.topBoolean();
 				jumpLength = ( anc = jumpStack.top() ).jumpLength();
 				d = depthStack.topInt();
-				if ( depth - d <= max && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
+				/* To be fixable, a node must be within the depth limit, and we must intercept its jump length (node that
+				 * we cannot use .intercept() as the state of node is not yet consistent). If a node cannot be fixed, no
+				 * node higher in the stack can. */
+				if ( depth - d <= maxDepthDelta && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
 					if ( DDEBUG ) System.err.println( "Setting " + ( dir ? "right" : "left" ) + " jump pointer of " + anc + " to " + node );
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
@@ -1105,7 +1090,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 					depthStack.popInt();
 				}
 				else break;
-			} while( ! dirStack.isEmpty() && dirStack.topBoolean() == dir );
+			} while( ! dirStack.isEmpty() );
 		}
 		
 		if ( isInternal ) {
@@ -1133,6 +1118,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			top = segmentStack.popInt();
 			if ( top != 1 ) segmentStack.push( top - 1 );
 
+			/* We assign the reference leaf, and store the associated key. */
 			final Node referenceLeaf = leafStack.pop(); 
 			node.key = referenceLeaf.key;
 			node.reference = referenceLeaf;
@@ -1150,7 +1136,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				assert node.jumpRight == t : node.jumpRight + " != " + t + " (" + node + ")";
 			}
 		}
-		else {			
+		else {
 			node.key = BitVectors.readFast( s );
 			leafStack.push( node );
 			addBefore( tail, node );
