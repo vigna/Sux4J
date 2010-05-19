@@ -136,9 +136,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
-			final Node[] value = this.value;
-			final long[] key = this.key;
-			final boolean[] collision = this.collision;
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
@@ -153,9 +150,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findExactPos( final BitVector v, final long prefixLength, final long signature ) {
-			final Node[] value = this.value;
-			final long[] key = this.key;
-			final boolean[] collision = this.collision;
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
@@ -1059,10 +1053,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		initHeadTail();
+		/* Cumulates leaves as they are found. Internal nodes extract references from this stack when their visit is completed. */
 		ObjectArrayList<Node> leafStack = new ObjectArrayList<Node>();
+		/* Cumulates nodes that need jump pointer fixes. */
 		ObjectArrayList<Node> jumpStack = new ObjectArrayList<Node>();
+		/* Parallel to jumpStack. Cumulates direction taken after the corresponding node. */
 		BooleanArrayList dirStack = new BooleanArrayList();
+		/* Parallel to jumpStack. The depth of the corresponding node. */
 		IntArrayList depthStack = new IntArrayList();
+		/* A list of integers representing the length of maximal constant subsequences of the string of directions taken up to the current node. 
+		 * For instance, if we reached the current node by 1/1/0/0/0/1/0/0, the stack will contain 2,3,1,2. */
 		IntArrayList segmentStack = new IntArrayList();
 		map = new Map( size );
 		if ( size > 0 ) root = readNode( s, 0, 0, leafStack, map, jumpStack, dirStack, depthStack, segmentStack );
