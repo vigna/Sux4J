@@ -172,7 +172,6 @@ public class ZFastTrieTest extends TestCase {
 				for( int pass = 0; pass < 2; pass++ ) {
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-					zft.numBits();
 
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
@@ -186,7 +185,6 @@ public class ZFastTrieTest extends TestCase {
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
-					zft.numBits();
 
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
