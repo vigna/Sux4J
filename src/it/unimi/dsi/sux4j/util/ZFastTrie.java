@@ -136,6 +136,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
+			final Node[] value = this.value;
+			final long[] key = this.key;
+			final boolean[] collision = this.collision;
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
@@ -150,6 +153,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findExactPos( final BitVector v, final long prefixLength, final long signature ) {
+			final Node[] value = this.value;
+			final long[] key = this.key;
+			final boolean[] collision = this.collision;
 			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
 			//int i = 0;
 			while( value[ pos ] != null ) {
@@ -1073,43 +1079,28 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		node.parentExtentLength = parentExtentLength;
 		node.extentLength = parentExtentLength + pathLength;
 
-		if ( DDEBUG ) {
-			System.err.println( "Fixing nodes on stack..." );
-			System.err.println( jumpStack );
-			System.err.println( dirStack );
-			System.err.println( depthStack );
-		}
-		
 		if ( ! dirStack.isEmpty() ) {
+			final int max = segmentStack.topInt();
+			Node anc;
 			boolean dir;
 			int d;
-			int max = segmentStack.topInt();
-			Node anc;
 			long jumpLength;
 			do {
-				dir = dirStack.popBoolean();
-				jumpLength = ( anc = jumpStack.pop() ).jumpLength();
-				d = depthStack.popInt();
+				dir = dirStack.topBoolean();
+				jumpLength = ( anc = jumpStack.top() ).jumpLength();
+				d = depthStack.topInt();
 				if ( depth - d <= max && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
 					if ( DDEBUG ) System.err.println( "Setting " + ( dir ? "right" : "left" ) + " jump pointer of " + anc + " to " + node );
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
+					dirStack.popBoolean();
+					jumpStack.pop();
+					depthStack.popInt();
 				}
-				else {
-					dirStack.push( dir );
-					jumpStack.push( anc );
-					depthStack.push( d );
-					break;
-				}
+				else break;
 			} while( ! dirStack.isEmpty() && dirStack.topBoolean() == dir );
 		}
 		
-		if ( DDEBUG ) {
-			System.err.println( "Fixing completed." );
-			System.err.println( jumpStack );
-			System.err.println( dirStack );
-		}
-
 		if ( isInternal ) {
 			if ( dirStack.isEmpty() || dirStack.topBoolean() != false ) segmentStack.push( 1 );
 			else segmentStack.push( segmentStack.popInt() + 1 );
