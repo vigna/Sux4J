@@ -29,6 +29,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
@@ -78,8 +79,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
-	private static final boolean SHORT_SIGNATURES = true;
+	private static final boolean ASSERTS = true;
+	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
 	
@@ -316,6 +317,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		public Node get( final BitVector v, final boolean exact ) {
 			return get( Hashes.murmur( v, 0 ), v, exact );
+		}
+		
+		public String toString() {
+			StringBuilder s = new StringBuilder();
+			s.append( '{' );
+			for( LongArrayBitVector v: keySet() ) s.append( v ).append( " => " ).append( get( v, false ) ).append( ", " );
+			if ( s.length() > 1 ) s.setLength( s.length() - 2 );
+			s.append( '}' );
+			return s.toString();
 		}
 	}
 
@@ -1046,71 +1056,103 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		ObjectArrayList<Node> leafStack = new ObjectArrayList<Node>();
 		ObjectArrayList<Node> jumpStack = new ObjectArrayList<Node>();
 		BooleanArrayList dirStack = new BooleanArrayList();
+		IntArrayList depthStack = new IntArrayList();
+		IntArrayList segmentStack = new IntArrayList();
 		map = new Map( size );
-		if ( size > 0 ) root = readNode( s, 0, leafStack, map, jumpStack, dirStack );
+		if ( size > 0 ) root = readNode( s, 0, 0, leafStack, map, jumpStack, dirStack, depthStack, segmentStack );
 		
 		if ( ASSERTS ) assert dirStack.isEmpty();
 		if ( ASSERTS ) assert jumpStack.isEmpty();
 		if ( ASSERTS ) assertTrie();
 	}
 
-	private Node readNode( final ObjectInputStream s, final long parentExtentLength, final ObjectArrayList<Node> leafStack, final Map map, final ObjectArrayList<Node> jumpStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
+	private Node readNode( final ObjectInputStream s, final long parentExtentLength, final int depth, final ObjectArrayList<Node> leafStack, final Map map, final ObjectArrayList<Node> jumpStack, final BooleanArrayList dirStack, final IntArrayList depthStack, IntArrayList segmentStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
 		final long pathLength = s.readLong();
 		final Node node = new Node();
 		node.parentExtentLength = parentExtentLength;
 		node.extentLength = parentExtentLength + pathLength;
 
-/*		if ( ! dirStack.isEmpty() ) {
-			final boolean dir = dirStack.popBoolean();
+		if ( DDEBUG ) {
+			System.err.println( "Fixing nodes on stack..." );
+			System.err.println( jumpStack );
+			System.err.println( dirStack );
+			System.err.println( depthStack );
+		}
+		
+		if ( ! dirStack.isEmpty() ) {
+			boolean dir;
+			int d;
+			int max = segmentStack.topInt();
 			Node anc;
 			long jumpLength;
-			for(;;) {
+			do {
+				dir = dirStack.popBoolean();
 				jumpLength = ( anc = jumpStack.pop() ).jumpLength();
-				if ( jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
+				d = depthStack.popInt();
+				if ( depth - d <= max && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= node.extentLength ) ) {
+					if ( DDEBUG ) System.err.println( "Setting " + ( dir ? "right" : "left" ) + " jump pointer of " + anc + " to " + node );
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
 				}
-				else if ( jumpLength > node.extentLength ) {
+				else {
 					dirStack.push( dir );
 					jumpStack.push( anc );
+					depthStack.push( d );
 					break;
 				}
-				
-				if ( dirStack.isEmpty() ) break;
-				
-				if ( dirStack.popBoolean() != dir ) {
-					dirStack.push( ! dir );
-					break;
-				}
-			}
+			} while( ! dirStack.isEmpty() && dirStack.topBoolean() == dir );
 		}
-*/		
+		
+		if ( DDEBUG ) {
+			System.err.println( "Fixing completed." );
+			System.err.println( jumpStack );
+			System.err.println( dirStack );
+		}
+
 		if ( isInternal ) {
-			//jumpStack.push( node );
-			//dirStack.push( false );
-			node.left = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
-			if ( ASSERTS ) assert ! jumpStack.contains( node );
-			//jumpStack.push( node );
-			//dirStack.push( true );
-			node.right = readNode( s, node.extentLength, leafStack, map, jumpStack, dirStack );
-			if ( ASSERTS ) assert ! jumpStack.contains( node );
+			if ( dirStack.isEmpty() || dirStack.topBoolean() != false ) segmentStack.push( 1 );
+			else segmentStack.push( segmentStack.popInt() + 1 );
+			jumpStack.push( node );
+			dirStack.push( false );
+			depthStack.push( depth );
+			
+			if ( DDEBUG ) System.err.println( "Recursing into left node... " );
+			node.left = readNode( s, node.extentLength, depth + 1, leafStack, map, jumpStack, dirStack, depthStack, segmentStack );
+			
+			int top = segmentStack.popInt();
+			if ( top != 1 ) segmentStack.push( top - 1 );
+			
+			if ( dirStack.isEmpty() || dirStack.topBoolean() != true ) segmentStack.push( 1 );
+			else segmentStack.push( segmentStack.popInt() + 1 );
+			jumpStack.push( node );
+			dirStack.push( true );
+			depthStack.push( depth );
+			
+			if ( DDEBUG ) System.err.println( "Recursing into right node... " );
+			node.right = readNode( s, node.extentLength, depth + 1, leafStack, map, jumpStack, dirStack, depthStack, segmentStack );
+			
+			top = segmentStack.popInt();
+			if ( top != 1 ) segmentStack.push( top - 1 );
+
 			final Node referenceLeaf = leafStack.pop(); 
 			node.key = referenceLeaf.key;
 			node.reference = referenceLeaf;
 			referenceLeaf.reference = node;
-			
+
+			map.addNew( node );
+
+			if ( ASSERTS ) {
 				Node t;
 				t = node.left; 
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.left;
-				node.jumpLeft = t;
+				assert node.jumpLeft == t : node.jumpLeft + " != " + t + " (" + node + ")";
 				t = node.right;
 				while( t.isInternal() && ! t.intercepts( node.jumpLength() ) ) t = t.right;
-				node.jumpRight = t;
-
-			map.addNew( node );
+				assert node.jumpRight == t : node.jumpRight + " != " + t + " (" + node + ")";
+			}
 		}
-		else {
+		else {			
 			node.key = BitVectors.readFast( s );
 			leafStack.push( node );
 			addBefore( tail, node );
