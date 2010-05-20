@@ -3,23 +3,15 @@ package it.unimi.dsi.sux4j.test;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.io.FileLinesCollection.FileLinesIterator;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.util.ZFastTrie;
+import it.unimi.dsi.logging.ProgressLogger;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.TreeSet;
-import java.util.zip.GZIPInputStream;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -62,10 +54,20 @@ public class TreeSetSpeedTest {
 
 		
 		System.out.println( "Creating tree..." );
-		@SuppressWarnings("unchecked")
 		final FileLinesCollection collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TreeSet<LongArrayBitVector> tree = new TreeSet<LongArrayBitVector>();
-		for( MutableString s: collection ) tree.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( s ) ) );
+
+		ProgressLogger pl = new ProgressLogger();
+		pl.itemsName = "keys";
+		pl.displayFreeMemory = true;
+		pl.start( "Adding keys..." );
+
+		for( MutableString s: collection ) {
+			tree.add( LongArrayBitVector.copy( transformationStrategy.toBitVector( s ) ) );
+			pl.lightUpdate();
+		}
+		
+		pl.done();
 
 		final int inc = tree.size() / n;
 
