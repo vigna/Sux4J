@@ -127,7 +127,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public Map( int size ) {
-			length = Math.max(  4, 1 << Fast.ceilLog2( 1 + size * 4 / 3 ) );
+			length = Math.max( INITIAL_LENGTH, 1 << Fast.ceilLog2( 1 + size / 3 * 4 ) );
 			mask = length - 1;
 			key = new long[ length ];
 			node = new Node[ length ];
@@ -184,7 +184,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public void clear() {
-			length = 64;
+			length = INITIAL_LENGTH;
 			mask = length - 1;
 			size = 0;
 			key = new long[ length ];
@@ -277,7 +277,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			key[ pos ] = signature;
 			node[ pos ] = v;
 
-			if ( size * 4 / 3 > length ) {
+			if ( ( size / 3 * 4 ) > length ) {
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[ length ];
@@ -400,8 +400,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				( isLeaf() ? "]" : ")" );
 		}
 	}
-	
-	
+
 	/** Creates a new z-fast trie using the given transformation strategy. 
 	 * 
 	 * @param transform a transformation strategy that must turn distinct elements into distinct, prefix-free bit vectors.
@@ -522,7 +521,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			for( Node leaf: leaves ) if ( references.contains( leaf.key ) ) c++;
 
-			assert c++ == size - 1;
+			assert c == size - 1;
 		}
 		else if ( size == 1 ) {
 			assert head.right == this.root;
@@ -539,7 +538,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		assert parent == null || parent.extent().equals( n.extent().subVector( 0, parent.extentLength ) );
-		
+		assert ( n.jumpLeft == null ) == ( n.jumpRight == null );
 		assert parentExtentLength < n.extentLength;
 		assert n.parentExtentLength == parentExtentLength : n.parentExtentLength + " != " + parentExtentLength + " " + n;
 		assert n.isLeaf() == ( n.extentLength == n.key.length() ); 

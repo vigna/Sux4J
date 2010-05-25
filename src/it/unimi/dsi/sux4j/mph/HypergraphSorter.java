@@ -91,9 +91,9 @@ import org.apache.log4j.Logger;
  * providing an excellent hash function, it actually computes <em>three</em> 64-bit hash values,
  * which is exactly what we need.
  * 
- * <h3>Djamel's XOR trick</h3>
+ * <h3>The XOR trick</h3>
  * 
- * <p>Djamel Belazzougui has suggested that since the list of edges incident to a node is
+ * <p>Since the list of edges incident to a node is
  * accessed during the peeling process only when the node has degree one, we can actually
  * store in a single integer the XOR of the indices of all edges incident to the node. This approach
  * significantly simplifies the code and reduces memory usage.
