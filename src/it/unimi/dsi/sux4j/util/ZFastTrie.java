@@ -86,7 +86,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -586,100 +586,95 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Fixes the right jumps of the ancestors of a node.
 	 * 
 	 * @param exitNode the exit node.
+	 * @param rightChild 
 	 * @param above the above node in the new trie.
 	 * @param below the below node in the new trie. 
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
-	 * @param cutLow 
 	 */
-	private static void fixRightJumps( Node exitNode, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack, boolean cutLow ) {
+	private static void fixRightJumps( Node exitNode, boolean rightChild, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack ) {
 		if ( DDEBUG ) System.err.println( "fixRightJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack );
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
 
-		if ( cutLow ) 
-			/* There could be nodes whose left jumps point to exit node below the lcp. In this
-			 * case, they must point to the node below. */
-			for( int i = stack.size(); i-- != 0; ) {
-				toBeFixed = stack.get( i );
+		if ( ! rightChild ) {
+			/* There could be nodes whose left jumps point to the exit node below must be 
+			 * fixed depending on whether they point above or below the lcp. Note that some
+			 * (few) assignments will be actually no-ops, but this significantly simplifies
+			 * the code. */
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpLeft == exitNode && jumpLength > lcp ) toBeFixed.jumpLeft = below;
+				if ( toBeFixed.jumpLeft != exitNode ) break;
+				if ( jumpLength <= lcp ) toBeFixed.jumpLeft = above;
+				else toBeFixed.jumpLeft = below;
 			}
-		else
-			/* There could be nodes whose left jumps point to exit node above the lcp. In this
-			 * case, they must point to the node above. */
-			for( int i = stack.size(); i-- != 0; ) {
-				toBeFixed = stack.get( i );
-				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
-				toBeFixed.jumpLeft = above;
-			}
-		
-		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.top();
-			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
-			toBeFixed.jumpRight = above;
-			stack.pop();
 		}
+		else {
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.top();
+				jumpLength = toBeFixed.jumpLength();
+				if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
+				toBeFixed.jumpRight = above;
+				stack.pop();
+			}
 
-		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.pop();
-			jumpLength = toBeFixed.jumpLength();
-			while( exitNode != null && toBeFixed.jumpRight != exitNode ) exitNode = exitNode.jumpRight;
-			if ( exitNode == null ) return;
-			toBeFixed.jumpRight = leaf;
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.pop();
+				jumpLength = toBeFixed.jumpLength();
+				while( exitNode != null && toBeFixed.jumpRight != exitNode ) exitNode = exitNode.jumpRight;
+				if ( exitNode == null ) return;
+				toBeFixed.jumpRight = leaf;
+			}
 		}
 	}
 	
 	/** Fixes the left jumps of the ancestors of a node.
 	 * 
 	 * @param exitNode the exit node.
+	 * @param rightChild 
 	 * @param above the above node in the new trie.
 	 * @param below the below node in the new trie. 
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
-	 * @param cutLow 
 	 */
-	private static void fixLeftJumps( Node exitNode, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack, boolean cutLow ) {
+	private static void fixLeftJumps( Node exitNode, boolean rightChild, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack ) {
 		if ( DDEBUG ) System.err.println( "fixLeftJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack ); 
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
 		
-		if ( cutLow ) 
-			/* There could be nodes whose right jumps point to exit node below the lcp. In this
-			 * case, they must point to the node below. */
-			for( int i = stack.size(); i-- != 0; ) {
-				toBeFixed = stack.get( i );
+		if ( rightChild ) {
+			/* There could be nodes whose right jumps point to the exit node below must be 
+			 * fixed depending on whether they point above or below the lcp. Note that some
+			 * (few) assignments will be actually no-ops, but this significantly simplifies
+			 * the code. */
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpRight == exitNode && jumpLength > lcp ) toBeFixed.jumpRight = below;
+				if ( toBeFixed.jumpRight != exitNode ) break;
+				if ( jumpLength <= lcp ) toBeFixed.jumpRight = above;
+				else toBeFixed.jumpRight = below;
 			}
-		else 
-			/* There could be nodes whose right jumps point to exit node above the lcp. In this
-			 * case, they must point to the node above. */
-			for( int i = stack.size(); i-- != 0; ) {
-				toBeFixed = stack.get( i );
-				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
-				toBeFixed.jumpRight = above;
-			}
-
-		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.top();
-			jumpLength = toBeFixed.jumpLength();
-			if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
-			toBeFixed.jumpLeft = above;
-			stack.pop();
 		}
+		else {
 
-		while( ! stack.isEmpty() ) {
-			toBeFixed = stack.pop();
-			jumpLength = toBeFixed.jumpLength();
-			while( exitNode != null && toBeFixed.jumpLeft != exitNode ) exitNode = exitNode.jumpLeft;
-			if ( exitNode == null ) return;
-			toBeFixed.jumpLeft = leaf;
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.top();
+				jumpLength = toBeFixed.jumpLength();
+				if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
+				toBeFixed.jumpLeft = above;
+				stack.pop();
+			}
+
+			while( ! stack.isEmpty() ) {
+				toBeFixed = stack.pop();
+				jumpLength = toBeFixed.jumpLength();
+				while( exitNode != null && toBeFixed.jumpLeft != exitNode ) exitNode = exitNode.jumpLeft;
+				if ( exitNode == null ) return;
+				toBeFixed.jumpLeft = leaf;
+			}
 		}
 	}
 	
@@ -743,8 +738,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final Node above = cutLow ? exitNode : internal;
 		Node below = cutLow ? internal : exitNode;
 		
-		if ( exitDirection ) fixRightJumps( exitNode, above, below, leaf, stack, cutLow );
-		else fixLeftJumps( exitNode, above, below, leaf, stack, cutLow );
+		if ( exitDirection ) fixRightJumps( exitNode, rightChild, above, below, leaf, stack );
+		else fixLeftJumps( exitNode, rightChild, above, below, leaf, stack );
 
 		if ( cutLow ) {
 			// internal is the node below
