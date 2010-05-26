@@ -267,6 +267,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			};
 		}
 
+		public void replace( final Node newNode ) {
+			long signature = newNode.handleHash();
+			if ( SHORT_SIGNATURES ) signature &= 0xF;
+			final int pos = findPos( newNode.key, newNode.extentLength, signature );
+			node[ pos ] = newNode;
+		}
+		
 		public Node addNew( final Node v ) {
 			long signature = v.handleHash();
 			if ( SHORT_SIGNATURES ) signature &= 0xF;
@@ -461,6 +468,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return ( -1L << Fast.mostSignificantBit( l ^ r ) & r );
 	}
 	
+	@SuppressWarnings("unused")
 	private static void remove( final Node node ) {
 		node.right.left = node.left;
 		node.left.right = node.right;
@@ -592,23 +600,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
 	 */
-	private static void fixRightJumps( Node exitNode, boolean rightChild, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack ) {
-		if ( DDEBUG ) System.err.println( "fixRightJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack );
+	private static void fixRightJumps( final Node internal, Node exitNode, boolean rightChild, Node leaf, final ObjectArrayList<Node> stack ) {
+		if ( DDEBUG ) System.err.println( "fixRightJumps(" + exitNode + ", " + ", " + leaf + ", " + stack );
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
 
 		if ( ! rightChild ) {
-			/* There could be nodes whose left jumps point to the exit node below must be 
-			 * fixed depending on whether they point above or below the lcp. Note that some
-			 * (few) assignments will be actually no-ops, but this significantly simplifies
-			 * the code. */
+			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpLeft != exitNode ) break;
-				if ( jumpLength <= lcp ) toBeFixed.jumpLeft = above;
-				else toBeFixed.jumpLeft = below;
+				if ( jumpLength <= lcp ) toBeFixed.jumpLeft = internal;
 			}
 		}
 		else {
@@ -616,7 +620,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				toBeFixed = stack.top();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
-				toBeFixed.jumpRight = above;
+				toBeFixed.jumpRight = internal;
 				stack.pop();
 			}
 
@@ -639,23 +643,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
 	 */
-	private static void fixLeftJumps( Node exitNode, boolean rightChild, final Node above, final Node below, Node leaf, final ObjectArrayList<Node> stack ) {
-		if ( DDEBUG ) System.err.println( "fixLeftJumps(" + exitNode + ", " + above + ", " + leaf + ", " + stack ); 
+	private static void fixLeftJumps( final Node internal, Node exitNode, boolean rightChild, Node leaf, final ObjectArrayList<Node> stack ) {
+		if ( DDEBUG ) System.err.println( "fixLeftJumps(" + exitNode + ", " + ", " + leaf + ", " + stack ); 
 		final long lcp = leaf.parentExtentLength;
 		Node toBeFixed = null;
 		long jumpLength = -1;
 		
 		if ( rightChild ) {
-			/* There could be nodes whose right jumps point to the exit node below must be 
-			 * fixed depending on whether they point above or below the lcp. Note that some
-			 * (few) assignments will be actually no-ops, but this significantly simplifies
-			 * the code. */
+			/* Nodes jumping to the right into the exit node but above the lcp must point to internal. */
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpRight != exitNode ) break;
-				if ( jumpLength <= lcp ) toBeFixed.jumpRight = above;
-				else toBeFixed.jumpRight = below;
+				if ( jumpLength <= lcp ) toBeFixed.jumpRight = internal;
 			}
 		}
 		else {
@@ -664,7 +664,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				toBeFixed = stack.top();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
-				toBeFixed.jumpLeft = above;
+				toBeFixed.jumpLeft = internal;
 				stack.pop();
 			}
 
@@ -729,89 +729,46 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		Node leaf = new Node();
 		Node internal = new Node();
 
+		final boolean exitNodeIsInternal = exitNode.isInternal();
+		
 		leaf.key = v;
 		leaf.extentLength = v.length();
 		leaf.parentExtentLength = lcp;
+		leaf.reference = internal;
+		
+		internal.key = leaf.key;
+		internal.reference = leaf;
+		internal.parentExtentLength = exitNode.parentExtentLength;
+		internal.extentLength = exitNode.parentExtentLength = lcp;
+
+		if ( exitDirection ) {
+			internal.jumpRight = internal.right = leaf;
+			internal.left = exitNode;
+			internal.jumpLeft = cutLow && exitNodeIsInternal ? exitNode.jumpLeft : exitNode;
+		}
+		else {
+			internal.jumpLeft = internal.left = leaf;
+			internal.right = exitNode;
+			internal.jumpRight = cutLow && exitNodeIsInternal ? exitNode.jumpRight : exitNode;
+		}
+
+		if ( exitNode == root ) root = internal; // Update root
+		else {
+			if ( rightChild ) parentExitNode.right = internal;
+			else parentExitNode.left = internal;
+		}
 
 		if ( DDDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; exit to the " + ( exitDirection ? "right" : "left") );
 
-		final Node above = cutLow ? exitNode : internal;
-		Node below = cutLow ? internal : exitNode;
-		
-		if ( exitDirection ) fixRightJumps( exitNode, rightChild, above, below, leaf, stack );
-		else fixLeftJumps( exitNode, rightChild, above, below, leaf, stack );
+		if ( exitDirection ) fixRightJumps( internal, exitNode, rightChild, leaf, stack );
+		else fixLeftJumps( internal, exitNode, rightChild, leaf, stack );
 
-		if ( cutLow ) {
-			// internal is the node below
-
-			internal.key = exitNode.key;
-			internal.reference = exitNode.reference;
-			internal.reference.reference = internal;
-			internal.extentLength = exitNode.extentLength;
-			exitNode.key = leaf.key;
-			exitNode.reference = leaf;
-			leaf.reference = exitNode;
-			exitNode.extentLength = internal.parentExtentLength = lcp;
-
-			
-			/* Depending on whether the exit node is a leaf, we might need 
-			 * to insert into the table either the exit node or the new internal node,
-			 * and we might need to extract the exit node from the leaf list. */
-			if ( exitNode.isLeaf() ) {
-				remove( exitNode );
-				addAfter( exitNode.left, internal );
-				map.addNew( exitNode );
-				if ( exitDirection ) exitNode.jumpLeft = internal;
-				else exitNode.jumpRight = internal;
-			}
-			else {
-				internal.left = exitNode.left;
-				internal.right = exitNode.right;
-				setJumps( internal );
-				map.addNew( internal );
-			}
-
-			if ( exitDirection ) {
-				exitNode.right = exitNode.jumpRight = leaf;
-				exitNode.left = internal;
-			}
-			else {				
-				exitNode.right = internal;				
-				exitNode.left = exitNode.jumpLeft = leaf;
-			}
-			
-			
+		if ( cutLow && exitNodeIsInternal ) {
+			map.replace( internal );
+			map.addNew( exitNode );
+			setJumps( exitNode );
 		}
-		else {
-			// internal is the node above
-			if ( exitNode == root ) root = internal; // Update root
-			else {
-				if ( rightChild ) parentExitNode.right = internal;
-				else parentExitNode.left = internal;
-			}
-			
-			internal.key = leaf.key;
-			internal.reference = leaf;
-			leaf.reference = internal;
-			
-			internal.parentExtentLength = exitNode.parentExtentLength;
-			internal.extentLength = exitNode.parentExtentLength = lcp;
-
-			/** Since we cut high, the jump of the handle length of the new internal
-			 *  node must necessarily fall into exitNode's skip interval. */
-			
-			if ( exitDirection ) {
-				internal.left = internal.jumpLeft = exitNode;
-				internal.right = internal.jumpRight = leaf;
-			}
-			else {
-				internal.left = internal.jumpLeft = leaf;
-				internal.right = internal.jumpRight = exitNode;
-			}			
-			
-			map.addNew( internal );
-
-		}
+		else map.addNew( internal );
 
 		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
 
@@ -819,12 +776,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		/* We find a predecessor or successor to insert the new leaf in the doubly linked list. */
 		if ( exitDirection ) {
-			while( below.isInternal() ) below = below.jumpRight;
-			addAfter( below, leaf );
+			while( exitNode.isInternal() ) exitNode = exitNode.jumpRight;
+			addAfter( exitNode, leaf );
 		}
 		else {
-			while( below.isInternal() ) below = below.jumpLeft;
-			addBefore( below, leaf );
+			while( exitNode.isInternal() ) exitNode = exitNode.jumpLeft;
+			addBefore( exitNode, leaf );
 		}
 		
 		if ( ASSERTS ) assertTrie();
