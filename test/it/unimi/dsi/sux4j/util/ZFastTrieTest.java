@@ -43,6 +43,9 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		
+		zft.remove( "a" );
+		assertFalse( zft.contains( "a" ) );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -55,6 +58,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -67,6 +75,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -79,6 +92,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -91,6 +109,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -103,6 +126,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -115,6 +143,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 
@@ -129,6 +162,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -142,6 +180,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -154,6 +197,11 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+		for ( int i = s.length; i-- != 0; ) {
+			assertTrue( zft.remove( s[ i ] ) );
+			assertFalse( zft.contains( s[ i ] ) );
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -193,6 +241,11 @@ public class ZFastTrieTest extends TestCase {
 					BinIO.storeObject( zft, temp );
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+
+					for ( int i = s.length; i-- != 0; ) {
+						assertTrue( zft.remove( s[ i ] ) );
+						assertFalse( zft.contains( s[ i ] ) );
+					}
 
 					Collections.shuffle( Arrays.asList( s ), new Random( 0 ) );
 				}
