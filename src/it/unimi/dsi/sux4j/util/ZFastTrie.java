@@ -30,7 +30,10 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSortedSet;
@@ -124,6 +127,34 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		private void assertTable() {
 			for( int i = key.length; i-- != 0; ) if ( node[ i ] != null ) assert get( node[ i ].handle(), false ) == node[ i ];
+			if ( size == 0 ) return;
+			final IntOpenHashSet overallHashes = new IntOpenHashSet();
+			int start = 0;
+			int first = -1;
+			while( node[ start ] != null ) start = ( start + 1 ) & mask;
+			// We are on an empty entry
+			for( ;; ) {
+				while( node[ start ] == null ) start = ( start + 1 ) & mask;
+				// We are on a nonempty entry
+				if ( first == -1 ) first = start;
+				else if ( first == start ) break;
+				int end = start;
+				while( node[ end ] != null ) end = ( end + 1 ) & mask;
+				// [start..end) is a maximal nonempty subsequence
+				LongOpenHashSet signaturesSeen = new LongOpenHashSet();
+				IntOpenHashSet hashesSeen = new IntOpenHashSet();
+
+				for( int pos = end; pos != start; ) {
+					pos = ( pos - 1 ) & mask;
+					assert signaturesSeen.add( key[ pos ] ) ^ dup[ pos ];
+					hashesSeen.add( (int)( key[ pos ] & mask ) );
+				}
+				
+				// Hashes in each maximal nonempty subsequence must be disjoint
+				for( IntIterator iterator = hashesSeen.iterator(); iterator.hasNext(); ) assert overallHashes.add( iterator.nextInt() );
+				
+				start = end;
+			}
 		}
 
 		public Map( int size ) {
@@ -268,15 +299,58 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public void replace( final Node newNode ) {
-			long signature = newNode.handleHash();
-			if ( SHORT_SIGNATURES ) signature &= 0xF;
-			final int pos = findPos( newNode.key, newNode.extentLength, signature );
+			final long signature = newNode.handleHash();
+			final int pos = findPos( newNode.key, newNode.handleLength(), signature );
+			assert node[ pos ] != null;
+			assert node[ pos ].handle().equals( newNode.handle() ) : node[ pos ].handle() + " != " + newNode.handle();
 			node[ pos ] = newNode;
+			assertTable();
 		}
-		
+
+		public boolean remove( final Object k ) {
+			final Node v = (Node)k;
+			final long signature = v.handleHash();
+			final int hash = (int)( signature & mask ); 
+			final long prefixLength = v.extentLength;
+			
+			int pos = hash; // The current position in the table.
+			int lastDup = -1;
+			
+			while( node[ pos ] != null ) {
+				if ( key[ pos ] == signature ) {
+					if ( ! dup[ pos ] || prefixLength == node[ pos ].handleLength() && v.key.longestCommonPrefixLength( node[ pos ].key ) >= prefixLength ) break;
+					else lastDup = pos;
+				}
+				pos = ( pos + 1 ) & mask;
+			}
+
+			if ( node[ pos ] == null ) return false;
+			if ( ! dup[ pos ] && lastDup != -1 ) dup[ lastDup ] = false; // We are removing the only non-duplicate entry.
+				
+			// Move entries, compatibly with their hash code, to fill the hole.
+		    int candidateHole, h;
+		    do {
+				candidateHole = pos;				
+		    	// Find candidate for a move (possibly empty).
+				do {
+					pos = ( pos + 1 ) & mask;
+					if ( node[ pos ] == null ) break;
+					h = (int)( node[ pos ].handleHash() & mask );
+					/* The hash h must lie cyclically between candidateHole and pos: more precisely, h must be after candidateHole
+					 * but before the first free entry in the table (which is equivalent to the previous statement). */
+				} while( candidateHole <= pos ? candidateHole < h && h <= pos : candidateHole < h || h <= pos );
+				
+				node[ candidateHole ] = node[ pos ];
+				key[ candidateHole ] = key[ pos ];
+				dup[ candidateHole ] = dup[ pos ];
+		    } while( node[ pos ] != null );
+
+			size--;
+			return true;
+		}
+
 		public Node addNew( final Node v ) {
-			long signature = v.handleHash();
-			if ( SHORT_SIGNATURES ) signature &= 0xF;
+			final long signature = v.handleHash();
 			int pos = findFreePos( signature );
 			if ( ASSERTS ) assert node[ pos ] == null;
 			
@@ -295,10 +369,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				
 				for( int i = key.length; i-- != 0; ) {
 					if ( value[ i ] != null ) {
-						signature = key[ i ];
-						pos = (int)( signature & mask ); 
+						final long s = key[ i ];
+						pos = (int)( s & mask ); 
 						while( newValue[ pos ] != null ) {
-							if ( newKey[ pos ] == signature ) newCollision[ pos ] = true;
+							if ( newKey[ pos ] == s ) newCollision[ pos ] = true;
 							pos = ( pos + 1 ) & mask;
 						}
 						newKey[ pos ] = key[ i ];
@@ -396,7 +470,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public long handleHash() {
-			return Hashes.murmur( handle(), 0 );
+			if ( SHORT_SIGNATURES ) return Hashes.murmur( handle(), 0 ) & 0xF;
+			else return Hashes.murmur( handle(), 0 );
 		}
 		
 		public String toString() {
@@ -446,12 +521,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	public int size() {
 		return size > Integer.MAX_VALUE ? -1 : (int)size;
-	}
-
-	@Override
-	public boolean remove( Object k ) {
-		// TODO Auto-generated method stub
-		return super.remove( k );
 	}
 	
 	/** Returns the 2-fattest number in an interval.
@@ -509,7 +578,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			assert node.reference.reference == node;
 		}
 		
-		assert nodes.size() == map.size();
+		assert nodes.size() == map.size() : nodes.size() + " != " + map.size();
 		assert size < 2 || this.root == map.get( root, false );
 		
 		if ( size > 1 ) {
@@ -677,6 +746,89 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}
 		}
 	}
+
+	@SuppressWarnings("unchecked")
+	public boolean remove( final Object k ) {
+		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)k ) );
+		if ( DDEBUG ) System.err.println( "add(" + v + ")" );
+		if ( DDEBUG ) System.err.println( "Map: " + map + " root: " + root );
+		
+		if ( size == 0 ) return false;
+		
+		if ( size == 1 ) {
+			if ( ! root.key.equals( v ) ) return false;
+			root = null;
+			size = 0;
+			assertTrie();
+			return true;
+		}
+
+		final ObjectArrayList<Node> stack = new ObjectArrayList<Node>( 64 );
+		
+		Node parentExitNode;
+		boolean rightChild;
+		Node exitNode;
+		long lcp;
+
+		parentExitNode = getParentExitNode( v, stack, false );
+		rightChild = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
+		exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
+		lcp = exitNode.key.longestCommonPrefixLength( v );
+		
+		if ( ! exitNode.intercepts( lcp ) ) {
+			/* A mistake. We redo the query in exact mode. */
+			stack.clear();
+			parentExitNode = getParentExitNode( v, stack, true );
+			rightChild = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
+			exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
+			lcp = exitNode.key.longestCommonPrefixLength( v );
+			if ( ASSERTS ) assert exitNode.intercepts( lcp );
+		}
+		
+		if ( DDDEBUG ) System.err.println( "Exit node " + exitNode );
+		
+		if ( ! exitNode.key.equals( v ) ) return false; // Not found
+		
+		final Node otherNode = rightChild ? parentExitNode.left : parentExitNode.right;
+		final boolean otherNodeIsInternal = otherNode.isInternal();
+
+		final long t = parentExitNode.handleLength() | otherNode.handleLength();
+		final boolean cutLow = ( t & -t & otherNode.handleLength() ) != 0;
+		
+		if ( DDEBUG ) System.err.println( "lcp: " + lcp );
+
+		if ( parentExitNode == root ) root = otherNode;
+
+		// This will either fix the trie structure, or partialy fix the doubly linked list.
+		parentExitNode.left = otherNode.left;
+		parentExitNode.right = otherNode.right;
+		parentExitNode.extentLength = otherNode.extentLength;
+		
+		// Fix leaf references
+		exitNode.reference.reference = otherNode.reference;
+		otherNode.reference.reference = exitNode.reference;
+		
+		if ( otherNodeIsInternal ) {
+			if ( cutLow ) map.remove( otherNode );
+			else {
+				map.replace( parentExitNode );
+				map.remove( otherNode );
+			}
+		}
+		else {
+			// Complete fixing doubly linked list.
+			parentExitNode.left.right = parentExitNode;
+			parentExitNode.right.left = parentExitNode;
+		}
+	
+		if ( cutLow ) {
+		}
+		else {
+			setJumps( parentExitNode );
+		}
+		if ( ASSERTS ) assertTrie();
+		return true;
+	}
 	
 	@Override
 	public boolean add( final T k ) {
@@ -739,7 +891,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		internal.key = leaf.key;
 		internal.reference = leaf;
 		internal.parentExtentLength = exitNode.parentExtentLength;
-		internal.extentLength = exitNode.parentExtentLength = lcp;
+		internal.extentLength = lcp;
 
 		if ( exitDirection ) {
 			internal.jumpRight = internal.right = leaf;
@@ -765,11 +917,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		if ( cutLow && exitNodeIsInternal ) {
 			map.replace( internal );
+			exitNode.parentExtentLength = lcp;
 			map.addNew( exitNode );
 			setJumps( exitNode );
 		}
-		else map.addNew( internal );
+		else {
+			exitNode.parentExtentLength = lcp;
+			map.addNew( internal );
+		}
 
+		
 		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
 
 		size++;
@@ -832,6 +989,119 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size == 1 ) return null;
 		if ( DDDEBUG ) {
 			System.err.println( "getParentExitNode(" + v + ")" );
+			//System.err.println( "Map: " + map );
+		}
+		final long state[] = Hashes.preprocessMurmur( v, 0 );
+		final long length = v.length();
+		//final int logLength = Fast.mostSignificantBit( length );
+
+		long l = 0, r = length;
+		//long checkMask = 1L << logLength;
+		//long computeMask = -1L << logLength;
+		Node node = null, parent = null;
+		
+		while( r - l > 1 ) {
+			//if ( ASSERTS ) assert logLength > -1;
+			//if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + logLength );
+			//if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
+			//	final long f = ( r - 1 ) & computeMask;
+				final long f = twoFattest( l, r - 1 );
+
+				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
+				
+				node = map.get( Hashes.murmur( v, f, state ), v, f, exact );
+				
+				if ( node == null ) {
+					if ( DDDEBUG ) System.err.println( "Missing" );
+					r = f;
+				}
+				else {
+					long g = node.extentLength;
+					if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
+
+					if ( g >= f && g <= length && equals( node.key, v, f, g ) ) {
+						if ( stack != null ) stack.push( node );
+						parent = node;
+						l = g;
+					}
+					else r = f;
+				}
+			//}
+				
+			//computeMask >>= 1;
+			//checkMask >>= 1;
+		}
+		
+		if ( DDDEBUG ) System.err.println( "Final length " + l + " node: " + parent );
+		
+		if ( ASSERTS ) {
+			boolean rightChild;
+			Node exitNode;
+			long lcp;
+
+			rightChild = parent != null && parent.extentLength < v.length() && v.getBoolean( parent.extentLength );
+			exitNode = parent == null ? root : ( rightChild ? parent.right : parent.left );
+			lcp = exitNode.key.longestCommonPrefixLength( v );
+			
+			if ( exitNode.intercepts( lcp ) ) { // We can do asserts only if the result is correct
+				/* If parent is null, the extent of the root must not be a prefix of v. */
+				if ( parent == null ) assert root.key.longestCommonPrefixLength( v ) < root.extentLength;
+				else {
+					/* If parent is not null, the extent of the parent must be a prefix of v, 
+					 * and the extent of the exit node must be either v, or not a prefix of v. */
+					assert parent.extentLength == l;
+					assert ! exact || parent.extent().longestCommonPrefixLength( v ) == parent.extentLength;
+					if ( ! exitNode.key.equals( v ) && exitNode.key.longestCommonPrefixLength( v ) == exitNode.extentLength ) {
+						boolean nextBit = v.getBoolean( exitNode.extentLength );
+						Node exitExitNode = nextBit ? exitNode.right : exitNode.left;
+						System.err.println( "The exit node is " + exitNode + ", but its child " + exitExitNode + " is instead" );
+						throw new AssertionError();
+					}
+
+					if ( stack != null ) {
+
+						/** We check that the stack contains exactly all handles that are backjumps
+						 * of the length of the extent of the parent. */
+						l = parent.extentLength;
+						while( l != 0 ) {
+							final Node t = map.get( parent.key.subVector( 0, l ), true );
+							if ( t != null ) assert stack.contains( t );
+							l ^= ( l & -l );
+						}
+
+						/** We check that the stack contains the nodes you would obtain by searching from
+						 * the top for nodes to fix. */
+						long left = 0;
+						for( int i = 0; i < stack.size(); i++ ) {
+							assert stack.get( i ).handleLength() == twoFattest( left, parent.extentLength ) :
+								stack.get( i ).handleLength() + " != " + twoFattest( left, parent.extentLength ) + " " + i + " " + stack ;
+							left = stack.get( i ).extentLength;
+						}
+					}
+				}
+			}
+		}
+		
+		if ( DDDEBUG ) System.err.println( "Parent exit node: " + parent );
+		
+		return parent;
+	}
+
+	
+	/** Returns the parent of the exit node of a given bit vector.
+	 * 
+	 * @param v a bit vector.
+	 * @param stack if not <code>null</code>, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
+	 * @param exact if true, the map defining the trie will be accessed in exact mode.
+	 * @return the parent of the exit node of <code>v</code>, or <code>null</code> if the exit node is the root; 
+	 * if <code>exact</code> is false, with low probability
+	 * the result might be wrong. 
+	 */
+	public Node getGrandParentExitNode( final LongArrayBitVector v, final ObjectArrayList<Node> stack, final boolean exact ) {
+		if ( ASSERTS ) assert size > 0;
+		if ( size < 3 ) return null;
+		if ( DDDEBUG ) {
+			System.err.println( "getGrandParentExitNode(" + v + ")" );
 			//System.err.println( "Map: " + map );
 		}
 		final long state[] = Hashes.preprocessMurmur( v, 0 );
@@ -928,6 +1198,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		return parent;
 	}
+
 
 	@SuppressWarnings("unchecked")
 	public boolean contains( final Object o ) {
