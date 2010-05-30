@@ -158,7 +158,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public Map( int size ) {
-			length = Math.max( INITIAL_LENGTH, 1 << Fast.ceilLog2( 1 + size / 4 * 5 ) );
+			length = Math.max( INITIAL_LENGTH, 1 << Fast.ceilLog2( 1 + size / 3 * 4 ) );
 			mask = length - 1;
 			key = new long[ length ];
 			node = new Node[ length ];
@@ -381,7 +381,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			key[ pos ] = signature;
 			node[ pos ] = v;
 
-			if ( ( size / 4 * 5 ) > length ) {
+			if ( ( size / 3 * 4 ) > length ) {
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[ length ];
