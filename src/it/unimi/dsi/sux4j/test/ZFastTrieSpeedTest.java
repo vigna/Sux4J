@@ -88,7 +88,7 @@ public class ZFastTrieSpeedTest {
 				System.err.println();
 				time += System.currentTimeMillis();
 				System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / n + " ns/vector" );
-				System.err.println( "Probes: " + zFastTrie.map.probes + " Scans: " + zFastTrie.map.scans + " Average: " + (double)(zFastTrie.map.scans) / zFastTrie.map.probes );
+				//System.err.println( "Probes: " + zFastTrie.map.probes + " Scans: " + zFastTrie.map.scans + " Average: " + (double)(zFastTrie.map.scans) / zFastTrie.map.probes );
 			}
 		}
 		else {
