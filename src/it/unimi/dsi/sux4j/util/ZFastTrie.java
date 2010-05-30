@@ -157,8 +157,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}
 		}
 
-		public Map( int size ) {
-			length = Math.max( INITIAL_LENGTH, 1 << Fast.ceilLog2( 1 + size / 3 * 4 ) );
+		public Map( final int size ) {
+			length = Math.max( INITIAL_LENGTH, 1 << Fast.ceilLog2( 1 + ( 3L * size / 2 ) ) );
 			mask = length - 1;
 			key = new long[ length ];
 			node = new Node[ length ];
@@ -176,26 +176,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		public long probes = 0;
 		public long scans = 0;
 		
-        private final static long PRIME = ( 1L << 61 ) - 1;
-        private final static long LOW = ( 1L << 32 ) - 1;
-        private final static long HIGH = LOW << 32;
-        
-        private final static long multAdd( int x, long a, long b ) {
-                final long a0 = ( a & LOW ) * x;
-                final long a1 = ( a & HIGH ) * x;
-                final long c0 = a0 + ( a1 << 32 );
-                final long c1 = ( a0 >>> 32 ) + a1;
-                return ( c0 & PRIME ) + ( c1 >>> 29 ) + b;
-        }
-        
-        private final static long rehash( final int x ) {
-                // TODO: we should really use tabulation-based 5-way independent hashing.
-                final long h = multAdd( x, 104659742703825433L, 8758810104009432107L );  
-                return ( h & PRIME ) + ( h >>> 61 );
-        }
-
 		private static int hash( final long signature, final int mask ) {
-			return (int)rehash( (int)( signature ^ signature >>> 32 ) ) & mask;
+			return (int)( signature ^ signature >>> 32 ) & mask;
 		}
 		
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
@@ -381,7 +363,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			key[ pos ] = signature;
 			node[ pos ] = v;
 
-			if ( ( size / 3 * 4 ) > length ) {
+			if ( 3L * size > 2L * length ) {
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[ length ];
