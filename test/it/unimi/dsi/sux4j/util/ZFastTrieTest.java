@@ -50,7 +50,7 @@ public class ZFastTrieTest extends TestCase {
 
 	@SuppressWarnings("unchecked")
 	public void testDoubleton() throws IOException, ClassNotFoundException {
-		String[] s = { "a", "b" };
+		String[] s = { "a", "c" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
@@ -67,7 +67,7 @@ public class ZFastTrieTest extends TestCase {
 
 	@SuppressWarnings("unchecked")
 	public void testDoubleton2() throws IOException, ClassNotFoundException {
-		String[] s = { "b", "a" };
+		String[] s = { "c", "a" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
