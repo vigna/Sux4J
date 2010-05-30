@@ -89,7 +89,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = DDEBUG;
@@ -147,7 +147,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				for( int pos = end; pos != start; ) {
 					pos = ( pos - 1 ) & mask;
 					assert signaturesSeen.add( key[ pos ] ) ^ dup[ pos ];
-					hashesSeen.add( (int)( rehash(( int) ( key[ pos ] >>> 32 ^ key[ pos ])  ) & mask ) );
+					hashesSeen.add( (int)( key[ pos ] & mask ) );
 				}
 				
 				// Hashes in each maximal nonempty subsequence must be disjoint
@@ -173,31 +173,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			dup = new boolean[ length ];
 		}
 
-		
-        private final static long PRIME = ( 1L << 61 ) - 1;
-        private final static long LOW = ( 1L << 32 ) - 1;
-        private final static long HIGH = LOW << 32;
-        
-        private final static long multAdd( int x, long a, long b ) {
-                final long a0 = ( a & LOW ) * x;
-                final long a1 = ( a & HIGH ) * x;
-                final long c0 = a0 + ( a1 << 32 );
-                final long c1 = ( a0 >>> 32 ) + a1;
-                return ( c0 & PRIME ) + ( c1 >>> 29 ) + b;
-        }
-        
-        private final static long rehash( final int x ) {
-                // TODO: we should really use tabulation-based 5-way independent hashing.
-                final long h = multAdd( x, 104659742703825433L, 8758810104009432107L );  
-                return ( h & PRIME ) + ( h >>> 61 );
-        }
-
 		public long probes = 0;
 		public long scans = 0;
 		
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
 			probes++;
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature && ( ! dup[ pos ] ||
 						prefixLength == node[ pos ].handleLength() && v.longestCommonPrefixLength( node[ pos ].key ) >= prefixLength ) )
@@ -209,7 +190,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findExactPos( final BitVector v, final long prefixLength, final long signature ) {
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature &&
 						prefixLength == node[ pos ].handleLength() && v.longestCommonPrefixLength( node[ pos ].key ) >= prefixLength )
@@ -221,7 +202,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		private int findFreePos( final long signature ) {
-			int pos = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask );
+			int pos = (int)( signature & mask );
 			//int i = 0;
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature ) dup[ pos ] = true;
@@ -329,7 +310,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( DDEBUG ) System.err.println( "Map.remove(" + k + ")" );
 			final Node v = (Node)k;
 			final long signature = v.handleHash();
-			final int hash = (int)( rehash( (int)( signature ^ signature >>> 32 ) ) & mask ); 
+			final int hash = (int)( signature & mask ); 
 			final long prefixLength = v.handleLength();
 			
 			int pos = hash; // The current position in the table.
@@ -354,7 +335,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				do {
 					pos = ( pos + 1 ) & mask;
 					if ( node[ pos ] == null ) break;
-					h = (int)( rehash( (int)( node[ pos ].handleHash() ^ node[ pos ].handleHash() >>> 32 ) ) & mask );
+					h = (int)( node[ pos ].handleHash() & mask );
 					/* The hash h must lie cyclically between candidateHole and pos: more precisely, h must be after candidateHole
 					 * but before the first free entry in the table (which is equivalent to the previous statement). */
 				} while( candidateHole <= pos ? candidateHole < h && h <= pos : candidateHole < h || h <= pos );
@@ -390,7 +371,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				for( int i = key.length; i-- != 0; ) {
 					if ( value[ i ] != null ) {
 						final long s = key[ i ];
-						pos = (int)rehash( (int)( s ^ s >>> 32 ) ) & mask; 
+						pos = (int)( s & mask ); 
 						while( newValue[ pos ] != null ) {
 							if ( newKey[ pos ] == s ) newCollision[ pos ] = true;
 							pos = ( pos + 1 ) & mask;
