@@ -107,7 +107,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** The tail of the doubly linked list of leaves. */
 	private transient Node tail; 
 
-	/** A linear-probing hash map that compares keys using signatures. */
+	/** A linear-probing hash map that compares keys using signatures as a first try. */
 	public final static class Map {
 		private static final long serialVersionUID = 1L;
 		private static final int INITIAL_LENGTH = 64;
@@ -118,12 +118,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		private Node[] node;
 		/** Whether a key is a duplicate. In this case, there are more copies of the key along the search path. */
 		private boolean dup[];
-		/** The mask to transform a signature into a position in the table. */
-		private int mask;
 		/** The number of keys in the table. */
 		private int size;
-		/** The number of slots in the table. */
+		/** The number of slots in the table (always a power of two). */
 		private int length;	
+		/** {@link #length} &minus; 1. */
+		private int mask;
 
 		private void assertTable() {
 			for( int i = key.length; i-- != 0; ) if ( node[ i ] != null ) assert get( node[ i ].handle(), true ) == node[ i ];
@@ -173,22 +173,22 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			dup = new boolean[ length ];
 		}
 
-		public long probes = 0;
-		public long scans = 0;
+		//public long probes = 0;
+		//public long scans = 0;
 		
 		private static int hash( final long signature, final int mask ) {
 			return (int)( signature ^ signature >>> 32 ) & mask;
 		}
 		
 		private int findPos( final BitVector v, final long prefixLength, final long signature ) {
-			probes++;
+			//probes++;
 			int pos = hash( signature, mask );
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature && ( ! dup[ pos ] ||
 						prefixLength == node[ pos ].handleLength() && v.longestCommonPrefixLength( node[ pos ].key ) >= prefixLength ) )
 					break;
 				pos = ( pos + 1 ) & mask;
-				scans++;
+				//scans++;
 			}
 			return pos;
 		}
@@ -202,18 +202,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				pos = ( pos + 1 ) & mask;
 			}
-			return pos;
-		}
-		
-		private int findFreePos( final long signature ) {
-			int pos = hash( signature, mask );
-			//int i = 0;
-			while( node[ pos ] != null ) {
-				if ( key[ pos ] == signature ) dup[ pos ] = true;
-				pos = ( pos + 1 ) & mask;
-				//i++;
-			}
-			//System.err.println( i );
 			return pos;
 		}
 		
@@ -302,7 +290,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public void replace( final Node newNode ) {
-			final long signature = newNode.handleHash();
+			replace( newNode.handleHash(), newNode );
+		}
+
+		public void replace( final long signature, final Node newNode ) {
 			final int pos = findPos( newNode.key, newNode.handleLength(), signature );
 			if ( ASSERTS ) assert node[ pos ] != null;
 			if ( ASSERTS ) assert node[ pos ].handle().equals( newNode.handle() ) : node[ pos ].handle() + " != " + newNode.handle();
@@ -317,8 +308,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			final int hash = hash( signature, mask ); 
 			final long prefixLength = v.handleLength();
 			
-			int pos = hash; // The current position in the table.
-			int lastDup = -1;
+			int pos = hash;
+			int lastDup = -1; // Keeps track of the last duplicate entry with the same signature.
 			
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature ) {
@@ -355,8 +346,18 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public Node addNew( final Node v ) {
-			final long signature = v.handleHash();
-			int pos = findFreePos( signature );
+			return addNew( v.handleHash(), v );
+		}
+			
+		public Node addNew( final long signature, final Node v ) {
+			int pos = hash( signature, mask );
+			
+			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
+			while( node[ pos ] != null ) {
+				if ( key[ pos ] == signature ) dup[ pos ] = true;
+				pos = ( pos + 1 ) & mask;
+			}
+			
 			if ( ASSERTS ) assert node[ pos ] == null;
 			
 			size++;
@@ -364,11 +365,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			node[ pos ] = v;
 
 			if ( 3L * size > 2L * length ) {
+				// Rehash.
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[ length ];
 				final Node[] newValue = new Node[ length ];
-				final boolean[] newCollision = new boolean[ length ];
+				final boolean[] newDup = new boolean[ length ];
 				final long[] key = this.key;
 				final Node[] value = this.node;
 				
@@ -377,7 +379,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 						final long s = key[ i ];
 						pos = hash( s, mask ); 
 						while( newValue[ pos ] != null ) {
-							if ( newKey[ pos ] == s ) newCollision[ pos ] = true;
+							if ( newKey[ pos ] == s ) newDup[ pos ] = true;
 							pos = ( pos + 1 ) & mask;
 						}
 						newKey[ pos ] = key[ i ];
@@ -387,7 +389,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				this.key = newKey;
 				this.node = newValue;
-				this.dup = newCollision;
+				this.dup = newDup;
 			}
 			
 			if ( ASSERTS ) assertTable();
@@ -399,14 +401,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 
-		public Node get( long signature, final BitVector v, final boolean exact ) {
+		public Node get( final long signature, final BitVector v, final boolean exact ) {
 			return get( signature, v, v.length(), exact );
 		}
 
-		public Node get( long signature, final BitVector v, final long prefixLength, final boolean exact ) {
-			if ( SHORT_SIGNATURES ) signature &= 0xF;
-			final int pos = exact ? findExactPos( v, prefixLength, signature ) : findPos( v, prefixLength, signature );
-			return node[ pos ];
+		public Node get( final long signature, final BitVector v, final long prefixLength, final boolean exact ) {
+			if ( SHORT_SIGNATURES ) {
+				final int pos = exact ? findExactPos( v, prefixLength, signature & 0xF ) : findPos( v, prefixLength, signature & 0xF );
+				return node[ pos ];
+			}
+			else {
+				final int pos = exact ? findExactPos( v, prefixLength, signature ) : findPos( v, prefixLength, signature );
+				return node[ pos ];
+			}
 		}
 
 		public Node get( final BitVector v, final boolean exact ) {
@@ -453,7 +460,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return jumpLeft != null;
 		}
 		
-		public boolean intercepts( long h ) {
+		public boolean intercepts( final long h ) {
 			return h > parentExtentLength && ( isLeaf() || h <= extentLength );
 		}
 		
@@ -984,7 +991,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( exitNode.key.equals( v ) ) return false; // Already there
 		
 		final boolean exitDirection = v.getBoolean( lcp );
-		final boolean cutLow = lcp >= exitNode.handleLength();
+		final long exitNodeHandleLength = exitNode.handleLength();
+		final boolean cutLow = lcp >= exitNodeHandleLength;
 		
 		if ( DDEBUG ) System.err.println( "lcp: " + lcp );
 		Node leaf = new Node();
@@ -1025,14 +1033,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else fixLeftJumpsAfterInsertion( internal, exitNode, rightChild, leaf, stack );
 
 		if ( cutLow && exitNodeIsInternal ) {
-			map.replace( internal );
+			map.replace( Hashes.murmur( v, exitNodeHandleLength, state ), internal );
 			exitNode.parentExtentLength = lcp;
 			map.addNew( exitNode );
 			setJumps( exitNode );
 		}
 		else {
 			exitNode.parentExtentLength = lcp;
-			map.addNew( internal );
+			map.addNew( Hashes.murmur( v, internal.handleLength(), state ), internal );
 		}
 
 		
@@ -1304,7 +1312,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		s.defaultReadObject();
 		initHeadTail();
 		map = new Map( size );
-		System.err.println( map.length );
 		if ( size > 0 ) root = readNode( s, 0, 0, map, new ObjectArrayList<Node>(), new ObjectArrayList<Node>(), new IntArrayList(), new IntArrayList(), new BooleanArrayList() );
 		if ( ASSERTS ) assertTrie();
 	}
