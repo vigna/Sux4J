@@ -30,8 +30,11 @@ public class HashesTest extends TestCase {
 			LongArrayBitVector bv = LongArrayBitVector.getInstance();
 			for( int i = 0; i < l; i++ ) bv.add( r.nextBoolean() );
 			long[] state = Hashes.preprocessMurmur( bv, 0 );
-			for( int i = 0; i < l; i++ ) 				
+			for( int i = 0; i < l; i++ ) {
 				assertEquals( "Prefix length " + i, Hashes.murmur( bv.subVector( 0, i ), 0 ), Hashes.murmur( bv, i, state ) ); 
+				for( int p = 0; p < l; p += 16 )
+					assertEquals( "Prefix length " + i + ", lcp " + p, Hashes.murmur( bv.subVector( 0, i ), 0 ), Hashes.murmur( bv, i, state, p ) );
+			}
 		}
 	}
 	

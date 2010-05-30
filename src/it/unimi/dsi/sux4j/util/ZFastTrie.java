@@ -304,16 +304,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		public boolean remove( final Object k ) {
 			if ( DDEBUG ) System.err.println( "Map.remove(" + k + ")" );
 			final Node v = (Node)k;
-			final long signature = v.handleHash();
+			return remove( v.handleHash(), v, v.handleLength() );
+		}
+		
+		public boolean remove( final long signature, final Node v, final long handleLength ) {
+			if ( DDEBUG ) System.err.println( "Map.remove(" + signature + ", " + v + ", " + handleLength + ")" );
 			final int hash = hash( signature, mask ); 
-			final long prefixLength = v.handleLength();
 			
 			int pos = hash;
 			int lastDup = -1; // Keeps track of the last duplicate entry with the same signature.
 			
 			while( node[ pos ] != null ) {
 				if ( key[ pos ] == signature ) {
-					if ( ! dup[ pos ] || prefixLength == node[ pos ].handleLength() && v.key.longestCommonPrefixLength( node[ pos ].key ) >= prefixLength ) break;
+					if ( ! dup[ pos ] || handleLength == node[ pos ].handleLength() && v.key.longestCommonPrefixLength( node[ pos ].key ) >= handleLength ) break;
 					else lastDup = pos;
 				}
 				pos = ( pos + 1 ) & mask;
@@ -899,8 +902,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			else grandParentExitNode.left = otherNode;
 		}		
 
-		final long t = parentExitNode.handleLength() | otherNode.handleLength();
-		final boolean cutLow = ( t & -t & otherNode.handleLength() ) != 0;
+		final long parentExitNodehandleLength = parentExitNode.handleLength();
+		final long otherNodeHandleLength = otherNode.handleLength();
+		final long t = parentExitNodehandleLength | otherNodeHandleLength;
+		final boolean cutLow = ( t & -t & otherNodeHandleLength ) != 0;
 
 
 		if ( DDEBUG ) System.err.println( "lcp: " + lcp );
@@ -925,14 +930,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else fixLeftJumpsAfterDeletion( otherNode, parentExitNode, rightChild, exitNode, stack );
 		
 		if ( cutLow && otherNodeIsInternal ) {
-			map.remove( otherNode );
+			map.remove( Hashes.murmur( otherNode.key, otherNodeHandleLength, state, parentExitNode.extentLength ), otherNode, otherNodeHandleLength );
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			map.replace( otherNode );
+			map.replace( Hashes.murmur( v, parentExitNodehandleLength, state ), otherNode );
 			setJumps( otherNode );
 		}
 		else {
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			map.remove( parentExitNode );
+			map.remove( Hashes.murmur( v, parentExitNodehandleLength, state ), parentExitNode, parentExitNodehandleLength );
 		}
 	
 		size--;
@@ -1035,7 +1040,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( cutLow && exitNodeIsInternal ) {
 			map.replace( Hashes.murmur( v, exitNodeHandleLength, state ), internal );
 			exitNode.parentExtentLength = lcp;
-			map.addNew( exitNode );
+			map.addNew( Hashes.murmur( exitNode.key, exitNode.handleLength(), state, lcp ), exitNode );
 			setJumps( exitNode );
 		}
 		else {

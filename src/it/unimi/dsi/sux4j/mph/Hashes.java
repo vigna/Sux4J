@@ -498,6 +498,51 @@ public class Hashes {
 		
 	}
 	
+	/** Constant-time MurmurHash 64-bit hashing reusing precomputed state partially.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param state the state array returned by {@link #preprocessMurmur(BitVector, long)}.
+	 * @param lcp the length of the longest common prefix between <code>bv</code> and the vector over which <code>state</code> was computed.
+	 * @return the hash for the prefix of <code>bv</code> or <code>prefixLength</code> bits.
+	 */
+
+	public static long murmur( final BitVector bv, final long prefixLength, final long[] state, final long lcp ) {
+		final int startStateWord = (int)( Math.min( lcp, prefixLength )  / Long.SIZE ); 
+		long h = state[ startStateWord ], k;
+		long from = startStateWord * Long.SIZE;
+		
+		while( prefixLength - from >= Long.SIZE ) {
+			k = bv.getLong( from, from += Long.SIZE );
+
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+		}
+	
+		if ( prefixLength > from ) {
+			k = bv.getLong( from, prefixLength );
+			k *= M; 
+			k ^= k >>> R; 
+			k *= M; 
+
+			h ^= k;
+			h *= M;
+		}
+		
+		k = prefixLength;
+		k *= M; 
+		k ^= k >>> R; 
+		k *= M; 
+
+		h ^= k;
+		h *= M;
+		return h;
+	}
+	
 	/** Preprocesses a bit vector so that MurmurHash 64-bit can be computed in constant time on all prefixes.
 	 * 
 	 * @param bv a bit vector.
