@@ -1302,7 +1302,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 					long g = node.extentLength;
 					if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
 
-					if ( g >= f && g < r && equals( node.reference.key, v, f, g ) ) {
+					if ( f <= g && g < r && equals( node.reference.key, v, f, g ) ) {
 						if ( stack != null ) stack.push( node );
 						parent = node;
 						l = g;
