@@ -89,8 +89,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
-	private static final boolean SHORT_SIGNATURES = true;
+	private static final boolean ASSERTS = false;
+	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = DDEBUG;
 
@@ -1279,42 +1279,68 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	private InternalNode fatBinarySearch( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact, long l, long r ) {
-		final int logLength = Fast.mostSignificantBit( r );
-		long checkMask = 1L << logLength;
-		long computeMask = -1L << logLength;
-		InternalNode node = null, parent = null;
+		InternalNode node = null, parent = null, last = null;
 
-		while( r - l > 1 ) {
-			if ( ASSERTS ) assert logLength > -1;
-			if ( DDDEBUG ) System.err.println( "(" + l + ".." + r + "); checking for fatness " + checkMask );
-			if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
-				final long f = ( r - 1 ) & computeMask;
+		for( ;;) {
+			final int logLength = Fast.mostSignificantBit( r );
+			long checkMask = 1L << logLength;
+			long computeMask = -1L << logLength;
 
-				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
-				
-				node = map.get( v, f, Hashes.murmur( v, f, state ), exact );
-				
-				if ( node == null ) {
-					if ( DDDEBUG ) System.err.println( "Missing" );
-					r = f;
-				}
-				else {
-					long g = node.extentLength;
-					if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
+			while( r - l > 1 ) {
+				if ( ASSERTS ) assert logLength > -1;
+				if ( DDDEBUG ) System.err.println( "(" + l + ".." + r + "); checking for fatness " + checkMask );
+				if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
+					final long f = ( r - 1 ) & computeMask;
 
-					if ( f <= g && g < r && equals( node.reference.key, v, f, g ) ) {
-						if ( stack != null ) stack.push( node );
-						parent = node;
-						l = g;
+					if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
+
+					node = map.get( v, f, Hashes.murmur( v, f, state ), exact );
+
+					if ( node == null ) {
+						if ( DDDEBUG ) System.err.println( "Missing" );
+						r = f;
 					}
-					else r = f;
+					else {
+						long g = node.extentLength;
+						if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
+
+						if ( f <= g && g < r ) {//&& equals( node.reference.key, v, f, g ) ) {
+							if ( stack != null ) stack.push( node );
+							last = parent;
+							parent = node;
+							l = g;
+						}
+						else r = f;
+					}
 				}
+
+				computeMask >>= 1;
+				checkMask >>= 1;
 			}
-				
-			computeMask >>= 1;
-			checkMask >>= 1;
+
+			/*if ( parent == null ) break;
+			Node leaf = parent;
+			while( leaf.isInternal() ) leaf = ((InternalNode)leaf).jumpRight;*/
+			
+			if ( parent == null || parent.reference.key.longestCommonPrefixLength( v ) >= parent.extentLength ) break;
+
+			//System.err.println( "** " + v );
+			if ( stack != null ) stack.pop();
+
+			r = parent.parentExtentLength + 1;
+			if ( last == null ) {
+				l = 0;
+				parent = null;
+			}
+			else {
+				parent = last;
+				l = parent.extentLength;
+				if ( l == r ) break;
+			}
+			//System.err.println( "Restarting with (" + l + ".." + r + ")" );
+			//System.err.println( map );
 		}
-		
+			
 		if ( DDDEBUG ) System.err.println( "Final length " + l + " node: " + parent );
 		
 		if ( ASSERTS ) {
@@ -1374,16 +1400,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		boolean rightChild = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
 		Node exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
 
-		final long lcp = exitNode.key().longestCommonPrefixLength( v );
+		/*final long lcp = exitNode.key().longestCommonPrefixLength( v );
 		
 		if ( ! exitNode.intercepts( lcp ) ) {
 			parentExitNode = getParentExitNode( v, state, null, true );
 			rightChild = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
 			exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
 			if ( ASSERTS ) assert exitNode.intercepts( exitNode.key().longestCommonPrefixLength( v ) );
-		}
+		}*/
 		
-		return exitNode.key().equals( v );
+		return exitNode.isLeaf() && exitNode.key().equals( v );
 	}
 
 	@SuppressWarnings("unchecked")
