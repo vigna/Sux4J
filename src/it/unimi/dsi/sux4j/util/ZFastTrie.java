@@ -73,13 +73,13 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A z-fast trie, that is, a predecessor/successor data structure using low linear (in the number of keys) additional space and
- * answering in time &#x2113;/<var>w</var> + log(max(&#x2113;, &#x2113;<sup>-</sup>, &#x2113;<sup>+</sup>)) with high probability,
- * where <var>w</var> is the machine word size, and &#x2113;, &#x2113;<sup>-</sup>, and &#x2113;<sup>+</sup> are the
- * lengths of the query string, of its predecessor and of its successor (in the currently stored set), respectively.
+ * answering to the query string
+ * <var>x</var> in time |<var>x</var>|/<var>w</var> + log(max{|<var>x</var>|, |<var>x</var><sup>-</sup>|, |<var>x</var><sup>+</sup>|}) with high probability,
+ * where <var>w</var> is the machine word size, and <var>x</var><sup>-</sup>/<var>x</var><sup>+</sup> are the predecessor/successor of <var>x</var> in the currently stored set, respectively.
  * 
- * <p>In rough terms, the z-fast trie uses &#x2113;/<var>w</var> (which is optimal) to actually look at the string content,
- * and log(max(&#x2113;, &#x2113;<sup>-</sup>, &#x2113;<sup>+</sup>)) to perform the search. This is known to be (essentially) optimal.
- * String lengths are up to {@link Long#MAX_VALUE}, and not limited to be a constant multiple of <var>w</var> for the bounds to hold. 
+ * <p>In rough terms, the z-fast trie uses time |<var>x</var>|/<var>w</var> (which is optimal) to actually look at the string content,
+ * and log(max{|<var>x</var>|, |<var>x</var><sup>-</sup>|, |<var>x</var><sup>+</sup>|}) to perform the search. This is known to be (essentially) optimal.
+ * String lengths are up to {@link Integer#MAX_VALUE}, and not limited to be a constant multiple of <var>w</var> for the bounds to hold. 
  * 
  * <p>The linear overhead of a z-fast trie is very low. For <var>n</var> keys we allocate 2<var>n</var> &minus; 1 nodes containing six references and 
  * two longs, plus a dictionary containing <var>n</var> &minus; 1 nodes (thus using around 2<var>n</var> references and 2<var>n</var> longs).  
@@ -1278,9 +1278,26 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return parent;
 	}
 
+	/** Returns the exit node of a given bit vector.
+	 * 
+	 * @param v a bit vector.
+	 * @return the exit node of <code>v</code>. 
+	 */
+	public InternalNode getExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact ) {
+		if ( ASSERTS ) assert size > 0;
+		if ( size == 1 ) return null;
+		if ( DDDEBUG ) System.err.println( "getParentExitNode(" + v + ", " + exact + ")" );
+		final InternalNode parent = fatBinarySearch( v, state, stack, exact, 0, v.length() );
+		if ( DDDEBUG ) System.err.println( "Parent exit node: " + parent );
+		return parent;
+	}
+
+
 	private InternalNode fatBinarySearch( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact, long l, long r ) {
 		InternalNode node = null, parent = null, last = null;
-
+		boolean secondRound = false;
+		long lastHandleLength = -1;
+		//System.err.println( "Fat binary " + v + " " + stack  + " (" + l + ".." + r + ") " + exact );
 		for( ;;) {
 			final int logLength = Fast.mostSignificantBit( r );
 			long checkMask = 1L << logLength;
@@ -1289,6 +1306,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while( r - l > 1 ) {
 				if ( ASSERTS ) assert logLength > -1;
 				if ( DDDEBUG ) System.err.println( "(" + l + ".." + r + "); checking for fatness " + checkMask );
+
 				if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
 					final long f = ( r - 1 ) & computeMask;
 
@@ -1304,12 +1322,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 						long g = node.extentLength;
 						if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
 
-						if ( f <= g && g < r ) {//&& equals( node.reference.key, v, f, g ) ) {
+						// Note that this test is just to catch false positives
+						if ( f <= g ) {// && g < r ) {//&& equals( node.reference.key, v, f, g ) ) {
 							if ( stack != null ) stack.push( node );
 							last = parent;
 							parent = node;
+							lastHandleLength = f;
 							l = g;
 						}
+					
 						else r = f;
 					}
 				}
@@ -1321,9 +1342,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			/*if ( parent == null ) break;
 			Node leaf = parent;
 			while( leaf.isInternal() ) leaf = ((InternalNode)leaf).jumpRight;*/
+			//System.err.println( "***" + parent + " " + l + " " + r  + " " + stack );
+			if ( parent == null || secondRound || equals( parent.reference.key, v, lastHandleLength, parent.extentLength ) ) break;
+			secondRound = true;
 			
-			if ( parent == null || parent.reference.key.longestCommonPrefixLength( v ) >= parent.extentLength ) break;
-
 			//System.err.println( "** " + v );
 			if ( stack != null ) stack.pop();
 
@@ -1337,6 +1359,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				l = parent.extentLength;
 				if ( l == r ) break;
 			}
+			
+			last = null;
 			//System.err.println( "Restarting with (" + l + ".." + r + ")" );
 			//System.err.println( map );
 		}
@@ -1400,14 +1424,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		boolean rightChild = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
 		Node exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
 
-		/*final long lcp = exitNode.key().longestCommonPrefixLength( v );
+		final long lcp = exitNode.key().longestCommonPrefixLength( v );
 		
 		if ( ! exitNode.intercepts( lcp ) ) {
 			parentExitNode = getParentExitNode( v, state, null, true );
 			rightChild = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
 			exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
 			if ( ASSERTS ) assert exitNode.intercepts( exitNode.key().longestCommonPrefixLength( v ) );
-		}*/
+		}
 		
 		return exitNode.isLeaf() && exitNode.key().equals( v );
 	}
