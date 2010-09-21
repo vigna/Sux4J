@@ -28,14 +28,14 @@ import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.util.AbstractLongBigList;
-import it.unimi.dsi.util.LongBigList;
 
 import java.io.Serializable;
 
@@ -236,7 +236,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
-		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l ).length( length );
+		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
+		lowerBitsList.size( length );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
@@ -270,7 +271,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
 	}
 
-	public long length() {
+	public long size64() {
 		return length;
 	}
 }

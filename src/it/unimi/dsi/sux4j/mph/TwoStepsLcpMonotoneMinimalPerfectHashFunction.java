@@ -30,7 +30,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -71,7 +71,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( TwoStepsLcpMonotoneMinimalPerfectHashFunction.class );
-	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	
@@ -213,20 +212,21 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
-			public long getLong( int index ) {
+		offsets = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
-			public int size() {
+			public long size64() {
 				return n;
 			}
 		}, log2BucketSize );
 
-		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcpLengths[ index >>> log2BucketSize ]; 
+		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
+			public long getLong( long index ) {
+				if ( ( index >>> log2BucketSize ) > Integer.MAX_VALUE ) throw new IndexOutOfBoundsException();
+				return lcpLengths[ (int)( index >>> log2BucketSize ) ]; 
 			}
-			public int size() {
+			public long size64() {
 				return n;
 			}
 		}, chunkedHashStore );

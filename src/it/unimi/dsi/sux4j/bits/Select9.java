@@ -25,7 +25,7 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -116,7 +116,7 @@ public class Select9 implements Select {
 						else if ( span >= 128 ) state = 2;
 						else if ( span >= 16 ) {
 							if ( ASSERTS ) assert ( blockSpan + 8 & -8L ) + 8 <= span * 4;
-							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.length() );
+							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.size64() );
 
 							int k;
 							for( k = 0; k < blockSpan; k++ ) {
@@ -143,7 +143,7 @@ public class Select9 implements Select {
 						}
 						else if ( span >= 2 ) {
 							if ( ASSERTS ) assert ( blockSpan + 8 & -8L ) <= span * 4;
-							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.length() );
+							s = subinventoryAsShorts.subList( subinventoryPosition * 4, subinventoryAsShorts.size64() );
 
 							int k;
 							for( k = 0; k < blockSpan; k++ ) {

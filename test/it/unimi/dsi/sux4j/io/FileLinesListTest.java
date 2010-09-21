@@ -1,7 +1,5 @@
 package it.unimi.dsi.sux4j.io;
 
-import it.unimi.dsi.sux4j.io.FileLinesList;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;

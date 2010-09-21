@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.util;
 
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.util.ZFastTrie;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,8 +60,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -77,8 +77,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -94,8 +94,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -111,8 +111,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -128,8 +128,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -145,8 +145,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -164,8 +164,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -182,8 +182,8 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
 	}
 
@@ -199,9 +199,24 @@ public class ZFastTrieTest extends TestCase {
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
-			assertTrue( zft.remove( s[ i ] ) );
-			assertFalse( zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.remove( s[ i ] ) );
+			assertFalse( s[ i ], zft.contains( s[ i ] ) );
 		}
+	}
+
+	public void testExtent() {
+		ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<LongArrayBitVector>( TransformationStrategies.identity() );
+		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		v.add( 0 );
+		v.add( 1 );
+		zft.add( v );
+		LongArrayBitVector w = LongArrayBitVector.getInstance();
+		w.add( 0 );
+		w.add( 0 );
+		zft.add( w );
+		LongArrayBitVector q = LongArrayBitVector.getInstance();
+		q.add( 0 );
+		zft.contains( q );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -243,8 +258,8 @@ public class ZFastTrieTest extends TestCase {
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
 					for ( int i = s.length; i-- != 0; ) {
-						assertTrue( zft.remove( s[ i ] ) );
-						assertFalse( zft.contains( s[ i ] ) );
+						assertTrue( s[ i ], zft.remove( s[ i ] ) );
+						assertFalse( s[ i ], zft.contains( s[ i ] ) );
 					}
 
 					Collections.shuffle( Arrays.asList( s ), new Random( 0 ) );

@@ -231,29 +231,6 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				this.root = root;
 
 				if ( root != null ) {
-					if ( false && ASSERTS ) {
-						iterator = elements.iterator();
-						int c = 1;
-						while( iterator.hasNext() ) {
-							curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
-							if ( c++ % bucketSize == 0 ) {
-								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
-								node = root;
-								pos = 0;
-								while( node != null ) {
-									prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
-									pos += node.path.length() + 1;
-									if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-									else {
-										assert node.left == null && node.right == null;
-										break;
-									}
-								}
-							}
-						}
-					}
-
 					pl.start( "Reducing paths..." );
 
 					iterator = elements.iterator();

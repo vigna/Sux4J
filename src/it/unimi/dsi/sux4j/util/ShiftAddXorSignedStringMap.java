@@ -27,6 +27,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.Function;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectList;
@@ -37,7 +38,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.MWHCFunction;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
-import it.unimi.dsi.util.LongBigList;
 import it.unimi.dsi.util.StringMap;
 
 import java.io.IOException;
@@ -107,7 +107,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		shift = Long.SIZE - width;
 		mask = width == Long.SIZE ? 0 : ( 1L << width ) - 1;
 		final int n = map.size();
-		signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ).length( n );
+		( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
 
 		for( int i = 0; i < n; i++ ) {
 			s = iterator.next();
@@ -127,27 +127,28 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		return index >= 0 && index < hash.size() && signatures.getLong( index ) == signature( s );
 	}
 
-	@SuppressWarnings("unchecked")
 	public long getLong( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return checkSignature( s, index ) ? index : defRetValue;
 	}
 
-	@SuppressWarnings("unchecked")
 	public Long get( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return checkSignature( s, index ) ? Long.valueOf( index ) : null;
 	}
 
-	@SuppressWarnings("unchecked")
 	public boolean containsKey( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		return checkSignature( s, hash.getLong( s ) );
 	}
 
 	public int size() {
+		return hash.size();
+	}
+
+	public long size64() {
 		return hash.size();
 	}
 

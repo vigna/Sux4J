@@ -4,7 +4,6 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import junit.framework.TestCase;
 
 public abstract class BalancedParenthesesTestCase extends TestCase {

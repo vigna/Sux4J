@@ -21,6 +21,10 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import static it.unimi.dsi.bits.Fast.log2;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import static java.lang.Math.E;
+import static java.lang.Math.log;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -28,7 +32,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -55,10 +59,6 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-import static it.unimi.dsi.bits.Fast.log2;
-import static java.lang.Math.log;
-import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
  * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
@@ -154,13 +154,13 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
-			public long getLong( int index ) {
+			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
-			public int size() {
-				return size > Integer.MAX_VALUE ? -1 : (int)size;
+			public long size64() {
+				return size;
 			}
 		}, this.log2BucketSize );
 		//System.err.println( "*********" + chunkedHashStore.seed() );

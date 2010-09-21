@@ -35,7 +35,6 @@ public class GenerateRandomStrings {
 		final int l = jsapResult.getInt( "l" );
 		final String output = jsapResult.getString( "output" );
 		
-		@SuppressWarnings("unchecked")
 		MutableString[] s = new MutableString[ n ];
 		Random r = new Random();
 

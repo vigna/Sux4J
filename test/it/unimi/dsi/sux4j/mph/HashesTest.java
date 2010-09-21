@@ -1,10 +1,10 @@
 package it.unimi.dsi.sux4j.mph;
 
-import java.util.Random;
-
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.mph.Hashes;
+
+import java.util.Random;
+
 import junit.framework.TestCase;
 
 public class HashesTest extends TestCase {

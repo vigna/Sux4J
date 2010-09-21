@@ -4,7 +4,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.sux4j.mph.MWHCFunction;
 
 import java.io.File;
 import java.io.IOException;

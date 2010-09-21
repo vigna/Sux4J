@@ -47,6 +47,7 @@ import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,10 +90,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
-	private static final boolean DDEBUG = false;
-	private static final boolean DDDEBUG = DDEBUG;
+	private static final boolean DEBUG = true;
+	private static final boolean DDEBUG = DEBUG;
 
 	/** The number of elements in the trie. */
 	private int size;
@@ -353,7 +354,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * with the same signature might have been removed instead.
 		 */
 		public boolean remove( long s, final InternalNode v, final long handleLength ) {
-			if ( DDEBUG ) System.err.println( "Map.remove(" + s + ", " + v + ", " + handleLength + ")" );
+			if ( DEBUG ) System.err.println( "Map.remove(" + s + ", " + v + ", " + handleLength + ")" );
 			if ( SHORT_SIGNATURES ) s &= 0xF;
 			final int hash = hash( s ); 
 			
@@ -415,7 +416,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		public void addNew( long s, final InternalNode v ) {
 			if ( SHORT_SIGNATURES ) s &= 0xF;
-			if ( DDEBUG ) System.err.println( "Map.addNew(" + s + ", " + v + ")" );
+			if ( DEBUG ) System.err.println( "Map.addNew(" + s + ", " + v + ")" );
 			int pos = hash( s );
 			
 			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
@@ -772,7 +773,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	private int visit( final Node n, final Node parent, final long parentExtentLength, final int depth, ObjectOpenHashSet<Node> nodes, ObjectOpenHashSet<Leaf> leaves, ObjectOpenHashSet<BitVector> references ) {
 		if ( n == null ) return 0;
-		if ( DDEBUG ) {
+		if ( DEBUG ) {
 			for( int i = depth; i-- != 0; ) System.err.print( '\t' );
 			System.err.println( "Node " + n + " (parent extent length: " + parentExtentLength + ")" + ( n.isInternal() ? " Jump left: " + ((InternalNode)n).jumpLeft + " Jump right: " + ((InternalNode)n).jumpRight : "" ) );
 		}
@@ -810,7 +811,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param node the node whose jump pointers must be set.
 	 */
 	private static void setJumps( final InternalNode node ) {
-		if ( DDEBUG ) System.err.println( "setJumps(" + node + ")" );
+		if ( DEBUG ) System.err.println( "setJumps(" + node + ")" );
 		final long jumpLength = node.jumpLength();
 		Node jump;
 
@@ -830,7 +831,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
 	 */
 	private static void fixRightJumpsAfterInsertion( final InternalNode internal, Node exitNode, boolean rightChild, Leaf leaf, final ObjectArrayList<InternalNode> stack ) {
-		if ( DDEBUG ) System.err.println( "fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
+		if ( DEBUG ) System.err.println( "fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
 		final long lcp = leaf.parentExtentLength;
 		InternalNode toBeFixed = null;
 		long jumpLength = -1;
@@ -856,7 +857,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
-				while( exitNode.isInternal() && toBeFixed.jumpRight != exitNode ) exitNode = ((InternalNode)exitNode).jumpRight;
+				while( exitNode.isInternal() && toBeFixed.jumpRight != exitNode && toBeFixed.parentExtentLength <= 2 * lcp ) exitNode = ((InternalNode)exitNode).jumpRight;
 				if ( toBeFixed.jumpRight != exitNode ) return;
 				toBeFixed.jumpRight = leaf;
 			}
@@ -871,7 +872,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
 	 */
 	private static void fixLeftJumpsAfterInsertion( final InternalNode internal, Node exitNode, boolean rightChild, Leaf leaf, final ObjectArrayList<InternalNode> stack ) {
-		if ( DDEBUG ) System.err.println( "fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
+		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
 		final long lcp = leaf.parentExtentLength;
 		InternalNode toBeFixed = null;
 		long jumpLength = -1;
@@ -898,7 +899,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
-				while( exitNode.isInternal() && toBeFixed.jumpLeft != exitNode ) exitNode = ((InternalNode)exitNode).jumpLeft;
+				while( exitNode.isInternal() && toBeFixed.jumpLeft != exitNode && toBeFixed.parentExtentLength <= 2 * lcp ) exitNode = ((InternalNode)exitNode).jumpLeft;
 				if ( toBeFixed.jumpLeft != exitNode ) return;
 				toBeFixed.jumpLeft = leaf;
 			}
@@ -913,7 +914,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
 	 */
 	private static void fixRightJumpsAfterDeletion( Node otherNode, InternalNode parentExitNode, boolean rightChild, Leaf exitNode, final ObjectArrayList<InternalNode> stack ) {
-		if ( DDEBUG ) System.err.println( "fixRightJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
+		if ( DEBUG ) System.err.println( "fixRightJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
 		InternalNode toBeFixed = null;
 		long jumpLength = -1;
 
@@ -955,7 +956,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
 	 */
 	private static void fixLeftJumpsAfterDeletion( Node otherNode, InternalNode parentExitNode, boolean rightChild, Leaf exitNode, final ObjectArrayList<InternalNode> stack ) {
-		if ( DDEBUG ) System.err.println( "fixLeftJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
+		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
 		InternalNode toBeFixed = null;
 		long jumpLength = -1;
 
@@ -992,8 +993,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	@SuppressWarnings("unchecked")
 	public boolean remove( final Object k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)k ) );
-		if ( DDEBUG ) System.err.println( "remove(" + v + ")" );
-		if ( DDEBUG ) System.err.println( "Map: " + map + " root: " + root );
+		if ( DEBUG ) System.err.println( "remove(" + v + ")" );
+		if ( DEBUG ) System.err.println( "Map: " + map + " root: " + root );
 		
 		if ( size == 0 ) return false;
 		
@@ -1019,17 +1020,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		exitNode = parentExitNode == null ? root : ( rightLeaf ? parentExitNode.right : parentExitNode.left );
 		lcp = exitNode.key().longestCommonPrefixLength( v );
 		
-		if ( ! exitNode.intercepts( lcp ) ) {
-			/* A mistake. We redo the query in exact mode. */
-			stack.clear();
-			parentExitNode = getParentExitNode( v, state, stack, true );
-			rightLeaf = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
-			exitNode = parentExitNode == null ? root : ( rightLeaf ? parentExitNode.right : parentExitNode.left );
-			lcp = exitNode.key().longestCommonPrefixLength( v );
-			if ( ASSERTS ) assert exitNode.intercepts( lcp );
-		}
-		
-		if ( DDDEBUG ) System.err.println( "Exit node " + exitNode );
+		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
 		
 		if ( ! exitNode.key().equals( v ) ) return false; // Not found
 		
@@ -1056,7 +1047,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final boolean cutLow = ( t & -t & otherNodeHandleLength ) != 0;
 
 
-		if ( DDEBUG ) System.err.println( "lcp: " + lcp );
+		if ( DEBUG ) System.err.println( "lcp: " + lcp );
 
 		if ( parentExitNode == root ) root = otherNode;
 
@@ -1071,7 +1062,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// Fix doubly-linked list
 		removeLeaf( (Leaf)exitNode );
 
-		if ( DDDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; leaf on the " + ( rightLeaf ? "right" : "left") + "; other node is " + ( otherNodeIsInternal ? "internal" : "a leaf") );
+		if ( DDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; leaf on the " + ( rightLeaf ? "right" : "left") + "; other node is " + ( otherNodeIsInternal ? "internal" : "a leaf") );
 		
 		if ( rightLeaf ) fixRightJumpsAfterDeletion( otherNode, parentExitNode, rightChild, (Leaf)exitNode, stack );
 		else fixLeftJumpsAfterDeletion( otherNode, parentExitNode, rightChild, (Leaf)exitNode, stack );
@@ -1099,8 +1090,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	@Override
 	public boolean add( final T k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
-		if ( DDEBUG ) System.err.println( "add(" + v + ")" );
-		if ( DDEBUG ) System.err.println( "Map: " + map + " root: " + root );
+		if ( DEBUG ) System.err.println( "add(" + v + ")" );
+		if ( DEBUG ) System.err.println( "Map: " + map + " root: " + root );
 		
 		if ( size == 0 ) {
 			root = new Leaf();
@@ -1137,7 +1128,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( ASSERTS ) assert exitNode.intercepts( lcp );
 		}
 
-		if ( DDDEBUG ) System.err.println( "Exit node " + exitNode );
+		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
 		
 		if ( exitNode.key().equals( v ) ) return false; // Already there
 		
@@ -1145,7 +1136,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long exitNodeHandleLength = exitNode.handleLength();
 		final boolean cutLow = lcp >= exitNodeHandleLength;
 		
-		if ( DDEBUG ) System.err.println( "lcp: " + lcp );
+		if ( DEBUG ) System.err.println( "lcp: " + lcp );
 		Leaf leaf = new Leaf();
 		InternalNode internal = new InternalNode();
 
@@ -1176,7 +1167,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			else parentExitNode.left = internal;
 		}
 
-		if ( DDDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; exit to the " + ( exitDirection ? "right" : "left") );
+		if ( DDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; exit to the " + ( exitDirection ? "right" : "left") );
 
 		if ( exitDirection ) fixRightJumpsAfterInsertion( internal, exitNode, rightChild, leaf, stack );
 		else fixLeftJumpsAfterInsertion( internal, exitNode, rightChild, leaf, stack );
@@ -1193,7 +1184,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		
-		if ( DDEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
+		if ( DEBUG ) System.err.println( "After insertion, map: " + map + " root: " + root );
 
 		size++;
 
@@ -1214,6 +1205,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	
+	@SuppressWarnings("unused")
 	private static final boolean equals( LongArrayBitVector a, LongArrayBitVector b, long start, long end ) {
 		int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
 		final int endWord = (int)( end >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
@@ -1246,9 +1238,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public InternalNode getParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact ) {
 		if ( ASSERTS ) assert size > 0;
 		if ( size == 1 ) return null;
-		if ( DDDEBUG ) System.err.println( "getParentExitNode(" + v + ", " + exact + ")" );
-		final InternalNode parent = fatBinarySearch( v, state, stack, exact, 0, v.length() );
-		if ( DDDEBUG ) System.err.println( "Parent exit node: " + parent );
+		if ( DDEBUG ) System.err.println( "getParentExitNode(" + v + ", " + exact + ")" );
+		final InternalNode parent = (InternalNode)fatBinarySearch( v, state, stack, 0, v.length(), true );
+		if ( DDEBUG ) System.err.println( "Parent exit node: " + parent );
 		return parent;
 	}
 
@@ -1265,13 +1257,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public InternalNode getGrandParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact ) {
 		if ( ASSERTS ) assert size > 0;
 		if ( size < 3 ) return null;
-		if ( DDDEBUG ) System.err.println( "getGrandParentExitNode(" + v + ", " + stack + " , " + exact + ")" );
+		if ( DDEBUG ) System.err.println( "getGrandParentExitNode(" + v + ", " + stack + " , " + exact + ")" );
 		// Grandpa is already on the stack.
 		if ( stack.size() > 1 && stack.peek( 1 ).extentLength == stack.peek( 0 ).parentExtentLength ) return stack.peek( 1 );
 		
 		final InternalNode parentExitNode = stack.pop();
-		long l = stack.size() > 0 ? stack.top().extentLength : 0, r = parentExitNode.parentExtentLength + 1;
-		final InternalNode parent = fatBinarySearch( v, state, stack, exact, l, r );
+		long l = stack.size() > 0 ? stack.top().extentLength : 0, r = parentExitNode.parentExtentLength;
+		final InternalNode parent = (InternalNode)fatBinarySearch( v, state, stack, l, r, true );
 		
 		if ( ASSERTS ) assert parent == null || parent.right == parentExitNode || parent.left == parentExitNode;
 		stack.push( parentExitNode );
@@ -1283,55 +1275,54 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param v a bit vector.
 	 * @return the exit node of <code>v</code>. 
 	 */
-	public InternalNode getExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact ) {
+	public Node getExitNode( final LongArrayBitVector v, final long[] state ) {
 		if ( ASSERTS ) assert size > 0;
-		if ( size == 1 ) return null;
-		if ( DDDEBUG ) System.err.println( "getParentExitNode(" + v + ", " + exact + ")" );
-		final InternalNode parent = fatBinarySearch( v, state, stack, exact, 0, v.length() );
-		if ( DDDEBUG ) System.err.println( "Parent exit node: " + parent );
-		return parent;
+		if ( size == 0 ) return null;
+		if ( DDEBUG ) System.err.println( "getExitNode(" + v + ")" );
+		return fatBinarySearch( v, state, null, 0, v.length(), false );
 	}
 
 
-	private InternalNode fatBinarySearch( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact, long l, long r ) {
-		InternalNode node = null, parent = null, last = null;
+	private Node fatBinarySearch( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, long left, long right, boolean getParent ) {
+		InternalNode node = null, parent = null;
+		Node exitNode = null;
 		boolean secondRound = false;
-		long lastHandleLength = -1;
+		boolean exact = false;
 		//System.err.println( "Fat binary " + v + " " + stack  + " (" + l + ".." + r + ") " + exact );
 		for( ;;) {
+			long l = left, r = right;
 			final int logLength = Fast.mostSignificantBit( r );
 			long checkMask = 1L << logLength;
 			long computeMask = -1L << logLength;
-
-			while( r - l > 1 ) {
+			
+			while( r - l > 0 ) {
 				if ( ASSERTS ) assert logLength > -1;
-				if ( DDDEBUG ) System.err.println( "(" + l + ".." + r + "); checking for fatness " + checkMask );
+				if ( DDEBUG ) System.err.println( "Current interval (" + l + ".." + r + "]; checking for fatness " + checkMask );
 
-				if ( ( l & checkMask ) != ( r - 1 & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r).
-					final long f = ( r - 1 ) & computeMask;
+				if ( ( l & checkMask ) != ( r & checkMask ) ) { // Quick test for a 2-fattest number divisible by 2^i in (l..r].
+					final long f = r & computeMask;
 
-					if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
+					if ( DDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 
 					node = map.get( v, f, Hashes.murmur( v, f, state ), exact );
 
 					if ( node == null ) {
-						if ( DDDEBUG ) System.err.println( "Missing" );
-						r = f;
+						if ( DDEBUG ) System.err.println( "Missing" );
+						r = f - 1;
 					}
 					else {
 						long g = node.extentLength;
-						if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
 
-						// Note that this test is just to catch false positives
-						if ( f <= g ) {// && g < r ) {//&& equals( node.reference.key, v, f, g ) ) {
+						if ( f <= g ) {
+							if ( DDEBUG ) System.err.println( "Found extent of length " + g );
 							if ( stack != null ) stack.push( node );
-							last = parent;
 							parent = node;
-							lastHandleLength = f;
 							l = g;
 						}
-					
-						else r = f;
+						else {
+							if ( DDEBUG ) System.err.println( "False positive!" );
+							break; // This is a false positive.
+						}
 					}
 				}
 
@@ -1339,100 +1330,102 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				checkMask >>= 1;
 			}
 
-			/*if ( parent == null ) break;
-			Node leaf = parent;
-			while( leaf.isInternal() ) leaf = ((InternalNode)leaf).jumpRight;*/
 			//System.err.println( "***" + parent + " " + l + " " + r  + " " + stack );
-			if ( parent == null || secondRound || equals( parent.reference.key, v, lastHandleLength, parent.extentLength ) ) break;
-			secondRound = true;
-			
-			//System.err.println( "** " + v );
-			if ( stack != null ) stack.pop();
 
-			r = parent.parentExtentLength + 1;
-			if ( last == null ) {
-				l = 0;
-				parent = null;
+			// We assume parent is actually the parent. We will discover through the lcp whether it is not the case.
+			if ( parent == null ) exitNode = root;
+			else if ( parent.extentLength < v.length() ) exitNode = v.getBoolean( parent.extentLength ) ? parent.right : parent.left;
+			else exitNode = parent;
+
+			if ( DDEBUG ) {
+				System.err.println( "Parex: " + parent );
+				System.err.println( "Exit node: " + exitNode );
+			}
+			
+			final long lcp = exitNode.key().longestCommonPrefixLength( v );
+			
+			// Either we made a mistake, or parent is the actual exit node.
+			if ( ! exitNode.intercepts( lcp ) ) exitNode = parent;
+			// At this point, if we do not intercept the lcp we made a mistake.
+			if ( ! exitNode.intercepts( lcp ) ) {
+				if ( ASSERTS ) assert ! exact;
+				exact = true;
+				if ( DDEBUG ) System.err.println( "Made a mistake..." );
+				l = left;
+				r = right;
 			}
 			else {
-				parent = last;
-				l = parent.extentLength;
-				if ( l == r ) break;
+				if ( ASSERTS ) assert ! secondRound || parent != exitNode;
+				// If we asked for the parent and we have it, we're done.
+				if ( ! getParent || parent != exitNode ) break;
+				
+				secondRound = true;
+
+				//System.err.println( "** " + v );
+				if ( stack != null ) stack.pop();
+
+				right = parent.parentExtentLength;
+				if ( stack.isEmpty() ) {
+					left = 0;
+					parent = null;
+				}
+				else {
+					parent = stack.top();
+					left = parent.extentLength;
+					if ( left == right ) break;
+				}
+
+				//System.err.println( "Restarting with (" + l + ".." + r + ")" );
+				//System.err.println( map );
 			}
-			
-			last = null;
-			//System.err.println( "Restarting with (" + l + ".." + r + ")" );
-			//System.err.println( map );
 		}
 			
-		if ( DDDEBUG ) System.err.println( "Final length " + l + " node: " + parent );
+		//if ( DDEBUG ) System.err.println( "Final length " + l + " node: " + parent );
 		
 		if ( ASSERTS ) {
-			boolean rightChild;
-			Node exitNode;
-			long lcp;
+			long lcp = exitNode.key().longestCommonPrefixLength( v );
+			assert exitNode.intercepts( lcp );
+			/* If parent is null, the extent of the root must not be a prefix of v. */
+			if ( exitNode == root ) assert root.key().longestCommonPrefixLength( v ) <= root.extentLength();
+			else {
+				/* If parent is not null, the extent of the parent must be a prefix of v, 
+				 * and the extent of the exit node must be either v, or not a prefix of v. */
+				assert ! exact || parent.extent().longestCommonPrefixLength( v ) == parent.extentLength;
 
-			rightChild = parent != null && parent.extentLength < v.length() && v.getBoolean( parent.extentLength );
-			exitNode = parent == null ? root : ( rightChild ? parent.right : parent.left );
-			lcp = exitNode.key().longestCommonPrefixLength( v );
-
-			if ( exitNode.intercepts( lcp ) ) { // We can do asserts only if the result is correct
-				/* If parent is null, the extent of the root must not be a prefix of v. */
-				if ( parent == null ) assert root.key().longestCommonPrefixLength( v ) < root.extentLength();
-				else {
-					assert parent.extentLength == l;
-
-					/* If parent is not null, the extent of the parent must be a prefix of v, 
-					 * and the extent of the exit node must be either v, or not a prefix of v. */
-					assert ! exact || parent.extent().longestCommonPrefixLength( v ) == parent.extentLength;
-
-					if ( stack != null ) {
-						/** We check that the stack contains exactly all handles that are backjumps
-						 * of the length of the extent of the parent. */
-						l = parent.extentLength;
-						while( l != 0 ) {
-							final Node t = map.get( parent.key().subVector( 0, l ), true );
-							if ( t != null ) assert stack.contains( t );
-							l ^= ( l & -l );
-						}
-
-						/** We check that the stack contains the nodes you would obtain by searching from
-						 * the top for nodes to fix. */
-						long left = 0;
-						for( int i = 0; i < stack.size(); i++ ) {
-							assert stack.get( i ).handleLength() == twoFattest( left, parent.extentLength ) :
-								stack.get( i ).handleLength() + " != " + twoFattest( left, parent.extentLength ) + " " + i + " " + stack ;
-							left = stack.get( i ).extentLength();
-						}
+				if ( stack != null ) {
+					/** We check that the stack contains exactly all handles that are backjumps
+					 * of the length of the extent of the parent. */
+					long l = parent.extentLength;
+					while( l != 0 ) {
+						final Node t = map.get( parent.key().subVector( 0, l ), true );
+						if ( t != null ) assert stack.contains( t );
+						l ^= ( l & -l );
 					}
 
+					/** We check that the stack contains the nodes you would obtain by searching from
+					 * the top for nodes to fix. */
+					left = 0;
+					for( int i = 0; i < stack.size(); i++ ) {
+						assert stack.get( i ).handleLength() == twoFattest( left, parent.extentLength ) :
+							stack.get( i ).handleLength() + " != " + twoFattest( left, parent.extentLength ) + " " + i + " " + stack ;
+						left = stack.get( i ).extentLength();
+					}
 				}
+
 			}
 		}
 		
-		return parent;
+		return getParent ? parent : exitNode;
 	}
 	
 	
 	@SuppressWarnings("unchecked")
 	public boolean contains( final Object o ) {
-		if ( DDEBUG ) System.err.println( "contains(" + o + ")" );
+		if ( DEBUG ) System.err.println( "contains(" + o + ")" );
 		if ( size == 0 ) return false;
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)o ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
-		InternalNode parentExitNode = getParentExitNode( v, state, null, false );
-		boolean rightChild = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
-		Node exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
-
-		final long lcp = exitNode.key().longestCommonPrefixLength( v );
-		
-		if ( ! exitNode.intercepts( lcp ) ) {
-			parentExitNode = getParentExitNode( v, state, null, true );
-			rightChild = parentExitNode != null && v.getBoolean( parentExitNode.extentLength );
-			exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
-			if ( ASSERTS ) assert exitNode.intercepts( exitNode.key().longestCommonPrefixLength( v ) );
-		}
-		
+		final Node exitNode = getExitNode( v, state );
 		return exitNode.isLeaf() && exitNode.key().equals( v );
 	}
 
@@ -1569,7 +1562,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			jumpStack.push( (InternalNode)node );
 			depthStack.push( depth );
 			
-			if ( DDEBUG ) System.err.println( "Recursing into left node... " );
+			if ( DEBUG ) System.err.println( "Recursing into left node... " );
 			((InternalNode)node).left = readNode( s, depth + 1, node.extentLength(), map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			int top = segmentStack.popInt();
@@ -1584,7 +1577,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			jumpStack.push( (InternalNode)node );
 			depthStack.push( depth );
 			
-			if ( DDEBUG ) System.err.println( "Recursing into right node... " );
+			if ( DEBUG ) System.err.println( "Recursing into right node... " );
 			((InternalNode)node).right = readNode( s, depth + 1, node.extentLength(), map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			top = segmentStack.popInt();

@@ -26,13 +26,13 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.sux4j.bits.Rank9;
-import it.unimi.dsi.util.AbstractLongBigList;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -154,12 +154,12 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		if ( width != 0 && minIndex != width ) {
 			final long numSmall = minCostSmall / ( minIndex + 1 );
 			final long numLarge = minCostLarge / width;
-			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
-			marker = LongArrayBitVector.getInstance().length( length );
-			large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
+			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( numSmall );
+			( marker = LongArrayBitVector.getInstance() ).length( length );
+			( large = LongArrayBitVector.getInstance().asLongBigList( width ) ).size( numLarge );
 		}
 		else {
-			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( length );
+			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( length );
 			marker = null;
 			large = null;
 		}
@@ -178,7 +178,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 
 		rank = marker != null ? new Rank9( marker ) : null;
 
-		numBits = small.length() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.length() * width : 0 );
+		numBits = small.size64() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.size64() * width : 0 );
 		if ( ASSERTS ) {
 			final LongIterator t = elements.iterator();
 			for( int i = 0; i < length; i++ ) {
@@ -194,7 +194,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		return small.getLong( index - rank.rank( index ) );
 	}
 
-	public long length() {
+	public long size64() {
 		return length;
 	}
 	

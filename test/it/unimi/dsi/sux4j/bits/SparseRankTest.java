@@ -2,8 +2,6 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.sux4j.bits.SparseRank;
-import it.unimi.dsi.sux4j.bits.SparseSelect;
 
 import java.util.Random;
 

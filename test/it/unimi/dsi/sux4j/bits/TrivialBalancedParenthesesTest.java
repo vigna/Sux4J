@@ -1,7 +1,6 @@
 package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.TrivialBalancedParentheses;
 
 public class TrivialBalancedParenthesesTest extends BalancedParenthesesTestCase {
 	

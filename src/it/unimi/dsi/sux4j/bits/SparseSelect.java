@@ -23,10 +23,10 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.util.LongBigList;
 
 /** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
@@ -104,7 +104,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 */
 	public SparseSelect( final LongBigList list ) {
 		super( list );
-		this.n = list.isEmpty() ? 0 : list.getLong( list.length() - 1 ) + 1;
+		this.n = list.isEmpty() ? 0 : list.getLong( list.size64() - 1 ) + 1;
 		fromRank = false;
 	}	
 	
@@ -123,7 +123,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	@Override
-	public long length() {
+	public long size64() {
 		return n;
 	}
 	

@@ -1,10 +1,8 @@
 package it.unimi.dsi.sux4j.bits;
 
-import java.util.Random;
-
-import it.unimi.dsi.sux4j.bits.HintedBsearchSelect;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.Rank9;
+
+import java.util.Random;
 
 public class Rank9BinaryTest extends RankSelectTestCase {
 	

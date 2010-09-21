@@ -3,7 +3,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.PaCoTrieDistributorMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;

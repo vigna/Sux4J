@@ -29,6 +29,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
@@ -38,7 +39,6 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
@@ -390,13 +390,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** A class iterating over the temporary files produced by the intermediate trie. */
 		class IterableStream implements Iterable<BitVector> {
 			private InputBitStream ibs;
-			private int n;
+			private long n;
 			private Object2LongFunction<BitVector> test;
 			private LongBigList values;
 
 			public IterableStream( final InputBitStream ibs, final Object2LongFunction<BitVector> testFunction, final LongBigList testValues ) {
 				this.ibs = ibs;
-				this.n = testValues.size();
+				this.n = testValues.size64();
 				this.test = testFunction;
 				this.values = testValues;
 			}
@@ -426,7 +426,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 									System.err.println(  LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) );
 								}
 
-								if ( ASSERTS && test != null ) assert test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) == values.getLong( pos ) : test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) + " != " + values.getLong( pos ) ;
+								if ( ASSERTS ) if ( test != null ) assert test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) == values.getLong( pos ) : test.getLong( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ) ) + " != " + values.getLong( pos ) ;
 
 								pos++;
 								return LongArrayBitVector.wrap( key, pathLength + Long.SIZE );
@@ -560,6 +560,6 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 
 	public double bitsPerSkip() {
-		return (double)skips.numBits() / skips.length();
+		return (double)skips.numBits() / skips.size64();
 	}
 }

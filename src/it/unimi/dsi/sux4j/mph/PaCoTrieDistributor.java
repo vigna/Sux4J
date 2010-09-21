@@ -128,9 +128,6 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** The root of the trie. */
 		protected final Node root;
 
-		/** Leaves in the trie. */
-		protected final int size;
-		
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
 		 * @param elements the elements among which the trie must be able to rank.
@@ -208,7 +205,6 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 
 				pl.done();
 
-				size = count;
 				this.root = root;
 
 				if ( root != null ) {
@@ -290,7 +286,6 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			}
 			else { 
 				this.root = null;
-				size = 0;
 			}
 
 		}

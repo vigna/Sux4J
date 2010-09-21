@@ -28,7 +28,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -185,8 +185,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		
 		if ( size > 0 ) {
-			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
-				public long getLong( int index ) {
+			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+				public long getLong( long index ) {
 					final int rank = sparseRank == null ? 0 : (int)sparseRank.rank( index );
 					if ( ASSERTS ) {
 						assert rank == 0 || distributor.offset[ rank - 1 ] <= index : distributor.offset[ rank - 1 ]  + " >= " + index;
@@ -194,8 +194,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 					}
 					return rank == 0 ? index : index - distributor.offset[ rank - 1 ]; 
 				}
-				public int size() {
-					return size > Integer.MAX_VALUE ? -1 : (int)size;
+				public long size64() {
+					return size;
 				}
 			}, log2BucketSize + 1 );
 

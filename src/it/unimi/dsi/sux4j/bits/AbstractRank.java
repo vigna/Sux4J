@@ -24,6 +24,7 @@ package it.unimi.dsi.sux4j.bits;
 /** An abstract implementation of {@link Rank} providing a few obvious derived methods. */
 
 public abstract class AbstractRank implements Rank {
+	private static final long serialVersionUID = 1L;
 
 	public long count() {
 		return rank( bitVector().length() );

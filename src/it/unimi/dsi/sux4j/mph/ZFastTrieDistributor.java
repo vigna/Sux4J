@@ -33,6 +33,7 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -43,7 +44,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -668,7 +668,6 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return l;
 	}
 	
-	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( noDelimiters ) return 0;
 		final BitVector v = (BitVector)o;

@@ -1,11 +1,10 @@
 package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;

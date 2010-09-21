@@ -1,10 +1,10 @@
 package it.unimi.dsi.sux4j.scratch;
 
-import java.math.BigInteger;
-
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
+
+import java.math.BigInteger;
 
 /** A transformation strategy that converts strings representing integers between 0 (inclusive)
  *  and 2<sup><var>k</var></sup> (exclusive)) into fixed-length binary vectors (most-significant

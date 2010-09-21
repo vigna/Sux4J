@@ -37,7 +37,6 @@ public class GenerateRandom64BitStrings {
 		final int n = jsapResult.getInt( "n" );
 		final String output = jsapResult.getString( "output" );
 		
-		@SuppressWarnings("unchecked")
 		Random r = new Random();
 	
 		ProgressLogger pl = new ProgressLogger( LOGGER );

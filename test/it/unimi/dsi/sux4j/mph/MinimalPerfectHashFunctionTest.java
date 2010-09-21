@@ -4,7 +4,6 @@ import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPair
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 
 import java.io.File;
 import java.io.IOException;

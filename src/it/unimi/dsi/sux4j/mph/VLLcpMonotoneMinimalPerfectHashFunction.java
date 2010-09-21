@@ -30,6 +30,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -38,7 +39,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.LongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -70,7 +70,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( VLLcpMonotoneMinimalPerfectHashFunction.class );
-	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	
 	/** The number of elements. */
@@ -214,8 +213,9 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		this.seed = chunkedHashStore.seed();
 		
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ).length( n );
-		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) ).length( n );
+		( offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ) ).size( n );
+		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) );
+		lcpLengthsTemp.size( n );
 
 		LOGGER.info( "Generating data tables..." );
 		
@@ -270,7 +270,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return offsets.length() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + mph.numBits() + transform.numBits();
+		return offsets.size64() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + mph.numBits() + transform.numBits();
 	}
 
 	public boolean hasTerms() {

@@ -33,7 +33,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -71,7 +71,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
-	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	
@@ -195,11 +194,12 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), chunkedHashStore,  new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcpLengths[ index >>> log2BucketSize ] << log2BucketSize | index & bucketSizeMask; 
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), chunkedHashStore,  new AbstractLongBigList() {
+			public long getLong( long index ) {
+				if ( ( index >>> log2BucketSize ) > Integer.MAX_VALUE ) throw new IndexOutOfBoundsException();
+				return lcpLengths[ (int)( index >>> log2BucketSize ) ] << log2BucketSize | index & bucketSizeMask; 
 			}
-			public int size() {
+			public long size64() {
 				return n;
 			}
 		}, log2BucketSize + Fast.length( maxLcp ) );
