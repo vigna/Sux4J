@@ -25,7 +25,9 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -37,9 +39,6 @@ import java.util.Random;
 
 import org.apache.commons.collections.Predicate;
 import org.apache.log4j.Logger;
-
-import cern.colt.Sorting;
-import cern.colt.function.LongComparator;
 
 /** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values.
@@ -140,7 +139,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		// Sort keys by reverse frequency
 		final long[] keys = counts.keySet().toLongArray( new long[ m ] );
-		Sorting.quickSort( keys, 0, keys.length, new LongComparator() {
+		LongArrays.quickSort( keys, 0, keys.length, new AbstractLongComparator() {
 			public int compare( final long a, final long b ) {
 				return Long.signum( counts.get( b ) - counts.get( a ) );
 			}

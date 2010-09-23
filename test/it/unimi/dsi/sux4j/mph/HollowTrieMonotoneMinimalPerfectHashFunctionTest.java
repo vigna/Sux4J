@@ -21,26 +21,23 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 		return vectors;
 	}
 
-	@SuppressWarnings("unchecked")
 	public void testEmpty() {
-		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( listOf( new int[][] {} ), TransformationStrategies.identity() );
+		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
 		assertEquals( 0, hollowTrie.size() );
 	}
 
-	@SuppressWarnings("unchecked")
 	public void testSingleton() {
-		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
+		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( 
 				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( 1, hollowTrie.size() );
 	}
 	
-	@SuppressWarnings("unchecked")
 	public void testSimple() {
-		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
+		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( 
 				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -50,7 +47,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 		assertEquals( 4, hollowTrie.size() );
 
 
-		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
+		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( 
 				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), TransformationStrategies.identity()  );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );

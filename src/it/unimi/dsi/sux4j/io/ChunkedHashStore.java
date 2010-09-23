@@ -23,6 +23,8 @@ package it.unimi.dsi.sux4j.io;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Swapper;
+import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -49,10 +51,6 @@ import java.util.Random;
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
 import org.apache.log4j.Logger;
-
-import cern.colt.GenericSorting;
-import cern.colt.Swapper;
-import cern.colt.function.IntComparator;
 
 /** A temporary store of hash triples virtually divided into chunks.
  * 
@@ -638,7 +636,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 						throw new RuntimeException( e );
 					}
 
-					GenericSorting.quickSort( 0, chunkSize, new IntComparator() {
+					it.unimi.dsi.fastutil.Arrays.quickSort( 0, chunkSize, new AbstractIntComparator() {
 						public int compare( final int x, final int y ) {
 							return Long.signum( buffer0[ x ] - buffer0[ y ] );
 						}

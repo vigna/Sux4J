@@ -30,7 +30,7 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -152,7 +152,7 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		return hash.size();
 	}
 
-	public ObjectList<CharSequence> list() {
+	public ObjectBigList<? extends CharSequence> list() {
 		return null;
 	}
 

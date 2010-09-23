@@ -10,9 +10,8 @@ import java.util.Iterator;
 public class TestMinimalPerfectHash {
 
 	
-	@SuppressWarnings("unchecked")
 	public static void main( String a[] ) throws IOException, ClassNotFoundException {
-		MinimalPerfectHashFunction mph = (MinimalPerfectHashFunction)BinIO.loadObject( a[ 0 ] );
+		MinimalPerfectHashFunction<?> mph = (MinimalPerfectHashFunction<?>)BinIO.loadObject( a[ 0 ] );
 		Collection<MutableString> c = new FileLinesCollection( a[ 1 ], "UTF-8" ).allLines();
 		
 		long start;

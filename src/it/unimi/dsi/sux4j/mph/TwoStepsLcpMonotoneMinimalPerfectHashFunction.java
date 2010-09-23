@@ -29,6 +29,8 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
+import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -68,14 +70,14 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * but it is a bit slower as one or two additional functions must be queried.
  */
 
-public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( TwoStepsLcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	
 	/** The number of elements. */
-	final protected int n;
+	final protected long n;
 	/** The size of a bucket. */
 	final protected int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -116,7 +118,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		final Random r = new Random();
 
 		if ( numElements == -1 ) {
-			if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
+			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
+			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
 				int c = 0;
 				for( T dummy: iterable ) c++;
@@ -141,13 +144,13 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		bucketSizeMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		
-		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
+		final long numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
+		final int[][] lcpLengths = IntBigArrays.newBigArray( ( n + bucketSize - 1 ) / bucketSize );
 		int maxLcp = 0;
 		long maxLength = 0;
 
@@ -163,7 +166,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
-			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
+			final long currBucketSize = Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr.replace( transform.toBitVector( iterator.next() ) );
@@ -181,7 +184,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 
 			lcps.add( prev.subVector( 0, currLcp  ) );
-			lcpLengths[ b ] = currLcp;
+			IntBigArrays.set( lcpLengths, b, currLcp );
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
@@ -224,7 +227,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
 			public long getLong( long index ) {
 				if ( ( index >>> log2BucketSize ) > Integer.MAX_VALUE ) throw new IndexOutOfBoundsException();
-				return lcpLengths[ (int)( index >>> log2BucketSize ) ]; 
+				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ); 
 			}
 			public long size64() {
 				return n;
@@ -272,12 +275,12 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		return Fast.log2( W( 1 / ( Math.log(2) * ( r + HypergraphSorter.GAMMA ) * ( p - 1 ) ) ) / Math.log( 1 - p ) );
 	}
 
-	/** Returns the number of terms hashed.
-	 *
-	 * @return the number of terms hashed.
-	 */
-	public int size() {
+	public long size64() {
 		return n;
+	}
+
+	public int size() {
+		return (int)Math.min( Integer.MAX_VALUE, n );
 	}
 
 	/** Returns the number of bits used by this structure.
