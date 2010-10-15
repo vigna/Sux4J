@@ -6,7 +6,7 @@ source: source2
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/VL*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java \
-		sux4j-$(version)/src/test/it/unimi/dsi/sux4j/mph/VL*.java
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/mph/VL*.java
 	gzip sux4j-$(version)-src.tar
 
 source2:
@@ -20,7 +20,7 @@ source2:
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
-		$$(find sux4j-$(version)/src/test/it/unimi/dsi/sux4j -iname \*.java) \
+		$$(find sux4j-$(version)/test/it/unimi/dsi/sux4j -iname \*.java) \
 		sux4j-$(version)/src/overview.html
 	rm sux4j-$(version)
 

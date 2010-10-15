@@ -64,6 +64,11 @@
 			<link href="${colt.apiurl}"/>
 			<link href="${jsap.apiurl}"/>
 			<link href="${junit.apiurl}"/>
+			<link href="${log4j.apiurl}"/>
+			<link href="${commons-io.apiurl}"/>
+			<link href="${commons-lang.apiurl}"/>
+			<link href="${commons-configuration.apiurl}"/>
+			<link href="${commons-collections.apiurl}"/>
 		</javadoc>
 	</target>
 	
