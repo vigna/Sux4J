@@ -38,6 +38,7 @@ import java.io.ObjectInputStream;
 
 public class SimpleSelect implements Select {
 	private static final boolean ASSERTS = true;
+
 	private static final long serialVersionUID = 1L;
 
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
@@ -47,6 +48,9 @@ public class SimpleSelect implements Select {
 	private static final int MAX_LOG2_LONGWORDS_PER_SUBINVENTORY = 3;
 	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
+
+	/** The maximum size of span to qualify for a subinventory made of 16-bit offsets. */
+	private static final int MAX_SPAN = ( 1 << 16 );
 
 	/** The underlying bit vector. */
 	private final BitVector bitVector;
@@ -141,9 +145,6 @@ public class SimpleSelect implements Select {
 		onesPerSub16Mask = onesPerSub16 - 1;
 
 		if ( onesPerInventory > 1 ) {
-			/* Now we need to manage subinventories.
-			 * 
-			 */
 			d = 0;
 			int ones;
 			long diff16 = 0, start = 0, span = 0;
@@ -164,7 +165,7 @@ public class SimpleSelect implements Select {
 							diff16 += Math.max( 4, ( ones + onesPerSub16 - 1 ) >>> log2OnesPerSub16 );
 
 							// We accumulate space for exact pointers ONLY if necessary.
-							if ( span >= (1<<16) ) {
+							if ( span >= MAX_SPAN ) {
 								exact += ones;
 								if ( onesPerSub64 > 1 ) spilled += ones;
 							}
@@ -195,8 +196,8 @@ public class SimpleSelect implements Select {
 							offset = 0;
 						}
 
-						if ( span < (1<<16) ) {
-							if ( ASSERTS ) assert i * 64L + j - start <= (1<<16);
+						if ( span < MAX_SPAN ) {
+							if ( ASSERTS ) assert i * 64L + j - start <= MAX_SPAN;
 							if ( ( d & onesPerSub16Mask ) == 0 ) {
 								subinventory16.set( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) +  offset++, i * 64L + j - start );
 							}
