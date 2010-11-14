@@ -25,7 +25,10 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.logging.ProgressLogger;
 
-/** Basic hash functions. */
+/** Basic hash functions.
+ *
+ * <p>A main method performs some simple speed tests.
+ */
 
 public class Hashes {
 
@@ -608,7 +611,7 @@ public class Hashes {
 		final int n = Integer.parseInt( arg[ 1 ] );
 		LongArrayBitVector bv = LongArrayBitVector.ofLength( l );
 		
-		ProgressLogger pl = new ProgressLogger();
+		final ProgressLogger pl = new ProgressLogger();
 		long t = 0;
 		
 		pl.start( "Timing MurmurHash..." );
@@ -616,16 +619,14 @@ public class Hashes {
 		for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
 		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
-		pl.count = n;
-		pl.done();
+		pl.done( n );
 		
 		pl.start( "Timing Jenkins's hash..." );
 		
 		for( int i = n; i-- != 0; ) t += jenkins( bv, 0 );
 		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
-		pl.count = n;
-		pl.done();
+		pl.done( n );
 
 		final long[] preprocessMurmur = preprocessMurmur( bv, 0 );
 		
@@ -634,8 +635,7 @@ public class Hashes {
 		for( int i = n; i-- != 0; ) t += murmur( bv, l - 1, preprocessMurmur );
 		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
-		pl.count = n;
-		pl.done();
+		pl.done( n );
 		
 		long[][] preprocessJenkins = preprocessJenkins( bv, 0 );
 		long[] aa = preprocessJenkins[ 0 ];
@@ -647,7 +647,6 @@ public class Hashes {
 		for( int i = n; i-- != 0; ) t += jenkins( bv, l - 1, aa, bb, cc );
 		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
-		pl.count = n;
-		pl.done();
+		pl.done( n );
 	}
 }
