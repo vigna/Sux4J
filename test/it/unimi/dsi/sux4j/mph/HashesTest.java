@@ -19,7 +19,7 @@ public class HashesTest extends TestCase {
 			for( int i = 0; i < l; i++ ) {
 				final long[] h = new long[ 3 ];
 				Hashes.jenkins( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], h );
-				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), h[ 2 ] ); 
+				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), h[ 0 ] ); 
 			}
 		}
 	}
