@@ -22,7 +22,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
 
 /** Basic hash functions. */
 
@@ -87,7 +86,7 @@ public class Hashes {
 				b += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += Fast.reverseBytes( bv.getLong( length - residual, length ) );
+			if ( residual != 0 ) a += bv.getLong( length - residual, length );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -124,8 +123,6 @@ public class Hashes {
 
 		if ( length == 0 ) return seed ^ 0x8de6a918d6538324L;
 		
-		System.err.println( "***" );
-		
 		/* Set up the internal state */
 		a = b = seed;
 		c = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value */
@@ -155,13 +152,13 @@ public class Hashes {
 		long residual = length - from;
 		if ( residual > 0 ) {
 			if ( residual >= Long.SIZE ) {
-				a += bv.getLong( from, from + Long.SIZE );
+				b += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) b +=  bv.getLong( length - residual, length );
+			if ( residual != 0 ) a += bv.getLong( length - residual, length );
 		}
 
-		System.err.println( Long.toHexString( a ) + " " + Long.toHexString( b ) + " " + Long.toHexString( c ) );
+		//System.err.println( Long.toHexString( a ) + " " + Long.toHexString( b ) + " " + Long.toHexString( c ) );
 		
 		a -= b; a -= c; a ^= (c >>> 43);
 		b -= c; b -= a; b ^= (a << 9);
@@ -309,7 +306,7 @@ public class Hashes {
 				b += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += Fast.reverseBytes( bv.getLong( prefixLength - residual, prefixLength ) );
+			if ( residual != 0 ) a += bv.getLong( prefixLength - residual, prefixLength );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -381,7 +378,7 @@ public class Hashes {
 				b += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += Fast.reverseBytes( bv.getLong( prefixLength - residual, prefixLength ) );
+			if ( residual != 0 ) a += bv.getLong( prefixLength - residual, prefixLength );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -397,7 +394,7 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		return a;
+		return c;
 	}
 
 	/** Jenkins 64-bit hashing (all three values produced) for a triple of longs.
