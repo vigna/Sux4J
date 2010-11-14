@@ -22,6 +22,8 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.logging.ProgressLogger;
 
 /** Basic hash functions. */
 
@@ -82,11 +84,11 @@ public class Hashes {
 		c += length;
 		long residual = length - from;
 		if ( residual > 0 ) {
-			if ( residual >= Long.SIZE ) {
-				b += bv.getLong( from, from + Long.SIZE );
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += bv.getLong( length - residual, length );
+			if ( residual != 0 ) b += bv.getLong( length - residual, length );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -151,11 +153,11 @@ public class Hashes {
 		c += length;
 		long residual = length - from;
 		if ( residual > 0 ) {
-			if ( residual >= Long.SIZE ) {
-				b += bv.getLong( from, from + Long.SIZE );
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += bv.getLong( length - residual, length );
+			if ( residual != 0 ) b += bv.getLong( length - residual, length );
 		}
 
 		//System.err.println( Long.toHexString( a ) + " " + Long.toHexString( b ) + " " + Long.toHexString( c ) );
@@ -302,11 +304,11 @@ public class Hashes {
 		c += prefixLength;
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
-			if ( residual >= Long.SIZE ) {
-				b += bv.getLong( from, from + Long.SIZE );
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += bv.getLong( prefixLength - residual, prefixLength );
+			if ( residual != 0 ) b += bv.getLong( prefixLength - residual, prefixLength );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -374,11 +376,11 @@ public class Hashes {
 		c += prefixLength;
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
-			if ( residual >= Long.SIZE ) {
-				b += bv.getLong( from, from + Long.SIZE );
+			if ( residual > Long.SIZE ) {
+				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) a += bv.getLong( prefixLength - residual, prefixLength );
+			if ( residual != 0 ) b += bv.getLong( prefixLength - residual, prefixLength );
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -594,5 +596,30 @@ public class Hashes {
 		}
 	
 		return state;
+	}
+	
+	public static void main( String arg[] ) {
+		final int l = Integer.parseInt( arg[ 0 ] );
+		final int n = Integer.parseInt( arg[ 1 ] );
+		LongArrayBitVector bv = LongArrayBitVector.ofLength( l );
+		
+		ProgressLogger pl = new ProgressLogger();
+		long t = 0;
+		
+		pl.start( "Timing MurmurHash..." );
+		
+		for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
+		if ( t == -1 ) System.err.println( t ); // To avoid elision
+		
+		pl.count = n;
+		pl.done();
+		
+		pl.start( "Timing Jenkins's hash..." );
+		
+		for( int i = n; i-- != 0; ) t += jenkins( bv, 0 );
+		if ( t == -1 ) System.err.println( t ); // To avoid elision
+		
+		pl.count = n;
+		pl.done();
 	}
 }
