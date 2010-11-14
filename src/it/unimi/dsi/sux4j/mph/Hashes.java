@@ -598,6 +598,11 @@ public class Hashes {
 		return state;
 	}
 	
+	/** A simple test to check the relative speed of various hashes on your architecture.
+	 * 
+	 * @param arg the length of the bit vector to hash, and then the number of evaluations.
+	 */
+	
 	public static void main( String arg[] ) {
 		final int l = Integer.parseInt( arg[ 0 ] );
 		final int n = Integer.parseInt( arg[ 1 ] );
@@ -609,7 +614,7 @@ public class Hashes {
 		pl.start( "Timing MurmurHash..." );
 		
 		for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
-		if ( t == -1 ) System.err.println( t ); // To avoid elision
+		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
 		pl.count = n;
 		pl.done();
@@ -617,7 +622,30 @@ public class Hashes {
 		pl.start( "Timing Jenkins's hash..." );
 		
 		for( int i = n; i-- != 0; ) t += jenkins( bv, 0 );
-		if ( t == -1 ) System.err.println( t ); // To avoid elision
+		if ( t == 0 ) System.err.println( t ); // To avoid elision
+		
+		pl.count = n;
+		pl.done();
+
+		final long[] preprocessMurmur = preprocessMurmur( bv, 0 );
+		
+		pl.start( "Timing preprocessed MurmurHash..." );
+		
+		for( int i = n; i-- != 0; ) t += murmur( bv, l - 1, preprocessMurmur );
+		if ( t == 0 ) System.err.println( t ); // To avoid elision
+		
+		pl.count = n;
+		pl.done();
+		
+		long[][] preprocessJenkins = preprocessJenkins( bv, 0 );
+		long[] aa = preprocessJenkins[ 0 ];
+		long[] bb = preprocessJenkins[ 1 ];
+		long[] cc = preprocessJenkins[ 2 ];
+		
+		pl.start( "Timing preprocessed Jenkins's hash..." );
+		
+		for( int i = n; i-- != 0; ) t += jenkins( bv, l - 1, aa, bb, cc );
+		if ( t == 0 ) System.err.println( t ); // To avoid elision
 		
 		pl.count = n;
 		pl.done();
