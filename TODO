@@ -6,4 +6,4 @@
 - Add logging line in main methods to start counters correctly
 - Temp directory of ChunkedHashStore (and classes that use it) should be settable.
 - Move values lists to disk when possible.
-- Jenkins hash works not so well on short strings
+- Jenkins hash should mix better last values. Or XOR with c.
