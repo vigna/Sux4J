@@ -194,14 +194,14 @@ public class Select9 implements Select {
 		
 		if ( span < 2 ) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			if ( ASSERTS ) assert rank >= count[ countLeft ] : rank + " < " + count[ countLeft ];
 			if ( ASSERTS ) assert rank < count[ countLeft + 2 ] : rank + " >= " + count[ countLeft + 2 ];
 			rankInBlock = (int)( rank - count[ countLeft ] );
 		}
 		else if ( span < 16 ) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			final long rankInSuperblock = rank - count[ countLeft ];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
@@ -225,7 +225,7 @@ public class Select9 implements Select {
 		else if ( span < 128 ) {
 			final long[] subinventory = this.subinventory;
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			final long rankInSuperblock = rank - count[ countLeft ];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 

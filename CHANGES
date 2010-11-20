@@ -18,6 +18,8 @@
 
 - AbstractLongBitVector.equals() now uses getLong() on word boundaries.
 
+- Fixed pernicious bug in Select9.
+
 2.0
 
 - General revamp, restructuring, improvements, new coherent names for

@@ -178,14 +178,16 @@ public class Rank9SelectTest extends RankSelectTestCase {
 	}
 
 	public void testRandom() {
-		Random r = new Random( 1 );
-		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( 1000 );
-		for( int i = 0; i < 1000; i++ ) bitVector.add( r.nextBoolean() );
-		Rank9 rank9;
-		Select9 select9;
+		for( int size = 10; size <= 10000000; size *= 10 ) {
+			Random r = new Random( 1 );
+			LongArrayBitVector bitVector = LongArrayBitVector.getInstance( size );
+			for( int i = 0; i < size; i++ ) bitVector.add( r.nextBoolean() );
+			Rank9 rank9;
+			Select9 select9;
 
-		select9 = new Select9( rank9 = new Rank9( bitVector ) );
-		assertRankAndSelect( rank9, select9 );
+			select9 = new Select9( rank9 = new Rank9( bitVector ) );
+			assertRankAndSelect( rank9, select9 );
+		}
 	}
 	
 	public void testAllSizes() {
