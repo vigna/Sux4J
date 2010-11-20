@@ -432,7 +432,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return result < n ? result : defRetValue;
 	}
 
-	@SuppressWarnings("unchecked")
 	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
