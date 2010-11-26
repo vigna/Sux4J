@@ -37,7 +37,7 @@
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile all sources">
-		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
+		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.5"/>
 	</target>
 	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">

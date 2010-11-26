@@ -11,9 +11,8 @@ else
 	export CLASSPATH=$(ls -1 $sourcedir/$JAR-*.jar | tail -n 1):$CLASSPATH
 fi
 
-export CLASSPATH=$CLASSPATH:/usr/share/java/colt.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/dsiutils.jar
-export CLASSPATH=$CLASSPATH:/usr/share/java/fastutil5.jar
+export CLASSPATH=$CLASSPATH:/usr/share/java/fastutil.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jsap.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/junit.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/log4j.jar
