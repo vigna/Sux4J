@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -231,29 +230,6 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				this.root = root;
 
 				if ( root != null ) {
-					if ( false && ASSERTS ) {
-						iterator = elements.iterator();
-						int c = 1;
-						while( iterator.hasNext() ) {
-							curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
-							if ( c++ % bucketSize == 0 ) {
-								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
-								node = root;
-								pos = 0;
-								while( node != null ) {
-									prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / bucketSize;
-									pos += node.path.length() + 1;
-									if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
-									else {
-										assert node.left == null && node.right == null;
-										break;
-									}
-								}
-							}
-						}
-					}
-
 					pl.start( "Reducing paths..." );
 
 					iterator = elements.iterator();

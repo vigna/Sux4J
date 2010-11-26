@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,16 +16,17 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -38,8 +39,6 @@ import java.util.Random;
 import org.apache.commons.collections.Predicate;
 import org.apache.log4j.Logger;
 
-import cern.colt.Sorting;
-import cern.colt.function.LongComparator;
 
 /** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values.
@@ -140,7 +139,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		// Sort keys by reverse frequency
 		final long[] keys = counts.keySet().toLongArray( new long[ m ] );
-		Sorting.quickSort( keys, 0, keys.length, new LongComparator() {
+		LongArrays.quickSort( keys, 0, keys.length, new AbstractLongComparator() {
 			public int compare( final long a, final long b ) {
 				return Long.signum( counts.get( b ) - counts.get( a ) );
 			}
@@ -159,7 +158,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 			/* This cost function is dependent on the implementation of MWHCFunction. 
 			 * Note that for r = 0 we are actually computing the cost of a single function (the first one). */
-			final long cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * (long)r, HypergraphSorter.GAMMA * n * r ) +
+			final long cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * r, HypergraphSorter.GAMMA * n * r ) +
 					(long)Math.min( HypergraphSorter.GAMMA * post * 1.126 + post * w, HypergraphSorter.GAMMA * post * w ) +
 					pos * Long.SIZE;
 

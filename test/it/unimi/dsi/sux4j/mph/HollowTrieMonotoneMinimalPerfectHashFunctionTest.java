@@ -22,7 +22,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 		return vectors;
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void testEmpty() {
 		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -30,7 +30,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 		assertEquals( 0, hollowTrie.size() );
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void testSingleton() {
 		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
 				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity()  );
@@ -39,7 +39,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest extends TestCase {
 		assertEquals( 1, hollowTrie.size() );
 	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void testSimple() {
 		HollowTrieMonotoneMinimalPerfectHashFunction hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction( 
 				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), TransformationStrategies.identity()  );

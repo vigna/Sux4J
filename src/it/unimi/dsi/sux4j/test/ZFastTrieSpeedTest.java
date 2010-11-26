@@ -56,7 +56,7 @@ public class ZFastTrieSpeedTest {
 		final int times = jsapResult.getInt( "times" );
 		
 		System.out.println( "Loading trie..." );
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings("rawtypes")
 		final ZFastTrie zFastTrie = (ZFastTrie)BinIO.loadObject( trieName );
 		
 		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );

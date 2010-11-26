@@ -29,7 +29,6 @@ public class ListSpeedTest {
 		
 		final String listName = jsapResult.getString( "list" );
 		
-		@SuppressWarnings("unchecked")
 		final LongList list = (LongList)BinIO.loadObject( listName );
 		long total = 0;
 		int n = list.size();

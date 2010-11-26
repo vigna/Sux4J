@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( TwoStepsLcpMonotoneMinimalPerfectHashFunction.class );
-	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	

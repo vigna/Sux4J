@@ -16,7 +16,8 @@ source2:
 	./genz.sh
 	tar zcvf sux4j-$(version)-src.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
-		sux4j-$(version)/COPYING.LIB \
+		sux4j-$(version)/COPYING \
+		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
@@ -30,7 +31,8 @@ bin:
 	(cd sux4j-$(version); ant clean jar javadoc)
 	tar zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
-		sux4j-$(version)/COPYING.LIB \
+		sux4j-$(version)/COPYING \
+		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
 	-rm -r sux4j-$(version)

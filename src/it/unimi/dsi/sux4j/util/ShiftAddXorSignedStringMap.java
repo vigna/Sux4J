@@ -7,7 +7,7 @@ package it.unimi.dsi.sux4j.util;
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.util;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -127,21 +126,18 @@ public class ShiftAddXorSignedStringMap extends AbstractObject2LongFunction<Char
 		return index >= 0 && index < hash.size() && signatures.getLong( index ) == signature( s );
 	}
 
-	@SuppressWarnings("unchecked")
 	public long getLong( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return checkSignature( s, index ) ? index : defRetValue;
 	}
 
-	@SuppressWarnings("unchecked")
 	public Long get( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		final long index = hash.getLong( s );
 		return checkSignature( s, index ) ? Long.valueOf( index ) : null;
 	}
 
-	@SuppressWarnings("unchecked")
 	public boolean containsKey( Object o ) {
 		final CharSequence s = (CharSequence)o;
 		return checkSignature( s, hash.getLong( s ) );
