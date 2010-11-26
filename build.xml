@@ -10,6 +10,7 @@
 	<condition property="colt.apiurl" value="${local.colt.apiurl}" else="${remote.colt.apiurl}"><isset property="local"/></condition>
 	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
 	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
+	<condition property="log4j.apiurl" value="${local.log4j.apiurl}" else="${remote.log4j.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-io.apiurl" value="${local.commons-io.apiurl}" else="${remote.commons-io.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-lang.apiurl" value="${local.commons-lang.apiurl}" else="${remote.commons-lang.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-configuration.apiurl" value="${local.commons-configuration.apiurl}" else="${remote.commons-configuration.apiurl}"><isset property="local"/></condition>
