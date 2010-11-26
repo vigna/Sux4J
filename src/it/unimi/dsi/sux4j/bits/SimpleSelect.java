@@ -55,7 +55,7 @@ public class SimpleSelect implements Select {
 	private final BitVector bitVector;
 	/** The number of ones in {@link #bitVector}. */
 	private final long numOnes;
-	/** The number of words in {@link bitVector}. */
+	/** The number of words in {@link #bitVector}. */
 	private final int numWords;
 	/** The cached result of {@link BitVector#bits() bitVector.bits()}. */ 
 	private transient long[] bits;
