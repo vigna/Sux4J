@@ -1,4 +1,4 @@
-2.1
+2.0.1
 
 - Major rewriting of the hypergraph peeling code. Now we use less memory
   and we are definitely faster.
