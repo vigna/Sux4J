@@ -1,5 +1,8 @@
 2.0.1
 
+- Sux4J is now distributed under the GNU Lesser General Public
+  License 3.
+
 - Major rewriting of the hypergraph peeling code. Now we use less memory
   and we are definitely faster.
 
