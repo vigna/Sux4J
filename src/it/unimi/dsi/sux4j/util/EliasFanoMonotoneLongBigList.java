@@ -245,7 +245,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
 			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
-			upperBits.set( ( v >> l ) + i );
+			upperBits.set( ( v >>> l ) + i );
 			last = v;
 		}
 		

@@ -6,3 +6,4 @@
 - Add logging line in main methods to start counters correctly
 - Temp directory of ChunkedHashStore (and classes that use it) should be settable.
 - Move values lists to disk when possible.
+- Comment rank/select classes, copying docs from 1.0
