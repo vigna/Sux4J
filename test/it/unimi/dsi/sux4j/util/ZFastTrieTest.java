@@ -43,7 +43,7 @@ public class ZFastTrieTest extends TestCase {
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
-		
+
 		zft.remove( "a" );
 		assertFalse( zft.contains( "a" ) );
 	}
