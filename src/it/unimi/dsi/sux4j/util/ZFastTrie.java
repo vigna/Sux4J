@@ -89,9 +89,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean SHORT_SIGNATURES = false;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	private static final boolean DDEBUG = DEBUG;
 
 	/** The number of elements in the trie. */
@@ -1022,12 +1022,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
 
-		parentExitNode = getParentExitNode( v, state, stack );
+		ParexData parexData = getParentExitNode( v, state, stack );
+		parentExitNode = parexData.parexNode;
 		rightLeaf = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
-		exitNode = parentExitNode == null ? root : ( rightLeaf ? parentExitNode.right : parentExitNode.left );
-		lcp = exitNode.key( (TransformationStrategy<Object>)transform ).longestCommonPrefixLength( v );
+		exitNode = parexData.exitNode;
+		lcp = parexData.lcp;
 		
-		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
+		if ( DDEBUG ) System.err.println( "Parex node: " + parentExitNode + " Exit node: " + exitNode  + " LCP: " + lcp );
 		
 		if ( ! ( exitNode.isLeaf() && ((Leaf)exitNode).key.equals( k ) ) ) return false; // Not found
 		
@@ -1046,7 +1047,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long t = parentExitNodehandleLength | otherNodeHandleLength;
 		final boolean cutLow = ( t & -t & otherNodeHandleLength ) != 0;
 
-		if ( DEBUG ) System.err.println( "lcp: " + lcp );
 
 		if ( parentExitNode == root ) root = otherNode;
 
@@ -1114,20 +1114,20 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
 
-		parentExitNode = getParentExitNode( v, state, stack );
+		ParexData parexData = getParentExitNode( v, state, stack );
+		parentExitNode = parexData.parexNode;
+		exitNode = parexData.exitNode;
+		lcp = parexData.lcp;
 		rightChild = parentExitNode != null && parentExitNode.extentLength < v.length() && v.getBoolean( parentExitNode.extentLength );
-		exitNode = parentExitNode == null ? root : ( rightChild ? parentExitNode.right : parentExitNode.left );
-		lcp = exitNode.key( (TransformationStrategy<Object>)transform ).longestCommonPrefixLength( v );
 		
-		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
-		
+		if ( DDEBUG ) System.err.println( "Parex node: " + parentExitNode + " Exit node: " + exitNode  + " LCP: " + lcp );
+				
 		if ( exitNode.isLeaf() && ((Leaf)exitNode).key.equals( k ) ) return false; // Already there
 		
 		final boolean exitDirection = v.getBoolean( lcp );
 		final long exitNodeHandleLength = exitNode.handleLength();
 		final boolean cutLow = lcp >= exitNodeHandleLength;
 		
-		if ( DEBUG ) System.err.println( "lcp: " + lcp );
 		Leaf leaf = new Leaf();
 		InternalNode internal = new InternalNode();
 
@@ -1208,7 +1208,56 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
 		InternalNode parexOrExitNode = fatBinarySearch( v, state, null, false, 0, length );
-		// This will contain the exit node if parexOrExitNode contains the correct parex.
+		// This will contain the exit node if parexOrExitNode contains the correct parex node.
+		Node candidateExitNode;
+		
+		if ( parexOrExitNode == null ) candidateExitNode = root;
+		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
+		/* This lcp length makes it possible to compute the length of the lcp between v and 
+		 * parexOrExitNode by minimisation with the extent length, as necessarily the extent of 
+		 * candidateExitNode is an extension of the extent of parexOrExitNode. */
+		final long lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( (TransformationStrategy<Object>)transform ) );
+		
+		// In this case the fat binary search gave us the correct parex node.
+		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return candidateExitNode;
+		// In this case the fat binary search gave us the correct exit node.
+		if ( parexOrExitNode.isExitNodeOf( length, Math.min( parexOrExitNode.extentLength, lcpLength ) ) ) return parexOrExitNode;
+
+		// Otherwise, something went horribly wrong. We restart in exact mode.
+		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
+		if ( parexOrExitNode == null ) return root;
+		// TODO: In principle we can check just the compacted path.
+		return parexOrExitNode.extent( (TransformationStrategy<Object>)transform ).isProperPrefix( v ) ?
+				parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left : parexOrExitNode;
+	}
+
+	
+	protected final static class ParexData {
+		long lcp;
+		InternalNode parexNode;
+		Node exitNode;
+
+		protected ParexData( final InternalNode parexNode, final Node exitNode, final long lcp ) {
+			this.lcp = lcp;
+			this.parexNode = parexNode;
+			this.exitNode = exitNode;
+		}
+	}
+
+	/** Returns the parent of the exit node of a given bit vector.
+	 * 
+	 * @param v a bit vector.
+	 * @param stack if not <code>null</code>, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
+	 * @return the parent of the exit node of <code>v</code>, or <code>null</code> if the exit node is the root.
+	 */
+	public ParexData getParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack ) {
+		if ( size == 0 ) throw new IllegalStateException();
+		if ( size == 1 ) return new ParexData( null, root, v.longestCommonPrefixLength( root.extent( (TransformationStrategy<Object>)transform ) ) );
+		
+		final long length = v.length();
+		// This can be the exit node of v, the parex node of v, or something completely wrong.
+		InternalNode parexOrExitNode = fatBinarySearch( v, state, null, false, 0, length );
+		// This will contain the exit node if parexOrExitNode contains the correct parex node.
 		Node candidateExitNode;
 		
 		if ( parexOrExitNode == null ) candidateExitNode = root;
@@ -1218,60 +1267,33 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * candidateExitNode is an extension of the extent of parexOrExitNode. */
 		long lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( (TransformationStrategy<Object>)transform ) );
 		
-		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return candidateExitNode;
-		if ( parexOrExitNode.isExitNodeOf( length, Math.min( parexOrExitNode.extentLength, lcpLength ) ) ) return parexOrExitNode;
+		System.err.println ( "++++++++" + lcpLength );
 
-		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
-		if ( parexOrExitNode == null ) return root;
-		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
-		lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( (TransformationStrategy<Object>)transform ) );
+		// In this case the fat binary search gave us the correct parex node, and we have all the data we need.
+		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return new ParexData( parexOrExitNode, candidateExitNode, lcpLength );
+		// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack and maybe restart the search.
+		lcpLength = Math.min( parexOrExitNode.extentLength, lcpLength );
 		
-		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return candidateExitNode;
-		return parexOrExitNode;
-	}
-
-
-	/** Returns the parent of the exit node of a given bit vector.
-	 * 
-	 * @param v a bit vector.
-	 * @param stack a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
-	 * @param exact if true, the map defining the trie will be accessed in exact mode.
-	 * @return the parent of the exit node of <code>v</code>, or <code>null</code> if the exit node is the root; 
-	 * if <code>exact</code> is false, with low probability
-	 * the result might be wrong. 
-	 */
-	public InternalNode getParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack, final boolean exact ) {
-		if ( size == 0 || stack == null ) throw new IllegalStateException();
-		if ( size == 1 ) return null;
-		if ( DDEBUG ) System.err.println( "getParentExitNode(" + v + ", " + exact + ")" );
-		final InternalNode node = fatBinarySearch( v, state, stack, exact, 0, v.length() );
-		if ( node == null ) return null;
-		if ( node.extent( (TransformationStrategy<Object>)transform ).isProperPrefix( v ) ) return node; 
+		System.err.println ( "********" );
 		
-		stack.pop();
-		if ( stack.isEmpty() ) return fatBinarySearch( v, state, stack, exact, 0, node.parentExtentLength );
-		if ( stack.top().extentLength == node.parentExtentLength ) return stack.top();
-		return fatBinarySearch( v, state, stack, exact, stack.top().extentLength, node.parentExtentLength );
-	}
-
-	/** Returns the parent of the exit node of a given bit vector.
-	 * 
-	 * @param v a bit vector.
-	 * @param stack if not <code>null</code>, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
-	 * @return the parent of the exit node of <code>v</code>, or <code>null</code> if the exit node is the root.
-	 */
-	public InternalNode getParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode> stack ) {
-		if ( size == 1 ) return null;
-		final InternalNode candidate = getParentExitNode( v, state, stack, false );
-		if ( candidate == null ) {
-			if ( root.isExitNodeOf( v, (TransformationStrategy<Object>)transform ) ) return null;
+		if ( parexOrExitNode.isExitNodeOf( length, lcpLength ) ) {
+			stack.pop();
+			// We're lucky: the second element on the stack is the parex node.
+			if ( stack.top().extentLength == parexOrExitNode.parentExtentLength ) return new ParexData( stack.top(), parexOrExitNode, lcpLength );
+			final long startingPoint = stack.isEmpty() ? 0 : stack.top().extentLength;
+			final int stackSize = stack.size();
+			// Unless there are mistakes, this is really the parex node.
+			InternalNode parexNode = fatBinarySearch( v, state, stack, false, startingPoint, parexOrExitNode.parentExtentLength );
+			// Something went wrong with the last search. We can just, at this point, restart in exact mode.
+			
+			// TODO: check length?
+			if ( ! v.equals( parexNode.extent( (TransformationStrategy<Object>)transform ), startingPoint, parexNode.extentLength ) ) {
+				stack.size( stackSize );
+				parexNode = fatBinarySearch( v, state, stack, true, startingPoint, parexOrExitNode.parentExtentLength );
+			}
+			return new ParexData( parexNode, parexOrExitNode, lcpLength );
 		}
-		else if ( candidate.extent( (TransformationStrategy<Object>)transform ).isProperPrefix( v ) ) {
-			 final Node exitNode = v.getBoolean( candidate.extentLength ) ? candidate.right : candidate.left;
-			 if ( exitNode.isExitNodeOf( v, (TransformationStrategy<Object>)transform ) ) return candidate;
-		}
-		stack.clear();
-		return getParentExitNode( v, state, stack, true );
+		throw new IllegalStateException();
 	}
 
 	
