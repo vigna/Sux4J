@@ -547,28 +547,34 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			else return Hashes.murmur( handle( transform ), 0 );
 		}
 
+		/** Returns true if this node is the exit node of a string.
+		 * 
+		 * @param v the string.
+		 * @param transform the transformation strategy used to build the trie this node belongs to.
+		 * @return true if the string exits at this node.
+		 */
 		public boolean isExitNodeOf( final LongArrayBitVector v, TransformationStrategy<Object> transform ) {
-			final long lcp = v.longestCommonPrefixLength( key( transform ) );
-			return parentExtentLength < lcp && ( lcp < extentLength || lcp == v.length() );
+			return isExitNodeOf( v.length(), v.longestCommonPrefixLength( extent( transform ) ) );
 		}
 
 		/** Returns true if this node is the exit node of a string given its length and the length of the longest
 		 * common prefix with the node extent.
 		 * 
 		 * @param length the length of a string.
-		 * @param lcp the length of the longest common prefix between the string and the extent of this node.
+		 * @param lcpLength the length of the longest common prefix between the string and the extent of this node.
 		 * @return true if the string exits at this node.
 		 */
-		public boolean isExitNodeOf( final long length, final long lcp ) {
-			return parentExtentLength < lcp && ( lcp < extentLength || lcp == length );
+		public boolean isExitNodeOf( final long length, final long lcpLength ) {
+			return parentExtentLength < lcpLength && ( lcpLength < extentLength || lcpLength == length );
 		}
 
 		public String toString() {
-			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF );/* + 
-				( key() == null ? "" : 
-					" " + ( extentLength() > 16 ? key().subVector( 0, 8 ) + "..." + key().subVector( extentLength() - 8, extentLength() ): key().subVector( 0, extentLength() ) ) ) +
-					" (" + parentExtentLength + ".." + extentLength() + "], " + handleLength() + "->" + jumpLength() +
-				( isLeaf() ? "]" : ")" );*/
+			final TransformationStrategy transform = TransformationStrategies.prefixFreeIso();
+			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF ) + 
+				( key( transform ) == null ? "" : 
+					" " + ( extentLength > 16 ? key( transform ).subVector( 0, 8 ) + "..." + key(  transform ).subVector( extentLength - 8, extentLength ): key( transform ).subVector( 0, extentLength ) ) ) +
+					" (" + parentExtentLength + ".." + extentLength + "], " + handleLength() + "->" + jumpLength() +
+				( isLeaf() ? "]" : ")" );
 		}
 	}
 	
@@ -1000,7 +1006,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size == 0 ) return false;
 		
 		if ( size == 1 ) {
-			if ( ! root.key( (TransformationStrategy<Object>)transform ).equals( v ) ) return false;
+			if ( ! ((Leaf)root).key.equals( k ) ) return false;
 			root = null;
 			size = 0;
 			if ( ASSERTS ) assertTrie();
@@ -1023,12 +1029,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
 		
-		if ( ! exitNode.key( (TransformationStrategy<Object>)transform ).equals( v ) ) return false; // Not found
+		if ( ! ( exitNode.isLeaf() && ((Leaf)exitNode).key.equals( k ) ) ) return false; // Not found
 		
 		final Node otherNode = rightLeaf ? parentExitNode.left : parentExitNode.right;
 		final boolean otherNodeIsInternal = otherNode.isInternal();
 
-		
 		if ( parentExitNode != null && parentExitNode != root ) {
 			// Let us fix grandpa's child pointer.
 			InternalNode grandParentExitNode = getGrandParentExitNode( v, state, stack );
@@ -1116,7 +1121,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		if ( DDEBUG ) System.err.println( "Exit node " + exitNode );
 		
-		if ( exitNode.key( (TransformationStrategy<Object>)transform ).equals( v ) ) return false; // Already there
+		if ( exitNode.isLeaf() && ((Leaf)exitNode).key.equals( k ) ) return false; // Already there
 		
 		final boolean exitDirection = v.getBoolean( lcp );
 		final long exitNodeHandleLength = exitNode.handleLength();
@@ -1201,23 +1206,27 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size == 1 ) return root;
 		if ( DDEBUG ) System.err.println( "getExitNode(" + v + ")" );
 		final long length = v.length();
-		Node candidateExitNode;
-		
+		// This can be the exit node of v, the parex node of v, or something completely wrong.
 		InternalNode parexOrExitNode = fatBinarySearch( v, state, null, false, 0, length );
+		// This will contain the exit node if parexOrExitNode contains the correct parex.
+		Node candidateExitNode;
 		
 		if ( parexOrExitNode == null ) candidateExitNode = root;
 		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
-		long lcp = v.longestCommonPrefixLength( candidateExitNode.key( (TransformationStrategy<Object>)transform ) );
+		/* This lcp length makes it possible to compute the length of the lcp between v and 
+		 * parexOrExitNode by minimisation with the extent length, as necessarily the extent of 
+		 * candidateExitNode is an extension of the extent of parexOrExitNode. */
+		long lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( (TransformationStrategy<Object>)transform ) );
 		
-		if ( candidateExitNode.isExitNodeOf( length, lcp ) ) return candidateExitNode;
-		if ( parexOrExitNode.isExitNodeOf( length, lcp ) ) return parexOrExitNode;
+		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return candidateExitNode;
+		if ( parexOrExitNode.isExitNodeOf( length, Math.min( parexOrExitNode.extentLength, lcpLength ) ) ) return parexOrExitNode;
 
 		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
 		if ( parexOrExitNode == null ) return root;
 		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
-		lcp = v.longestCommonPrefixLength( candidateExitNode.key( (TransformationStrategy<Object>)transform ) );
+		lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( (TransformationStrategy<Object>)transform ) );
 		
-		if ( candidateExitNode.isExitNodeOf( length, lcp ) ) return candidateExitNode;
+		if ( candidateExitNode.isExitNodeOf( length, lcpLength ) ) return candidateExitNode;
 		return parexOrExitNode;
 	}
 
@@ -1406,7 +1415,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)o ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
 		final Node exitNode = getExitNode( v, state );
-		return exitNode.isLeaf() && exitNode.key( (TransformationStrategy<Object>)transform ).equals( v );
+		return exitNode.isLeaf() && ((Leaf)exitNode).key.equals( o );
 	}
 
 	@SuppressWarnings("unchecked")
