@@ -552,6 +552,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return parentExtentLength < lcp && ( lcp < extentLength || lcp == v.length() );
 		}
 
+		/** Returns true if this node is the exit node of a string given its length and the length of the longest
+		 * common prefix with the node extent.
+		 * 
+		 * @param length the length of a string.
+		 * @param lcp the length of the longest common prefix between the string and the extent of this node.
+		 * @return true if the string exits at this node.
+		 */
+		public boolean isExitNodeOf( final long length, final long lcp ) {
+			return parentExtentLength < lcp && ( lcp < extentLength || lcp == length );
+		}
+
 		public String toString() {
 			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF );/* + 
 				( key() == null ? "" : 
@@ -1183,27 +1194,31 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Returns the exit node of a given bit vector.
 	 * 
 	 * @param v a bit vector.
-	 * @return the exit node of <code>v</code>; if <code>exact</code> is false, with low probability the result might be wrong.  
-	 */
-	private Node getExitNode( final LongArrayBitVector v, final long[] state, final boolean exact ) {
-		if ( size == 0 ) throw new IllegalStateException();
-		if ( size == 1 ) return root;
-		if ( DDEBUG ) System.err.println( "getExitNode(" + v + ", " + exact + ")" );
-		final long length = v.length();
-		InternalNode node = fatBinarySearch( v, state, null, exact, 0, length );
-		if ( node == null || node.extentLength > length ) return root;
-		if ( node.key( (TransformationStrategy<Object>)transform ).equals( v, node.handleLength(), node.extentLength ) ) return node.extentLength < length && v.getBoolean( node.extentLength ) ? node.right : node.left;
-		return node;
-	}
-
-	/** Returns the exit node of a given bit vector.
-	 * 
-	 * @param v a bit vector.
 	 * @return the exit node of <code>v</code>. 
 	 */
 	private Node getExitNode( final LongArrayBitVector v, final long[] state ) {
-		Node candidate = getExitNode( v, state, false );
-		return candidate.isExitNodeOf( v, (TransformationStrategy<Object>)transform ) ? candidate : getExitNode( v, state, true );
+		if ( size == 0 ) throw new IllegalStateException();
+		if ( size == 1 ) return root;
+		if ( DDEBUG ) System.err.println( "getExitNode(" + v + ")" );
+		final long length = v.length();
+		Node candidateExitNode;
+		
+		InternalNode parexOrExitNode = fatBinarySearch( v, state, null, false, 0, length );
+		
+		if ( parexOrExitNode == null ) candidateExitNode = root;
+		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
+		long lcp = v.longestCommonPrefixLength( candidateExitNode.key( (TransformationStrategy<Object>)transform ) );
+		
+		if ( candidateExitNode.isExitNodeOf( length, lcp ) ) return candidateExitNode;
+		if ( parexOrExitNode.isExitNodeOf( length, lcp ) ) return parexOrExitNode;
+
+		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
+		if ( parexOrExitNode == null ) return root;
+		else candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
+		lcp = v.longestCommonPrefixLength( candidateExitNode.key( (TransformationStrategy<Object>)transform ) );
+		
+		if ( candidateExitNode.isExitNodeOf( length, lcp ) ) return candidateExitNode;
+		return parexOrExitNode;
 	}
 
 
