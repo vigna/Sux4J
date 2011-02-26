@@ -90,7 +90,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
 	private static final boolean ASSERTS = false;
-	private static final boolean SHORT_SIGNATURES = true;
+	private static final boolean SHORT_SIGNATURES = false;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 
