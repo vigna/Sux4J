@@ -31,6 +31,10 @@ public class NumberToBitVector implements TransformationStrategy<BigInteger> {
 		return 0;
 	}
 
+	public long length( final BigInteger x ) {
+		return width;
+	}
+	
 	public BitVector toBitVector( BigInteger x ) {
 		LongArrayBitVector res = LongArrayBitVector.getInstance( width );
 		for ( int i = 0; i < width; i++ ) 
