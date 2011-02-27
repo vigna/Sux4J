@@ -94,7 +94,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	/** If true, signatures are restricted to two bits, generating lots of false positives. */
-	private static final boolean SHORT_SIGNATURES = true;
+	private static final boolean SHORT_SIGNATURES = false;
 
 	/** The number of elements in the trie. */
 	private int size;
@@ -1365,31 +1365,35 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		InternalNode<T> node = null, top = stack == null || stack.isEmpty() ? null : stack.top();
 		//System.err.println( "Fat binary " + v + " " + stack  + " (" + l + ".." + r + ") " + exact );
 
-		final int logLength = Fast.mostSignificantBit( b );
-
+		long checkMask = -1L << Fast.ceilLog2( b - a );
+		
 		while( b - a > 0 ) {
-			if ( ASSERTS ) assert logLength > -1;
-			if ( DDEBUG ) System.err.println( "(" + a + ".." + b + "]" );
+			if ( ASSERTS ) assert checkMask != 0;
+			if ( DDEBUG ) System.err.println( "(" + a + ".." + b + "] (check mask: " + Long.toBinaryString( checkMask ) );
 
-			final long f = twoFattest( a, b );
-			if ( DDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
+			final long f = b & checkMask;
+			if ( ( a & checkMask ) != f ) {
+				if ( DDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 
-			node = handle2Node.get( v, f, Hashes.murmur( v, f, state ), exact );
+				node = handle2Node.get( v, f, Hashes.murmur( v, f, state ), exact );
 
-			final long g;
-			// Note that this test is just to catch false positives
-			if ( node == null || ( g = node.extentLength ) < f ) {
-				if ( DDEBUG ) System.err.println( "Missing" );
-				b = f - 1;
+				final long g;
+				// Note that this test is just to catch false positives
+				if ( node == null || ( g = node.extentLength ) < f ) {
+					if ( DDEBUG ) System.err.println( "Missing" );
+					b = f - 1;
+				}
+				else {
+					if ( DDEBUG ) System.err.println( "Found extent of length " + g );
+					if ( stack != null ) stack.push( node );
+					top = node;
+					a = g;
+				}
 			}
-			else {
-				if ( DDEBUG ) System.err.println( "Found extent of length " + g );
-				if ( stack != null ) stack.push( node );
-				top = node;
-				a = g;
-			}
-		}
 			
+			checkMask >>= 1;
+		}
+
 		if ( DDEBUG ) System.err.println( "Final length " + a + " node: " + top );
 		
 		
