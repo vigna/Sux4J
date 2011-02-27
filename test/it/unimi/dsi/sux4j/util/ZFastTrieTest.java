@@ -3,6 +3,7 @@ package it.unimi.dsi.sux4j.util;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import it.unimi.dsi.sux4j.util.ZFastTrie;
 
 import java.io.File;
@@ -242,11 +243,24 @@ public class ZFastTrieTest extends TestCase {
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
 					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
 
+					Collections.sort( Arrays.asList( s ) );
+
+					int p = 0;
+					ObjectBidirectionalIterator<String> iterator;
+					for( iterator = zft.iterator(); iterator.hasNext(); ) assertEquals( iterator.next(), s[ p++ ] );
+					while( iterator.hasPrevious() ) assertEquals( iterator.previous(), s[ --p ] );
+
+					for( int i = 0; i < s.length / 100; i++ ) {
+						p = i;
+						for( iterator = zft.iterator( s[ i ] ); iterator.hasNext(); ) assertEquals( iterator.next(), s[ p++ ] );
+						while( iterator.hasPrevious() ) assertEquals( iterator.previous(), s[ --p ] );
+					}
+
 					for ( int i = s.length; i-- != 0; ) {
 						assertTrue( zft.remove( s[ i ] ) );
 						assertFalse( zft.contains( s[ i ] ) );
 					}
-
+					
 					Collections.shuffle( Arrays.asList( s ), new Random( 0 ) );
 				}
 			}

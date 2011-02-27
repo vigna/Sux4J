@@ -32,6 +32,7 @@ import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.AbstractObjectBidirectionalIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSet;
 import it.unimi.dsi.fastutil.objects.AbstractObjectSortedSet;
@@ -93,7 +94,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	/** If true, signatures are restricted to two bits, generating lots of false positives. */
-	private static final boolean SHORT_SIGNATURES = false;
+	private static final boolean SHORT_SIGNATURES = true;
 
 	/** The number of elements in the trie. */
 	private int size;
@@ -1406,39 +1407,119 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return exitNode.isLeaf() && ((Leaf<T>)exitNode).key.equals( o );
 	}
 
-	@SuppressWarnings("unchecked")
-	public T pred( final Object o ) {
-		if ( size == 0 ) return null;
-		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)o ) );
+	private Leaf<T> predNode( final T k ) {
+		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
 		Node<T> exitNode = getExitNode( v, state );
 		
 		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpRight != null ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
-			return ((Leaf<T>)exitNode).key;
+			return (Leaf<T>)exitNode;
 		}
 		else {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpLeft != null ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
-			return ((Leaf<T>)exitNode).prev.key;
+			return ((Leaf<T>)exitNode).prev;
 		}
 		
 	}
 
 	@SuppressWarnings("unchecked")
-	public T succ( final Object o ) {
+	public T pred( final Object o ) {
 		if ( size == 0 ) return null;
-		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)o ) );
+		return predNode( (T)o ).key;
+	}
+
+	private Leaf<T> succNode( final T k ) {
+		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
 		Node<T> exitNode = getExitNode( v, state );
 
 		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpLeft != null ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
-			return ((Leaf<T>)exitNode).key;
+			return (Leaf<T>)exitNode;
 		}
 		else {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpRight != null ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
-			return ((Leaf<T>)exitNode).next.key;
+			return ((Leaf<T>)exitNode).next;
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public T succ( final Object o ) {
+		if ( size == 0 ) return null;
+		return succNode( (T)o ).key;
+	}
+
+	@Override
+	public ObjectBidirectionalIterator<T> iterator() {
+		return iteratorFromLeaf( head.next );
+	}
+
+	@Override
+	public ObjectBidirectionalIterator<T> iterator( final T from ) {
+		return size == 0 ? iteratorFromLeaf( tail ) : iteratorFromLeaf( succNode( from ) );
+	}
+	
+	private ObjectBidirectionalIterator<T> iteratorFromLeaf( final Leaf<T> from ) {
+		return new AbstractObjectBidirectionalIterator<T>() {
+			private Leaf<T> curr = from;
+			
+			@Override
+			public boolean hasNext() {
+				return curr != tail;
+			}
+
+			@Override
+			public T next() {
+				if ( ! hasNext() ) throw new NoSuchElementException();
+				final T result = curr.key;
+				curr = curr.next;
+				return result;
+			}
+
+			@Override
+			public boolean hasPrevious() {
+				return curr.prev != head;
+			}
+
+			@Override
+			public T previous() {
+				if ( ! hasPrevious() ) throw new NoSuchElementException();
+				curr = curr.prev;
+				return curr.key;
+			}
+
+		};
+	}
+
+	@Override
+	public Comparator<? super T> comparator() {
+		return null;
+	}
+
+	@Override
+	public T first() {
+		return head.next.key;
+	}
+
+	@Override
+	public T last() {
+		return tail.prev.key;
+	}
+
+	@Override
+	public ObjectSortedSet<T> headSet( T arg0 ) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ObjectSortedSet<T> subSet( T arg0, T arg1 ) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ObjectSortedSet<T> tailSet( T arg0 ) {
+		throw new UnsupportedOperationException();
 	}
 
 	private void writeObject( final ObjectOutputStream s ) throws IOException {
@@ -1478,6 +1559,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param dirStack a stack parallel to <code>segmentStack</code>: for each element, whether it counts left or right turns.
 	 * @return the subtree rooted at the next node in the stream.
 	 */
+	@SuppressWarnings("unchecked")
 	private Node<T> readNode( final ObjectInputStream s, final int depth, final long parentExtentLength, final Handle2NodeMap<T> map, final ObjectArrayList<Leaf<T>> leafStack, final ObjectArrayList<InternalNode<T>> jumpStack, final IntArrayList depthStack, final IntArrayList segmentStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
 		// The two following variables are identical when non-null.
@@ -1622,53 +1704,5 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			BinIO.storeObject( zFastTrie, functionName );
 		}
 		LOGGER.info( "Completed." );
-	}
-
-	@Override
-	public ObjectBidirectionalIterator<T> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ObjectSortedSet<T> headSet( T arg0 ) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ObjectBidirectionalIterator<T> iterator( T arg0 ) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ObjectSortedSet<T> subSet( T arg0, T arg1 ) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public ObjectSortedSet<T> tailSet( T arg0 ) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Comparator<? super T> comparator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public T first() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public T last() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 }
