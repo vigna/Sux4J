@@ -522,6 +522,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return this instanceof InternalNode;
 		}
 
+		public InternalNode internal() {
+			return ( this instanceof InternalNode ) ? (InternalNode)this : (InternalNode)null;
+		}
+
 		public long nameLength() {
 			return parentExtentLength == 0 ? 0 : parentExtentLength + 1;
 		}
@@ -1478,10 +1482,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	private static void writeNode( final Node node, final TransformationStrategy<Object> transform, final ObjectOutputStream s ) throws IOException {
 		s.writeBoolean( node.isInternal() );
-		if ( node.isInternal() ) {
-			s.writeLong( ((InternalNode)node).extentLength - node.parentExtentLength );
-			writeNode( ((InternalNode)node).left, transform, s );
-			writeNode( ((InternalNode)node).right, transform, s );
+		InternalNode internalNode;
+		if ( ( internalNode = node.internal() ) != null ) {
+			s.writeLong( internalNode.extentLength - internalNode.parentExtentLength );
+			writeNode( internalNode.left, transform, s );
+			writeNode( internalNode.right, transform, s );
 		}
 		else s.writeObject( ((Leaf)node).key );
 	}
@@ -1509,9 +1514,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 */
 	private Node readNode( final ObjectInputStream s, final int depth, final long parentExtentLength, final Map map, final ObjectArrayList<Leaf> leafStack, final ObjectArrayList<InternalNode> jumpStack, final IntArrayList depthStack, final IntArrayList segmentStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
-		final Node node = isInternal ? new InternalNode() : new Leaf();
+		// The two following variables are identical when non-null.
+		final InternalNode internalNode = isInternal ? new InternalNode() : null;
+		final Node node = isInternal ? internalNode : new Leaf();
 		node.parentExtentLength = parentExtentLength;
-		if ( node.isInternal()) ((InternalNode)node).extentLength = parentExtentLength + s.readLong();
+		if ( isInternal ) internalNode.extentLength = parentExtentLength + s.readLong();
 
 		if ( ! dirStack.isEmpty() ) {
 			/* We cannot fix the jumps of nodes that are more than this number of levels up in the tree. */
@@ -1526,7 +1533,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				/* To be fixable, a node must be within the depth limit, and we must intercept its jump length (note that
 				 * we cannot use .intercept() as the state of node is not yet consistent). If a node cannot be fixed, no
 				 * node higher in the stack can. */
-				if ( depth - d <= maxDepthDelta && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= ((InternalNode)node).extentLength ) ) {
+				if ( depth - d <= maxDepthDelta && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= internalNode.extentLength ) ) {
 					//if ( DDEBUG ) System.err.println( "Setting " + ( dir ? "right" : "left" ) + " jump pointer of " + anc + " to " + node );
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
@@ -1543,11 +1550,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				dirStack.push( false );
 			}
 			else segmentStack.push( segmentStack.popInt() + 1 );
-			jumpStack.push( (InternalNode)node );
+			jumpStack.push( internalNode );
 			depthStack.push( depth );
 			
 			if ( DEBUG ) System.err.println( "Recursing into left node... " );
-			((InternalNode)node).left = readNode( s, depth + 1, ((InternalNode)node).extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
+			internalNode.left = readNode( s, depth + 1, internalNode.extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			int top = segmentStack.popInt();
 			if ( top != 1 ) segmentStack.push( top - 1 );
@@ -1558,11 +1565,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				dirStack.push( true );
 			}
 			else segmentStack.push( segmentStack.popInt() + 1 );
-			jumpStack.push( (InternalNode)node );
+			jumpStack.push( internalNode );
 			depthStack.push( depth );
 			
 			if ( DEBUG ) System.err.println( "Recursing into right node... " );
-			((InternalNode)node).right = readNode( s, depth + 1, ((InternalNode)node).extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
+			internalNode.right = readNode( s, depth + 1, internalNode.extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			top = segmentStack.popInt();
 			if ( top != 1 ) segmentStack.push( top - 1 );
@@ -1570,25 +1577,26 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			/* We assign the reference leaf, and store the associated key. */
 			final Leaf referenceLeaf = leafStack.pop(); 
-			((InternalNode)node).reference = referenceLeaf;
-			referenceLeaf.reference = (InternalNode)node;
+			internalNode.reference = referenceLeaf;
+			referenceLeaf.reference = internalNode;
 
-			map.addNew( (InternalNode)node );
+			map.addNew( internalNode );
 
 			if ( ASSERTS ) { // Check jump pointers.
 				Node t;
-				t = ((InternalNode)node).left; 
-				while( t.isInternal() && ! t.intercepts( ((InternalNode)node).jumpLength() ) ) t = ((InternalNode)t).left;
-				assert ((InternalNode)node).jumpLeft == t : ((InternalNode)node).jumpLeft + " != " + t + " (" + node + ")";
-				t = ((InternalNode)node).right;
-				while( t.isInternal() && ! t.intercepts( ((InternalNode)node).jumpLength() ) ) t = ((InternalNode)t).right;
-				assert ((InternalNode)node).jumpRight == t : ((InternalNode)node).jumpRight + " != " + t + " (" + node + ")";
+				t = internalNode.left; 
+				while( t.isInternal() && ! t.intercepts( internalNode.jumpLength() ) ) t = ((InternalNode)t).left;
+				assert internalNode.jumpLeft == t : internalNode.jumpLeft + " != " + t + " (" + node + ")";
+				t = internalNode.right;
+				while( t.isInternal() && ! t.intercepts( internalNode.jumpLength() ) ) t = ((InternalNode)t).right;
+				assert internalNode.jumpRight == t : internalNode.jumpRight + " != " + t + " (" + node + ")";
 			}
 		}
 		else {
-			((Leaf)node).key = (CharSequence)s.readObject();
-			leafStack.push( (Leaf)node );
-			addBefore( tail, (Leaf)node );
+			final Leaf leaf = (Leaf)node;
+			leaf.key = (CharSequence)s.readObject();
+			leafStack.push( leaf );
+			addBefore( tail, leaf );
 		}
 
 		return node;
