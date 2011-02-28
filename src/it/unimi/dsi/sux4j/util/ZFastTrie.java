@@ -90,7 +90,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	private static final boolean DDDEBUG = false;
@@ -152,7 +152,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				for( int pos = end; pos != start; ) {
 					pos = ( pos - 1 ) & mask;
-					assert signaturesSeen.add( signature[ pos ] & SIGNATURE_MASK ) ^ ( ( signature[ pos ] & DUPLICATE_MASK ) != 0 );
+					final boolean newSignature = signaturesSeen.add( signature[ pos ] & SIGNATURE_MASK ); 
+					assert newSignature != ( ( signature[ pos ] & DUPLICATE_MASK ) != 0 ) : newSignature + " == " + ( ( signature[ pos ] & DUPLICATE_MASK ) != 0 );
 					hashesSeen.add( hash( signature[ pos ] & SIGNATURE_MASK ) );
 				}
 				
@@ -430,13 +431,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				
 				for( int i = key.length; i-- != 0; ) {
 					if ( value[ i ] != null ) {
-						s = key[ i ];
+						s = key[ i ] & SIGNATURE_MASK;
 						pos = hash( s ); 
 						while( newValue[ pos ] != null ) {
 							if ( ( newKey[ pos ] & SIGNATURE_MASK ) == s ) newKey[ pos ] |= DUPLICATE_MASK;
 							pos = ( pos + 1 ) & mask;
 						}
-						newKey[ pos ] = key[ i ];
+						newKey[ pos ] = s;
 						newValue[ pos ] = value[ i ];
 					}
 				}
