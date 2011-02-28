@@ -222,7 +222,7 @@ public class ZFastTrieTest extends TestCase {
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 
-					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					// Exercise code for negative results
 					for ( int i = 1000; i-- != 0; ) zft.contains( binary( i * i + d ) );
@@ -231,17 +231,17 @@ public class ZFastTrieTest extends TestCase {
 					temp.deleteOnExit();
 					BinIO.storeObject( zft, temp );
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
-					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					temp = File.createTempFile( getClass().getSimpleName(), "test" );
 					temp.deleteOnExit();
 					BinIO.storeObject( zft, temp );
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-					for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					Collections.sort( Arrays.asList( s ) );
 
