@@ -98,6 +98,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static final boolean SHORT_SIGNATURES = false;
 	/** The mask used to extract the actual signature (the high bit marks duplicates). */
 	private static final long SIGNATURE_MASK = 0x7FFFFFFFFFFFFFFFL;
+	/** The mask for the high bit (which marks duplicates). */
 	private static final long DUPLICATE_MASK = 0x8000000000000000L;
 	
 	/** The number of elements in the trie. */
@@ -213,7 +214,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null && // Position is not empty 
+			while( signature[ pos ] != 0 && // Position is not empty 
 					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
 							( ( signature[ pos ] & DUPLICATE_MASK ) != 0 && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
 									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) // Different handle
@@ -233,7 +234,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null &&  // Position is not empty
+			while( signature[ pos ] != 0 &&  // Position is not empty
 					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
 							handleLength != node[ pos ].handleLength() || // Different handle length
 							! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) // Different handle
