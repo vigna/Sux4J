@@ -162,6 +162,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}
 		}
 
+		/** Creates a new handle-to-node map using a given transformation strategy and expected number of elements.
+		 * 
+		 * @param size the expected number of elements.
+		 * @param transform the transformation strategy used for this map.
+		 */
 		@SuppressWarnings("unchecked")
 		public Handle2NodeMap( final int size, TransformationStrategy<? super U> transform ) {
 			this.transform = transform;
@@ -172,6 +177,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			dup = new boolean[ length ];
 		}
 
+		/** Creates a new handle-to-node map using a given transformation strategy.
+		 * 
+		 * @param transform the transformation strategy used for this map.
+		 */
 		@SuppressWarnings("unchecked")
 		public Handle2NodeMap( TransformationStrategy<? super U> transform ) {
 			this.transform = transform;
@@ -181,9 +190,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			node = new InternalNode[ length ];
 			dup = new boolean[ length ];
 		}
-
-		//public transient long probes = 0;
-		//public transient long scans = 0;
 
 		/** Generates a hash table position starting from the signature.
 		 * 
