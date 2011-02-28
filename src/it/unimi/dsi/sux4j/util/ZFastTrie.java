@@ -43,7 +43,6 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ObjectSortedSet;
 import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -91,13 +90,16 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	private static final boolean DDDEBUG = false;
 	/** If true, signatures are restricted to two bits, generating lots of false positives. */
 	private static final boolean SHORT_SIGNATURES = false;
-
+	/** The mask used to extract the actual signature (the high bit marks duplicates). */
+	private static final long SIGNATURE_MASK = 0x7FFFFFFFFFFFFFFFL;
+	private static final long DUPLICATE_MASK = 0x8000000000000000L;
+	
 	/** The number of elements in the trie. */
 	private int size;
 	/** The root node. */
@@ -122,8 +124,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected InternalNode<U>[] node;
 		/** The signature of the handle of the corresponding entry {@link #node}. */
 		protected long[] signature;
-		/** If true, there are more copies of the signature along the search path. */
-		private boolean dup[];
         /** The number of elements in the table. */
 		protected int size;
 		/** The number of slots in the table (always a power of two). */
@@ -152,8 +152,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				for( int pos = end; pos != start; ) {
 					pos = ( pos - 1 ) & mask;
-					assert signaturesSeen.add( signature[ pos ] ) ^ dup[ pos ];
-					hashesSeen.add( hash( signature[ pos ] ) );
+					assert signaturesSeen.add( signature[ pos ] & SIGNATURE_MASK ) ^ ( ( signature[ pos ] & DUPLICATE_MASK ) != 0 );
+					hashesSeen.add( hash( signature[ pos ] & SIGNATURE_MASK ) );
 				}
 				
 				// Hashes in each maximal nonempty subsequence must be disjoint
@@ -175,7 +175,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			mask = length - 1;
 			signature = new long[ length ];
 			node = new InternalNode[ length ];
-			dup = new boolean[ length ];
 		}
 
 		/** Creates a new handle-to-node map using a given transformation strategy.
@@ -189,7 +188,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			mask = length - 1;
 			signature = new long[ length ];
 			node = new InternalNode[ length ];
-			dup = new boolean[ length ];
 		}
 
 		/** Generates a hash table position starting from a signature.
@@ -215,8 +213,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
 			while( node[ pos ] != null && // Position is not empty 
-					( signature[ pos ] != s || // Different signature
-							( dup[ pos ] && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
+					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
+							( ( signature[ pos ] & DUPLICATE_MASK ) != 0 && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
 									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) // Different handle
 				pos = ( pos + 1 ) & mask;
 			return pos;
@@ -235,7 +233,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
 			while( node[ pos ] != null &&  // Position is not empty
-					( signature[ pos ] != s || // Different signature
+					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
 							handleLength != node[ pos ].handleLength() || // Different handle length
 							! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) // Different handle
 				pos = ( pos + 1 ) & mask;
@@ -249,7 +247,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			size = 0;
 			signature = new long[ length ];
 			node = new InternalNode[ length ];
-			dup = new boolean[ length ];
 		}
 
 		public ObjectSet<LongArrayBitVector> keySet() {
@@ -359,12 +356,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int lastDup = -1; // Keeps track of the last duplicate entry with the same signature.
 
 			while ( node[ pos ] != n ) {
-				if ( signature[ pos ] == s ) lastDup = pos;
+				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s ) lastDup = pos;
 				pos = ( pos + 1 ) & mask;
 			}
 
 			if ( node[ pos ] == null ) throw new IllegalStateException();
-			if ( ! dup[ pos ] && lastDup != -1 ) dup[ lastDup ] = false;  // We are removing the only non-duplicate entry.
+			if ( ( signature[ pos ] & DUPLICATE_MASK ) == 0 && lastDup != -1 ) signature[ lastDup ] &= SIGNATURE_MASK;  // We are removing the only non-duplicate entry.
 
 			// Move entries, compatibly with their hash code, to fill the hole.
 		    int candidateHole, h;
@@ -374,14 +371,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				do {
 					pos = ( pos + 1 ) & mask;
 					if ( node[ pos ] == null ) break;
-					h = hash( signature[ pos ] );
+					h = hash( signature[ pos ] & SIGNATURE_MASK );
 					/* The hash h must lie cyclically between candidateHole and pos: more precisely, h must be after candidateHole
 					 * but before the first free entry in the table (which is equivalent to the previous statement). */
 				} while( candidateHole <= pos ? candidateHole < h && h <= pos : candidateHole < h || h <= pos );
 				
 				node[ candidateHole ] = node[ pos ];
 				signature[ candidateHole ] = signature[ pos ];
-				dup[ candidateHole ] = dup[ pos ];
 		    } while( node[ pos ] != null );
 
 			size--;
@@ -414,7 +410,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			
 			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
 			while( node[ pos ] != null ) {
-				if ( signature[ pos ] == s ) dup[ pos ] = true;
+				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s ) signature[ pos ] |= DUPLICATE_MASK;
 				pos = ( pos + 1 ) & mask;
 			}
 			
@@ -429,7 +425,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				final long newKey[] = new long[ length ];
 				@SuppressWarnings("unchecked")
 				final InternalNode<U>[] newValue = new InternalNode[ length ];
-				final boolean[] newDup = new boolean[ length ];
 				final long[] key = this.signature;
 				final InternalNode<U>[] value = this.node;
 				
@@ -438,7 +433,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 						s = key[ i ];
 						pos = hash( s ); 
 						while( newValue[ pos ] != null ) {
-							if ( newKey[ pos ] == s ) newDup[ pos ] = true;
+							if ( ( newKey[ pos ] & SIGNATURE_MASK ) == s ) newKey[ pos ] |= DUPLICATE_MASK;
 							pos = ( pos + 1 ) & mask;
 						}
 						newKey[ pos ] = key[ i ];
@@ -448,7 +443,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				this.signature = newKey;
 				this.node = newValue;
-				this.dup = newDup;
 			}
 			
 			if ( ASSERTS ) assertTable();
@@ -486,7 +480,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @see #get(BitVector, long, long, boolean)
 		 */
 		public InternalNode<U> get( final BitVector handle, final boolean exact ) {
-			return get( handle, handle.length(), Hashes.murmur( handle, 0 ), exact );
+			return get( handle, handle.length(), Hashes.murmur( handle, 0 ) & SIGNATURE_MASK, exact );
 		}
 		
 		public String toString() {
@@ -528,7 +522,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		public long handleHash( TransformationStrategy<? super U> transform ) {
 			if ( SHORT_SIGNATURES ) return Hashes.murmur( handle( transform ), 0 ) & 0x3;
-			else return Hashes.murmur( handle( transform ), 0 );
+			else return Hashes.murmur( handle( transform ), 0 ) & SIGNATURE_MASK;
 		}
 
 		/** Returns true if this node is the exit node of a string.
@@ -1075,14 +1069,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else fixLeftJumpsAfterDeletion( parentExitNode, (Leaf<T>)exitNode, otherNode, rightChild, stack );
 		
 		if ( cutLow && otherNodeIsInternal ) {
-			handle2Node.removeExisting( (InternalNode<T>)otherNode, Hashes.murmur( otherNode.key( transform ), otherNodeHandleLength, state, parentExitNode.extentLength ) );
+			handle2Node.removeExisting( (InternalNode<T>)otherNode, Hashes.murmur( otherNode.key( transform ), otherNodeHandleLength, state, parentExitNode.extentLength ) & SIGNATURE_MASK );
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			handle2Node.replaceExisting( parentExitNode, (InternalNode<T>)otherNode, Hashes.murmur( v, parentExitNodehandleLength, state ) );
+			handle2Node.replaceExisting( parentExitNode, (InternalNode<T>)otherNode, Hashes.murmur( v, parentExitNodehandleLength, state ) & SIGNATURE_MASK );
 			setJumps( (InternalNode<T>)otherNode );
 		}
 		else {
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			handle2Node.removeExisting( parentExitNode, Hashes.murmur( v, parentExitNodehandleLength, state ) );
+			handle2Node.removeExisting( parentExitNode, Hashes.murmur( v, parentExitNodehandleLength, state ) & SIGNATURE_MASK );
 		}
 	
 		size--;
@@ -1173,14 +1167,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else fixLeftJumpsAfterInsertion( internal, exitNode, rightChild, leaf, stack );
 
 		if ( cutLow && exitNodeIsInternal ) {
-			handle2Node.replaceExisting( (InternalNode<T>)exitNode, internal, Hashes.murmur( v, exitNodeHandleLength, state ) );
+			handle2Node.replaceExisting( (InternalNode<T>)exitNode, internal, Hashes.murmur( v, exitNodeHandleLength, state ) & SIGNATURE_MASK );
 			exitNode.parentExtentLength = lcp;
-			handle2Node.addNew( (InternalNode<T>)exitNode, Hashes.murmur( exitNode.key( transform ), exitNode.handleLength( transform ), state, lcp ) );
+			handle2Node.addNew( (InternalNode<T>)exitNode, Hashes.murmur( exitNode.key( transform ), exitNode.handleLength( transform ), state, lcp ) & SIGNATURE_MASK );
 			setJumps( (InternalNode<T>)exitNode );
 		}
 		else {
 			exitNode.parentExtentLength = lcp;
-			handle2Node.addNew( internal, Hashes.murmur( v, internal.handleLength(), state ) );
+			handle2Node.addNew( internal, Hashes.murmur( v, internal.handleLength(), state ) & SIGNATURE_MASK );
 		}
 
 		
@@ -1369,7 +1363,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( ( a & checkMask ) != f ) {
 				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 
-				node = handle2Node.get( v, f, Hashes.murmur( v, f, state ), exact );
+				node = handle2Node.get( v, f, Hashes.murmur( v, f, state ) & SIGNATURE_MASK, exact );
 
 				final long g;
 				/* The second test is just to catch false positives. The third test is necessary to
