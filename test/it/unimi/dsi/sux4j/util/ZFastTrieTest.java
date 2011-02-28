@@ -47,6 +47,10 @@ public class ZFastTrieTest extends TestCase {
 
 		zft.remove( "a" );
 		assertFalse( zft.contains( "a" ) );
+
+		ObjectBidirectionalIterator<String> iterator = zft.iterator();
+		assertFalse( iterator.hasNext() );
+		assertFalse( iterator.hasPrevious() );
 	}
 
 	@SuppressWarnings("unchecked")

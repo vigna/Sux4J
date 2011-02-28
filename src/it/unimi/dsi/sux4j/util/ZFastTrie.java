@@ -191,7 +191,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			dup = new boolean[ length ];
 		}
 
-		/** Generates a hash table position starting from the signature.
+		/** Generates a hash table position starting from a signature.
 		 * 
 		 * @param s a signature.
 		 */
@@ -202,19 +202,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Find the position in the table of a given handle using signatures.
 		 * 
 		 * <p>Note that this function just compares signatures (except for duplicates, which are
-		 * checked explicitly). Thus, it might return false positives.
+		 * checked explicitly). Thus, it might return false positives when queried with
+		 * keys that are not handles. Nonetheless, it will always return a correct result on a handle.
 		 * 
-		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
 		 * @param v a bit vector.
 		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
-		 * @return the position in the table where the specified handle can be found, or <code>null</code>.
+		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
+		 * 
+		 * @return the position in the table where the specified handle can be found, or a position containing <code>null</code>.
 		 */
-		protected int findPos( final long s, final BitVector v, final long handleLength ) {
+		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null && 
-					( signature[ pos ] != s || 
-							( dup[ pos ] && ( handleLength != node[ pos ].handleLength() || 
-									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) 
+			while( node[ pos ] != null && // Position is not empty 
+					( signature[ pos ] != s || // Different signature
+							( dup[ pos ] && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
+									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) // Different handle
 				pos = ( pos + 1 ) & mask;
 			return pos;
 		}
@@ -223,18 +225,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Find the position in the table of a given handle using handles.
 		 * 
 		 * <p>Note that this function compares handles. Thus, it always returns a correct value.
-		 * 
-		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
 		 * @param v a bit vector.
 		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
-		 * @return the position in the table where the specified handle can be found, or <code>null</code>.
+		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
+		 * 
+		 * @return the position in the table where the specified handle can be found, or a position containing <code>null</code>.
 		 */
-		protected int findExactPos( final long s, final BitVector v, final long handleLength ) {
+		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null ) {
-				if ( signature[ pos ] == s && handleLength == node[ pos ].handleLength() && v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) break;
+			while( node[ pos ] != null &&  // Position is not empty
+					( signature[ pos ] != s || // Different signature
+							handleLength != node[ pos ].handleLength() || // Different handle length
+							! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) // Different handle
 				pos = ( pos + 1 ) & mask;
-			}
 			return pos;
 		}
 		
@@ -326,16 +329,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		/** Replaces an entry with a given node.
 		 * 
-		 * @param s the signature of the handle of <code>newNode</code>.
-		 * @param newNode a node with a handle already appearing in the table; the corresponding
-		 * node will be replaced.
+		 * @param oldNode a node appearing in the table.
+		 * @param newNode a node with the same handle as <code>oldNode</code>.
+		 * @param s the signature of the handle of <code>oldNode</code> and <code>newNode</code>.
 		 */
-		public void replace( long s, final InternalNode<U> newNode, final InternalNode<U> oldNode ) {
+		public void replaceExisting( final InternalNode<U> oldNode, final InternalNode<U> newNode, long s ) {
 			if ( SHORT_SIGNATURES ) s &= 0x3;
 			int pos = hash( s );
 			while( node[ pos ] != oldNode ) pos = ( pos + 1 ) & mask;
 			if ( node[ pos ] == null ) throw new IllegalStateException();
-			if ( ASSERTS ) assert node[ pos ] != null;
 			if ( ASSERTS ) assert node[ pos ].handle( transform ).equals( newNode.handle( transform ) ) : node[ pos ].handle( transform ) + " != " + newNode.handle( transform );
 			node[ pos ] = newNode;
 			if ( ASSERTS ) assertTable();
@@ -343,16 +345,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		/** Removes an existing entry from the table.
 		 * 
-		 * <p>Note that as long as the given node is actually in the
-		 * table this function will always perform correctly. Otherwise, the results are unpredictable.
-		 * 
-		 * @param s the signature of the handle of <code>v</code>.
 		 * @param n the node to be removed.
-		 *
-		 * @throws IllegalStateException if <code>v</code> is not in the table.
+		 * @param s the signature of the handle of <code>n</code>.
+		 * 
+		 * @throws IllegalStateException if <code>n</code> is not in the table.
 		 */
-		public void removeExisting( long s, final InternalNode<U> n ) {
-			if ( DEBUG ) System.err.println( "Map.remove(" + s + ", " + n + ")" );
+		public void removeExisting( final InternalNode<U> n, long s ) {
+			if ( DEBUG ) System.err.println( "Map.remove(" + n + ", " + s + ")" );
 			if ( SHORT_SIGNATURES ) s &= 0x3;
 
 			int pos = hash( s );
@@ -365,6 +364,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			if ( node[ pos ] == null ) throw new IllegalStateException();
 			if ( ! dup[ pos ] && lastDup != -1 ) dup[ lastDup ] = false;  // We are removing the only non-duplicate entry.
+
 			// Move entries, compatibly with their hash code, to fill the hole.
 		    int candidateHole, h;
 		    do {
@@ -373,8 +373,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				do {
 					pos = ( pos + 1 ) & mask;
 					if ( node[ pos ] == null ) break;
-					// TODO: pick this from signatures!!
-					h = hash( node[ pos ].handleHash( transform ) );
+					h = hash( signature[ pos ] );
 					/* The hash h must lie cyclically between candidateHole and pos: more precisely, h must be after candidateHole
 					 * but before the first free entry in the table (which is equivalent to the previous statement). */
 				} while( candidateHole <= pos ? candidateHole < h && h <= pos : candidateHole < h || h <= pos );
@@ -392,23 +391,24 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * 
 		 * @param v a node.
 		 * 
-		 * @see #addNew(long, InternalNode)
+		 * @see #addNew(InternalNode, long)
 		 */
 		public void addNew( final InternalNode<U> v ) {
-			addNew( v.handleHash( transform ), v );
+			addNew( v, v.handleHash( transform ) );
 		}
 			
 		/** Adds a new entry to the table.
 		 * 
 		 * <p>Note that as long as the handle of the given node is not in the
-		 * table this function will always perform correctly. Otherwise, the result is unpredictable.
+		 * table this function will always perform correctly. Otherwise, 
+		 * the table will end up containing two copies of the same key (i.e., handle).
 		 * 
-		 * @param s the signature of the handle of <code>v</code>.
 		 * @param n a node.
+		 * @param s the signature of the handle of <code>n</code>.
 		 */
-		public void addNew( long s, final InternalNode<U> n ) {
+		public void addNew( final InternalNode<U> n, long s ) {
 			if ( SHORT_SIGNATURES ) s &= 0x3;
-			if ( DEBUG ) System.err.println( "Map.addNew(" + s + ", " + n + ")" );
+			if ( DEBUG ) System.err.println( "Map.addNew(" + n + ", " + s + ")" );
 			int pos = hash( s );
 			
 			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
@@ -416,8 +416,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				if ( signature[ pos ] == s ) dup[ pos ] = true;
 				pos = ( pos + 1 ) & mask;
 			}
-			
-			if ( ASSERTS ) assert node[ pos ] == null;
 			
 			size++;
 			signature[ pos ] = s;
@@ -459,32 +457,31 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return size;
 		}
 
-		/** Retrives a node given its handle.
+		/** Retrieves a node given its handle.
 		 * 
 		 * @param v a bit vector.
 		 * @param handleLength the prefix of <code>v</code> that must be used as a handle.
 		 * @param s the signature of the specified handle.
 		 * @param exact whether the search should be exact; if false, and the given handle does not
-		 * appear in the table, it is possible that a wrong node is returned.
-		 * @return the node with given handle, or <code>null</code> if there is no such node.
+		 * appear in the table, it is possible that an unpredictable internal node is returned.
+		 * 
+		 * @return the node with given handle, or <code>null</code> if there is no such node (if
+		 * <code>exact</code> is false, a false positive might be returned).
 		 */
 		public InternalNode<U> get( final BitVector v, final long handleLength, final long s, final boolean exact ) {
-			if ( SHORT_SIGNATURES ) {
-				final int pos = exact ? findExactPos( s & 0x3, v, handleLength ) : findPos( s & 0x3, v, handleLength );
-				return node[ pos ];
-			}
-			else {
-				final int pos = exact ? findExactPos( s, v, handleLength ) : findPos( s, v, handleLength );
-				return node[ pos ];
-			}
+			if ( SHORT_SIGNATURES ) return node[ exact ? findExactPos( v, handleLength, s & 0x3 ) : findPos( v, handleLength, s & 0x3 ) ];
+			else return node[ exact ? findExactPos( v, handleLength, s ) : findPos( v, handleLength, s ) ];
 		}
 
-		/** Retrives a node given its handle.
+		/** Retrieves a node given its handle.
 		 * 
 		 * @param handle a handle.
 		 * @param exact whether the search should be exact; if false, and the given handle does not
-		 * appear in the table, it is possible that a wrong node is returned.
-		 * @return the node with given handle, or <code>null</code> if there is no such node.
+		 * appear in the table, it is possible that an unpredictable internal node is returned.
+		 * 
+		 * @return the node with given handle, or <code>null</code> if there is no such node (if
+		 * <code>exact</code> is false, a false positive might be returned).
+		 * 
 		 * @see #get(BitVector, long, long, boolean)
 		 */
 		public InternalNode<U> get( final BitVector handle, final boolean exact ) {
@@ -528,7 +525,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		public abstract BitVector extent( TransformationStrategy<? super U> transform );
 		public abstract boolean intercepts( final long h );
 
-		public long handleHash(  TransformationStrategy<? super U> transform ) {
+		public long handleHash( TransformationStrategy<? super U> transform ) {
 			if ( SHORT_SIGNATURES ) return Hashes.murmur( handle( transform ), 0 ) & 0x3;
 			else return Hashes.murmur( handle( transform ), 0 );
 		}
@@ -566,21 +563,20 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 	}
 	
-	/** A node of the trie. */
+	/** A internal node. */
 	protected final static class InternalNode<U> extends Node<U> {
-		/** The length of the extent (for leaves, this is equal to the length of the transformed {@link #key}). */
+		/** The length of the extent (for leaves, this is equal to the length of the transformed {@link #key}, which 
+		 * is returned by {@link #extentLength(TransformationStrategy)}). */
 		protected long extentLength;
-		/** The left subtree. */
+		/** The left subtrie. */
 		protected Node<U> left;
-		/** The right subtree. */
+		/** The right subtrie. */
 		protected Node<U> right;
-		/** The jump pointer for the left path for internal nodes; <code>null</code>, otherwise (this
-		 * makes leaves distinguishable). */
+		/** The left jump pointer. */
 		protected Node<U> jumpLeft;
-		/** The jump pointer for the right path for internal nodes; <code>null</code>, otherwise. */
+		/** The right jump pointer. */
 		protected Node<U> jumpRight;
-		/** The leaf whose key this node refers to for internal nodes; the internal node that
-		 * refers to the key of this leaf, otherwise. Will be <code>null</code> for exactly one leaf. */
+		/** The leaf whose key this node refers to. */
 		protected Leaf<U> reference;
 
 		public long handleLength() {
@@ -622,22 +618,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 	}		
 
-	/** A node of the trie. */
+	/** An external node, a.k.a. leaf. */
 	protected final static class Leaf<U> extends Node<U> {
 		/** The previous leaf. */
 		protected Leaf<U> prev;
 		/** The next leaf. */
 		protected Leaf<U> next;
-		/** The key upon which the extent of node is based, for internal nodes; the 
-		 * key associated to a leaf, otherwise. */
+		/** The key associated to this leaf. */
 		protected U key;
-		/** The leaf whose key this node refers to for internal nodes; the internal node that
-		 * refers to the key of this leaf, otherwise. Will be <code>null</code> for exactly one leaf. */
+		/** The internal node that refers to the key of this leaf, if any. It will be <code>null</code> for exactly one leaf. */
 		protected InternalNode<U> reference;
 
 		public BitVector handle( TransformationStrategy<? super U> transform ) {
 			return reference.key( transform ).subVector( 0, handleLength( transform ) );
 		}
+		
 		public boolean isLeaf() {
 			return true;
 		}
@@ -662,7 +657,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		public BitVector key( final TransformationStrategy<? super U> transform ) {
 			return transform.toBitVector( key );
 		}
-
 	}
 
 	/** Creates a new z-fast trie using the given transformation strategy. 
@@ -684,7 +678,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	/** Creates a new z-fast trie using the given elements and transformation strategy. 
 	 * 
-	 * @param elements an iterator returning the elements among which the trie must be able to rank.
+	 * @param elements an iterator returning the elements to be inserted in the trie.
 	 * @param transform a transformation strategy that must turn distinct elements into distinct, prefix-free bit vectors.
 	 */
 	public ZFastTrie( final Iterator<? extends T> elements, final TransformationStrategy<? super T> transform ) {
@@ -694,7 +688,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	/** Creates a new z-fast trie using the given elements and transformation strategy. 
 	 * 
-	 * @param elements an iterator returning the elements among which the trie must be able to rank.
+	 * @param elements an iterator returning the elements to be inserted in the trie.
 	 * @param transform a transformation strategy that must turn distinct elements into distinct, prefix-free bit vectors.
 	 */
 	public ZFastTrie( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) {
@@ -842,11 +836,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	/** Fixes the right jumps of the ancestors of a node after an insertion.
-	 * 
+	 *
+	 * @param internal the new internal node.
 	 * @param exitNode the exit node.
-	 * @param rightChild 
+	 * @param rightChild whether the exit node is a right child.
 	 * @param leaf the new leaf.
-	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
+	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
 	private static <U> void fixRightJumpsAfterInsertion( final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack ) {
 		if ( DEBUG ) System.err.println( "fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
@@ -884,10 +879,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	/** Fixes the left jumps of the ancestors of a node after an insertion.
 	 * 
+	 * @param internal the new internal node.
 	 * @param exitNode the exit node.
-	 * @param rightChild 
+	 * @param rightChild whether the exit node is a right child.
 	 * @param leaf the new leaf.
-	 * @param stack a stack containing the fat ancestors of <code>exitNode</code>.
+	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
 	private static <U> void fixLeftJumpsAfterInsertion( final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack ) {
 		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
@@ -926,13 +922,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	/** Fixes the right jumps of the ancestors of a node after a deletion.
 	 * 
-	 * @param parentExitNode the exit node.
-	 * @param rightChild 
-	 * @param exitNode the new leaf.
-	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
+	 * @param parentExitNode the parent of the exit node.
+	 * @param exitNode the exit node. 
+	 * @param otherNode the other child of the parent of the exit node.
+	 * @param rightChild whether the parent of the exit node is a right child.
+	 * @param stack a stack containing the 2-fat ancestors of the grandparent of the exit node.
 	 */
-	private static <U> void fixRightJumpsAfterDeletion( Node<U> otherNode, InternalNode<U> parentExitNode, boolean rightChild, Leaf<U> exitNode, final ObjectArrayList<InternalNode<U>> stack ) {
-		if ( DEBUG ) System.err.println( "fixRightJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
+	private static <U> void fixRightJumpsAfterDeletion( InternalNode<U> parentExitNode, Leaf<U> exitNode, Node<U> otherNode, boolean rightChild, final ObjectArrayList<InternalNode<U>> stack ) {
+		if ( DEBUG ) System.err.println( "fixRightJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack );
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
 
@@ -966,13 +963,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	/** Fixes the left jumps of the ancestors of a node after a deletion.
 	 * 
-	 * @param parentExitNode the exit node.
-	 * @param rightChild 
-	 * @param exitNode the new leaf.
-	 * @param stack a stack containing the 2-fat ancestors of <code>exitNode</code>.
+	 * @param parentExitNode the parent of the exit node.
+	 * @param exitNode the exit node. 
+	 * @param otherNode the other child of the parent of the exit node.
+	 * @param rightChild whether the parent of the exit node is a right child.
+	 * @param stack a stack containing the 2-fat ancestors of the grandparent of the exit node.
 	 */
-	private static <U> void fixLeftJumpsAfterDeletion( Node<U> otherNode, InternalNode<U> parentExitNode, boolean rightChild, Leaf<U> exitNode, final ObjectArrayList<InternalNode<U>> stack ) {
-		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterDeletion(" + otherNode + ", " + parentExitNode + ", " + rightChild + ", " + exitNode + ", " + stack );
+	private static <U> void fixLeftJumpsAfterDeletion( InternalNode<U> parentExitNode, Leaf<U> exitNode, Node<U> otherNode, boolean rightChild, final ObjectArrayList<InternalNode<U>> stack ) {
+		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack );
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
 
@@ -1006,13 +1004,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	@SuppressWarnings("unchecked")
 	public boolean remove( final Object k ) {
-		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)k ) );
 		if ( DEBUG ) System.err.println( "remove(" + k + ")" );
+		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)k ) );
 		
 		if ( size == 0 ) return false;
 		
 		if ( size == 1 ) {
 			if ( ! ((Leaf<T>)root).key.equals( k ) ) return false;
+			removeLeaf( (Leaf<T>)root );
 			root = null;
 			size = 0;
 			if ( ASSERTS ) assertTrie();
@@ -1044,7 +1043,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final boolean otherNodeIsInternal = otherNode.isInternal();
 
 		if ( parentExitNode != null && parentExitNode != root ) {
-			// Let us fix grandpa's child pointer.
+			// Let us fix grandpa's child pointer and update the stack.
 			final InternalNode<T> grandParentExitNode = getGrandParentExitNode( v, state, stack );
 			if ( DDEBUG ) System.err.println( "Grandparex node: " + grandParentExitNode );
 			if ( rightChild = ( grandParentExitNode.right == parentExitNode ) )  grandParentExitNode.right = otherNode;
@@ -1055,7 +1054,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long otherNodeHandleLength = otherNode.handleLength( transform );
 		final long t = parentExitNodehandleLength | otherNodeHandleLength;
 		final boolean cutLow = ( t & -t & otherNodeHandleLength ) != 0;
-
 
 		if ( parentExitNode == root ) root = otherNode;
 
@@ -1072,18 +1070,18 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		if ( DDEBUG ) System.err.println( "Cut " + ( cutLow ? "low" : "high") + "; leaf on the " + ( rightLeaf ? "right" : "left") + "; other node is " + ( otherNodeIsInternal ? "internal" : "a leaf") );
 		
-		if ( rightLeaf ) fixRightJumpsAfterDeletion( otherNode, parentExitNode, rightChild, (Leaf<T>)exitNode, stack );
-		else fixLeftJumpsAfterDeletion( otherNode, parentExitNode, rightChild, (Leaf<T>)exitNode, stack );
+		if ( rightLeaf ) fixRightJumpsAfterDeletion( parentExitNode, (Leaf<T>)exitNode, otherNode, rightChild, stack );
+		else fixLeftJumpsAfterDeletion( parentExitNode, (Leaf<T>)exitNode, otherNode, rightChild, stack );
 		
 		if ( cutLow && otherNodeIsInternal ) {
-			handle2Node.removeExisting( Hashes.murmur( otherNode.key( transform ), otherNodeHandleLength, state, parentExitNode.extentLength ), (InternalNode<T>)otherNode );
+			handle2Node.removeExisting( (InternalNode<T>)otherNode, Hashes.murmur( otherNode.key( transform ), otherNodeHandleLength, state, parentExitNode.extentLength ) );
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			handle2Node.replace( Hashes.murmur( v, parentExitNodehandleLength, state ), (InternalNode<T>)otherNode, parentExitNode );
+			handle2Node.replaceExisting( parentExitNode, (InternalNode<T>)otherNode, Hashes.murmur( v, parentExitNodehandleLength, state ) );
 			setJumps( (InternalNode<T>)otherNode );
 		}
 		else {
 			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
-			handle2Node.removeExisting( Hashes.murmur( v, parentExitNodehandleLength, state ), parentExitNode );
+			handle2Node.removeExisting( parentExitNode, Hashes.murmur( v, parentExitNodehandleLength, state ) );
 		}
 	
 		size--;
@@ -1100,7 +1098,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( DEBUG ) System.err.println( "add(" + k + ")" );
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		if ( DEBUG ) System.err.println( "add(" + v + ")" );
-		if ( DEBUG ) System.err.println( "Map: " + handle2Node + " root: " + root );
 		
 		if ( size == 0 ) {
 			final Leaf<T> leaf = new Leaf<T>();
@@ -1175,14 +1172,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else fixLeftJumpsAfterInsertion( internal, exitNode, rightChild, leaf, stack );
 
 		if ( cutLow && exitNodeIsInternal ) {
-			handle2Node.replace( Hashes.murmur( v, exitNodeHandleLength, state ), internal, (InternalNode<T>)exitNode );
+			handle2Node.replaceExisting( (InternalNode<T>)exitNode, internal, Hashes.murmur( v, exitNodeHandleLength, state ) );
 			exitNode.parentExtentLength = lcp;
-			handle2Node.addNew( Hashes.murmur( exitNode.key( transform ), exitNode.handleLength( transform ), state, lcp ), (InternalNode<T>)exitNode );
+			handle2Node.addNew( (InternalNode<T>)exitNode, Hashes.murmur( exitNode.key( transform ), exitNode.handleLength( transform ), state, lcp ) );
 			setJumps( (InternalNode<T>)exitNode );
 		}
 		else {
 			exitNode.parentExtentLength = lcp;
-			handle2Node.addNew( Hashes.murmur( v, internal.handleLength(), state ), internal );
+			handle2Node.addNew( internal, Hashes.murmur( v, internal.handleLength(), state ) );
 		}
 
 		
