@@ -43,6 +43,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ObjectSortedSet;
 import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -1653,6 +1654,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrie.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new Switch( "loadAll", 'l', "load-all", "Load all strings into memory before building the trie." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "bitVector", 'b', "bit-vector", "Build a trie of bit vectors, rather than a trie of strings." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
@@ -1669,10 +1671,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
-
+		
 		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );
 
-		final LineIterator lineIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( inputStream ) : inputStream, encoding ) ) );
+		Iterator<MutableString> lineIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( inputStream ) : inputStream, encoding ) ) );
+		if ( jsapResult.userSpecified( "loadAll" ) ) lineIterator = ((LineIterator)lineIterator).allLines().iterator();
 		
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
 		? TransformationStrategies.prefixFreeIso() 
