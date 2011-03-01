@@ -222,12 +222,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null && // Position is not empty 
-					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
-							( ( signature[ pos ] & DUPLICATE_MASK ) != 0 && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
-									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) // Different handle
+			while( signature[ pos ] != 0 ) { // Position is not empty 
+				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s // Different signature
+						&& ( ( signature[ pos ] & DUPLICATE_MASK ) == 0 // It's not a ducplicate 
+								|| ( handleLength == node[ pos ].handleLength() && // Different handle length (it's a duplicate) 
+									v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) // Different handle
+					return pos;
 				pos = ( pos + 1 ) & mask;
-			return pos;
+			}
+			return -1;
 		}
 		
 		
@@ -475,8 +478,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * <code>exact</code> is false, a false positive might be returned).
 		 */
 		public InternalNode<U> get( final BitVector v, final long handleLength, final long s, final boolean exact ) {
-			if ( SHORT_SIGNATURES ) return node[ exact ? findExactPos( v, handleLength, s & 0x3 ) : findPos( v, handleLength, s & 0x3 ) ];
-			else return node[ exact ? findExactPos( v, handleLength, s ) : findPos( v, handleLength, s ) ];
+			final int pos;
+			if ( SHORT_SIGNATURES ) pos =  exact ? findExactPos( v, handleLength, s & 0x3 ) : findPos( v, handleLength, s & 0x3 );
+			else pos = exact ? findExactPos( v, handleLength, s ) : findPos( v, handleLength, s );
+			return pos == 1 ? null : node[ pos ];
+		}
+
+		public int getPos( final BitVector v, final long handleLength, final long s, final boolean exact ) {
+			if ( SHORT_SIGNATURES ) return exact ? findExactPos( v, handleLength, s & 0x3 ) : findPos( v, handleLength, s & 0x3 );
+			else return exact ? findExactPos( v, handleLength, s ) : findPos( v, handleLength, s );
 		}
 
 		/** Retrieves a node given its handle.
@@ -1361,8 +1371,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( DDDEBUG ) System.err.println( "fatBinarySearch(" + v + ", " + stack  + ", " + exact + ", (" + a + ".." + b +"])" );
 
 		if ( ASSERTS ) assert a < b : a + " >= " + b;
-		InternalNode<T> node = null, top = stack == null || stack.isEmpty() ? null : stack.top();
-		long topExtentLength = 0;
+		InternalNode<T> n = null, top = stack == null || stack.isEmpty() ? null : stack.top();
+		final InternalNode<T>[] node = handle2Node.node;
+		int pos;
 
 		long checkMask = -1L << Fast.ceilLog2( b - a );
 		
@@ -1374,19 +1385,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( ( a & checkMask ) != f ) {
 				if ( DDDEBUG ) System.err.println( "Inquiring with key " + v.subVector( 0, f ) + " (" + f + ")" );
 
-				node = handle2Node.get( v, f, Hashes.murmur( v, f, state ) & SIGNATURE_MASK, exact );
+				pos = handle2Node.getPos( v, f, Hashes.murmur( v, f, state ) & SIGNATURE_MASK, exact );
 
 				final long g;
 				/* The second test is just to catch false positives. The third test is necessary to
 				 * guarantee that if the exit node is correct the whole stack is correct. */
-				if ( node == null || ( g = node.extentLength ) < f || ( node.parentExtentLength < topExtentLength ) ) {
+				if ( pos == -1 || ( g = node[ pos ].extentLength ) < f ) {
 					if ( DDDEBUG ) System.err.println( "Missing" );
 					b = f - 1;
 				}
 				else {
 					if ( DDDEBUG ) System.err.println( "Found extent of length " + g );
-					if ( stack != null ) stack.push( node );
-					topExtentLength = ( top = node ).extentLength;
+					top = node[ pos ];
+					if ( stack != null ) stack.push( top );
 					a = g;
 				}
 			}
