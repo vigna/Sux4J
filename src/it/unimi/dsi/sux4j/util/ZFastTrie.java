@@ -222,7 +222,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( signature[ pos ] != 0 && // Position is not empty 
+			while( node[ pos ] != null && // Position is not empty 
 					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
 							( ( signature[ pos ] & DUPLICATE_MASK ) != 0 && ( handleLength != node[ pos ].handleLength() || // Different handle length (it's a duplicate) 
 									! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) ) // Different handle
@@ -242,7 +242,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( signature[ pos ] != 0 &&  // Position is not empty
+			while( node[ pos ] != null &&  // Position is not empty
 					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
 							handleLength != node[ pos ].handleLength() || // Different handle length
 							! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) // Different handle
@@ -419,7 +419,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int pos = hash( s );
 			
 			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
-			while( signature[ pos ] != 0 ) {
+			while( node[ pos ] != null ) {
 				if ( signature[ pos ] == s ) signature[ pos ] |= DUPLICATE_MASK;
 				pos = ( pos + 1 ) & mask;
 			}
