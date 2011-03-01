@@ -359,7 +359,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @throws IllegalStateException if <code>n</code> is not in the table.
 		 */
 		public void removeExisting( final InternalNode<U> n, long s ) {
-			if ( DEBUG ) System.err.println( "Map.remove(" + n + ", " + s + ")" );
+			if ( DEBUG ) System.err.println( "Map.removeExisting(" + n + ", " + s + ")" );
 			if ( SHORT_SIGNATURES ) s &= 0x3;
 
 			int pos = hash( s );
