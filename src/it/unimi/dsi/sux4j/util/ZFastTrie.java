@@ -418,7 +418,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( DEBUG ) System.err.println( "Map.addNew(" + n + ", " + s + ")" );
 			int pos = hash( s );
 			
-			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
+			/* Finds a free position, marking the only non-duplicate key (if any) with 
+			 * the same signature along the search path as a duplicate. */
 			while( node[ pos ] != null ) {
 				if ( signature[ pos ] == s ) signature[ pos ] |= DUPLICATE_MASK;
 				pos = ( pos + 1 ) & mask;
