@@ -133,7 +133,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected int mask;
 
 		protected void assertTable() {
-			for( int i = signature.length; i-- != 0; ) if ( node[ i ] != null ) assert get( node[ i ].handle( transform ), true ) == node[ i ];
+			int c = 0;
+			for( int i = signature.length; i-- != 0; ) {
+				if ( node[ i ] != null ) {
+					assert get( node[ i ].handle( transform ), true ) == node[ i ];
+					c++;
+				}
+			}
+			
+			assert c == size() : c + " != " + size();
 			if ( size == 0 ) return;
 			final IntOpenHashSet overallHashes = new IntOpenHashSet();
 			int start = 0;
@@ -411,8 +419,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int pos = hash( s );
 			
 			// Finds a free position, marking all keys with the same signature along the search path as duplicates.
-			while( node[ pos ] != null ) {
-				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s ) signature[ pos ] |= DUPLICATE_MASK;
+			while( signature[ pos ] != 0 ) {
+				if ( signature[ pos ] == s ) signature[ pos ] |= DUPLICATE_MASK;
 				pos = ( pos + 1 ) & mask;
 			}
 			
