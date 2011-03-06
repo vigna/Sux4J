@@ -223,7 +223,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
 			while( signature[ pos ] != 0 ) { // Position is not empty 
-				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s // Different signature
+				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s // Same signature
 						&& ( ( signature[ pos ] & DUPLICATE_MASK ) == 0 // It's not a duplicate 
 								|| ( handleLength == node[ pos ].handleLength() && // Same handle length (it's a duplicate) 
 									v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) // Same handle
@@ -245,12 +245,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 */
 		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
-			while( node[ pos ] != null &&  // Position is not empty
-					( ( signature[ pos ] & SIGNATURE_MASK ) != s || // Different signature
-							handleLength != node[ pos ].handleLength() || // Different handle length
-							! v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) // Different handle
+			while( node[ pos ] != null ) { // Position is not empty
+					if ( ( signature[ pos ] & SIGNATURE_MASK ) == s && // Same signature
+							handleLength == node[ pos ].handleLength() && // Same handle length
+								v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) // Same handle
+						return pos;
 				pos = ( pos + 1 ) & mask;
-			return pos;
+			}
+			return -1;
 		}
 		
 		@SuppressWarnings("unchecked")
@@ -776,11 +778,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size > 1 ) {
 			/* Verify doubly linked list of leaves. */
 			Leaf<T> toRight = head.next, toLeft = tail.prev;
-			for( int i = 1; i < size; i++ ) {
-				assert new MutableString( (CharSequence)toRight.key ).compareTo( (CharSequence)toRight.next.key ) < 0 : toRight.key + " >= " + toRight.next.key + " " + toRight + " " + toRight.next;
-				assert new MutableString( (CharSequence)toLeft.key ).compareTo( (CharSequence)toLeft.prev.key ) > 0 : toLeft.key + " >= " + toLeft.prev.key + " " + toLeft + " " + toLeft.prev;
-				toRight = toRight.next;
-				toLeft = toLeft.prev;
+			if ( head.next.key instanceof CharSequence ) {
+				for( int i = 1; i < size; i++ ) {
+					assert new MutableString( (CharSequence)toRight.key ).compareTo( (CharSequence)toRight.next.key ) < 0 : toRight.key + " >= " + toRight.next.key + " " + toRight + " " + toRight.next;
+					assert new MutableString( (CharSequence)toLeft.key ).compareTo( (CharSequence)toLeft.prev.key ) > 0 : toLeft.key + " >= " + toLeft.prev.key + " " + toLeft + " " + toLeft.prev;
+					toRight = toRight.next;
+					toLeft = toLeft.prev;
+				}
 			}
 
 			final int numNodes = visit( handle2Node.get( root, true ), null, 0, 0, nodes, leaves, references );
@@ -807,7 +811,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		assert parent == null || parent.extent( transform ).equals( n.extent( transform ).subVector( 0, ((InternalNode<T>)parent).extentLength ) );
-		assert parentExtentLength < n.extentLength( transform );
+		assert n == root || parentExtentLength < n.extentLength( transform );
+		assert n != root || parentExtentLength <= n.extentLength( transform );
 		assert n.parentExtentLength == parentExtentLength : n.parentExtentLength + " != " + parentExtentLength + " " + n;
 		
 		if ( n.isInternal() ) {
@@ -1255,9 +1260,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		// In this case the fat binary search gave us the correct parex node.
 		if ( candidateExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( candidateExitNode, lcpLength );
-		// In this case the fat binary search gave us the correct exit node.
-		lcpLength = Math.min( parexOrExitNode.extentLength, lcpLength );
-		if ( parexOrExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( parexOrExitNode, lcpLength );
+
+		if ( parexOrExitNode != null ) {
+			// In this case the fat binary search gave us the correct exit node.
+			lcpLength = Math.min( parexOrExitNode.extentLength, lcpLength );
+			if ( parexOrExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( parexOrExitNode, lcpLength );
+		}
 
 		// Otherwise, something went horribly wrong. We restart in exact mode.
 		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
@@ -1420,7 +1428,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		if ( DDDEBUG ) System.err.println( "Final interval: (" + a + ".." + b + "]; top: " + top + "; stack: " + stack );
-		
+		if ( a == 0 && root.extentLength( transform ) == 0 ) {
+			top = (InternalNode<T>)root;
+			if ( stack != null ) stack.push( top );
+		}
 		return top;
 	}
 	
