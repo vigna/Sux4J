@@ -90,7 +90,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	private static final boolean DDDEBUG = false;
@@ -481,7 +481,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			final int pos;
 			if ( SHORT_SIGNATURES ) pos =  exact ? findExactPos( v, handleLength, s & 0x3 ) : findPos( v, handleLength, s & 0x3 );
 			else pos = exact ? findExactPos( v, handleLength, s ) : findPos( v, handleLength, s );
-			return pos == 1 ? null : node[ pos ];
+			return pos == -1 ? null : node[ pos ];
 		}
 
 		public int getPos( final BitVector v, final long handleLength, final long s, final boolean exact ) {
