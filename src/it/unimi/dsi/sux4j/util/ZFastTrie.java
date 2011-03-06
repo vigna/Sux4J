@@ -90,7 +90,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	private static final boolean DDDEBUG = false;
@@ -564,7 +564,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @return true if the string exits at this node.
 		 */
 		public boolean isExitNodeOf( final long length, final long lcpLength, TransformationStrategy<? super U> transform  ) {
-			return parentExtentLength < lcpLength && ( lcpLength < extentLength( transform ) || lcpLength == length );
+			return ( parentExtentLength == 0 || parentExtentLength < lcpLength ) && ( lcpLength < extentLength( transform ) || lcpLength == length );
 		}
 
 		@SuppressWarnings({"rawtypes","unchecked"})
