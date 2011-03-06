@@ -524,7 +524,7 @@ public class Hashes {
 		
 	}
 	
-	/** Constant-time MurmurHash 64-bit hashing reusing precomputed state partially.
+	/** Fast MurmurHash 64-bit hashing reusing precomputed state partially.
 	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.

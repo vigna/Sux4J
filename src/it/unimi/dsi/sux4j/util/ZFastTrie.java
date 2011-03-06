@@ -90,7 +90,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
 	private static final boolean DDDEBUG = false;
@@ -224,9 +224,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int pos = hash( s );
 			while( signature[ pos ] != 0 ) { // Position is not empty 
 				if ( ( signature[ pos ] & SIGNATURE_MASK ) == s // Different signature
-						&& ( ( signature[ pos ] & DUPLICATE_MASK ) == 0 // It's not a ducplicate 
-								|| ( handleLength == node[ pos ].handleLength() && // Different handle length (it's a duplicate) 
-									v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) // Different handle
+						&& ( ( signature[ pos ] & DUPLICATE_MASK ) == 0 // It's not a duplicate 
+								|| ( handleLength == node[ pos ].handleLength() && // Same handle length (it's a duplicate) 
+									v.equals( node[ pos ].reference.key( transform ), 0, handleLength ) ) ) ) // Same handle
 					return pos;
 				pos = ( pos + 1 ) & mask;
 			}
@@ -433,7 +433,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			node[ pos ] = n;
 
 			if ( 3L * size > 2L * length ) {
-				// Rehash.
+				// Rehash. TODO: check that it does not happen too often!
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[ length ];
@@ -1219,15 +1219,25 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return true;
 	}
 
+	protected final static class ExitData<U> {
+		protected final long lcp;
+		protected final Node<U> exitNode;
+
+		protected ExitData( final Node<U> exitNode, final long lcp ) {
+			this.lcp = lcp;
+			this.exitNode = exitNode;
+		}
+	}
+
 	/** Returns the exit node of a given bit vector.
 	 * 
 	 * @param v a bit vector.
 	 * @param state the hash state of <code>v</code> precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
 	 * @return the exit node of <code>v</code>. 
 	 */
-	private Node<T> getExitNode( final LongArrayBitVector v, final long[] state ) {
+	private ExitData<T> getExitNode( final LongArrayBitVector v, final long[] state ) {
 		if ( size == 0 ) throw new IllegalStateException();
-		if ( size == 1 ) return root;
+		if ( size == 1 ) return new ExitData<T>( root, v.longestCommonPrefixLength( root.extent( transform ) ) );
 		if ( DDEBUG ) System.err.println( "getExitNode(" + v + ")" );
 		final long length = v.length();
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
@@ -1243,18 +1253,18 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( transform ) );
 		
 		// In this case the fat binary search gave us the correct parex node.
-		if ( candidateExitNode.isExitNodeOf( length, lcpLength, transform ) ) return candidateExitNode;
+		if ( candidateExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( candidateExitNode, lcpLength );
 		// In this case the fat binary search gave us the correct exit node.
-		if ( parexOrExitNode.isExitNodeOf( length, Math.min( parexOrExitNode.extentLength, lcpLength ), transform ) ) return parexOrExitNode;
+		if ( parexOrExitNode.isExitNodeOf( length, Math.min( parexOrExitNode.extentLength, lcpLength ), transform ) ) return new ExitData<T>( parexOrExitNode, lcpLength );
 
 		// Otherwise, something went horribly wrong. We restart in exact mode.
 		parexOrExitNode = fatBinarySearch( v, state, null, true, 0, length );
-		if ( parexOrExitNode == null ) return root;
-
-		return parexOrExitNode.extent( transform ).isProperPrefix( v ) ?
+		if ( parexOrExitNode == null ) candidateExitNode = root;
+		else candidateExitNode = parexOrExitNode.extent( transform ).isProperPrefix( v ) ?
 				parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left : parexOrExitNode;
+		
+		return new ExitData<T>( candidateExitNode, v.longestCommonPrefixLength( candidateExitNode.extent( transform ) ) );
 	}
-
 	
 	protected final static class ParexData<U> {
 		protected final long lcp;
@@ -1371,10 +1381,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( DDDEBUG ) System.err.println( "fatBinarySearch(" + v + ", " + stack  + ", " + exact + ", (" + a + ".." + b +"])" );
 
 		if ( ASSERTS ) assert a < b : a + " >= " + b;
-		InternalNode<T> n = null, top = stack == null || stack.isEmpty() ? null : stack.top();
-		final InternalNode<T>[] node = handle2Node.node;
-		int pos;
 
+		final InternalNode<T>[] node = handle2Node.node;
+		InternalNode<T> top = stack == null || stack.isEmpty() ? null : stack.top();
+		int pos;
 		long checkMask = -1L << Fast.ceilLog2( b - a );
 		
 		while( b - a > 0 ) {
@@ -1388,8 +1398,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				pos = handle2Node.getPos( v, f, Hashes.murmur( v, f, state ) & SIGNATURE_MASK, exact );
 
 				final long g;
-				/* The second test is just to catch false positives. The third test is necessary to
-				 * guarantee that if the exit node is correct the whole stack is correct. */
+				// The second test is just to catch false positives. 
 				if ( pos == -1 || ( g = node[ pos ].extentLength ) < f ) {
 					if ( DDDEBUG ) System.err.println( "Missing" );
 					b = f - 1;
@@ -1418,14 +1427,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size == 0 ) return false;
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( (T)o ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
-		final Node<T> exitNode = getExitNode( v, state );
-		return exitNode.isLeaf() && ((Leaf<T>)exitNode).key.equals( o );
+		final ExitData<T> exitData = getExitNode( v, state );
+		return exitData.exitNode.isLeaf() && exitData.lcp == transform.length( ((Leaf<T>)exitData.exitNode).key );
 	}
 
 	private Leaf<T> predNode( final T k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
-		Node<T> exitNode = getExitNode( v, state );
+		Node<T> exitNode = getExitNode( v, state ).exitNode;
 		
 		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpRight != null ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
@@ -1447,7 +1456,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> succNode( final T k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 0 );
-		Node<T> exitNode = getExitNode( v, state );
+		Node<T> exitNode = getExitNode( v, state ).exitNode;
 
 		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
 			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpLeft != null ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
