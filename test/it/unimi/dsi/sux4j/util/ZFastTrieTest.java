@@ -1,6 +1,9 @@
 package it.unimi.dsi.sux4j.util;
 
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
@@ -208,6 +211,30 @@ public class ZFastTrieTest extends TestCase {
 			assertFalse( zft.contains( s[ i ] ) );
 		}
 	}
+
+	
+	public void testEmptyLcp() {
+		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ONE ) );
+		assertTrue( zft.contains( LongArrayBitVector.of( 0, 0 ) ) );
+		assertTrue( zft.contains( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.contains( BitVectors.ONE ) );
+		assertTrue( zft.remove( BitVectors.ONE ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 0 ) ) );
+
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ZERO ) );
+		assertTrue( zft.contains( LongArrayBitVector.of( 1, 0 ) ) );
+		assertTrue( zft.contains( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.contains( BitVectors.ZERO ) );
+		assertTrue( zft.remove( BitVectors.ZERO ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 0 ) ) );
+}
 
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {

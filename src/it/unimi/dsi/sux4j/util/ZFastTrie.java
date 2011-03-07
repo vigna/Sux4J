@@ -347,6 +347,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param s the signature of the handle of <code>oldNode</code> and <code>newNode</code>.
 		 */
 		public void replaceExisting( final InternalNode<U> oldNode, final InternalNode<U> newNode, long s ) {
+			if ( DEBUG ) System.err.println( "Map.replaceExisting(" + oldNode + ", " + newNode + ", " + s + ")" );
 			if ( SHORT_SIGNATURES ) s &= 0x3;
 			int pos = hash( s );
 			while( node[ pos ] != oldNode ) pos = ( pos + 1 ) & mask;
@@ -571,12 +572,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		@SuppressWarnings({"rawtypes","unchecked"})
 		public String toString() {
-			final TransformationStrategy transform = TransformationStrategies.prefixFreeIso();
+			Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
+			final TransformationStrategy transform = key instanceof CharSequence ? TransformationStrategies.prefixFreeIso() : TransformationStrategies.identity();
 			final long extentLength = extentLength( transform );
 			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF ) + 
 				( key( transform ) == null ? "" : 
 					" " + ( extentLength > 16 ? key( transform ).subVector( 0, 8 ) + "..." + key(  transform ).subVector( extentLength - 8, extentLength ): key( transform ).subVector( 0, extentLength ) ) ) +
-					" (" + parentExtentLength + ".." + extentLength + "], " + handleLength( transform ) + "->" + // TODO jumpLength() +
+					" (" + parentExtentLength + ".." + extentLength + "], " + ( isInternal() ? ((InternalNode<U>)this).handleLength() + "->" + ((InternalNode<U>)this).jumpLength() : "" ) +
 				( isLeaf() ? "]" : ")" );
 		}
 	}
@@ -603,6 +605,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		public long jumpLength() {
 			final long handleLength = handleLength();
+			if ( handleLength == 0 ) return 1; // This only happens on a root node with empty extent.
 			return handleLength + ( handleLength & -handleLength );
 		}
 
@@ -1037,7 +1040,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			addAfter( head, leaf );
 			root = leaf;
 			size++;
-			if ( ASSERTS ) assertTrie();
+			if ( ASSERTS ) {
+				assertTrie();
+				assert contains( k );
+			}
 			return true;
 		}
 
@@ -1127,8 +1133,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			addBefore( (Leaf<T>)exitNode, leaf );
 		}
 		
-		if ( ASSERTS ) assertTrie();
-		if ( ASSERTS ) assert contains( k );
+		if ( ASSERTS ) {
+			assertTrie();
+			assert contains( k );
+		}
 		
 		return true;
 	}
@@ -1145,7 +1153,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			removeLeaf( (Leaf<T>)root );
 			root = null;
 			size = 0;
-			if ( ASSERTS ) assertTrie();
+			if ( ASSERTS ) {
+				assertTrie();
+				assert ! contains( k );
+			}
 			return true;
 		}
 
@@ -1184,7 +1195,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long parentExitNodehandleLength = parentExitNode.handleLength();
 		final long otherNodeHandleLength = otherNode.handleLength( transform );
 		final long t = parentExitNodehandleLength | otherNodeHandleLength;
-		final boolean cutLow = ( t & -t & otherNodeHandleLength ) != 0;
+		final boolean cutLow = parentExitNodehandleLength != 0 && ( t & -t & otherNodeHandleLength ) != 0;
 
 		if ( parentExitNode == root ) root = otherNode;
 
