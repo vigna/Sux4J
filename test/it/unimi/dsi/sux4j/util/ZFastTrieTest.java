@@ -224,6 +224,20 @@ public class ZFastTrieTest extends TestCase {
 		assertTrue( zft.remove( BitVectors.ONE ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 0, 1 ) ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 0, 0 ) ) );
+		
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ONE ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.remove( BitVectors.ONE ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 0 ) ) );
+
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ONE ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 1 ) ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 0, 0 ) ) );
+		assertTrue( zft.remove( BitVectors.ONE ) );
 
 		assertTrue( zft.add( LongArrayBitVector.of( 1, 0 ) ) );
 		assertTrue( zft.add( LongArrayBitVector.of( 1, 1 ) ) );
@@ -234,7 +248,23 @@ public class ZFastTrieTest extends TestCase {
 		assertTrue( zft.remove( BitVectors.ZERO ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 1, 1 ) ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 1, 0 ) ) );
-}
+
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ZERO ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.remove( BitVectors.ZERO ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 0 ) ) );
+
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 0 ) ) );
+		assertTrue( zft.add( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.add( BitVectors.ZERO ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 1 ) ) );
+		assertTrue( zft.remove( LongArrayBitVector.of( 1, 0 ) ) );
+		assertTrue( zft.remove( BitVectors.ZERO ) );
+		
+	
+	}
 
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {

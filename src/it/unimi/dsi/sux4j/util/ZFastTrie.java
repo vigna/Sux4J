@@ -91,9 +91,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
 	private static final boolean ASSERTS = true;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	private static final boolean DDEBUG = DEBUG;
-	private static final boolean DDDEBUG = false;
+	private static final boolean DDDEBUG = true;
 	/** If true, signatures are restricted to two bits, generating lots of false positives. */
 	private static final boolean SHORT_SIGNATURES = false;
 	/** The mask used to extract the actual signature (the high bit marks duplicates). */
@@ -1190,7 +1190,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( DDEBUG ) System.err.println( "Grandparex node: " + grandParentExitNode );
 			if ( rightChild = ( grandParentExitNode.right == parentExitNode ) )  grandParentExitNode.right = otherNode;
 			else grandParentExitNode.left = otherNode;
-		}		
+		}	
 
 		final long parentExitNodehandleLength = parentExitNode.handleLength();
 		final long otherNodeHandleLength = otherNode.handleLength( transform );
@@ -1386,7 +1386,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack as filled by {@link #getParentExitNode(LongArrayBitVector, long[], ObjectArrayList)}.
 	 */
 	public InternalNode<T> getGrandParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack ) {
+		if ( DDEBUG ) System.err.println( "getParentGrandExitNode(" + v + ", " + stack + ")" );
 		final InternalNode<T> parentExitNode = stack.pop();
+		if ( parentExitNode == root ) return null;
+		if ( parentExitNode.parentExtentLength == 0 ) {
+			stack.push( (InternalNode<T>)root );
+			return (InternalNode<T>)root;
+		}
 		final long startingPoint = stack.isEmpty() ? 0 : stack.top().extentLength;
 		// We're lucky: the second element on the stack is the grandparent of the exit node.
 		if ( startingPoint == parentExitNode.parentExtentLength ) return stack.isEmpty() ? null : stack.top();
@@ -1439,7 +1445,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		if ( DDDEBUG ) System.err.println( "Final interval: (" + a + ".." + b + "]; top: " + top + "; stack: " + stack );
-		if ( a == 0 && root.extentLength( transform ) == 0 ) {
+		if ( a == 0 && ((InternalNode<T>)root).extentLength == 0 ) {
 			top = (InternalNode<T>)root;
 			if ( stack != null ) stack.push( top );
 		}
