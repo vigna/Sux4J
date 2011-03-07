@@ -90,10 +90,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
-	private static final boolean ASSERTS = true;
-	private static final boolean DEBUG = true;
+	private static final boolean ASSERTS = false;
+	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = DEBUG;
-	private static final boolean DDDEBUG = true;
+	private static final boolean DDDEBUG = false;
 	/** If true, signatures are restricted to two bits, generating lots of false positives. */
 	private static final boolean SHORT_SIGNATURES = false;
 	/** The mask used to extract the actual signature (the high bit marks duplicates). */
@@ -1336,6 +1336,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ( parexOrExitNode.isExitNodeOf( length, lcpLength, transform ) ) {
 				// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack and maybe restart the search.
 				stack.pop();
+
+				// If the exit node is the root, there is no parent.
+				if ( parexOrExitNode == root ) return new ParexData<T>( null, parexOrExitNode, lcpLength );
+				// If the extent of the parent is zero, but the exit node is not the root, the root is the parent (and it has an empty extent).
+				if ( parexOrExitNode.parentExtentLength == 0 ) {
+					stack.push( (InternalNode<T>)root );
+					return new ParexData<T>( (InternalNode<T>)root, parexOrExitNode, lcpLength );
+				}
+				
 				final long startingPoint = stack.isEmpty() ? 0 : stack.top().extentLength;
 				// We're lucky: the second element on the stack is the parex node.
 				if ( startingPoint == parexOrExitNode.parentExtentLength ) return new ParexData<T>( stack.isEmpty() ? null : stack.top(), parexOrExitNode, lcpLength );
@@ -1361,6 +1370,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack and maybe restart the search.
 		stack.pop();
+
+		// If the exit node is the root, there is no parent.
+		if ( parexOrExitNode == root ) return new ParexData<T>( null, parexOrExitNode, lcpLength );
+		// If the extent of the parent is zero, but the exit node is not the root, the root is the parent (and it has an empty extent).
+		if ( parexOrExitNode.parentExtentLength == 0 ) {
+			stack.push( (InternalNode<T>)root );
+			return new ParexData<T>( (InternalNode<T>)root, parexOrExitNode, lcpLength );
+		}
+		
 		final long startingPoint = stack.isEmpty() ? 0 : stack.top().extentLength;
 		// We're lucky: the second element on the stack is the parex node.
 		if ( startingPoint == parexOrExitNode.parentExtentLength ) return new ParexData<T>( stack.isEmpty() ? null : stack.top(), parexOrExitNode, lcpLength );
@@ -1388,7 +1406,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public InternalNode<T> getGrandParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack ) {
 		if ( DDEBUG ) System.err.println( "getParentGrandExitNode(" + v + ", " + stack + ")" );
 		final InternalNode<T> parentExitNode = stack.pop();
+		// If the parent of the exit node is the root, there is no grandparent.
 		if ( parentExitNode == root ) return null;
+		// If the extent of the grandparent is zero, but the parent is not the root, the root is the grandparent (and it has an empty extent).
 		if ( parentExitNode.parentExtentLength == 0 ) {
 			stack.push( (InternalNode<T>)root );
 			return (InternalNode<T>)root;
