@@ -262,8 +262,26 @@ public class ZFastTrieTest extends TestCase {
 		assertTrue( zft.remove( LongArrayBitVector.of( 1, 1 ) ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 1, 0 ) ) );
 		assertTrue( zft.remove( BitVectors.ZERO ) );
-		
-	
+	}
+
+	public void testManyBranches() {
+		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
+		for( int p = 0; p < 10; p++ ) {
+			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.contains( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for( int i = ( 1 << p ); i-- != 0; ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
+		}
+	}
+
+	public void testLinear() {
+		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
+		for( int p = 0; p < 20; p++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for( int p = 0; p < 20; p++ ) assertTrue( zft.contains( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for( int p = 0; p < 20; p++ ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for( int p = 0; p < 20; p++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for( int p = 20; p-- != 0; ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
 	}
 
 	@SuppressWarnings("unchecked")
