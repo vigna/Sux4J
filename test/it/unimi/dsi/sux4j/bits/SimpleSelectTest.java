@@ -147,6 +147,19 @@ public class SimpleSelectTest extends RankSelectTestCase {
 		select = new SimpleSelect( bitVector );
 		assertSelect( select );
 	}
+	
+	public void testAllOnes() {
+		LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( 257 );
+		bitVector.fill( true );
+		SimpleSelect simpleSelect = new SimpleSelect( bitVector );
+		assertEquals( 0, simpleSelect.select( 0 ) );
+	}
+
+	public void testAllZeroes() {
+		LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( 257 );
+		SimpleSelect simpleSelect = new SimpleSelect( bitVector );
+		assertEquals( -1, simpleSelect.select( 0 ) );
+	}
 
 	public void testDense() {
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( 16 * 1024 );

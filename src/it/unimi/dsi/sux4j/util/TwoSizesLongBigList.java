@@ -30,8 +30,8 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.sux4j.bits.Rank9;
-import it.unimi.dsi.util.AbstractLongBigList;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.Serializable;
 import java.util.Arrays;

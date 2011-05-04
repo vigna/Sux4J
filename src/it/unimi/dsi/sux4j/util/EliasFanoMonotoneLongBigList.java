@@ -33,8 +33,8 @@ import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.util.AbstractLongBigList;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.Serializable;
 
@@ -269,7 +269,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
 	}
 
+	@Deprecated
 	public long length() {
+		return length;
+	}
+
+	public long size64() {
 		return length;
 	}
 }

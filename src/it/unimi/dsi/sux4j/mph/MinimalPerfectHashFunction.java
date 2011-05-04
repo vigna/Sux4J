@@ -35,7 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;

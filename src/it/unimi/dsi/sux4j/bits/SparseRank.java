@@ -25,7 +25,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.util.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /** A rank implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
@@ -91,7 +91,8 @@ public class SparseRank extends AbstractRank {
 		l = m == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( n / m ) );
 		lowerLBitsMask = ( 1L << l ) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance(); 
-		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l ).length( m );
+		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
+		lowerBitsList.size( m );
 		upperBits = LongArrayBitVector.getInstance().length( m + ( n >>> l ) + 1 );
 		long last = 0;
 		for( long i = 0; i < m; i++ ) {

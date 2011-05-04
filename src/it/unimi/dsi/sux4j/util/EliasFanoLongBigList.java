@@ -34,7 +34,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
-import it.unimi.dsi.util.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -250,7 +250,12 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 		return ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - offset;
 	}
 
+	@Deprecated
 	public long length() {
+		return length;
+	}
+	
+	public long size64() {
 		return length;
 	}
 	

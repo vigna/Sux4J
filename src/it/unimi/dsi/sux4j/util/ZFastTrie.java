@@ -574,6 +574,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return ( parentExtentLength < lcpLength ) && ( lcpLength < extentLength( transform ) || lcpLength == length );
 		}
 
+		
+		public Leaf<U> leftLeaf() {
+			Node<U> node = this;
+			while( node.isInternal() ) node = ((InternalNode<U>)node).jumpLeft;
+			return (Leaf<U>)node;
+		}
+		
+		public Leaf<U> rightLeaf() {
+			Node<U> node = this;
+			while( node.isInternal() ) node = ((InternalNode<U>)node).jumpRight;
+			return ((Leaf<U>)node);
+		}
+
 		@SuppressWarnings({"rawtypes","unchecked"})
 		public String toString() {
 			Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
@@ -1129,14 +1142,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		size++;
 
 		/* We find a predecessor or successor to insert the new leaf in the doubly linked list. */
-		if ( exitDirection ) {
-			while( exitNode.isInternal() ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
-			addAfter( (Leaf<T>)exitNode, leaf );
-		}
-		else {
-			while( exitNode.isInternal() ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
-			addBefore( (Leaf<T>)exitNode, leaf );
-		}
+		if ( exitDirection ) addAfter( exitNode.rightLeaf(), leaf );
+		else addBefore( exitNode.leftLeaf(), leaf );
 		
 		if ( ASSERTS ) {
 			assertTrie();
@@ -1471,16 +1478,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> predNode( final T k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 42 );
-		Node<T> exitNode = getExitNode( v, state ).exitNode;
-		
-		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
-			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpRight != null ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
-			return (Leaf<T>)exitNode;
-		}
-		else {
-			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpLeft != null ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
-			return ((Leaf<T>)exitNode).prev;
-		}
+		final Node<T> exitNode = getExitNode( v, state ).exitNode;
+		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) return exitNode.rightLeaf();
+		else return exitNode.leftLeaf().prev;
 		
 	}
 
@@ -1493,16 +1493,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> succNode( final T k ) {
 		final LongArrayBitVector v = LongArrayBitVector.copy( transform.toBitVector( k ) );
 		final long[] state = Hashes.preprocessMurmur( v, 42 );
-		Node<T> exitNode = getExitNode( v, state ).exitNode;
-
-		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) {
-			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpLeft != null ) exitNode = ((InternalNode<T>)exitNode).jumpLeft;
-			return (Leaf<T>)exitNode;
-		}
-		else {
-			while( exitNode.isInternal() && ((InternalNode<T>)exitNode).jumpRight != null ) exitNode = ((InternalNode<T>)exitNode).jumpRight;
-			return ((Leaf<T>)exitNode).next;
-		}
+		final Node<T> exitNode = getExitNode( v, state ).exitNode;
+		if ( v.compareTo( exitNode.extent( transform ) ) <= 0 ) return exitNode.leftLeaf();
+		else return exitNode.rightLeaf().next;
 	}
 
 	@SuppressWarnings("unchecked")
