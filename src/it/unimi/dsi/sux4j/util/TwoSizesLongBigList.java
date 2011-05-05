@@ -153,12 +153,12 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		if ( width != 0 && minIndex != width ) {
 			final long numSmall = minCostSmall / ( minIndex + 1 );
 			final long numLarge = minCostLarge / width;
-			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( numSmall );
-			marker = LongArrayBitVector.getInstance().length( length );
-			large = LongArrayBitVector.getInstance().asLongBigList( width ).length( numLarge );
+			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( numSmall );
+			( marker = LongArrayBitVector.getInstance() ).length( length );
+			( large = LongArrayBitVector.getInstance().asLongBigList( width ) ).size( numLarge );
 		}
 		else {
-			small = LongArrayBitVector.getInstance().asLongBigList( minIndex ).length( length );
+			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( length );
 			marker = null;
 			large = null;
 		}
@@ -177,7 +177,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 
 		rank = marker != null ? new Rank9( marker ) : null;
 
-		numBits = small.length() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.length() * width : 0 );
+		numBits = small.size64() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.size64() * width : 0 );
 		if ( ASSERTS ) {
 			final LongIterator t = elements.iterator();
 			for( int i = 0; i < length; i++ ) {
@@ -193,7 +193,12 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		return small.getLong( index - rank.rank( index ) );
 	}
 
+	@Deprecated
 	public long length() {
+		return length;
+	}
+	
+	public long size64() {
 		return length;
 	}
 	

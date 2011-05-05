@@ -26,8 +26,10 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
@@ -56,7 +58,7 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
     private static final Logger LOGGER = Util.getLogger( TwoSizesMWHCFunction.class );
 		
 	/** The number of elements. */
-	final protected int n;
+	final protected long n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	final protected TransformationStrategy<? super T> transform;
 	/** The first function. The special output value {@link #escape} denotes that {@link #secondFunction} (if not <code>null</code>) 
@@ -74,15 +76,24 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param transform a transformation strategy for the elements.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
-	 * @throws IOException 
 	 */
-
 	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) throws IOException {
+		this( elements, transform, LongBigLists.asBigList( values ) );
+	}
+
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 */
+	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values ) throws IOException {
 		this.transform = transform;
 
 		final long[] count = new long[ Long.SIZE ];
 		
-		n = values.size();
+		n = values.size64();
 		if ( n == 0 ) {
 			escape = 0;
 			firstFunction = secondFunction = null;
@@ -107,7 +118,7 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			 * 
 			 * Note that for i = 0 we are actually computing the cost of a single function (the first one).
 			 * For i = 1 no change is possible as count[ 0 ] == 0. */
-			cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * (long)i, HypergraphSorter.GAMMA * n * i ) +
+			cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * i, HypergraphSorter.GAMMA * n * i ) +
 					(long)Math.min( HypergraphSorter.GAMMA * post * 1.126 + post * w, HypergraphSorter.GAMMA * post * w );
 
 			if ( cost < bestCost ) { 
@@ -123,14 +134,14 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		LOGGER.debug( "Threshold: " + threshold );
 		escape = threshold == -1 ? Long.MAX_VALUE : ( 1 << threshold ) - 1; // Immaterial if threshold == -1.
 		
-		firstFunction = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
+		firstFunction = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transform ), TransformationStrategies.identity(), new AbstractLongBigList() {
+			public long getLong( long index ) {
 				long value = values.getLong( index );
 				if ( value < escape || threshold == 0 ) return value; 
 				return escape;
 			}
 
-			public int size() {
+			public long size64() {
 				return n;
 			}
 			
@@ -140,7 +151,7 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		if ( threshold == -1 ) secondFunction = null;
 		else {
-			LongList secondValues = new LongArrayList();
+			LongBigArrayBigList secondValues = new LongBigArrayBigList();
 			ArrayList<LongArrayBitVector> secondKeys = new ArrayList<LongArrayBitVector>();
 			Iterator<? extends T> iterator = elements.iterator();
 
@@ -176,12 +187,12 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLong( triple );
 	}
 	
-	/** Returns the number of elements in the function domain.
-	 *
-	 * @return the number of the elements in the function domain.
-	 */
-	public int size() {
+	public long size64() {
 		return n;
+	}
+
+	public int size() {
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

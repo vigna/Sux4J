@@ -29,7 +29,7 @@ public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest extends
 	public void testEmpty() throws IOException {
 		String[] s = {};
 		HollowTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		mph.size();
+		mph.size64();
 		mph.getLong( "0" );
 	}
 

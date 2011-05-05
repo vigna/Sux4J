@@ -20,20 +20,21 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,12 +62,12 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  */
 
-public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = Util.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
-	private final int size;
+	private final long size;
 	/** The size of a bucket. */
 	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -141,11 +142,11 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		distributor = new HollowTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongList() {
-			public long getLong( int index ) {
+		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
+			public long getLong( long index ) {
 				return index & bucketMask; 
 			}
-			public int size() {
+			public long size64() {
 				return size;
 			}
 		}, log2BucketSize );
@@ -156,10 +157,15 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		
 	}
 
-	public int size() {
+	public long size64() {
 		return size;
 	}
 
+	@Deprecated
+	public int size() {
+		return (int)Math.min( size, Integer.MAX_VALUE );
+	}
+	
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}

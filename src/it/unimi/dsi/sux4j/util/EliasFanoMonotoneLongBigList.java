@@ -235,7 +235,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
-		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l ).length( length );
+		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
+		lowerBitsList.size( length );
 		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
@@ -243,7 +244,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
 			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
-			upperBits.set( ( v >> l ) + i );
+			upperBits.set( ( v >>> l ) + i );
 			last = v;
 		}
 		
@@ -271,7 +272,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	@Deprecated
 	public long length() {
-		return length;
+		return size64();
 	}
 
 	public long size64() {

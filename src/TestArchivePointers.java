@@ -10,7 +10,6 @@ import java.io.IOException;
 public class TestArchivePointers {
 
 	
-	@SuppressWarnings("unchecked")
 	public static void main( String a[] ) throws IOException {
 		final InputBitStream skips = new InputBitStream( a[ 0 ] );
 		final long n = Long.parseLong( a[ 1 ] );

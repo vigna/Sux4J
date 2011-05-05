@@ -8,3 +8,6 @@
 - Move values lists to disk when possible.
 - Jenkins hash should mix better last values. Or XOR with c.
 - Comment all classes!
+- Check that size == -1 is used coherently in hash classes
+- Check that serial numbers are all bumped
+- Warn about changes in jenkins's hash

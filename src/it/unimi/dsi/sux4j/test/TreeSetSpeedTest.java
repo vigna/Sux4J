@@ -42,7 +42,7 @@ public class TreeSetSpeedTest {
 		if ( jsap.messagePrinted() ) return;
 		
 		final String stringFile = jsapResult.getString( "stringFile" );
-		final String testFile = jsapResult.userSpecified( "tetFile" ) ? jsapResult.getString( "testFile" ) : stringFile;
+		final String testFile = jsapResult.userSpecified( "testFile" ) ? jsapResult.getString( "testFile" ) : stringFile;
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );

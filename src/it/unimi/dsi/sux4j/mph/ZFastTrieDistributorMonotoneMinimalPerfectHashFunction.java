@@ -27,7 +27,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -153,13 +153,13 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
+		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
-			public long getLong( int index ) {
+			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
-			public int size() {
-				return size > Integer.MAX_VALUE ? -1 : (int)size;
+			public long size64() {
+				return size;
 			}
 		}, this.log2BucketSize );
 		//System.err.println( "*********" + chunkedHashStore.seed() );

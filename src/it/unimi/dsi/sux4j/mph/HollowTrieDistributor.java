@@ -26,6 +26,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
@@ -59,7 +60,7 @@ import org.apache.log4j.Logger;
  * By sizing the bucket size around the logarithm of the average length, we obtain a distributor that occupies linear space.
  */
 
-public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor.class );
 	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
@@ -81,8 +82,10 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** For each external node and each possible path, the related behaviour. */
 	private final MWHCFunction<BitVector> externalBehaviour;
 	/** The number of (internal and external) nodes of the trie. */
-	private final int size;
+	private final long size;
+	/** The balanced parentheses structure used to represent the trie. */
 	private final BalancedParentheses balParen;
+	/** Records the keys which are false follows. */
 	private final MWHCFunction<BitVector> falseFollowsDetector;
 	/** The average skip length in bits (actually, the average length in bits of a skip length increased by one). */
 	protected double meanSkipLength;
@@ -125,7 +128,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		LongBigList falseFollowsValues;
 
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
-		final int[] count = new int[ 1 ];
+		final long[] count = new long[ 1 ];
 		
 		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new AbstractObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
@@ -389,13 +392,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** A class iterating over the temporary files produced by the intermediate trie. */
 		class IterableStream implements Iterable<BitVector> {
 			private InputBitStream ibs;
-			private int n;
+			private long n;
 			private Object2LongFunction<BitVector> test;
 			private LongBigList values;
 
 			public IterableStream( final InputBitStream ibs, final Object2LongFunction<BitVector> testFunction, final LongBigList testValues ) {
 				this.ibs = ibs;
-				this.n = testValues.size();
+				this.n = testValues.size64();
 				this.test = testFunction;
 				this.values = testValues;
 			}
@@ -404,7 +407,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				try {
 					ibs.position( 0 );
 					return new AbstractObjectIterator<BitVector>() {
-						private int pos = 0;
+						private long pos = 0;
 
 						public boolean hasNext() {
 							return pos < n;
@@ -554,11 +557,16 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return true;
 	}
 
-	public int size() {
+	public long size64() {
 		return size;
+	}
+	
+	@Deprecated
+	public int size() {
+		return (int)Math.min(  size, Integer.MAX_VALUE );
 	}
 
 	public double bitsPerSkip() {
-		return (double)skips.numBits() / skips.length();
+		return (double)skips.numBits() / skips.size64();
 	}
 }

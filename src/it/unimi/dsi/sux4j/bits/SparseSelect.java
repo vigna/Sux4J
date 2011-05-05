@@ -103,7 +103,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 */
 	public SparseSelect( final LongBigList list ) {
 		super( list );
-		this.n = list.isEmpty() ? 0 : list.getLong( list.length() - 1 ) + 1;
+		this.n = list.isEmpty() ? 0 : list.getLong( list.size64() - 1 ) + 1;
 		fromRank = false;
 	}	
 	
@@ -122,7 +122,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	@Override
-	public long length() {
+	public long size64() {
 		return n;
 	}
 	

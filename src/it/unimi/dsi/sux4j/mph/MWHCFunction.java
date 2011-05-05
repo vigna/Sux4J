@@ -27,6 +27,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
@@ -85,7 +86,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * on the constructor chosen, the store will associate each hash either with the ordinal position of the key, or with the
  * value that must be associated with the key. It is easy to tell the difference because in constructors associating the ordinal
  * position the store appears just after the keys and the transformation strategy as, for example, in 
- * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongList, int)} or
+ * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)} or
  * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore)}. If the store appears after keys and values
  * (e.g., {@link #MWHCFunction(Iterable, TransformationStrategy, LongIterable, int, ChunkedHashStore)}) the store associates
  * each key with its value instead.
@@ -137,7 +138,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The number of elements. */
 	protected final long n;
 	/** The number of vertices of the intermediate hypergraph. */
-	protected final int m;
+	protected final long m;
 	/** The data width. */
 	protected final int width;
 	/** The seed used to generate the initial hash triple. */
@@ -145,7 +146,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The seed of the underlying 3-hypergraphs. */
 	protected final long[] seed;
 	/** The start offset of each block. */
-	protected final int[] offset;
+	protected final long[] offset;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	protected final LongBigList data;
 	/** Optionally, a {@link #rank} structure built on this bit array is used to mark positions containing non-zero value; indexing in {@link #data} is
@@ -199,7 +200,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** Creates a new function for the given elements and values.
 	 * 
 	 * <p><strong>Warning</strong>: if you were using this constructor before Sux4J 2.1, you should switch
-	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongList, int)}, as the
+	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)}, as the
 	 * semantics has changed (see the {@linkplain MWHCFunction class documentation}).
 	 * 
 	 * @param elements the elements in the domain of the function, or <code>null</code>.
@@ -275,7 +276,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( elements, transform, values, width, null, chunkedHashStore, true );
 	}
 
@@ -290,7 +291,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( elements, transform, values, width, tempDir, chunkedHashStore, true );
 	}
 
@@ -303,7 +304,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element.
 	 * @param width the bit width of the <code>values</code>.
 	 */
-	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongList values, final int width ) throws IOException {
+	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( null, transform, values, width, null, chunkedHashStore, true );
 	}
 
@@ -316,14 +317,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
-	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongList} that
+	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
 	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
 		this.transform = transform;
 		
 		// If we have no elements, values must be a random-access list of longs.
-		final LongList valueList = override ? (LongList)values : null;
+		final LongBigList valueList = override ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -343,7 +344,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		if ( n == 0 ) {
-			this.globalSeed = chunkShift = m = this.width = 0;
+			m = this.globalSeed = chunkShift = this.width = 0;
 			data = null;
 			marker = null;
 			rank = null;
@@ -359,12 +360,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		LOGGER.debug( "Number of chunks: " + numChunks );
 		
 		seed = new long[ numChunks ];
-		offset = new int[ numChunks + 1 ];
+		offset = new long[ numChunks + 1 ];
 		
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = dataBitVector.asLongBigList( this.width ).length( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks );
+		final LongBigList data = dataBitVector.asLongBigList( this.width );
+		data.size( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks );
 
 		int duplicates = 0;
 		
@@ -394,7 +396,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					final int[] vertex1 = sorter.vertex1;
 					final int[] vertex2 = sorter.vertex2;
 					final int[] edge = sorter.edge;
-					final int off = offset[ q ];
+					final long off = offset[ q ];
 
 					while( top > 0 ) {
 						x = stack[ --top ];
@@ -434,15 +436,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		long nonZero = 0;
 		m = offset[ offset.length - 1 ];
 		data.size( m );
-		for( int i = 0; i < data.length(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
+		for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 
 		// We estimate size using Rank16
-		if ( nonZero * this.width + m * 1.126 < (long)m * this.width ) {
+		if ( nonZero * this.width + m * 1.126 < m * this.width ) {
 			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width ).length( nonZero );
+			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
+			newData.size( nonZero );
 			nonZero = 0;
-			for( int i = 0; i < data.size(); i++ ) {
+			for( long i = 0; i < data.size64(); i++ ) {
 				final long value = data.getLong( i ); 
 				if ( value != 0 ) {
 					marker.set( i );
@@ -482,10 +485,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final int chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final int e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
+		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
@@ -497,9 +500,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final int chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
-		final int e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
@@ -525,7 +528,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.length() : 0 ) * width + seed.length * Long.SIZE + offset.length * Integer.SIZE;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * Long.SIZE + offset.length * Integer.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

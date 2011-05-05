@@ -31,8 +31,10 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
+import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -67,14 +69,14 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors.
  */
 
-public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	
 	/** The number of elements. */
-	final protected int n;
+	final protected long n;
 	/** The size of a bucket. */
 	final protected int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -113,7 +115,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final Random r = new Random();
 
 		if ( numElements == -1 ) {
-			if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
+			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
+			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
 				int c = 0;
 				for( T dummy: iterable ) c++;
@@ -136,14 +139,14 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
-		
-		final int numBuckets = ( n + bucketSize - 1 ) / bucketSize;
+
+		final long numBuckets = ( n + bucketSize - 1 ) / bucketSize;
 		
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-		final int[] lcpLengths = new int[ ( n + bucketSize - 1 ) / bucketSize ];
+		final int[][] lcpLengths = IntBigArrays.newBigArray( numBuckets );
 		int maxLcp = 0;
 		long maxLength = 0;
 
@@ -161,7 +164,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
-			final int currBucketSize = Math.min( bucketSize, n - b * bucketSize );
+			final int currBucketSize = (int)Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr.replace( transform.toBitVector( iterator.next() ) );
@@ -179,7 +182,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 
 			lcps.add( prev.subVector( 0, currLcp  ) );
-			lcpLengths[ b ] = currLcp;
+			IntBigArrays.set( lcpLengths, b, currLcp );
 			maxLcp = Math.max( maxLcp, currLcp );
 		}
 		
@@ -193,11 +196,11 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), chunkedHashStore,  new AbstractLongList() {
-			public long getLong( int index ) {
-				return lcpLengths[ index >>> log2BucketSize ] << log2BucketSize | index & bucketSizeMask; 
+		offsetLcpLength = new MWHCFunction<BitVector>( TransformationStrategies.wrap( iterable, transform ), TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+			public long getLong( long index ) {
+				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ) << log2BucketSize | index & bucketSizeMask; 
 			}
-			public int size() {
+			public long size64() {
 				return n;
 			}
 		}, log2BucketSize + Fast.length( maxLcp ) );
@@ -244,12 +247,13 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	}
 
 
-	/** Returns the number of terms hashed.
-	 *
-	 * @return the number of terms hashed.
-	 */
-	public int size() {
+	public long size64() {
 		return n;
+	}
+
+	@Deprecated
+	public int size() {
+		return (int)Math.min( Integer.MAX_VALUE, n );
 	}
 
 	/** Returns the number of bits used by this structure.

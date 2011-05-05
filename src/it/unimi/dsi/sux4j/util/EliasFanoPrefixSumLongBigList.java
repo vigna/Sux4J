@@ -157,7 +157,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		return super.getLong( index );
 	}
 
-	public long length() {
+	public long size64() {
 		return length - 1;
 	}
 }

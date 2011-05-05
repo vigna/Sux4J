@@ -427,8 +427,8 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed, pl );
 
 		size = intermediateTrie.numElements;
-		emptyTrie = intermediateTrie.internalNodeRepresentations.length() == 0;
-		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.length() == 0;
+		emptyTrie = intermediateTrie.internalNodeRepresentations.size64() == 0;
+		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.size64() == 0;
 
 		if ( noDelimiters ) {
 			behaviour = null;

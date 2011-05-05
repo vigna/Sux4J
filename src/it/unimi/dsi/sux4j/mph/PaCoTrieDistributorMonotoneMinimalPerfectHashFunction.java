@@ -26,8 +26,9 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -59,7 +60,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * a {@linkplain PaCoTrieDistributor partial compacted binary trie (PaCo trie)} as distributor.
  */
 
-public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
@@ -162,12 +163,12 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		LOGGER.info( "Generating offset function..." );
 		
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongList() {
-			public long getLong( int index ) {
+		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
-			public int size() {
-				return size > Integer.MAX_VALUE ? -1 : (int)size;
+			public long size64() {
+				return size;
 			}
 		}, log2BucketSize );
 
@@ -178,7 +179,10 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 	}
 
-
+	public long size64() {
+		return size;
+	}
+	
 	public int size() {
 		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}

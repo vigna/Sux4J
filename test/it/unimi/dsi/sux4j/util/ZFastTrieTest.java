@@ -284,6 +284,21 @@ public class ZFastTrieTest extends TestCase {
 		for( int p = 20; p-- != 0; ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
 	}
 
+	public void testExtent() {
+		ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<LongArrayBitVector>( TransformationStrategies.identity() );
+		LongArrayBitVector v = LongArrayBitVector.getInstance();
+		v.add( 0 );
+		v.add( 1 );
+		zft.add( v );
+		LongArrayBitVector w = LongArrayBitVector.getInstance();
+		w.add( 0 );
+		w.add( 0 );
+		zft.add( w );
+		LongArrayBitVector q = LongArrayBitVector.getInstance();
+		q.add( 0 );
+		zft.contains( q );
+	}
+
 	@SuppressWarnings("unchecked")
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		ZFastTrie<String> zft;

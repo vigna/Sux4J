@@ -27,10 +27,11 @@ import it.unimi.dsi.logging.ProgressLogger;
 /** Basic hash functions. 
  * 
  * <p><strong>Warning:</strong> the Jenkins hash algorithm has three state variables. The <em>last</em> variable is the standard Jenkins hash,
- * but in our implementation we are mistakenly returning the <em>first</em> variable. Unfortunately, the
+ * but in our implementation (up to Sux4J 2.0.1) we are mistakenly returning the <em>first</em> variable. Unfortunately, the
  * first-variable high bits might be constant on keys with the same high bits. The comment applies also to the
- * versions returning all three variables. This behaviour will be fixed only in the next major release,
- * as it will break serialisation compatibility for several classes (such as {@link MWHCFunction} and {@link MinimalPerfectHashFunction}). 
+ * versions returning all three variables. This behaviour was fixed in Sux4J 2.1, but the fix changed the values returned by the methods of this
+ * class based on Jenkins hashing and broke serialisation compatibility for several classes 
+ * (such as {@link MWHCFunction} and {@link MinimalPerfectHashFunction}). 
  */
 
 public class Hashes {
@@ -55,7 +56,7 @@ public class Hashes {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( bv.length() == 0 ) {
+		if ( length == 0 ) {
 			h[ 0 ] = seed ^ 0x8de6a918d6538324L;
 			h[ 1 ] = seed ^ 0x6bda2aef21654e7dL;
 			h[ 2 ] = seed ^ 0x36071e726d0ba0c5L;
@@ -87,7 +88,7 @@ public class Hashes {
 			from += 3 * Long.SIZE;
 		}
 
-		c += length << 3;
+		c += length;
 		long residual = length - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
@@ -129,7 +130,7 @@ public class Hashes {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( bv.length() == 0 ) return seed ^ 0x8de6a918d6538324L;
+		if ( length == 0 ) return seed ^ 0x8de6a918d6538324L;
 		
 		/* Set up the internal state */
 		a = b = seed;
@@ -156,7 +157,7 @@ public class Hashes {
 			from += 3 * Long.SIZE;
 		}
 
-		c += length << 3;
+		c += length;
 		long residual = length - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
@@ -179,7 +180,7 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		return a;
+		return c;
 	}
 
 	/** Jenkins 64-bit hashing.
@@ -302,7 +303,7 @@ public class Hashes {
 		}
 
 
-		c += prefixLength << 3;
+		c += prefixLength;
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
@@ -375,7 +376,7 @@ public class Hashes {
 		}
 
 
-		c += prefixLength << 3;
+		c += prefixLength;
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
@@ -399,7 +400,7 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		return a;
+		return c;
 	}
 
 	/** Jenkins 64-bit hashing (all three values produced) for a triple of longs.
@@ -524,7 +525,7 @@ public class Hashes {
 		
 	}
 	
-	/** Fast MurmurHash 64-bit hashing reusing precomputed state partially.
+	/** Constant-time MurmurHash 64-bit hashing reusing precomputed state partially.
 	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.

@@ -149,7 +149,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final long[] seed;
 
 	/** The start offset of each block. */
-	protected final int[] offset;
+	protected final long[] offset;
 
 	/**
 	 * The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash
@@ -251,10 +251,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		LOGGER.debug( "Number of chunks: " + numChunks );
 
 		seed = new long[ numChunks ];
-		offset = new int[ numChunks + 1 ];
+		offset = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
-		values = bitVector.asLongBigList( 2 ).length( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
+		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
 		array = bitVector.bits();
 
 		int duplicates = 0;
@@ -283,7 +283,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					final int[] stack = sorter.stack;
 					final int[] vertex1 = sorter.vertex1;
 					final int[] vertex2 = sorter.vertex2;
-					final int off = offset[ q ];
+					final long off = offset[ q ];
 
 					while ( top > 0 ) {
 						v = stack[ --top ];
@@ -326,7 +326,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( !givenChunkedHashStore ) chunkedHashStore.close();
 
 		if ( n > 0 ) {
-			long m = values.length();
+			long m = values.size64();
 			count = new int[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
 			int c = 0;
 
@@ -362,7 +362,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.length() * 2 + count.length * Integer.SIZE + offset.length * Integer.SIZE + seed.length * Long.SIZE;
+		return values.size64() * 2 + count.length * Integer.SIZE + offset.length * Integer.SIZE + seed.length * Long.SIZE;
 	}
 
 
@@ -423,8 +423,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final int chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.
@@ -435,8 +435,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final int chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.

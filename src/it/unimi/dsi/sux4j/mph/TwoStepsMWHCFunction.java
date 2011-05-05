@@ -23,12 +23,12 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
-import it.unimi.dsi.fastutil.longs.AbstractLongList;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
@@ -86,7 +86,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) throws IOException {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values ) throws IOException {
 		this( elements, transform, values, null );
 	}
 		
@@ -98,7 +98,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * assigned value will the the ordinal number of each element.
 	 */
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -191,15 +191,15 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, new AbstractLongList() {
-				public long getLong( int index ) {
+			firstFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, new AbstractLongBigList() {
+				public long getLong( long index ) {
 					long value = map.get( values.getLong( index ) );
 					if ( value != -1 ) return value;
 					return escape;
 				}
 
-				public int size() {
-					return n > Integer.MAX_VALUE ? -1 : (int)n;
+				public long size64() {
+					return n;
 				}
 
 			}, best );
@@ -246,10 +246,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLongByTriple( triple );
 	}
 	
-	/** Returns the number of elements in the function domain.
-	 *
-	 * @return the number of the elements in the function domain.
-	 */
+	public long size64() {
+		return n;
+	}
+	
 	public int size() {
 		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
