@@ -466,7 +466,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return size;
 		}
 
-		/** Retrives a node given its handle.
+		/** Retrieves a node given its handle.
 		 * 
 		 * @param v a bit vector.
 		 * @param handleLength the prefix of <code>v</code> that must be used as a handle.
@@ -486,7 +486,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			}
 		}
 
-		/** Retrives a node given its handle.
+		/** Retrieves a node given its handle.
 		 * 
 		 * @param handle a handle.
 		 * @param exact whether the search should be exact; if false, and the given handle does not
@@ -685,7 +685,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
+		return size;
 	}
 	
 	/** Returns the 2-fattest number in an interval.
