@@ -1,3 +1,14 @@
+2.1
+
+- it.unimi.dsi.util.LongBigList is dead. Long live to
+  it.unimi.dsi.fastutil.longs.LongBigList. We're sorry for the
+  nuisance--adapting the code should be very easy (and we warned you
+  anyway :).
+
+- All classes should support big collections. They use the new Size64
+  interface from fastutil. Implementations still support the old
+  (deprecated) length() method for backward compatibility.
+
 2.0.1
 
 - Sux4J is now distributed under the GNU Lesser General Public
