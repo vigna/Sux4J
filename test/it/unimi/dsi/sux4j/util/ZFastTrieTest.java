@@ -1,5 +1,8 @@
 package it.unimi.dsi.sux4j.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
@@ -7,7 +10,6 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
-import it.unimi.dsi.sux4j.util.ZFastTrie;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +17,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class ZFastTrieTest extends TestCase {
+public class ZFastTrieTest {
 
 
 	public static String binary( int l ) {
@@ -26,6 +28,7 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testEmpty() throws IOException, ClassNotFoundException {
 		String[] s = {};
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
@@ -38,15 +41,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testSingleton() throws IOException, ClassNotFoundException {
 		String[] s = { "a" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		zft.remove( "a" );
 		assertFalse( zft.contains( "a" ) );
@@ -57,15 +63,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testDoubleton() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "c" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -74,15 +83,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testDoubleton2() throws IOException, ClassNotFoundException {
 		String[] s = { "c", "a" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -91,15 +103,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testTriple() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "b", "c" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -108,15 +123,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testTriple2() throws IOException, ClassNotFoundException {
 		String[] s = { "c", "b", "a" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -125,15 +143,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testExitNodeIsLeaf() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "aa", "aaa" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -142,15 +163,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testExitNodeIsLeaf3() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "aa", "aaa" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -160,16 +184,18 @@ public class ZFastTrieTest extends TestCase {
 
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testSmallest() throws IOException, ClassNotFoundException {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		for ( int i = s.length; i-- != 0; )
-		assertTrue( s[ i ], zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -178,16 +204,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testSmallest2() throws IOException, ClassNotFoundException {
 		String[] s = { "g", "f", "e", "d", "c", "b", "a" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 		for ( int i = s.length; i-- != 0; )
-		assertTrue( s[ i ], zft.contains( s[ i ] ) );
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -196,15 +224,18 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testSmall() throws IOException, ClassNotFoundException {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
 		ZFastTrie<String> zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
-		for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( s[ i ], zft.contains( s[ i ] ) );
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( zft, temp );
 		zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; ) assertTrue( zft.contains( s[ i ] ) );
+		for ( int i = s.length; i-- != 0; )
+			assertTrue( zft.contains( s[ i ] ) );
 
 		for ( int i = s.length; i-- != 0; ) {
 			assertTrue( zft.remove( s[ i ] ) );
@@ -212,7 +243,8 @@ public class ZFastTrieTest extends TestCase {
 		}
 	}
 
-	
+
+	@Test
 	public void testEmptyLcp() {
 		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
 		assertTrue( zft.add( LongArrayBitVector.of( 0, 0 ) ) );
@@ -224,7 +256,7 @@ public class ZFastTrieTest extends TestCase {
 		assertTrue( zft.remove( BitVectors.ONE ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 0, 1 ) ) );
 		assertTrue( zft.remove( LongArrayBitVector.of( 0, 0 ) ) );
-		
+
 		assertTrue( zft.add( LongArrayBitVector.of( 0, 0 ) ) );
 		assertTrue( zft.add( LongArrayBitVector.of( 0, 1 ) ) );
 		assertTrue( zft.add( BitVectors.ONE ) );
@@ -264,26 +296,39 @@ public class ZFastTrieTest extends TestCase {
 		assertTrue( zft.remove( BitVectors.ZERO ) );
 	}
 
+	@Test
 	public void testManyBranches() {
 		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
-		for( int p = 0; p < 10; p++ ) {
-			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
-			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.contains( LongArrayBitVector.getInstance().append( i, p ) ) );
-			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
-			for( int i = 0; i < ( 1 << p ); i++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
-			for( int i = ( 1 << p ); i-- != 0; ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
+		for ( int p = 0; p < 10; p++ ) {
+			for ( int i = 0; i < ( 1 << p ); i++ )
+				assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for ( int i = 0; i < ( 1 << p ); i++ )
+				assertTrue( zft.contains( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for ( int i = 0; i < ( 1 << p ); i++ )
+				assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for ( int i = 0; i < ( 1 << p ); i++ )
+				assertTrue( zft.add( LongArrayBitVector.getInstance().append( i, p ) ) );
+			for ( int i = ( 1 << p ); i-- != 0; )
+				assertTrue( zft.remove( LongArrayBitVector.getInstance().append( i, p ) ) );
 		}
 	}
 
+	@Test
 	public void testLinear() {
 		ZFastTrie<BitVector> zft = new ZFastTrie<BitVector>( TransformationStrategies.identity() );
-		for( int p = 0; p < 20; p++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
-		for( int p = 0; p < 20; p++ ) assertTrue( zft.contains( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
-		for( int p = 0; p < 20; p++ ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
-		for( int p = 0; p < 20; p++ ) assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
-		for( int p = 20; p-- != 0; ) assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for ( int p = 0; p < 20; p++ )
+			assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for ( int p = 0; p < 20; p++ )
+			assertTrue( zft.contains( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for ( int p = 0; p < 20; p++ )
+			assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for ( int p = 0; p < 20; p++ )
+			assertTrue( zft.add( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
+		for ( int p = 20; p-- != 0; )
+			assertTrue( zft.remove( LongArrayBitVector.getInstance().append( 1 << p, p + 1 ) ) );
 	}
 
+	@Test
 	public void testExtent() {
 		ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<LongArrayBitVector>( TransformationStrategies.identity() );
 		LongArrayBitVector v = LongArrayBitVector.getInstance();
@@ -300,6 +345,7 @@ public class ZFastTrieTest extends TestCase {
 	}
 
 	@SuppressWarnings("unchecked")
+	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		ZFastTrie<String> zft;
 		File temp;
@@ -308,57 +354,66 @@ public class ZFastTrieTest extends TestCase {
 		for ( int d = 10; d < 10000; d *= 10 ) {
 			String[] s = new String[ d ];
 
-			for( int rand = 0; rand < 2; rand++ ) {
+			for ( int rand = 0; rand < 2; rand++ ) {
 				for ( int i = s.length; i-- != 0; )
 					s[ i ] = binary( i );
 
-				for( int pass = 0; pass < 2; pass++ ) {
+				for ( int pass = 0; pass < 2; pass++ ) {
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso() );
 
-					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; )
+						assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					// Exercise code for negative results
-					for ( int i = 1000; i-- != 0; ) zft.contains( binary( i * i + d ) );
+					for ( int i = 1000; i-- != 0; )
+						zft.contains( binary( i * i + d ) );
 
 					temp = File.createTempFile( getClass().getSimpleName(), "test" );
 					temp.deleteOnExit();
 					BinIO.storeObject( zft, temp );
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; )
+						assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					zft = new ZFastTrie<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
-					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; )
+						assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					temp = File.createTempFile( getClass().getSimpleName(), "test" );
 					temp.deleteOnExit();
 					BinIO.storeObject( zft, temp );
 					zft = (ZFastTrie<String>)BinIO.loadObject( temp );
-					for ( int i = s.length; i-- != 0; ) assertTrue( s[ i ], zft.contains( s[ i ] ) );
+					for ( int i = s.length; i-- != 0; )
+						assertTrue( s[ i ], zft.contains( s[ i ] ) );
 
 					Collections.sort( Arrays.asList( s ) );
 
 					int p = 0;
 					ObjectBidirectionalIterator<String> iterator;
-					for( iterator = zft.iterator(); iterator.hasNext(); ) assertEquals( iterator.next(), s[ p++ ] );
-					while( iterator.hasPrevious() ) assertEquals( iterator.previous(), s[ --p ] );
+					for ( iterator = zft.iterator(); iterator.hasNext(); )
+						assertEquals( iterator.next(), s[ p++ ] );
+					while ( iterator.hasPrevious() )
+						assertEquals( iterator.previous(), s[ --p ] );
 
-					for( int i = 0; i < s.length / 100; i++ ) {
+					for ( int i = 0; i < s.length / 100; i++ ) {
 						p = i;
-						for( iterator = zft.iterator( s[ i ] ); iterator.hasNext(); ) assertEquals( iterator.next(), s[ p++ ] );
-						while( iterator.hasPrevious() ) assertEquals( iterator.previous(), s[ --p ] );
+						for ( iterator = zft.iterator( s[ i ] ); iterator.hasNext(); )
+							assertEquals( iterator.next(), s[ p++ ] );
+						while ( iterator.hasPrevious() )
+							assertEquals( iterator.previous(), s[ --p ] );
 					}
 
 					for ( int i = s.length; i-- != 0; ) {
 						assertTrue( zft.remove( s[ i ] ) );
 						assertFalse( zft.contains( s[ i ] ) );
 					}
-					
+
 					Collections.shuffle( Arrays.asList( s ), new Random( 0 ) );
 				}
 			}
-			
+
 			for ( int i = s.length; i-- != 0; )
 				s[ i ] = binary( random.nextInt( Integer.MAX_VALUE ) );
 

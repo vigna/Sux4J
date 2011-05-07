@@ -1,10 +1,13 @@
 package it.unimi.dsi.sux4j.util;
 
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
-import junit.framework.TestCase;
 
-public class EliasFanoPrefixSumLongBigListTest extends TestCase {
+import org.junit.Test;
 
+public class EliasFanoPrefixSumLongBigListTest {
+
+	@Test
 	public void testSmall() {
 		LongBigArrayBigList l;
 
