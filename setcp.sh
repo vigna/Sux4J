@@ -21,3 +21,5 @@ export CLASSPATH=$CLASSPATH:/usr/share/java/jakarta-commons-collections.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jakarta-commons-configuration.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jakarta-commons-io.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jakarta-commons-lang.jar
+# This is necessary for unit tests (to process the output)
+export CLASSPATH=$CLASSPATH:/usr/share/java/xalan-j2-serializer.jar
