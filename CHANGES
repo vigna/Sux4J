@@ -1,4 +1,4 @@
-2.1
+3.0
 
 - it.unimi.dsi.util.LongBigList is dead. Long live to
   it.unimi.dsi.fastutil.longs.LongBigList. We're sorry for the
@@ -8,6 +8,8 @@
 - All classes should support big collections. They use the new Size64
   interface from fastutil. Implementations still support the old
   (deprecated) length() method for backward compatibility.
+
+- New FileLinesBigList class.
 
 2.0.1
 

@@ -8,12 +8,12 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-public class MWHCFunctionSlowTest {
+public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionSlowTest {
 
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final MWHCFunction<Long> f = new MWHCFunction<Long>( p, TransformationStrategies.fixedLong() );
+		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long> f = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long>( p, TransformationStrategies.fixedLong() );
 				
 		long j = 0;
 		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {
