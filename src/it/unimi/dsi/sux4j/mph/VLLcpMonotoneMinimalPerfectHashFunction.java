@@ -122,7 +122,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
 			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
-				int c = 0;
+				long c = 0;
 				for( T dummy: iterable ) c++;
 				n = c;
 			}

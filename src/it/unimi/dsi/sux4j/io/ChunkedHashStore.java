@@ -143,13 +143,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** The shift for physical disk chunks. */
 	public final static int DISK_CHUNKS_SHIFT = Long.SIZE - LOG2_DISK_CHUNKS;
 	/** The number of elements that pass the current filter. */
-	protected int n;
+	protected long n;
 	/** The seed used to generate the hash triples. */
 	protected long seed;
 	/** The number of triples in each disk chunk. */
 	private int[] count;
 	/** The number of chunks. */
-	private int chunks;
+	private long chunks;
 	/** The files containing disk chunks. */
 	private File file[];
 	/** The number of disk chunks making up a chunk, or 1 if a chunk is smaller than or equal to a disk chunk. */
@@ -305,7 +305,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	public long size() throws IOException {
 		if ( n == - 1 ) {
-			int c = 0;
+			long c = 0;
 			final long[] triple = new long[ 3 ];
 			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				if ( filter == null ) c += count[ i ];
@@ -444,7 +444,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	
 	public int log2Chunks( final int log2chunks ) {
 		this.chunks = 1 << log2chunks;
-		diskChunkStep = Math.max( DISK_CHUNKS / chunks, 1 );
+		diskChunkStep = (int)Math.max( DISK_CHUNKS / chunks, 1 );
 		virtualDiskChunks = DISK_CHUNKS / diskChunkStep;
 		maxCount = 0;
 		for( int i = 0; i < virtualDiskChunks; i++ ) {
@@ -590,7 +590,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				final long[] buffer0 = this.buffer0;
 
 				if ( chunk % ( chunks / virtualDiskChunks ) == 0 ) {
-					final int diskChunk = chunk / ( chunks / virtualDiskChunks );
+					final int diskChunk = (int)( chunk / ( chunks / virtualDiskChunks ) );
 					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 
 					chunkSize = 0;

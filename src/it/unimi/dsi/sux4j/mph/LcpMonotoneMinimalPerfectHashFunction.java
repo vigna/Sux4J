@@ -107,8 +107,12 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		this( iterable, -1, transform );
 	}
 
-		@SuppressWarnings("unused")
 	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final int numElements, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( iterable, (long)numElements, transform );
+	}
+	
+	@SuppressWarnings("unused")
+	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final long numElements, final TransformationStrategy<? super T> transform ) throws IOException {
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		this.transform = transform;
@@ -118,7 +122,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
 			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
-				int c = 0;
+				long c = 0;
 				for( T dummy: iterable ) c++;
 				n = c;
 			}
