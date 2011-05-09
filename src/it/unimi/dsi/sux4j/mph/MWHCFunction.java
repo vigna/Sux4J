@@ -402,7 +402,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						x = stack[ --top ];
 						k = edge[ x ];
 						final long s = data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] );
-						final long value = override ? valueList.getLong( (int)chunk.data( k ) ) : chunk.data( k );
+						final long value = override ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
 						data.set( off + x, value ^ s );
 						
 						if ( ASSERTS ) assert ( value == ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) ) ) :
