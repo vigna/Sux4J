@@ -7,3 +7,5 @@
 - Check that size == -1 is used coherently in hash classes
 - Check that serial numbers are all bumped
 - Warn about changes in jenkins's hash
+- Problems with HashesTest
+- Problems with variable-length Paco

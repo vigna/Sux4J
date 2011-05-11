@@ -130,7 +130,7 @@ public class Hashes {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( length == 0 ) return seed ^ 0x8de6a918d6538324L;
+		if ( length == 0 ) return seed ^ 0x36071e726d0ba0c5L;
 		
 		/* Set up the internal state */
 		a = b = seed;
@@ -346,7 +346,7 @@ public class Hashes {
 	 */
 	
 	public static long jenkins( final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[] )  {
-		if ( prefixLength == 0 ) return aa[ 0 ] ^ 0x8de6a918d6538324L;
+		if ( prefixLength == 0 ) return aa[ 0 ] ^ 0x36071e726d0ba0c5L;
 		
 		int stateOffset = (int)( prefixLength / ( 3 * Long.SIZE ) );
 		long from = ( stateOffset * 3 ) * Long.SIZE;
