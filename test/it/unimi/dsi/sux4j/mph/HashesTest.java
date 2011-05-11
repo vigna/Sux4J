@@ -1,6 +1,7 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.LongArrayBitVector;
 
@@ -22,7 +23,11 @@ public class HashesTest {
 			for ( int i = 0; i < l; i++ ) {
 				final long[] h = new long[ 3 ];
 				Hashes.jenkins( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], h );
-				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), h[ 0 ] );
+				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), h[ 2 ] );
+				assertEquals( "Prefix length " + i, Hashes.jenkins( bv.subVector( 0, i ) ), Hashes.jenkins( bv, i, state[ 0 ], state[ 1 ], state[ 2 ] ) );
+				final long[] k = new long[ 3 ];
+				Hashes.jenkins( bv.subVector( 0, i ), 0, k );
+				assertArrayEquals( "Prefix length " + i, k, h );
 			}
 		}
 	}
@@ -47,7 +52,7 @@ public class HashesTest {
 	public void test0() {
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( BitVectors.EMPTY_VECTOR, 0, h );
-		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR, 0 ), h[ 0 ] );
-		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR ), h[ 0 ] );
+		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR, 0 ), h[ 2 ] );
+		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR ), h[ 2 ] );
 	}
 }
