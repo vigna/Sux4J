@@ -29,9 +29,11 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.Size64;
+import it.unimi.dsi.fastutil.ints.IntBigArrayBigList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -42,7 +44,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,7 +55,7 @@ import org.apache.log4j.Logger;
  *
  */
 
-public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = Util.getLogger( ZFastTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
@@ -73,7 +74,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** For each external node and each possible path, the related behaviour. */
 	private final MWHCFunction<BitVector> behaviour;
 	/** The number of elements of the set upon which the trie is built. */
-	private final int size;
+	private final long size;
 	private MWHCFunction<BitVector> signatures;
 	private TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
@@ -93,11 +94,11 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		/** The root of the trie. */
 		protected Node root;
 		/** The number of elements of the set upon which the trie is built. */
-		protected final int numElements;
+		protected final long numElements;
 		/** The values associated to the keys in {@link #externalKeysFile}. */
 		private LongBigList externalValues;
 		/** The string representing the parent of each key in {@link #externalKeysFile}. */
-		private IntArrayList externalParentRepresentations;
+		private IntBigArrayBigList externalParentRepresentations;
 		private long w;
 		private int logW;
 		private int logLogW;
@@ -203,7 +204,8 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				
 				Node node, root = null;
 				LongArrayBitVector curr = LongArrayBitVector.getInstance();
-				int pos, prefix, count = 1;
+				int pos, prefix;
+				long count = 1;
 				long maxLength = prev.length();
 				
 				while( iterator.hasNext() ) {
@@ -303,7 +305,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 					pl.start( "Computing function keys..." );
 
 					externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
-					externalParentRepresentations = new IntArrayList( numElements );
+					externalParentRepresentations = new IntBigArrayBigList( numElements );
 					iterator = elements.iterator();
 
 					// The stack of nodes visited the last time
@@ -719,7 +721,12 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return true;
 	}
 
-	public int size() {
+	public long size64() {
 		return size;
+	}
+	
+	@Deprecated
+	public int size() {
+		return (int)Math.min( size, Integer.MAX_VALUE );
 	}
 }

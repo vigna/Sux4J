@@ -26,16 +26,16 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
@@ -164,7 +164,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected transient long[] array;
 
 	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
-	protected final int count[];
+	protected final long count[];
 
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
@@ -327,8 +327,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		if ( n > 0 ) {
 			long m = values.size64();
-			count = new int[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
-			int c = 0;
+			count = new long[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
+			long c = 0;
 
 			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
 			for ( int i = 0; i < numWords; i++ ) {
@@ -349,7 +349,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					assert getLong( iterator.next() ) < n;
 			}
 		}
-		else count = IntArrays.EMPTY_ARRAY;
+		else count = LongArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
@@ -405,10 +405,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
 
-	private int rank( long x ) {
+	private long rank( long x ) {
 		x *= 2;
 		final int word = (int)( x / Long.SIZE );
-		int rank = count[ word / 8 ];
+		long rank = count[ word / 8 ];
 		int wordInBlock = word & ~7;
 		while ( wordInBlock < word )
 			rank += countNonzeroPairs( array[ wordInBlock++ ] );
