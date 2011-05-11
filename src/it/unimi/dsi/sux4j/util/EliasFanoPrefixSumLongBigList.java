@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.util;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -46,7 +46,7 @@ import java.util.NoSuchElementException;
  * 
  */
 public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	/** Wraps an iterator and returns prefix sums. */
 	

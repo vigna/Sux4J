@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2010 Sebastiano Vigna 
+ * Copyright (C) 2002-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -126,7 +126,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;

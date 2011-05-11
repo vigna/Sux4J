@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2010 Sebastiano Vigna 
+ * Copyright (C) 2002-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -124,7 +124,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	private static final boolean ASSERTS = false;
 
-	public static final long serialVersionUID = 3L;
+	public static final long serialVersionUID = 4L;
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;

@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -70,7 +70,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -257,7 +257,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 	@Deprecated
 	public int size() {
-		return (int)Math.min( Integer.MAX_VALUE, n );
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

@@ -4,7 +4,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -28,7 +28,7 @@ import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
  */
 
 public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunction<K> {
-	public static final long serialVersionUID = 5315342712300777745L;
+	public static final long serialVersionUID = 1L;
 	public boolean containsKey( Object key ) {
 		return true;
 	}

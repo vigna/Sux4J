@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -53,7 +53,7 @@ import org.apache.log4j.Logger;
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;

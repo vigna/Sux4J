@@ -88,7 +88,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
-    public static final long serialVersionUID = 1L;
+    public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DDDEBUG = false;

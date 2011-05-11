@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -63,7 +63,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = Util.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
@@ -163,7 +163,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 	@Deprecated
 	public int size() {
-		return (int)Math.min( size, Integer.MAX_VALUE );
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}
 	
 	public long numBits() {

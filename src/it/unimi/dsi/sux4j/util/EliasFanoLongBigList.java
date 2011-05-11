@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.util;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -62,7 +62,7 @@ import java.util.Iterator;
  * constructor that provides offline storage for borders}.
  */
 public class EliasFanoLongBigList extends AbstractLongBigList implements Serializable {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	/** The number of elements in this list. */
 	private final long length;
 	/** The storage for small elements. */
