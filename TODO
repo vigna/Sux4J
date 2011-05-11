@@ -4,8 +4,4 @@
 - Improve ZFast construction memory and time
 - Add logging line in main methods to start counters correctly
 - Comment all classes!
-- Check that size == -1 is used coherently in hash classes
-- Check that serial numbers are all bumped
-- Warn about changes in jenkins's hash
-- Problems with HashesTest
 - Problems with variable-length Paco

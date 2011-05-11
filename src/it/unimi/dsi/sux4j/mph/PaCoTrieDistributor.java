@@ -538,7 +538,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 
 	public long numBits() {
-		return trie.length * Byte.SIZE + transformationStrategy.numBits();
+		return trie.length * (long)Byte.SIZE + transformationStrategy.numBits();
 	}
 
 	/** Returns the number of leaves in this trie.

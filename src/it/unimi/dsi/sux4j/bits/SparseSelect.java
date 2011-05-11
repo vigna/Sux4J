@@ -137,7 +137,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	public long numBits() {
-		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * Long.SIZE );
+		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE );
 	}
 
 	public long select( final long rank ) {

@@ -709,7 +709,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	private long numBitsForMistakes() {
 		if ( emptyTrie ) return 0;
-		return corrections.numBits() + mistakeSignatures.size() * Integer.SIZE;
+		return corrections.numBits() + mistakeSignatures.size() * (long)Integer.SIZE;
 	}
 	
 	public long numBits() {

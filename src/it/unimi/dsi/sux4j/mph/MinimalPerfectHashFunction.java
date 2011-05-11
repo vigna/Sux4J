@@ -362,7 +362,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * Integer.SIZE + offset.length * Integer.SIZE + seed.length * Long.SIZE;
+		return values.size64() * 2 + count.length * (long)Integer.SIZE + offset.length * (long)Integer.SIZE + seed.length * (long)Long.SIZE;
 	}
 
 

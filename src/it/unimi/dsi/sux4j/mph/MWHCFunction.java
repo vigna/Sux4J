@@ -528,7 +528,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * Long.SIZE + offset.length * Integer.SIZE;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * (long)Long.SIZE + offset.length * (long)Integer.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

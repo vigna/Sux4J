@@ -97,7 +97,7 @@ public class Rank9 extends AbstractRank implements Rank {
 	}
 
 	public long numBits() {
-		return count.length * Long.SIZE;
+		return count.length * (long)Long.SIZE;
 	}
 
 	public long count() {

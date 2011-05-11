@@ -255,7 +255,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * Long.SIZE;
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE;
 	}
 
 	public long getLong( final long index ) {

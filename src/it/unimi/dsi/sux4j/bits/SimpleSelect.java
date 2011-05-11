@@ -292,7 +292,7 @@ public class SimpleSelect implements Select {
 
 	
 	public long numBits() {
-		return (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE + (long)exactSpill.length * Long.SIZE;
+		return inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE + exactSpill.length * (long)Long.SIZE;
 	}
 
 	public BitVector bitVector() {

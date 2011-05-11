@@ -91,7 +91,7 @@ public class Rank16 extends AbstractRank implements Rank {
 	}
 
 	public long numBits() {
-		return count.length * Short.SIZE + superCount.length * Long.SIZE;
+		return count.length * (long)Short.SIZE + superCount.length * (long)Long.SIZE;
 	}
 
 	public long count() {

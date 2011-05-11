@@ -259,7 +259,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return ( firstFunction != null ? firstFunction.numBits() : 0 ) + secondFunction.numBits() + transform.numBits() + remap.length * Long.SIZE;
+		return ( firstFunction != null ? firstFunction.numBits() : 0 ) + secondFunction.numBits() + transform.numBits() + remap.length * (long)Long.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

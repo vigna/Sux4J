@@ -272,7 +272,7 @@ public class Select9 implements Select {
 	}
 
 	public long numBits() {
-		return rank9.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
+		return rank9.numBits() + inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE;
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {

@@ -111,7 +111,7 @@ public class HintedBsearchSelect implements Select {
 	}
 
 	public long numBits() {
-		return rank9.numBits() + inventory.length * Integer.SIZE;
+		return rank9.numBits() + inventory.length * (long)Integer.SIZE;
 	}
 
 	

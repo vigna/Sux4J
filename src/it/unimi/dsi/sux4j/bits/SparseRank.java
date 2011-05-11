@@ -149,7 +149,7 @@ public class SparseRank extends AbstractRank {
 	}
 
 	public long numBits() {
-		return selectZeroUpper.numBits() + ( fromSelect ? 0 : upperBits.length() + lowerBits.length * Long.SIZE );
+		return selectZeroUpper.numBits() + ( fromSelect ? 0 : upperBits.length() + lowerBits.length * (long)Long.SIZE );
 	}
 		
 	/** Creates a new {@link SparseSelect} structure sharing data with this instance.

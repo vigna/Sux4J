@@ -540,7 +540,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 	public long numBits() {
-		return trie.length * Byte.SIZE + transformationStrategy.numBits();
+		return trie.length * (long)Byte.SIZE + transformationStrategy.numBits();
 	}
 
 	public boolean containsKey( Object o ) {
