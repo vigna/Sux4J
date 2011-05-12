@@ -1073,7 +1073,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		long lcp;
 
 		final long[] state = Hashes.preprocessMurmur( v, 42 );
-
 		ParexData<T> parexData = getParentExitNode( v, state, stack );
 		if ( ASSERTS ) assertParent( v, parexData, stack );
 		
