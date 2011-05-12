@@ -5,10 +5,12 @@ import it.unimi.dsi.bits.TransformationStrategies;
 
 import java.util.Iterator;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class HollowTrieMonotoneMinimalPerfectHashFunctionSlowTest {
 
+	@Ignore("Runs out of memory")
 	@Test
 	public void testBig() {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
