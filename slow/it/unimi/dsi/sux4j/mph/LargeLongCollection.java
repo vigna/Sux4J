@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
 
 final class LargeLongCollection implements Iterable<Long> {
 	
-	public final static long SIZE = 30000L;
+	public final static long SIZE = 3000000000L;
 	private final static long INCREMENT = ( ( 1L << 62 ) / SIZE );
 
 	private LargeLongCollection() {}

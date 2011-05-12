@@ -247,18 +247,4 @@ public class Rank9SelectTest extends RankSelectTestCase {
 
 		}
 	}
-
-	@Test
-	public void testVeryLarge() {
-		LongArrayBitVector v = LongArrayBitVector.getInstance( 2200000000L );
-		for ( int i = 0; i < 2200000000L / 64; i++ )
-			v.append( 0x5555555555555555L, 64 );
-		Rank9 rank9;
-		Select9 select9 = new Select9( rank9 = new Rank9( v ) );
-		for ( int i = 0; i < 1100000000; i++ )
-			assertEquals( i * 2L, select9.select( i ) );
-		for ( int i = 0; i < 1100000000; i++ )
-			assertEquals( i, rank9.rank( i * 2L ) );
-	}
-
 }
