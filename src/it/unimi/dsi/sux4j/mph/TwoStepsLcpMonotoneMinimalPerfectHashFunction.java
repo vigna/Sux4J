@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,8 +69,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * but it is a bit slower as one or two additional functions must be queried.
  */
 
-public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 2L;
+public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
+    public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = Util.getLogger( TwoStepsLcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -121,7 +120,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
 			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
-				int c = 0;
+				long c = 0;
 				for( T dummy: iterable ) c++;
 				n = c;
 			}
@@ -166,7 +165,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			pl.lightUpdate();
 			maxLength = Math.max( maxLength, prev.length() );
 			currLcp = (int)prev.length();
-			final long currBucketSize = Math.min( bucketSize, n - b * bucketSize );
+			final int currBucketSize = (int)Math.min( bucketSize, n - b * bucketSize );
 			
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr.replace( transform.toBitVector( iterator.next() ) );
@@ -226,7 +225,6 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
 			public long getLong( long index ) {
-				if ( ( index >>> log2BucketSize ) > Integer.MAX_VALUE ) throw new IndexOutOfBoundsException();
 				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ); 
 			}
 			public long size64() {
@@ -280,7 +278,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	}
 
 	public int size() {
-		return (int)Math.min( Integer.MAX_VALUE, n );
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

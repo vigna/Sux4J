@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
@@ -68,9 +68,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys.
  */
 
-public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
 	private static final Logger LOGGER = Util.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -83,7 +83,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	/** The transformation strategy. */
 	private final TransformationStrategy<? super T> transform;
 	/** The number of elements in this hollow trie. */
-	private int size;
+	private long size;
 	
 	private final static class Node {
 		Node right;
@@ -138,11 +138,12 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		int size = 0;
+		long size = 0;
+		long numNodes = 0;
 		long maxLength = 0, totalLength = 0;
 		
 		Node root = null, node, parent;
-		int prefix, numNodes = 0;
+		int prefix;
 
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
@@ -347,8 +348,12 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	}
 	
 	
-	public int size() {
+	public long size64() {
 		return size;
+	}
+	
+	public int size() {
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
 	}
 
 	public long numBits() {

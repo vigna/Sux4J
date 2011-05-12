@@ -1,4 +1,20 @@
-2.1
+3.0
+
+- it.unimi.dsi.util.LongBigList is dead. Long live to
+  it.unimi.dsi.fastutil.longs.LongBigList. We're sorry for the
+  nuisance--adapting the code should be very easy (and we warned you
+  anyway :).
+
+- All classes should support big collections. They use the new Size64
+  interface from fastutil. Implementations still support the old
+  (deprecated) length() method for backward compatibility.
+
+- New FileLinesBigList class.
+
+2.0.1
+
+- Sux4J is now distributed under the GNU Lesser General Public
+  License 3.
 
 - Major rewriting of the hypergraph peeling code. Now we use less memory
   and we are definitely faster.
@@ -17,6 +33,8 @@
   errors when building structure over bit vectors with >2Gi bits.
 
 - AbstractLongBitVector.equals() now uses getLong() on word boundaries.
+
+- Fixed pernicious bug in Select9.
 
 2.0
 

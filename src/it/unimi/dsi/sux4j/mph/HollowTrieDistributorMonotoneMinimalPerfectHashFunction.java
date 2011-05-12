@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
@@ -62,12 +62,12 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  */
 
-public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 3L;
+public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = Util.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
-	private final int size;
+	private final long size;
 	/** The size of a bucket. */
 	private final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
@@ -157,10 +157,15 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		
 	}
 
-	public int size() {
+	public long size64() {
 		return size;
 	}
 
+	@Deprecated
+	public int size() {
+		return size > Integer.MAX_VALUE ? -1 : (int)size;
+	}
+	
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}

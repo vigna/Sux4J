@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2010 Sebastiano Vigna 
+ * Copyright (C) 2002-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,9 +26,9 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -125,7 +124,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	private static final boolean ASSERTS = false;
 
-	public static final long serialVersionUID = 3L;
+	public static final long serialVersionUID = 4L;
 
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 512;
@@ -165,7 +164,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected transient long[] array;
 
 	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
-	protected final int count[];
+	protected final long count[];
 
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
@@ -328,8 +327,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		if ( n > 0 ) {
 			long m = values.size64();
-			count = new int[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
-			int c = 0;
+			count = new long[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
+			long c = 0;
 
 			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
 			for ( int i = 0; i < numWords; i++ ) {
@@ -350,7 +349,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					assert getLong( iterator.next() ) < n;
 			}
 		}
-		else count = IntArrays.EMPTY_ARRAY;
+		else count = LongArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
@@ -363,7 +362,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * Integer.SIZE + offset.length * Integer.SIZE + seed.length * Long.SIZE;
+		return values.size64() * 2 + count.length * (long)Integer.SIZE + offset.length * (long)Integer.SIZE + seed.length * (long)Long.SIZE;
 	}
 
 
@@ -406,10 +405,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return (int)( byteSums * ONES_STEP_8 >>> 56 );
 	}
 
-	private int rank( long x ) {
+	private long rank( long x ) {
 		x *= 2;
 		final int word = (int)( x / Long.SIZE );
-		int rank = count[ word / 8 ];
+		long rank = count[ word / 8 ];
 		int wordInBlock = word & ~7;
 		while ( wordInBlock < word )
 			rank += countNonzeroPairs( array[ wordInBlock++ ] );
@@ -425,7 +424,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.
@@ -437,7 +436,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 		// Out-of-set strings can generate bizarre 3-hyperedges.

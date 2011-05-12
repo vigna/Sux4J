@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.util;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.util;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,13 +25,13 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -51,7 +50,7 @@ import java.util.Arrays;
  * 
  */
 public class TwoSizesLongBigList extends AbstractLongBigList implements Serializable {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private static final boolean ASSERTS = false;
 	/** The number of elements in this list. */
 	private final long length;
@@ -194,6 +193,11 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		return small.getLong( index - rank.rank( index ) );
 	}
 
+	@Deprecated
+	public long length() {
+		return length;
+	}
+	
 	public long size64() {
 		return length;
 	}

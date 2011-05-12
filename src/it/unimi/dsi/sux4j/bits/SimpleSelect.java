@@ -1,14 +1,13 @@
 package it.unimi.dsi.sux4j.bits;
 
-
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -17,8 +16,7 @@ package it.unimi.dsi.sux4j.bits;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,15 +29,15 @@ import it.unimi.dsi.fastutil.longs.LongBigList;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A simple select implementation based on a two-level inventory and broadword bit search.
+/** A simple select implementation based on a two-level inventory, a spill list and broadword bit search.
  *  
  * <p>This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
  * under the same conditions, provide very fast selects. For very unevenly distributed arrays
  * the space occupancy will grow significantly, and access time might vary wildly. */
 
 public class SimpleSelect implements Select {
-	@SuppressWarnings("unused")
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
+
 	private static final long serialVersionUID = 1L;
 
 	private static final long ONES_STEP_8 = 0x0101010101010101L;
@@ -50,28 +48,62 @@ public class SimpleSelect implements Select {
 	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
 
-	private final long[] inventory;
-	private final long[] subinventory;
-	private transient LongBigList subinventory16;
-	private final long numOnes;
-	private final int numWords;
-	private transient long[] bits;
-	private final int onesPerInventory;
-	private final int log2OnesPerInventory;
-	private final int onesPerInventoryMask;
-	private final int log2LongwordsPerSubinventory;
-	private final int log2OnesPerSub64;
-	private final int log2OnesPerSub16;
-	private final int onesPerSub64;
-	private final int onesPerSub16;
-	private final int onesPerSub16Mask;
-	private final long[] exactSpill;
+	/** The maximum size of span to qualify for a subinventory made of 16-bit offsets. */
+	private static final int MAX_SPAN = ( 1 << 16 );
+
+	/** The underlying bit vector. */
 	private final BitVector bitVector;
-	
+	/** The number of ones in {@link #bitVector}. */
+	private final long numOnes;
+	/** The number of words in {@link #bitVector}. */
+	private final int numWords;
+	/** The cached result of {@link BitVector#bits() bitVector.bits()}. */ 
+	private transient long[] bits;
+	/** The first-level inventory containing information about one bit each {@link #onesPerInventory}.
+	 * If the entry is nonnegative, it is the rank of the bit and subsequent information is recorded in {@link #subinventory16} 
+	 * as offsets of one bit each {@link #onesPerSub16} (then, sequential search is necessary). Otherwise, a negative value
+	 * means that offsets are too large and they have been recorded as 64-bit values. If {@link #onesPerSub64} is 1, then offsets are directly stored
+	 * into {@link #subinventory}. Otherwise, the first {@link #subinventory} entry is actually a pointer to {@link #exactSpill},
+	 * where the offsets can be found. */
+	private final long[] inventory;
+	/** The logarithm of the number of ones per {@link #inventory} entry. */
+	private final int log2OnesPerInventory;
+	/** The number of ones per {@link #inventory} entry. */
+	private final int onesPerInventory;
+	/** The mask associated to the number of ones per {@link #inventory} entry. */
+	private final int onesPerInventoryMask;
+	/** The second-level inventory (records the offset of each bit w.r.t. the first-level inventory). */
+	private final long[] subinventory;
+	/** Exposes {@link #subinventory} as a list of 16-bits positive integers. */
+	private transient LongBigList subinventory16;
+	/** The logarithm of the number of longwords used in the part of the subinventory associated to an inventory entry. */
+	private final int log2LongwordsPerSubinventory;
+	/** The logarithm of the number of ones for each {@link #subinventory} longword. */
+	private final int log2OnesPerSub64;
+	/** The number of ones for each {@link #subinventory} longword. */
+	private final int onesPerSub64;
+	/** The logarithm of the number of ones for each {@link #subinventory} short. */
+	private final int log2OnesPerSub16;
+	/** The number of ones for each {@link #subinventory} short. */
+	private final int onesPerSub16;
+	/** The mask associated to number of ones for each {@link #subinventory} short. */
+	private final int onesPerSub16Mask;
+	/** The list of exact spills. */
+	private final long[] exactSpill;
+
+	/** Creates a new selection structure using a bit vector specified by an array of longs and a number of bits.
+	 * 
+	 * @param bits an array of longs representing a bit array.
+	 * @param length the number of bits to use from <code>bits</code>.
+	 */
 	public SimpleSelect( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 		
+	/** Creates a new selection structure using the specified bit vector. 
+	 * 
+	 * @param bitVector a bit vector.
+	 */
 	public SimpleSelect( final BitVector bitVector ) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
@@ -79,22 +111,18 @@ public class SimpleSelect implements Select {
 
 		numWords = (int)( ( length + 63 ) / 64 );
 		
-		// Init rank/select structure
-		long c = 0;
-		for( int i = 0; i < numWords; i++ ) c += Fast.count( bits[ i ] );
-		numOnes = c;
+		// We compute quickly the number of ones (possibly counting spurious bits in the last word).
+		long d = 0;
+		for( int i = numWords; i-- != 0; ) d += Fast.count( bits[ i ] );
 
-		onesPerInventory = 1 << ( log2OnesPerInventory = Fast.mostSignificantBit( length == 0 ? 1 : (int)( ( c * MAX_ONES_PER_INVENTORY + length - 1 ) / length ) ) );
+		onesPerInventory = 1 << ( log2OnesPerInventory = Fast.mostSignificantBit( length == 0 ? 1 : (int)( ( d * MAX_ONES_PER_INVENTORY + length - 1 ) / length ) ) );
 		onesPerInventoryMask = onesPerInventory - 1;
-		final int inventorySize = (int)( ( c + onesPerInventory - 1 ) / onesPerInventory );
+		final int inventorySize = (int)( ( d + onesPerInventory - 1 ) / onesPerInventory );
 
 		inventory = new long[ inventorySize + 1 ];
 
-		long d = 0;
-
-		// TODO: unroll so that the loop does not need the test.
-		
 		// First phase: we build an inventory for each one out of onesPerInventory.
+		d = 0;
 		for( int i = 0; i < numWords; i++ )
 			for( int j = 0; j < 64; j++ ) {
 				if ( i * 64L + j >= length ) break;
@@ -103,6 +131,8 @@ public class SimpleSelect implements Select {
 					d++;
 				}
 			}
+
+		numOnes = d;
 
 		inventory[ inventorySize ] = length;
 
@@ -128,13 +158,13 @@ public class SimpleSelect implements Select {
 							inventoryIndex = (int)( d >>> log2OnesPerInventory );
 							start = inventory[ inventoryIndex ];
 							span = inventory[ inventoryIndex + 1 ] - start;
-							ones = (int)Math.min( c - d, onesPerInventory );
+							ones = (int)Math.min( numOnes - d, onesPerInventory );
 
 							// We must always count (possibly unused) diff16's. And we cannot store less then 4 diff16.
 							diff16 += Math.max( 4, ( ones + onesPerSub16 - 1 ) >>> log2OnesPerSub16 );
 
 							// We accumulate space for exact pointers ONLY if necessary.
-							if ( span >= (1<<16) ) {
+							if ( span >= MAX_SPAN ) {
 								exact += ones;
 								if ( onesPerSub64 > 1 ) spilled += ones;
 							}
@@ -165,8 +195,8 @@ public class SimpleSelect implements Select {
 							offset = 0;
 						}
 
-						if ( span < (1<<16) ) {
-							assert( i * 64L + j - start <= (1<<16) );
+						if ( span < MAX_SPAN ) {
+							if ( ASSERTS ) assert i * 64L + j - start <= MAX_SPAN;
 							if ( ( d & onesPerSub16Mask ) == 0 ) {
 								subinventory16.set( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) +  offset++, i * 64L + j - start );
 							}
@@ -262,7 +292,7 @@ public class SimpleSelect implements Select {
 
 	
 	public long numBits() {
-		return (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE + (long)exactSpill.length * Long.SIZE;
+		return inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE + exactSpill.length * (long)Long.SIZE;
 	}
 
 	public BitVector bitVector() {

@@ -35,12 +35,14 @@ public class TreeSetSpeedTest {
 					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "100000", JSAP.NOT_REQUIRED, 'n', "n", "The number of elements to test." ),
 					new FlaggedOption( "times", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 't', "times", "The number of times the set must be repeated." ),
 					new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings." ),
+					new UnflaggedOption( "testFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings for testing." ),
 		});
 		
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 		
 		final String stringFile = jsapResult.getString( "stringFile" );
+		final String testFile = jsapResult.userSpecified( "testFile" ) ? jsapResult.getString( "testFile" ) : stringFile;
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
@@ -72,7 +74,7 @@ public class TreeSetSpeedTest {
 		final int inc = tree.size() / n;
 
 		System.out.println( "Preparing strings..." );
-		FileLinesIterator lineIterator = collection.iterator();
+		FileLinesIterator lineIterator = new FileLinesCollection( testFile, encoding.toString(), zipped ).iterator();
 		for( int j = 0; j < n; j++ ) {
 			test[ j ] = LongArrayBitVector.copy( transformationStrategy.toBitVector( lineIterator.next() ) );
 			if ( inc > 1 ) for( int k = inc - 1; k-- != 0; ) lineIterator.next();

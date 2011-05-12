@@ -1,12 +1,15 @@
 package it.unimi.dsi.sux4j.util;
 
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
-import junit.framework.TestCase;
 
-public class EliasFanoLongBigListTest extends TestCase {
+import org.junit.Test;
 
+public class EliasFanoLongBigListTest {
+
+	@Test
 	public void testSmall() {
-		for( boolean offline : new boolean[] { false, true } ) {
+		for ( boolean offline : new boolean[] { false, true } ) {
 			LongBigArrayBigList l;
 			l = new LongBigArrayBigList( new long[][] { { 0, 0, 0 } } );
 			assertEquals( l, new EliasFanoLongBigList( l.iterator(), 0, offline ) );

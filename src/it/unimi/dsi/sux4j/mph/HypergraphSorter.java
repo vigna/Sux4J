@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,7 +73,7 @@ import org.apache.log4j.Logger;
  * <h2>Support for preprocessed keys</h2>
  * 
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
- * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, long, int, int[])} use
+ * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
  * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
@@ -228,13 +227,13 @@ public class HypergraphSorter<T> {
 	 * 
 	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
-	 * @param l the number of vertices in the underlying hypergraph.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param partSize <code>numVertices</code>/3 (to avoid a division).
 	 * @param e an array to store the resulting edge.
 	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
 	 */
-	public static void tripleToEdge( final long[] triple, final long seed, final long l, final int partSize, final int e[] ) {
-		if ( l == 0 ) {
+	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int partSize, final int e[] ) {
+		if ( numVertices == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
 			return;
 		}
@@ -250,12 +249,12 @@ public class HypergraphSorter<T> {
 	 * 
 	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
-	 * @param l the number of vertices in the underlying hypergraph.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param e an array to store the resulting edge.
 	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
 	 */
-	public static void tripleToEdge( final long[] triple, final long seed, final long l, final int e[] ) {
-		tripleToEdge( triple, seed, l, (int)( l * 0xAAAAAAABL >>> 33 ), e );  // Fast division by 3
+	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
+		tripleToEdge( triple, seed, numVertices, (int)( numVertices * 0xAAAAAAABL >>> 33 ), e );  // Fast division by 3
 	}
 	
 	private final void cleanUpIfNecessary() {

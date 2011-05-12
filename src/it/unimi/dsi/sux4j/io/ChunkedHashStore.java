@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.io;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.io;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,13 +143,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** The shift for physical disk chunks. */
 	public final static int DISK_CHUNKS_SHIFT = Long.SIZE - LOG2_DISK_CHUNKS;
 	/** The number of elements that pass the current filter. */
-	protected int n;
+	protected long n;
 	/** The seed used to generate the hash triples. */
 	protected long seed;
 	/** The number of triples in each disk chunk. */
 	private int[] count;
 	/** The number of chunks. */
-	private int chunks;
+	private long chunks;
 	/** The files containing disk chunks. */
 	private File file[];
 	/** The number of disk chunks making up a chunk, or 1 if a chunk is smaller than or equal to a disk chunk. */
@@ -306,7 +305,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	public long size() throws IOException {
 		if ( n == - 1 ) {
-			int c = 0;
+			long c = 0;
 			final long[] triple = new long[ 3 ];
 			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				if ( filter == null ) c += count[ i ];
@@ -445,7 +444,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	
 	public int log2Chunks( final int log2chunks ) {
 		this.chunks = 1 << log2chunks;
-		diskChunkStep = Math.max( DISK_CHUNKS / chunks, 1 );
+		diskChunkStep = (int)Math.max( DISK_CHUNKS / chunks, 1 );
 		virtualDiskChunks = DISK_CHUNKS / diskChunkStep;
 		maxCount = 0;
 		for( int i = 0; i < virtualDiskChunks; i++ ) {
@@ -591,7 +590,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				final long[] buffer0 = this.buffer0;
 
 				if ( chunk % ( chunks / virtualDiskChunks ) == 0 ) {
-					final int diskChunk = chunk / ( chunks / virtualDiskChunks );
+					final int diskChunk = (int)( chunk / ( chunks / virtualDiskChunks ) );
 					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 
 					chunkSize = 0;

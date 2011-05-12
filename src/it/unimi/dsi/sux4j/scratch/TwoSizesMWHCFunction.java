@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.scratch;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2010 Sebastiano Vigna 
+ * Copyright (C) 2002-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.scratch;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,9 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
@@ -76,9 +76,18 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param transform a transformation strategy for the elements.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
-	 * @throws IOException 
 	 */
+	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongList values ) throws IOException {
+		this( elements, transform, LongBigLists.asBigList( values ) );
+	}
 
+	/** Creates a new function for the given elements and values.
+	 * 
+	 * @param elements the elements in the domain of the function.
+	 * @param transform a transformation strategy for the elements.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each element.
+	 */
 	public TwoSizesMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values ) throws IOException {
 		this.transform = transform;
 
@@ -142,7 +151,7 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		if ( threshold == -1 ) secondFunction = null;
 		else {
-			LongList secondValues = new LongArrayList();
+			LongBigArrayBigList secondValues = new LongBigArrayBigList();
 			ArrayList<LongArrayBitVector> secondKeys = new ArrayList<LongArrayBitVector>();
 			Iterator<? extends T> iterator = elements.iterator();
 
@@ -178,12 +187,12 @@ public class TwoSizesMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLong( triple );
 	}
 	
-	/** Returns the number of elements in the function domain.
-	 *
-	 * @return the number of the elements in the function domain.
-	 */
+	public long size64() {
+		return n;
+	}
+
 	public int size() {
-		return (int)Math.min( n, Integer.MAX_VALUE );
+		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

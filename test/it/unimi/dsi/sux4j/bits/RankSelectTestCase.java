@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.bits;
 
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.BitVector;
-import junit.framework.TestCase;
 
-public abstract class RankSelectTestCase extends TestCase {
+public abstract class RankSelectTestCase {
 	public void assertRankAndSelect( Rank rank, Select select ) {
 		final long length = rank.bitVector().length();
 		final BitVector bits = rank.bitVector();

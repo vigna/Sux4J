@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.util;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.util;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,14 @@ import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.Serializable;
 
@@ -83,7 +82,7 @@ import java.io.Serializable;
  */
 
 public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 	
 	/** The length of the sequence. */
 	protected final long length;
@@ -256,7 +255,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * Long.SIZE;
+		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE;
 	}
 
 	public long getLong( final long index ) {
@@ -269,6 +268,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 		return ( selectUpper.select( index ) - index ) << l | 
 			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
+	}
+
+	@Deprecated
+	public long length() {
+		return size64();
 	}
 
 	public long size64() {

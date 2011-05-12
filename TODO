@@ -1,9 +1,7 @@
 - Document each constructor w.r.t. preserving ChunkedHashStore seed and whether it needs a checked one
 - The hollow trie distributor could accept a triple for the key and use it to index the left/right function
 - Decide where to count transformation-strategy bits
-- 64-bit clean?
 - Improve ZFast construction memory and time
 - Add logging line in main methods to start counters correctly
-- Temp directory of ChunkedHashStore (and classes that use it) should be settable.
-- Move values lists to disk when possible.
-- Comment rank/select classes, copying docs from 1.0
+- Comment all classes!
+- Problems with variable-length Paco

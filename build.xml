@@ -10,6 +10,7 @@
 	<condition property="colt.apiurl" value="${local.colt.apiurl}" else="${remote.colt.apiurl}"><isset property="local"/></condition>
 	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
 	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
+	<condition property="log4j.apiurl" value="${local.log4j.apiurl}" else="${remote.log4j.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-io.apiurl" value="${local.commons-io.apiurl}" else="${remote.commons-io.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-lang.apiurl" value="${local.commons-lang.apiurl}" else="${remote.commons-lang.apiurl}"><isset property="local"/></condition>
 	<condition property="commons-configuration.apiurl" value="${local.commons-configuration.apiurl}" else="${remote.commons-configuration.apiurl}"><isset property="local"/></condition>
@@ -37,7 +38,7 @@
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile all sources">
-		<javac srcdir="${src}:${test}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.5"/>
 	</target>
 	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
@@ -64,6 +65,11 @@
 			<link href="${colt.apiurl}"/>
 			<link href="${jsap.apiurl}"/>
 			<link href="${junit.apiurl}"/>
+			<link href="${log4j.apiurl}"/>
+			<link href="${commons-io.apiurl}"/>
+			<link href="${commons-lang.apiurl}"/>
+			<link href="${commons-configuration.apiurl}"/>
+			<link href="${commons-collections.apiurl}"/>
 		</javadoc>
 	</target>
 	
@@ -118,6 +124,44 @@
 			</instr>
 		</emma>
 	</target>
+
+	<target name="junit-slow" depends="instrument" description="Runs JUnit slow tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
+			<classpath location="${instrumented}/classes"/>
+			<classpath location="${src}"/>
+			<classpath location="${jar.base}/emma.jar"/>
+			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
+			<jvmarg value="-Demma.coverage.out.merge=true" />
+			<jvmarg value="-Xmx16G" />
+			<jvmarg value="-ea" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${instrumented}/classes">
+					<include name="**/*SlowTest.class"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+
+		<emma>
+			<report sourcepath="${src}" >
+				<fileset file="${coverage}/*a"/>
+				<txt outfile="coverage.txt" />
+				<html outfile="coverage.html" />
+			</report>
+		</emma>
+	</target>
+
 	
 	<!-- ************		CLEAN		********************* -->
 	<target name="clean">

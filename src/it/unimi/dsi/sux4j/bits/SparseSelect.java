@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.bits;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,17 +16,16 @@ package it.unimi.dsi.sux4j.bits;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 
@@ -138,7 +137,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	public long numBits() {
-		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * Long.SIZE );
+		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE );
 	}
 
 	public long select( final long rank ) {

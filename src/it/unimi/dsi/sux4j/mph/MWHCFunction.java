@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2010 Sebastiano Vigna 
+ * Copyright (C) 2002-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,9 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -39,6 +39,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
@@ -85,7 +86,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * on the constructor chosen, the store will associate each hash either with the ordinal position of the key, or with the
  * value that must be associated with the key. It is easy to tell the difference because in constructors associating the ordinal
  * position the store appears just after the keys and the transformation strategy as, for example, in 
- * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongBigList, int)} or
+ * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)} or
  * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore)}. If the store appears after keys and values
  * (e.g., {@link #MWHCFunction(Iterable, TransformationStrategy, LongIterable, int, ChunkedHashStore)}) the store associates
  * each key with its value instead.
@@ -100,8 +101,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>The reason for this proliferation of constructors is that they are useful in different situations. The constructors
  * that store associations with values are extremely scalable because the values must just be a {@link LongIterable} that
  * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
- * associates ordinal positions, and you want to build a new function for which a {@link LongBigList} of values needs little space (e.g.,
- * because it is described implicitly), you can use a constructor that accepts a {@link LongBigList} but uses the already built store. 
+ * associates ordinal positions, and you want to build a new function for which a {@link LongList} of values needs little space (e.g.,
+ * because it is described implicitly), you can use a constructor that accepts a {@link LongList} but uses the already built store. 
  * 
  * 
  * <h2>Implementation Details</h2>
@@ -125,7 +126,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -199,7 +200,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** Creates a new function for the given elements and values.
 	 * 
 	 * <p><strong>Warning</strong>: if you were using this constructor before Sux4J 2.1, you should switch
-	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongBigList, int)}, as the
+	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)}, as the
 	 * semantics has changed (see the {@linkplain MWHCFunction class documentation}).
 	 * 
 	 * @param elements the elements in the domain of the function, or <code>null</code>.
@@ -275,7 +276,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongBigList values, final int width ) throws IOException {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( elements, transform, values, width, null, chunkedHashStore, true );
 	}
 
@@ -290,7 +291,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongBigList values, final int width ) throws IOException {
+	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( elements, transform, values, width, tempDir, chunkedHashStore, true );
 	}
 
@@ -303,7 +304,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element.
 	 * @param width the bit width of the <code>values</code>.
 	 */
-	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongBigList values, final int width ) throws IOException {
+	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
 		this( null, transform, values, width, null, chunkedHashStore, true );
 	}
 
@@ -316,14 +317,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
 	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
-	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongBigList} that
+	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
 	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
 		this.transform = transform;
 		
 		// If we have no elements, values must be a random-access list of longs.
-		final LongBigList valueList = override ? (LongBigList)values : null;
+		final LongBigList valueList = override ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -401,7 +402,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						x = stack[ --top ];
 						k = edge[ x ];
 						final long s = data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] );
-						final long value = override ? valueList.getLong( (int)chunk.data( k ) ) : chunk.data( k );
+						final long value = override ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
 						data.set( off + x, value ^ s );
 						
 						if ( ASSERTS ) assert ( value == ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) ) ) :
@@ -435,7 +436,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		long nonZero = 0;
 		m = offset[ offset.length - 1 ];
 		data.size( m );
-		for( int i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
+		for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 
 		// We estimate size using Rank16
 		if ( nonZero * this.width + m * 1.126 < m * this.width ) {
@@ -444,7 +445,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
 			newData.size( nonZero );
 			nonZero = 0;
-			for( int i = 0; i < data.size64(); i++ ) {
+			for( long i = 0; i < data.size64(); i++ ) {
 				final long value = data.getLong( i ); 
 				if ( value != 0 ) {
 					marker.set( i );
@@ -455,7 +456,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			rank = new Rank16( marker );
 
 			if ( ASSERTS ) {
-				for( int i = 0; i < data.size64(); i++ ) {
+				for( int i = 0; i < data.size(); i++ ) {
 					final long value = data.getLong( i ); 
 					assert ( value != 0 ) == marker.getBoolean( i );
 					if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) ) : value + " != " + newData.getLong( rank.rank( i ) );
@@ -485,7 +486,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		return rank == null ?
@@ -500,7 +501,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], offset[ chunk + 1 ] - chunkOffset, e );
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		return rank == null ?
@@ -527,7 +528,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * Long.SIZE + offset.length * Integer.SIZE;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * (long)Long.SIZE + offset.length * (long)Integer.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

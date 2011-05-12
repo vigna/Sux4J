@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,9 +26,9 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
@@ -39,6 +38,7 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +60,7 @@ import org.apache.log4j.Logger;
  * By sizing the bucket size around the logarithm of the average length, we obtain a distributor that occupies linear space.
  */
 
-public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor.class );
 	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
@@ -82,8 +82,10 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** For each external node and each possible path, the related behaviour. */
 	private final MWHCFunction<BitVector> externalBehaviour;
 	/** The number of (internal and external) nodes of the trie. */
-	private final int size;
+	private final long size;
+	/** The balanced parentheses structure used to represent the trie. */
 	private final BalancedParentheses balParen;
+	/** Records the keys which are false follows. */
 	private final MWHCFunction<BitVector> falseFollowsDetector;
 	/** The average skip length in bits (actually, the average length in bits of a skip length increased by one). */
 	protected double meanSkipLength;
@@ -126,7 +128,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		LongBigList falseFollowsValues;
 
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
-		final int[] count = new int[ 1 ];
+		final long[] count = new long[ 1 ];
 		
 		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new AbstractObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
@@ -405,7 +407,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				try {
 					ibs.position( 0 );
 					return new AbstractObjectIterator<BitVector>() {
-						private int pos = 0;
+						private long pos = 0;
 
 						public boolean hasNext() {
 							return pos < n;
@@ -555,8 +557,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return true;
 	}
 
-	public int size() {
+	public long size64() {
 		return size;
+	}
+	
+	@Deprecated
+	public int size() {
+		return (int)Math.min(  size, Integer.MAX_VALUE );
 	}
 
 	public double bitsPerSkip() {

@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@ import java.util.Random;
 import org.apache.commons.collections.Predicate;
 import org.apache.log4j.Logger;
 
+
 /** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values.
  * 
@@ -53,7 +53,7 @@ import org.apache.log4j.Logger;
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;
@@ -246,10 +246,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLongByTriple( triple );
 	}
 	
-	/** Returns the number of elements in the function domain.
-	 *
-	 * @return the number of the elements in the function domain.
-	 */
+	public long size64() {
+		return n;
+	}
+	
 	public int size() {
 		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
@@ -259,7 +259,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return ( firstFunction != null ? firstFunction.numBits() : 0 ) + secondFunction.numBits() + transform.numBits() + remap.length * Long.SIZE;
+		return ( firstFunction != null ? firstFunction.numBits() : 0 ) + secondFunction.numBits() + transform.numBits() + remap.length * (long)Long.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.

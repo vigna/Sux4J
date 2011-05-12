@@ -1,12 +1,12 @@
 package it.unimi.dsi.sux4j.bits;
 
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.lang.MutableString;
-import junit.framework.TestCase;
 
-public abstract class BalancedParenthesesTestCase extends TestCase {
+public abstract class BalancedParenthesesTestCase {
 
 	public static String binary( long l, boolean reverse ) {
 		if ( reverse ) l = Long.reverse( l );

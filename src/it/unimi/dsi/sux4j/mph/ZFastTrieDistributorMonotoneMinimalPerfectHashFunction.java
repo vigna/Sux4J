@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,15 +16,10 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-import static java.lang.Math.E;
-import static java.lang.Math.log;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -59,6 +54,10 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import static it.unimi.dsi.bits.Fast.log2;
+import static java.lang.Math.log;
+import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
  * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
@@ -66,7 +65,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 1L;
+    public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = Util.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */

@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.mph;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
@@ -65,7 +65,7 @@ import org.apache.log4j.Logger;
  * @author Sebastiano Vigna
  */
 
-public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = Util.getLogger( VLPaCoTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
@@ -76,7 +76,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** The bitstream representing the PaCo trie. */
 	private final byte[] trie;
 	/** The number of leaves in the trie. */
-	private final int numberOfLeaves;
+	private final long numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	public long[] offset;
@@ -131,7 +131,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		protected final Node root;
 
 		/** Leaves in the trie. */
-		protected final int size;
+		protected final long size;
 		
 		/** The offset of each delimiter. */
 		protected final long offset[];
@@ -288,7 +288,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 
 		/** Accumulates the gain in bits w.r.t. a standard trie (just for statistical purposes). */
-		protected int gain;
+		protected long gain;
 
 		private final OutputBitStream bitCount = new OutputBitStream( NullOutputStream.getInstance(), 0 );
 		
@@ -431,7 +431,9 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			final InputBitStream trie = new InputBitStream( this.trie );
 
 			long pos = 0, readBits, skip, xor, t;
-			int leavesOnTheLeft = 0, pathLength, size, missing, leftSubtrieLeaves, leaves = numberOfLeaves;
+			long leavesOnTheLeft = 0, leftSubtrieLeaves;
+			int pathLength, size, missing;
+			long leaves = numberOfLeaves;
 			for( ;; ) {
 				skip = trie.readLongDelta();
 				pathLength = trie.readDelta();
@@ -538,22 +540,19 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	}
 
 	public long numBits() {
-		return trie.length * Byte.SIZE + transformationStrategy.numBits();
+		return trie.length * (long)Byte.SIZE + transformationStrategy.numBits();
 	}
 
-	/** Returns the number of leaves in this trie.
-	 * 
-	 * @return the number of leaves in this trie.
-	 */
-	public int numberOfLeaves() {
-		return numberOfLeaves;
-	}
-	
 	public boolean containsKey( Object o ) {
 		return true;
 	}
 
+	public long size64() {
+		return numberOfLeaves;
+	}
+	
+	@Deprecated
 	public int size() {
-		return -1;
+		return (int)Math.min( numberOfLeaves, Integer.MAX_VALUE );
 	}
 }

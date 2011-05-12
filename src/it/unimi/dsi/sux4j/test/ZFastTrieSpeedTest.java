@@ -29,7 +29,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class ZFastTrieSpeedTest {
 
-	@SuppressWarnings("rawtypes")
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieSpeedTest.class.getName(), "Tests the speed of a z-fast trie.",
@@ -57,6 +56,7 @@ public class ZFastTrieSpeedTest {
 		final int times = jsapResult.getInt( "times" );
 		
 		System.out.println( "Loading trie..." );
+		@SuppressWarnings("rawtypes")
 		final ZFastTrie zFastTrie = (ZFastTrie)BinIO.loadObject( trieName );
 		
 		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );

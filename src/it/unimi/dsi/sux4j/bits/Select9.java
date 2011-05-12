@@ -3,11 +3,11 @@ package it.unimi.dsi.sux4j.bits;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2010 Sebastiano Vigna 
+ * Copyright (C) 2008-2011 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 2.1 of the License, or (at your option)
+ *  Software Foundation; either version 3 of the License, or (at your option)
  *  any later version.
  *
  *  This library is distributed in the hope that it will be useful, but
@@ -16,8 +16,7 @@ package it.unimi.dsi.sux4j.bits;
  *  for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -194,14 +193,14 @@ public class Select9 implements Select {
 		
 		if ( span < 2 ) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			if ( ASSERTS ) assert rank >= count[ countLeft ] : rank + " < " + count[ countLeft ];
 			if ( ASSERTS ) assert rank < count[ countLeft + 2 ] : rank + " >= " + count[ countLeft + 2 ];
 			rankInBlock = (int)( rank - count[ countLeft ] );
 		}
 		else if ( span < 16 ) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			final long rankInSuperblock = rank - count[ countLeft ];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
@@ -225,7 +224,7 @@ public class Select9 implements Select {
 		else if ( span < 128 ) {
 			final long[] subinventory = this.subinventory;
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4;
+			countLeft = blockLeft / 4 & ~1;
 			final long rankInSuperblock = rank - count[ countLeft ];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
@@ -273,7 +272,7 @@ public class Select9 implements Select {
 	}
 
 	public long numBits() {
-		return rank9.numBits() + (long)inventory.length * Long.SIZE + (long)subinventory.length * Long.SIZE;
+		return rank9.numBits() + inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE;
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
