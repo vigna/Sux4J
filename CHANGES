@@ -1,5 +1,15 @@
 3.0
 
+- WARNING: This release has minor binary incompatibilities with previous
+  releases, mainly due to the move from the interface
+  it.unimi.dsi.util.LongBigList to the now standard
+  it.unimi.dsi.fasutil.longs.LongBigList. It is part of a parallel release
+  of fastutil, the DSI Utilities, Sux4J, MG4J, WebGraph, etc. that were
+  all modified to fit the new interface, and that prepare the way for our
+  "big" versions (i.e., supporting >2^31 entries in arrays (simulated),
+  elements in lists, terms, documents, nodes, etc.). Please read our
+  (short) "Moving Java to Big Data" document for details.
+
 - it.unimi.dsi.util.LongBigList is dead. Long live to
   it.unimi.dsi.fastutil.longs.LongBigList. We're sorry for the
   nuisance--adapting the code should be very easy (and we warned you
