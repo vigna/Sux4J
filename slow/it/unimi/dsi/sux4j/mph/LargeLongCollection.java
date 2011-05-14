@@ -1,11 +1,12 @@
 package it.unimi.dsi.sux4j.mph;
 
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-final class LargeLongCollection implements Iterable<Long> {
+final class LargeLongCollection implements Iterable<Long>, Size64 {
 	
 	public final static long SIZE = 3000000000L;
 	private final static long INCREMENT = ( ( 1L << 62 ) / SIZE );
@@ -32,5 +33,15 @@ final class LargeLongCollection implements Iterable<Long> {
 				return Long.valueOf( curr++ * INCREMENT );
 			}
 		};
+	}
+
+	@Override
+	public int size() {
+		throw new UnsupportedOperationException( "You should invoke size64(), only." );
+	}
+
+	@Override
+	public long size64() {
+		return size64();
 	}
 }
