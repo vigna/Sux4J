@@ -86,4 +86,17 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 
 		}
 	}
+
+	@Test
+	public void testManyLengths() throws IOException {
+		String[] s = new String[ 2051 ];
+		for ( int i = s.length; i-- != 0; ) s[ i ] = binary( i );
+		for ( int n: new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 16, 17, 31, 32, 33, 127, 128, 129, 510, 511, 512, 513, 514, 1022, 1023, 1024, 1025, 1026, 2046, 2047, 2048, 2049, 2050 } ) {
+			System.err.println( "Testing size " + n + "..." );
+			PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ).subList( 0, n ),
+						TransformationStrategies.prefixFreeUtf16() );
+
+			for ( int i = n; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+		}
+	}
 }

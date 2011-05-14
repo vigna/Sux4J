@@ -74,7 +74,6 @@ public class SparseRank extends AbstractRank {
 		this( bitVector.length(), bitVector.count(), bitVector.asLongSet().iterator() );
 	}
 	
-	
 	/** Creates a new rank structure using an {@linkplain LongIterator iterator}.
 	 * 
 	 * <p>This constructor is particularly useful if the positions of the ones are provided by

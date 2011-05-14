@@ -143,7 +143,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		PaCoTrieDistributor<BitVector> firstDistributor = new PaCoTrieDistributor<BitVector>( bitVectors, t, TransformationStrategies.identity() );
 
-		if ( firstbucketSize >= size ) log2BucketSize = t;
+		if ( firstDistributor.numBits() == 0 || firstbucketSize >= size ) log2BucketSize = t;
 		else {
 			// Reassign bucket size based on empirical estimation
 			log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );

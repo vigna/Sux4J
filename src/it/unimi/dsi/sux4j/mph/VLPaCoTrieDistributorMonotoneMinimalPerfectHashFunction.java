@@ -141,7 +141,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		
 		VLPaCoTrieDistributor<BitVector> firstDistributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
 
-		if ( firstbucketSize >= size ) log2BucketSize = t;
+		if ( firstDistributor.numBits() == 0 || firstbucketSize >= size ) log2BucketSize = t;
 		else {
 			// Reassign bucket size based on empirical estimation
 			log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
@@ -166,8 +166,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		LOGGER.info( "Bucket size: " + bucketSize );
 
 		final SparseRank sparseRank;
-		if ( size >= bucketSize ) {
-			sparseRank = new SparseRank( distributor.offset.getLong( distributor.offset.size64() - 2 ) + 1, distributor.offset.size64() - 1, distributor.offset.subList( 0,  distributor.offset.size64() - 1 ).iterator() );
+		if ( size > 2 * bucketSize ) {
+			sparseRank = new SparseRank( distributor.offset.getLong( distributor.offset.size64() - 1 ) + 1, distributor.offset.size64(), distributor.offset.iterator() );
 			if ( ASSERTS ) {
 				long i = 0;
 				for( BitVector b: bitVectors ) {
@@ -189,7 +189,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 				public long getLong( long index ) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
-						assert rank == 0 || distributor.offset.getLong( rank - 1 ) <= index : distributor.offset.get( rank - 1 )  + " >= " + index;
+						assert rank == 0 || distributor.offset.getLong( rank - 1 ) <= index : distributor.offset.getLong( rank - 1 )  + " >= " + index + "(rank=" + rank + ")";
 						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset.getLong( rank - 1 ) < bucketSize * 2;
 					}
 					return rank == 0 ? index : index - distributor.offset.getLong( rank - 1 ); 

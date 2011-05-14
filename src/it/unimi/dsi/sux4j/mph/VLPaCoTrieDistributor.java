@@ -157,6 +157,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
 				pl.lightUpdate();
 				LongArrayBitVector shortest = prev.copy();
+				long shortestIndex = 0;
 				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
@@ -164,7 +165,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				Node root = null;
 				long maxLength = prev.length();
 				// Last element will be unused
-				( offset = new LongBigArrayBigList() ).size( size / bucketSize + 1 );
+				offset = new LongBigArrayBigList( size / bucketSize + 1 );
 				
 				while( iterator.hasNext() ) {
 					// Check order
@@ -175,7 +176,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
-					if ( count % bucketSize == 0 || count + 1 == size ) {
+					if ( count % bucketSize == 0 ) {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, shortest.copy() );
@@ -209,25 +210,30 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							prevDelimiter.replace( shortest );
 						}
 						
+						offset.add( shortestIndex );
 						shortest.replace( curr );
-						if ( count % bucketSize == 0 ) offset.set( count / bucketSize, count );
+						shortestIndex = count;
 					}
 
 					if ( curr.length() < shortest.length() ) {
 						shortest.replace( curr );
-						offset.set( count / bucketSize, count );
+						shortestIndex = count;
 					}
 
 					prev.replace( curr );
 					maxLength = Math.max( maxLength, prev.length() );
 					count++;
 				}
+				
 				pl.done();
 				
 				this.size = count;
 				
-				if ( DDEBUG ) System.err.println( "Offsets: " + offset );			
+				if ( DEBUG ) System.err.println( "Offsets: " + offset );			
 
+				// There's no reason to set up an actual distributor if we can just use the offsets.
+				if ( this.size <= bucketSize * 2 ) root = null;
+				
 				this.root = root;
 
 				if ( root != null ) {
