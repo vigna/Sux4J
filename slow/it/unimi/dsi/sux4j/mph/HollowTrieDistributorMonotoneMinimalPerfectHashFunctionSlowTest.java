@@ -6,12 +6,10 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 
-	@Ignore("Requires too much memory")
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		

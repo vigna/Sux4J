@@ -4,4 +4,3 @@
 - Improve ZFast construction memory and time
 - Add logging line in main methods to start counters correctly
 - Comment all classes!
-- Problems with variable-length Paco

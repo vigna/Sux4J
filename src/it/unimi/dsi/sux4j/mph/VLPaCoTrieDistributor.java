@@ -26,7 +26,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
-import it.unimi.dsi.fastutil.longs.LongBigArrays;
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.NullOutputStream;
@@ -35,7 +35,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.log4j.Logger;
@@ -80,13 +79,13 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	private final long numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
-	public long[][] offset;
+	public LongBigArrayBigList offset;
 	
 	/** A class representing explicitly a partial trie. The {@link PartialTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
 	 */
 	private final static class PartialTrie<T> {
-		private final static boolean ASSERTS = false;
+		private final static boolean ASSERTS = true;
 
 		/** A node in the trie. */
 		protected static class Node {
@@ -135,7 +134,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		protected final long size;
 		
 		/** The offset of each delimiter. */
-		protected final long offset[][];
+		protected final LongBigArrayBigList offset;
 		
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
@@ -165,7 +164,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				Node root = null;
 				long maxLength = prev.length();
 				// Last element will be unused
-				offset = LongBigArrays.newBigArray( size / bucketSize + 1 );
+				( offset = new LongBigArrayBigList() ).size( size / bucketSize + 1 );
 				
 				while( iterator.hasNext() ) {
 					// Check order
@@ -176,7 +175,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
-					if ( count % bucketSize == 0 ) {
+					if ( count % bucketSize == 0 || count + 1 == size ) {
 						// Found delimiter. Insert into trie.
 						if ( root == null ) {
 							root = new Node( null, null, shortest.copy() );
@@ -211,12 +210,12 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 						}
 						
 						shortest.replace( curr );
-						LongBigArrays.set( offset, count / bucketSize, count );
+						if ( count % bucketSize == 0 ) offset.set( count / bucketSize, count );
 					}
 
 					if ( curr.length() < shortest.length() ) {
 						shortest.replace( curr );
-						LongBigArrays.set( offset, count / bucketSize, count );
+						offset.set( count / bucketSize, count );
 					}
 
 					prev.replace( curr );
@@ -227,7 +226,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				
 				this.size = count;
 				
-				if ( DDEBUG ) System.err.println( "Offsets: " + Arrays.toString( offset ) );			
+				if ( DDEBUG ) System.err.println( "Offsets: " + offset );			
 
 				this.root = root;
 
@@ -479,7 +478,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				pos += missing;
 				if ( pos >= v.length() ) return leavesOnTheLeft;
 				
-				leftSubtrieLeaves = trie.readDelta();
+				leftSubtrieLeaves = trie.readLongDelta();
 				
 				if ( v.getBoolean( pos++ ) ) {
 					// Right
@@ -502,7 +501,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	
 
 	private void recToString( final InputBitStream trie, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) throws IOException {
-		int skip = trie.readDelta();
+		long skip = trie.readLongDelta();
 		
 		//System.err.println( "Called with prefix " + printPrefix );
 		

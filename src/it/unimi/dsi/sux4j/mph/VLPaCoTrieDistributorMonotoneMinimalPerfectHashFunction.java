@@ -29,8 +29,6 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
-import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -88,7 +86,6 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
-		System.err.println( bv + " " + bucket + " " + offset.getLong( bv ) );
 		return ( bucket == 0 ? 0 : select.select( bucket - 1 ) ) + offset.getLong( bv );
 	}
 
@@ -170,11 +167,12 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final SparseRank sparseRank;
 		if ( size >= bucketSize ) {
-			 sparseRank = new SparseRank( LongBigArrays.get( distributor.offset, LongBigArrays.length( distributor.offset ) - 2 ) + 1, distributor.offset.length - 1, LongBigArrayBigList.wrap( distributor.offset, LongBigArrays.length( distributor.offset ) - 1 ).iterator() );
+			sparseRank = new SparseRank( distributor.offset.getLong( distributor.offset.size64() - 2 ) + 1, distributor.offset.size64() - 1, distributor.offset.subList( 0,  distributor.offset.size64() - 1 ).iterator() );
 			if ( ASSERTS ) {
 				long i = 0;
 				for( BitVector b: bitVectors ) {
-					assert distributor.getLong( b ) == sparseRank.rank( i ) : "At " + i + ": " + distributor.getLong( b ) + " != " + sparseRank.rank( i );
+					final long d = distributor.getLong( b );
+					assert sparseRank.rank( i ) == d : "At " + i + ": " + sparseRank.rank( i ) + " != " + d;
 					i++;
 				}
 			}
@@ -191,10 +189,10 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 				public long getLong( long index ) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
-						assert rank == 0 || LongBigArrays.get( distributor.offset, rank - 1 ) <= index : LongBigArrays.get( distributor.offset, rank - 1 )  + " >= " + index;
-						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - LongBigArrays.get( distributor.offset, rank - 1 ) < bucketSize * 2;
+						assert rank == 0 || distributor.offset.getLong( rank - 1 ) <= index : distributor.offset.get( rank - 1 )  + " >= " + index;
+						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset.getLong( rank - 1 ) < bucketSize * 2;
 					}
-					return rank == 0 ? index : index - LongBigArrays.get( distributor.offset, rank - 1 ); 
+					return rank == 0 ? index : index - distributor.offset.getLong( rank - 1 ); 
 				}
 				public long size64() {
 					return size;
