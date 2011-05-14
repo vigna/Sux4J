@@ -143,7 +143,7 @@
 
 			<batchtest fork="yes" todir="${reports}">
 				<fileset dir="${instrumented}/classes">
-					<include name="**/SlowTest.class"/>
+					<include name="**/*SlowTest.class"/>
 				</fileset>
 			</batchtest>
 		</junit>
