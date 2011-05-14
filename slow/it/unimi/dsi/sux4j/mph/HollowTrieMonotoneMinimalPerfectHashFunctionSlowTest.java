@@ -10,7 +10,6 @@ import org.junit.Test;
 
 public class HollowTrieMonotoneMinimalPerfectHashFunctionSlowTest {
 
-	@Ignore("Runs out of memory")
 	@Test
 	public void testBig() {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
