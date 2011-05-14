@@ -138,8 +138,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			return;
 		}
 
-		int t = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
-		log2BucketSize = Fast.ceilLog2( t );
+		int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
 		
@@ -158,7 +158,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.start( "Scanning collection..." );
 		
 		Iterator<? extends T> iterator = iterable.iterator();
-		for( int b = 0; b < numBuckets; b++ ) {
+		for( long b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
 			chunkedHashStore.add( prev );
 			pl.lightUpdate();

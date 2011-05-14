@@ -24,6 +24,7 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
@@ -63,7 +64,7 @@ import org.apache.log4j.Logger;
  * @author Sebastiano Vigna
  */
 
-public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
+public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = Util.getLogger( PaCoTrieDistributor.class );
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
@@ -74,7 +75,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	/** The bitstream representing the PaCo trie. */
 	private final byte[] trie;
 	/** The number of leaves in the trie. */
-	private final int numberOfLeaves;
+	private final long numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	
@@ -150,7 +151,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
-				int count = 1;
+				long count = 1;
 				Node root = null;
 				long maxLength = prev.length();
 				
@@ -209,7 +210,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				if ( root != null ) {
 					if ( ASSERTS ) {
 						iterator = elements.iterator();
-						int c = 1;
+						long c = 1;
 						while( iterator.hasNext() ) {
 							curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
 							if ( ( c++ & bucketMask ) == 0 ) {
@@ -290,7 +291,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		}
 
 		/** Accumulates the gain in bits w.r.t. a standard trie (just for statistical purposes). */
-		protected int gain;
+		protected long gain;
 
 		private final OutputBitStream bitCount = new OutputBitStream( NullOutputStream.getInstance(), 0 );
 		
@@ -299,13 +300,13 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		 * @param obs an output bit stream.
 		 * @return the number of leaves in the trie.
 		 */
-		public int toStream( final OutputBitStream obs, ProgressLogger pl ) throws IOException {
-			final int result = toStream( root, obs, pl );
+		public long toStream( final OutputBitStream obs, ProgressLogger pl ) throws IOException {
+			final long result = toStream( root, obs, pl );
 			LOGGER.debug( "Gain: " + gain );
 			return result;
 		}
 		
-		private int toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
+		private long toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -313,13 +314,13 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			// We recursively create the stream of the left and right trees
 			final FastByteArrayOutputStream leftStream = new FastByteArrayOutputStream();
 			final OutputBitStream left = new OutputBitStream( leftStream, 0 );
-			int leavesLeft = toStream( n.left, left, pl );
+			long leavesLeft = toStream( n.left, left, pl );
 			long leftBits = left.writtenBits();
 			left.flush();
 			
 			final FastByteArrayOutputStream rightStream = new FastByteArrayOutputStream();
 			final OutputBitStream right = new OutputBitStream( rightStream, 0 );
-			int leavesRight = toStream( n.right, right, pl );
+			long leavesRight = toStream( n.right, right, pl );
 			long rightBits = right.writtenBits();
 			right.flush();
 			
@@ -431,7 +432,8 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 			final InputBitStream trie = new InputBitStream( this.trie );
 
 			long pos = 0, readBits, skip, xor, t;
-			int leavesOnTheLeft = 0, pathLength, size, missing, leftSubtrieLeaves, leaves = numberOfLeaves;
+			long leavesOnTheLeft = 0, leftSubtrieLeaves, leaves = numberOfLeaves;
+			int pathLength, size, missing; 
 			for( ;; ) {
 				skip = trie.readLongDelta();
 				pathLength = trie.readDelta();
@@ -476,7 +478,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 				pos += missing;
 				if ( pos >= v.length() ) return leavesOnTheLeft;
 				
-				leftSubtrieLeaves = trie.readDelta();
+				leftSubtrieLeaves = trie.readLongDelta();
 				
 				if ( v.getBoolean( pos++ ) ) {
 					// Right
@@ -499,7 +501,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 	
 
 	private void recToString( final InputBitStream trie, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) throws IOException {
-		int skip = trie.readDelta();
+		long skip = trie.readLongDelta();
 		
 		//System.err.println( "Called with prefix " + printPrefix );
 		
@@ -541,19 +543,16 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> {
 		return trie.length * (long)Byte.SIZE + transformationStrategy.numBits();
 	}
 
-	/** Returns the number of leaves in this trie.
-	 * 
-	 * @return the number of leaves in this trie.
-	 */
-	public int numberOfLeaves() {
-		return numberOfLeaves;
-	}
-	
 	public boolean containsKey( Object o ) {
 		return true;
 	}
 
+	public long size64() {
+		return numberOfLeaves;
+	}
+	
+	@Deprecated
 	public int size() {
-		return -1;
+		return (int)Math.min( numberOfLeaves, Integer.MAX_VALUE );
 	}
 }

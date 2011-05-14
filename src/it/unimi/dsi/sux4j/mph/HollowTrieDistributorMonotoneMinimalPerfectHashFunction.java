@@ -115,7 +115,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		long maxLength = 0;
 		long totalLength = 0;
-		int c = 0;
+		long c = 0;
 		BitVector bv;
 		for( T s: elements ) {
 			bv = transform.toBitVector( s );

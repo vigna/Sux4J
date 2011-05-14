@@ -42,6 +42,6 @@ final class LargeLongCollection implements Iterable<Long>, Size64 {
 
 	@Override
 	public long size64() {
-		return size64();
+		return SIZE;
 	}
 }

@@ -26,6 +26,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.NullOutputStream;
@@ -79,7 +80,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	private final long numberOfLeaves;
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
-	public long[] offset;
+	public long[][] offset;
 	
 	/** A class representing explicitly a partial trie. The {@link PartialTrie#toStream(OutputBitStream)} method
 	 * writes an instance of this class to a bit stream. 
@@ -134,7 +135,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		protected final long size;
 		
 		/** The offset of each delimiter. */
-		protected final long offset[];
+		protected final long offset[][];
 		
 		/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
 		 * 
@@ -160,11 +161,11 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				// The last delimiter seen, if root is not null.
 				LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 				
-				int count = 1;
+				long count = 1;
 				Node root = null;
 				long maxLength = prev.length();
 				// Last element will be unused
-				offset = new long[ (int)( size / bucketSize + 1 ) ];
+				offset = LongBigArrays.newBigArray( size / bucketSize + 1 );
 				
 				while( iterator.hasNext() ) {
 					// Check order
@@ -210,12 +211,12 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 						}
 						
 						shortest.replace( curr );
-						offset[ count / bucketSize ] = count;
+						LongBigArrays.set( offset, count / bucketSize, count );
 					}
 
 					if ( curr.length() < shortest.length() ) {
 						shortest.replace( curr );
-						offset[ count / bucketSize ] = count;
+						LongBigArrays.set( offset, count / bucketSize, count );
 					}
 
 					prev.replace( curr );
@@ -297,13 +298,13 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		 * @param obs an output bit stream.
 		 * @return the number of leaves in the trie.
 		 */
-		public int toStream( final OutputBitStream obs, final ProgressLogger pl ) throws IOException {
-			final int result = toStream( root, obs, pl );
+		public long toStream( final OutputBitStream obs, final ProgressLogger pl ) throws IOException {
+			final long result = toStream( root, obs, pl );
 			LOGGER.debug( "Gain: " + gain );
 			return result;
 		}
 		
-		private int toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
+		private long toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
 			if ( n == null ) return 0;
 			
 			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
@@ -311,13 +312,13 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			// We recursively create the stream of the left and right trees
 			final FastByteArrayOutputStream leftStream = new FastByteArrayOutputStream();
 			final OutputBitStream left = new OutputBitStream( leftStream, 0 );
-			int leavesLeft = toStream( n.left, left, pl );
+			long leavesLeft = toStream( n.left, left, pl );
 			long leftBits = left.writtenBits();
 			left.flush();
 			
 			final FastByteArrayOutputStream rightStream = new FastByteArrayOutputStream();
 			final OutputBitStream right = new OutputBitStream( rightStream, 0 );
-			int leavesRight = toStream( n.right, right, pl );
+			long leavesRight = toStream( n.right, right, pl );
 			long rightBits = right.writtenBits();
 			right.flush();
 			

@@ -29,7 +29,8 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -169,7 +170,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final SparseRank sparseRank;
 		if ( size >= bucketSize ) {
-			 sparseRank = new SparseRank( distributor.offset[ distributor.offset.length - 2 ] + 1, distributor.offset.length - 1, LongArrayList.wrap( distributor.offset, distributor.offset.length - 1 ).iterator() );
+			 sparseRank = new SparseRank( LongBigArrays.get( distributor.offset, LongBigArrays.length( distributor.offset ) - 2 ) + 1, distributor.offset.length - 1, LongBigArrayBigList.wrap( distributor.offset, LongBigArrays.length( distributor.offset ) - 1 ).iterator() );
 			if ( ASSERTS ) {
 				long i = 0;
 				for( BitVector b: bitVectors ) {
@@ -188,12 +189,12 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		if ( size > 0 ) {
 			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
 				public long getLong( long index ) {
-					final int rank = sparseRank == null ? 0 : (int)sparseRank.rank( index );
+					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
-						assert rank == 0 || distributor.offset[ rank - 1 ] <= index : distributor.offset[ rank - 1 ]  + " >= " + index;
-						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset[ rank - 1 ]  < bucketSize * 2;
+						assert rank == 0 || LongBigArrays.get( distributor.offset, rank - 1 ) <= index : LongBigArrays.get( distributor.offset, rank - 1 )  + " >= " + index;
+						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - LongBigArrays.get( distributor.offset, rank - 1 ) < bucketSize * 2;
 					}
-					return rank == 0 ? index : index - distributor.offset[ rank - 1 ]; 
+					return rank == 0 ? index : index - LongBigArrays.get( distributor.offset, rank - 1 ); 
 				}
 				public long size64() {
 					return size;
