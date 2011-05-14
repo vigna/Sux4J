@@ -14,7 +14,7 @@ fi
 export CLASSPATH=$CLASSPATH:/usr/share/java/dsiutils.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/fastutil.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/jsap.jar
-export CLASSPATH=$CLASSPATH:/usr/share/java/junit.jar
+export CLASSPATH=$CLASSPATH:/usr/share/java/junit4.jar
 export CLASSPATH=$CLASSPATH:/usr/share/java/log4j.jar
 # Indirect dependencies from dsiutils.
 export CLASSPATH=$CLASSPATH:/usr/share/java/jakarta-commons-collections.jar

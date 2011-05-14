@@ -130,6 +130,8 @@
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
 			<classpath location="${instrumented}/classes"/>
 			<classpath location="${src}"/>
+			<classpath location="${test}"/>
+			<classpath location="${slow}"/>
 			<classpath location="${jar.base}/emma.jar"/>
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
@@ -141,7 +143,7 @@
 
 			<batchtest fork="yes" todir="${reports}">
 				<fileset dir="${instrumented}/classes">
-					<include name="**/*SlowTest.class"/>
+					<include name="**/SlowTest.class"/>
 				</fileset>
 			</batchtest>
 		</junit>
