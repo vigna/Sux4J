@@ -23,6 +23,7 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
@@ -52,7 +53,7 @@ import org.apache.log4j.Logger;
  * @since 1.0.2
  */
 
-public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 3L;
     private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
 		
@@ -248,10 +249,6 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	
 	public long size64() {
 		return n;
-	}
-	
-	public int size() {
-		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.

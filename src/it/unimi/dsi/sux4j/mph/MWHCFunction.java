@@ -26,6 +26,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -125,7 +126,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 0.2
  */
 
-public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable {
+public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 4L;
     private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
@@ -512,12 +513,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	}
 	
 
-
 	
 	/** Returns the number of elements in the function domain.
 	 *
 	 * @return the number of the elements in the function domain.
 	 */
+	public long size64() {
+		return n;
+	}
+
+	@Deprecated
 	public int size() {
 		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}

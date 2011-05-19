@@ -408,7 +408,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * 
 		 * @param v a node.
 		 * 
-		 * @see #addNew(InternalNode, long)
+		 * @see #addNew(ZFastTrie.InternalNode, long)
 		 */
 		public void addNew( final InternalNode<U> v ) {
 			addNew( v, v.handleHash( transform ) );

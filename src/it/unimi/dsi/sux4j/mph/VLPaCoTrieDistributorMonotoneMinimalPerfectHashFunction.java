@@ -209,11 +209,6 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		
 	}
 
-	@Deprecated
-	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
-	}
-
 	public long size64() {
 		return size;
 	}

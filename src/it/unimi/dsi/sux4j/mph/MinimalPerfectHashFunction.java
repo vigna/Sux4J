@@ -443,8 +443,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return result < n ? result : defRetValue;
 	}
 
-	public int size() {
-		return n > Integer.MAX_VALUE ? -1 : (int)n;
+	public long size64() {
+		return n;
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {

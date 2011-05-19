@@ -1,6 +1,5 @@
 package it.unimi.dsi.sux4j.mph;
 
-
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -21,19 +20,28 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 
-/** A very minimal abstract hash implementation. With respect to {@link AbstractObject2LongFunction},
- * it simply returns -1 for {@link #size()} and true for {@link #containsKey(Object)}.
+/** A very minimal abstract hash implementation. It extends {@link AbstractObject2LongFunction},
+ * by {@link Size64}. Moreover, it provides a deprecated <code>size()</code> method that returns
+ * -1 if {@link #size64()} is -1 or greater than {@link Integer#MAX_VALUE}, a {@link #size64()} returning -1 (that
+ * you are invited to override), and a {@link #containsKey(Object)} implementation that returns true.
  */
 
-public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunction<K> {
-	public static final long serialVersionUID = 1L;
+public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunction<K> implements Size64 {
+	public static final long serialVersionUID = 2L;
 	public boolean containsKey( Object key ) {
 		return true;
 	}
 
+	@Deprecated
 	public int size() {
+		final long size64 = size64();
+		return size64 > Integer.MAX_VALUE ? -1 : (int)size64; 
+	}
+	
+	public long size64() {
 		return -1;
 	}
 }

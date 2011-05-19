@@ -183,10 +183,6 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		return size;
 	}
 	
-	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
-	}
-
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}

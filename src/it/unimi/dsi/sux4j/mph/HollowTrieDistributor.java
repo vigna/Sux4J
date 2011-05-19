@@ -176,7 +176,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		falseFollowsValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		long sumOfSkipLengths = 0;
 		
-		if ( intermediateTrie.size() > 0 ) {
+		if ( intermediateTrie.size64() > 0 ) {
 
 			Iterator<? extends T> iterator = elements.iterator();
 			LongArrayBitVector bucketKey[] = new LongArrayBitVector[ bucketSize ];
@@ -187,7 +187,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			trie = intermediateTrie.trie;
 			skips = intermediateTrie.skips;
 			balParen = intermediateTrie.balParen;
-			LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size() );
+			LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size64() );
 
 			ProgressLogger pl = new ProgressLogger( LOGGER );
 			pl.displayFreeMemory = true;
@@ -449,11 +449,11 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		falseFollowsDetector = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( falseFollowsKeyFile ), falseFollows, falseFollowsValues ), TransformationStrategies.identity(), falseFollowsValues, 1 );
 
 		if ( ASSERTS ) {
-			assert externalBehaviour.size() == externalTestFunction.size();
-			assert falseFollowsDetector.size() == falseFollows.size();
+			assert externalBehaviour.size64() == externalTestFunction.size();
+			assert falseFollowsDetector.size64() == falseFollows.size();
 		}
 		
-		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size() - intermediateTrie.size() ) );
+		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size64() - intermediateTrie.size64() ) );
 
 		externalKeysFile.delete();
 		falseFollowsKeyFile.delete();

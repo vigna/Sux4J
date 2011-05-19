@@ -177,8 +177,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		
 	}
 
-	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
+	public long size64() {
+		return size;
 	}
 
 	public long numBits() {

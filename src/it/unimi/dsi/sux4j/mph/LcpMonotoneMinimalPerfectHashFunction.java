@@ -255,11 +255,6 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		return n;
 	}
 
-	@Deprecated
-	public int size() {
-		return n > Integer.MAX_VALUE ? -1 : (int)n;
-	}
-
 	/** Returns the number of bits used by this structure.
 	 * 
 	 * @return the number of bits used by this structure.

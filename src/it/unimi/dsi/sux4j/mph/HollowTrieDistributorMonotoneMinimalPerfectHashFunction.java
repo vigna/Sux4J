@@ -160,11 +160,6 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	public long size64() {
 		return size;
 	}
-
-	@Deprecated
-	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
-	}
 	
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();

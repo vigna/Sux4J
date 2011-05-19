@@ -352,10 +352,6 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		return size;
 	}
 	
-	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
-	}
-
 	public long numBits() {
 		return balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 	}
