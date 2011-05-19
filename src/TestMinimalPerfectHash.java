@@ -21,11 +21,11 @@ public class TestMinimalPerfectHash {
 			start = -System.currentTimeMillis();
 			
 			Iterator<MutableString> s = c.iterator();
-			for( int i = mph.size(); i-- != 0; ) mph.getLong( s.next() ); 
+			for( long i = mph.size64(); i-- != 0; ) mph.getLong( s.next() ); 
 			
 			start += System.currentTimeMillis();
 			
-			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / mph.size() + " \u00b5s/calls" );
+			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / mph.size64() + " \u00b5s/calls" );
 		}
 	}
 }

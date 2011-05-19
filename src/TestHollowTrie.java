@@ -21,11 +21,11 @@ public class TestHollowTrie {
 			start = -System.currentTimeMillis();
 			
 			Iterator<MutableString> s = c.iterator();
-			for( int i = trie.size(); i-- != 0; ) trie.getLong( s.next() ); 
+			for( long i = trie.size64(); i-- != 0; ) trie.getLong( s.next() ); 
 			
 			start += System.currentTimeMillis();
 			
-			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / trie.size() + " \u00b5s/calls" );
+			System.err.println( "Elapsed: " + start + ", " + 1000.0 * start / trie.size64() + " \u00b5s/calls" );
 		}
 	}
 }
