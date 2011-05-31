@@ -35,6 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -100,7 +101,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		long maxLength = 0;
 		long totalLength = 0;
 		BitVector bv;
-		final Random random = new Random();
+		final Random random = new XorShiftStarRandom();
 		
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;

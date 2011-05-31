@@ -2,6 +2,7 @@ package it.unimi.dsi.sux4j.bits;
 
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.util.Random;
 
@@ -195,7 +196,7 @@ public class SimpleSelectZeroTest extends RankSelectTestCase {
 
 	@Test
 	public void testRandom() {
-		Random r = new Random( 1 );
+		Random r = new XorShiftStarRandom( 1 );
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance( 1000 );
 		for ( int i = 0; i < 1000; i++ )
 			bitVector.add( r.nextBoolean() );

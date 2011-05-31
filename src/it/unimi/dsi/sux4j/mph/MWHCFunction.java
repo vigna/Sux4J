@@ -44,6 +44,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -332,7 +333,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
-		final Random r = new Random();
+		final Random r = new XorShiftStarRandom();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;

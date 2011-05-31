@@ -3,6 +3,7 @@ package it.unimi.dsi.sux4j.test;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class GenerateRandom64BitStrings {
 		final int n = jsapResult.getInt( "n" );
 		final String output = jsapResult.getString( "output" );
 		
-		Random r = new Random();
+		Random r = new XorShiftStarRandom();
 	
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.expectedUpdates = n;

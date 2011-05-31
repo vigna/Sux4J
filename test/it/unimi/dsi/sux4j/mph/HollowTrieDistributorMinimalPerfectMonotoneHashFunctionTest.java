@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,7 +62,7 @@ public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
-		final Random r = new Random( 0 );
+		final Random r = new XorShiftStarRandom( 1 );
 
 		for ( int pass = 0; pass < 2; pass++ )
 			for ( int d = 10; d < 100000; d *= 10 ) {

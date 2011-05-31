@@ -5,6 +5,7 @@ import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;
 import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.util.Random;
 
@@ -38,7 +39,7 @@ public class TwoSizesLongBigListSpeedTest {
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
 
-		Random random = new Random( 42 );
+		Random random = new XorShiftStarRandom( 42 );
 		final IntArrayList list = new IntArrayList( numElements );
 		for( long i = numElements; i-- != 0; ) list.add( random.nextDouble() < density ? 0 : 100 );
 		

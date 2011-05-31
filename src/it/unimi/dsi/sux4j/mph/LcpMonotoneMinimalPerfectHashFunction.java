@@ -50,7 +50,6 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
@@ -116,7 +115,6 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		this.transform = transform;
-		final Random r = new Random();
 
 		if ( numElements == -1 ) {
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
@@ -157,7 +155,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		pl.expectedUpdates = n;
 		
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
-		chunkedHashStore.reset( r.nextLong() );
+		chunkedHashStore.reset( Util.randomSeed() );
 
 		pl.start( "Scanning collection..." );
 		

@@ -36,6 +36,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.util.XorShiftStarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
@@ -231,7 +233,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
-		final Random r = new Random();
+		final Random r = new XorShiftStarRandom();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
@@ -362,7 +364,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * (long)Integer.SIZE + offset.length * (long)Integer.SIZE + seed.length * (long)Long.SIZE;
+		return values.size64() * 2 + count.length * (long)Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
 	}
 
 
