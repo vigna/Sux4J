@@ -22,12 +22,14 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -35,12 +37,13 @@ import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
+import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
@@ -327,7 +330,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		// If we have no elements, values must be a random-access list of longs.
 		final LongBigList valueList = override ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		final Random r = new Random();
@@ -366,8 +368,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
-		final LongBigList data = dataBitVector.asLongBigList( this.width );
-		data.size( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks );
+		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 
 		int duplicates = 0;
 		
@@ -381,6 +382,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				int q = 0;
+				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+				final LongBigList data = dataBitVector.asLongBigList( this.width );
 				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
 					do {
@@ -388,6 +391,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					} while ( ! sorter.generateAndSort( chunk.iterator(), seed ) );
 
 					this.seed[ q ] = seed;
+					dataBitVector.fill( false );
+					data.size( sorter.numVertices );
 					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
 
 					/* We assign values. */
@@ -397,20 +402,20 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					final int[] vertex1 = sorter.vertex1;
 					final int[] vertex2 = sorter.vertex2;
 					final int[] edge = sorter.edge;
-					final long off = offset[ q ];
 
 					while( top > 0 ) {
 						x = stack[ --top ];
 						k = edge[ x ];
-						final long s = data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] );
+						final long s = data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] );
 						final long value = override ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
-						data.set( off + x, value ^ s );
+						data.set( x, value ^ s );
 						
-						if ( ASSERTS ) assert ( value == ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) ) ) :
-							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( off + x ) ^ data.getLong( off + vertex1[ x ] ) ^ data.getLong( off + vertex2[ x ] ) );
+						if ( ASSERTS ) assert ( value == ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) ) ) :
+							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) );
 					}
 
 					q++;
+					offlineData.add( dataBitVector );
 					pl.update();
 				}
 
@@ -436,9 +441,15 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		// Check for compaction
 		long nonZero = 0;
 		m = offset[ offset.length - 1 ];
-		data.size( m );
-		for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 
+		{
+			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
+			while( iterator.hasNext() ) {
+				final LongBigList data = iterator.next().asLongBigList( this.width );
+				for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
+			}
+			iterator.close();
+		}
 		// We estimate size using Rank16
 		if ( nonZero * this.width + m * 1.126 < m * this.width ) {
 			LOGGER.info( "Compacting..." );
@@ -446,31 +457,51 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
 			newData.size( nonZero );
 			nonZero = 0;
-			for( long i = 0; i < data.size64(); i++ ) {
-				final long value = data.getLong( i ); 
-				if ( value != 0 ) {
-					marker.set( i );
-					newData.set( nonZero++, value );
+
+			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
+			long j = 0;
+			while( iterator.hasNext() ) {
+				final LongBigList data = iterator.next().asLongBigList( this.width );
+				for( long i = 0; i < data.size64(); i++, j++ ) {
+					final long value = data.getLong( i ); 
+					if ( value != 0 ) {
+						marker.set( j );
+						newData.set( nonZero++, value );
+					}
 				}
 			}
+			iterator.close();
 
 			rank = new Rank16( marker );
 
 			if ( ASSERTS ) {
-				for( int i = 0; i < data.size(); i++ ) {
-					final long value = data.getLong( i ); 
-					assert ( value != 0 ) == marker.getBoolean( i );
-					if ( value != 0 ) assert value == newData.getLong( rank.rank( i ) ) : value + " != " + newData.getLong( rank.rank( i ) );
+				final OfflineIterator<BitVector, LongArrayBitVector> iterator2 = offlineData.iterator();
+				long k = 0;
+				while( iterator2.hasNext() ) {
+					final LongBigList data = iterator2.next().asLongBigList( this.width );
+					for( long i = 0; i < data.size64(); i++, k++ ) {
+						final long value = data.getLong( i ); 
+						assert ( value != 0 ) == marker.getBoolean( k );
+						if ( value != 0 ) assert value == newData.getLong( rank.rank( k ) ) : value + " != " + newData.getLong( rank.rank( k ) );
+					}
 				}
+				iterator2.close();
 			}
 			this.data = newData;
 		}
 		else {
-			dataBitVector.trim();
-			this.data = data;
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
+			this.data = dataBitVector.asLongBigList( this.width );
+			
+			OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
+			while( iterator.hasNext() ) dataBitVector.append( iterator.next() );
+			iterator.close();
+
 			marker = null;
 			rank = null;
 		}
+		
+		offlineData.close();
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?

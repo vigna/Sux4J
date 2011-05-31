@@ -15,6 +15,13 @@
   nuisance--adapting the code should be very easy (and we warned you
   anyway :).
 
+- MWHCFunction has been re-engineered so that it will use very little
+  space beside that actually required by the function. Previously, a
+  number of large bit vectors were allocated at the same time, and they
+  have been replaced by a judicious use of OfflineIterable. All classes
+  that use MWHCFunction will benefit (at the expense of slightly increased
+  disk usage and access).
+
 - All classes should support big collections. They use the new Size64
   interface from fastutil. Implementations still support the old
   (deprecated) length() method for backward compatibility.
