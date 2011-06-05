@@ -81,7 +81,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
  * o(<var>n</var>) bits per element, plus the bits for the random hashes (which are usually
  * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 0.625%, bringing the actual occupied space to around 2.65 bits per element.
+ * occupancy by 0.625%, bringing the actual occupied space to around 2.68 bits per element.
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
@@ -129,7 +129,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	public static final long serialVersionUID = 4L;
 
 	/** The number of bits per block in the rank structure. */
-	public static final int BITS_PER_BLOCK = 512;
+	public static final int BITS_PER_BLOCK = 1024;
 
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 10;
@@ -334,7 +334,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
 			for ( int i = 0; i < numWords; i++ ) {
-				if ( ( i & 7 ) == 0 ) count[ i / 8 ] = c;
+				if ( ( i & 7 ) == 0 ) count[ i / ( BITS_PER_BLOCK / Long.SIZE ) ] = c;
 				c += countNonzeroPairs( array[ i ] );
 			}
 
