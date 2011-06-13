@@ -334,7 +334,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
 			for ( int i = 0; i < numWords; i++ ) {
-				if ( ( i & 7 ) == 0 ) count[ i / ( BITS_PER_BLOCK / Long.SIZE ) ] = c;
+				if ( ( i & ( BITS_PER_BLOCK / Long.SIZE - 1 ) ) == 0 ) count[ i / ( BITS_PER_BLOCK / Long.SIZE ) ] = c;
 				c += countNonzeroPairs( array[ i ] );
 			}
 
@@ -354,7 +354,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		else count = LongArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 * (double)Integer.SIZE / BITS_PER_BLOCK ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
@@ -410,8 +410,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	private long rank( long x ) {
 		x *= 2;
 		final int word = (int)( x / Long.SIZE );
-		long rank = count[ word / 8 ];
-		int wordInBlock = word & ~7;
+		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
+		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
 		while ( wordInBlock < word )
 			rank += countNonzeroPairs( array[ wordInBlock++ ] );
 
