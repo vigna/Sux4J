@@ -131,7 +131,7 @@ public class HypergraphSorter<T> {
 	
 	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
 	 * are acyclic with high probability if the ratio vertices/edges exceeds this constant. */
-	public static final double GAMMA = 1.23;
+	public static final double GAMMA = 1.24;
 	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
 	public final int numVertices;
 	/** {@link #numVertices} / 3. */
