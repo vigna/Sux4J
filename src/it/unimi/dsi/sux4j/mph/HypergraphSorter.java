@@ -206,8 +206,10 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( bv, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
-		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		final int space = Math.min( ( partSize + 1 ) / 2, 8 );
+		
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
+		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
 	
@@ -239,8 +241,10 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( triple, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
-		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		final int space = Math.min( ( partSize + 1 ) / 2, 8 );
+	
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
+		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
 	
