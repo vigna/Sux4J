@@ -44,7 +44,6 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Random;
