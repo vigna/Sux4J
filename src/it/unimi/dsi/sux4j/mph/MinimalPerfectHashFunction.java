@@ -288,12 +288,12 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 					while ( top > 0 ) {
 						v = stack[ --top ];
-						k = v / sorter.partSize;
+						k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 ); 
 						if ( ASSERTS ) assert k >= 0 && k < 3 : Integer.toString( k );
-						// System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ ">
-						// ( " + k + ")" );
+						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
 						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
 						final long value = ( k - s + 9 ) % 3;
+						if ( ASSERTS ) assert values.getLong( off + v ) == 0;
 						values.set( off + v, value == 0 ? 3 : value );
 					}
 
