@@ -173,11 +173,12 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 			}
 		}, log2BucketSize );
 
+		chunkedHashStore.close();
+
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
 		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
-		
 	}
 
 	public long size64() {

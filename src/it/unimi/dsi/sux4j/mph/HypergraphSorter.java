@@ -206,7 +206,7 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( bv, seed, hash );
-		final int space = Math.min( ( partSize + 1 ) / 2, 8 );
+		final int space = Math.min( ( partSize + 1 ) / 2, 4 );
 		
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
 		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
@@ -241,7 +241,7 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( triple, seed, hash );
-		final int space = Math.min( ( partSize + 1 ) / 2, 8 );
+		final int space = Math.min( ( partSize + 1 ) / 2, 4 );
 	
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
 		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
