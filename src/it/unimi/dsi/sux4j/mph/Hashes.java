@@ -307,7 +307,6 @@ public class Hashes {
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
-				assert from + Long.SIZE <= prefixLength;
 				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
@@ -380,7 +379,6 @@ public class Hashes {
 		long residual = prefixLength - from;
 		if ( residual > 0 ) {
 			if ( residual > Long.SIZE ) {
-				assert from + Long.SIZE <= prefixLength;
 				a += bv.getLong( from, from + Long.SIZE );
 				residual -= Long.SIZE;
 			}
@@ -448,7 +446,7 @@ public class Hashes {
 	/** MurmurHash 64-bit
 	 * 
 	 * <p>This code is based on a mix of the sources that can be found at
-	 * <a href="http://sites.google.com/site/murmurhash/">MurmurHash's web site</a>, and in particular
+	 * <a href="http://sites.google.com/site/smhasher/">MurmurHash's web site</a>, and in particular
 	 * on the version consuming 64 bits at a time, which has been merged with the 2A version to obtain
 	 * an {@linkplain #preprocessMurmur(BitVector, long) incremental implementation}.
 	 * 
@@ -605,6 +603,573 @@ public class Hashes {
 		return state;
 	}
 
+
+	private final static long finalizeMurmur3( long x ) {
+		x ^= x >>> 33;
+		x *= 0xff51afd7ed558ccdL;
+		x ^= x >>> 33;
+		x *= 0xc4ceb9fe1a85ec53L;
+		x ^= x >>> 33;
+		return x;
+	}
+
+	/** MurmurHash3 128-bit
+	 * 
+	 * <p>This code is based on a mix of the sources that can be found at
+	 * <a href="http://sites.google.com/site/smhasher/">MurmurHash's web site</a>.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @param h a pair of long values in which the two generated hashes will be saved.
+	 */
+	public static void murmur3( final BitVector bv, final long seed, final long[] h ) {
+		long h1 = 0x9368e53c2f6af274L ^ seed;
+		long h2 = 0x586dcd208f7cd3fdL ^ seed;
+
+		long c1 = 0x87c37b91114253d5L;
+		long c2 = 0x4cf5ad432745937fL;
+
+		long from = 0;
+		final long length = bv.length();
+		long k1, k2;
+
+		while ( length - from >= Long.SIZE * 2 ) {
+			k1 = bv.getLong( from, from += Long.SIZE );
+			k2 = bv.getLong( from, from += Long.SIZE );
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		if ( length > from ) {
+			if ( length - from > Long.SIZE ) {
+				k1 = bv.getLong( from, from += Long.SIZE );
+				k2 = bv.getLong( from, length );
+			}
+			else {
+				k1 = bv.getLong( from, length );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		h2 ^= length;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		h2 += h1;
+
+		h[ 0 ] = h1;
+		h[ 1 ] = h2;
+	}
+
+	/** MurmurHash3 64-bit
+	 * 
+	 * <p>This code is based on a mix of the sources that can be found at
+	 * <a href="http://sites.google.com/site/smhasher/">MurmurHash's web site</a>.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @return a hash.
+	 */
+	public static long murmur3( final BitVector bv, final long seed ) {
+		long h1 = 0x9368e53c2f6af274L ^ seed;
+		long h2 = 0x586dcd208f7cd3fdL ^ seed;
+
+		long c1 = 0x87c37b91114253d5L;
+		long c2 = 0x4cf5ad432745937fL;
+
+		long from = 0;
+		final long length = bv.length();
+		long k1, k2;
+
+		while ( length - from >= Long.SIZE * 2 ) {
+			k1 = bv.getLong( from, from += Long.SIZE );
+			k2 = bv.getLong( from, from += Long.SIZE );
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		if ( length > from ) {
+			if ( length - from > Long.SIZE ) {
+				k1 = bv.getLong( from, from += Long.SIZE );
+				k2 = bv.getLong( from, length );
+			}
+			else {
+				k1 = bv.getLong( from, length );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		h2 ^= length;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		return h1;
+	}
+
+	/** Constant-time MurmurHash3 128-bit hashing for any prefix.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param hh2 the second component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc1 the third component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc2 the fourth component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param h a pair of long values in which the two generated hashes will be saved.
+	 */
+
+	public static void murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long h[] ) {
+		final int startStateWord = (int)( prefixLength / ( 2 * Long.SIZE ) ); 
+		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
+		
+		long h1 = hh1[ startStateWord ];
+		long h2 = hh2[ startStateWord ];
+		long c1 = cc1[ startStateWord ];
+		long c2 = cc2[ startStateWord ];
+
+		long k1, k2;
+		
+		if ( prefixLength > precomputedUpTo ) {
+			if ( prefixLength - precomputedUpTo > Long.SIZE ) {
+				k1 = bv.getLong( precomputedUpTo, precomputedUpTo += Long.SIZE );
+				k2 = bv.getLong( precomputedUpTo, prefixLength );
+			}
+			else {
+				k1 = bv.getLong( precomputedUpTo, prefixLength );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+		
+		h2 ^= prefixLength;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		h2 += h1;
+
+		h[ 0 ] = h1;
+		h[ 1 ] = h2;
+	}
+	
+	/** Constant-time MurmurHash3 64-bit hashing for any prefix.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param hh2 the second component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc1 the third component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc2 the fourth component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @return a hash. 
+	 */
+	public static long murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[] ) {
+		final int startStateWord = (int)( prefixLength / ( 2 * Long.SIZE ) ); 
+		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
+		
+		long h1 = hh1[ startStateWord ];
+		long h2 = hh2[ startStateWord ];
+		long c1 = cc1[ startStateWord ];
+		long c2 = cc2[ startStateWord ];
+
+		long k1, k2;
+		
+		if ( prefixLength > precomputedUpTo ) {
+			if ( prefixLength - precomputedUpTo > Long.SIZE ) {
+				k1 = bv.getLong( precomputedUpTo, precomputedUpTo += Long.SIZE );
+				k2 = bv.getLong( precomputedUpTo, prefixLength );
+			}
+			else {
+				k1 = bv.getLong( precomputedUpTo, prefixLength );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+		
+		h2 ^= prefixLength;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		return h1;
+	}
+	
+	/** Constant-time MurmurHash3 128-bit hashing reusing precomputed state partially.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param hh2 the second component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc1 the third component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc2 the fourth component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param lcp the length of the longest common prefix between <code>bv</code> and the vector over which <code>state</code> was computed.
+	 * @param h a pair of long values in which the two generated hashes will be saved.
+	 */
+	public static void murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp, final long h[] ) {
+		final int startStateWord = (int)( Math.min( lcp, prefixLength ) / ( 2 * Long.SIZE ) ); 
+		long from = startStateWord * 2L * Long.SIZE;
+		
+		long h1 = hh1[ startStateWord ];
+		long h2 = hh2[ startStateWord ];
+		long c1 = cc1[ startStateWord ];
+		long c2 = cc2[ startStateWord ];
+		
+		long k1, k2;
+		
+		while ( prefixLength - from >= Long.SIZE * 2 ) {
+			k1 = bv.getLong( from, from += Long.SIZE );
+			k2 = bv.getLong( from, from += Long.SIZE );
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		if ( prefixLength - from != 0 ) {
+			if ( prefixLength - from > Long.SIZE ) {
+				k1 = bv.getLong( from, from += Long.SIZE );
+				k2 = bv.getLong( from, prefixLength );
+			}
+			else {
+				k1 = bv.getLong( from, prefixLength );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		h2 ^= prefixLength;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		h2 += h1;
+
+		h[ 0 ] = h1;
+		h[ 1 ] = h2;
+	}
+
+	/** Constant-time MurmurHash3 64-bit hashing reusing precomputed state partially.
+	 * 
+	 * @param bv a bit vector.
+	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
+	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param hh2 the second component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc1 the third component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param cc2 the fourth component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
+	 * @param lcp the length of the longest common prefix between <code>bv</code> and the vector over which <code>state</code> was computed.
+	 * @return a hash.
+	 */
+	public static long murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp ) {
+		final int startStateWord = (int)( Math.min( lcp, prefixLength ) / ( 2 * Long.SIZE ) ); 
+		long from = startStateWord * 2L * Long.SIZE;
+		
+		long h1 = hh1[ startStateWord ];
+		long h2 = hh2[ startStateWord ];
+		long c1 = cc1[ startStateWord ];
+		long c2 = cc2[ startStateWord ];
+		
+		long k1, k2;
+		
+		while ( prefixLength - from >= Long.SIZE * 2 ) {
+			k1 = bv.getLong( from, from += Long.SIZE );
+			k2 = bv.getLong( from, from += Long.SIZE );
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		if ( prefixLength - from != 0 ) {
+			if ( prefixLength - from > Long.SIZE ) {
+				k1 = bv.getLong( from, from += Long.SIZE );
+				k2 = bv.getLong( from, prefixLength );
+			}
+			else {
+				k1 = bv.getLong( from, prefixLength );
+				k2 = 0;
+			}
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+		}
+
+		h2 ^= prefixLength;
+
+		h1 += h2;
+		h2 += h1;
+
+		h1 = finalizeMurmur3( h1 );
+		h2 = finalizeMurmur3( h2 );
+
+		h1 += h2;
+		return h1;
+	}
+
+	/** Preprocesses a bit vector so that MurmurHash3 can be computed in constant time on all prefixes.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed a seed for the hash.
+	 * @return an array of four component arrays containing the state of the variables <code>h1</code>, <code>h2</code>, <code>c1</code> and <code>c2</code>
+	 * during the hash computation; these vector must be passed to {@link #murmur3(BitVector, long, long[], long[], long[], long[])} 
+	 * (and analogous functions) in this order. 
+	 * @see #murmur3(BitVector, long)
+	 */
+	public static long[][] preprocessMurmur3( final BitVector bv, final long seed ) {
+		long from = 0;
+		final long length = bv.length();
+
+		long h1 = 0x9368e53c2f6af274L ^ seed;
+		long h2 = 0x586dcd208f7cd3fdL ^ seed;
+
+		long c1 = 0x87c37b91114253d5L;
+		long c2 = 0x4cf5ad432745937fL;
+
+		final int wordLength = (int)( length / ( 2 * Long.SIZE ) );
+		final long state[][] = new long[ 4 ][ wordLength + 1 ];
+
+		long k1, k2;
+		
+		int i = 0;
+		state[ 0 ][ i ] = h1;
+		state[ 1 ][ i ] = h2;
+		state[ 2 ][ i ] = c1;
+		state[ 3 ][ i ] = c2;
+		
+		for( i++ ; length - from >= Long.SIZE * 2; i++ ) {
+			k1 = bv.getLong( from, from += Long.SIZE );
+			k2 = bv.getLong( from, from += Long.SIZE );
+
+			k1 *= c1;
+			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 *= c2;
+			h1 ^= k1;
+			h1 += h2;
+
+			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+
+			k2 *= c2;
+			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 *= c1;
+			h2 ^= k2;
+			h2 += h1;
+
+			h1 = h1 * 3 + 0x52dce729;
+			h2 = h2 * 3 + 0x38495ab5;
+
+			c1 = c1 * 5 + 0x7b7d159c;
+			c2 = c2 * 5 + 0x6bce6396;
+
+			state[ 0 ][ i ] = h1;
+			state[ 1 ][ i ] = h2;
+			state[ 2 ][ i ] = c1;
+			state[ 3 ][ i ] = c2;
+		}
+	
+		return state;
+	}
+
 	/** A simple test to check the relative speed of various hashes on your architecture.
 	 * 
 	 * @param arg the length of the bit vector to hash, and then the number of evaluations.
@@ -626,9 +1191,23 @@ public class Hashes {
 
 			pl.done( n );
 
+			pl.start( "Timing MurmurHash3..." );
+
+			long h[] = new long[ 3 ];
+			for( int i = n; i-- != 0; ) {
+				murmur3( bv, 0, h );
+				t += h[ 0 ];
+			}
+			if ( t == 0 ) System.err.println( t ); // To avoid elision
+
+			pl.done( n );
+
 			pl.start( "Timing Jenkins's hash..." );
 
-			for( int i = n; i-- != 0; ) t += jenkins( bv, 0 );
+			for( int i = n; i-- != 0; ) {
+				jenkins( bv, 0, h );
+				t += h[ 0 ];
+			}
 			if ( t == 0 ) System.err.println( t ); // To avoid elision
 
 			pl.done( n );

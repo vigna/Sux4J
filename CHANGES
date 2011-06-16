@@ -28,6 +28,8 @@
 
 - New FileLinesBigList class.
 
+- We now have a MurmurHash3 full implementation.
+
 2.0.1
 
 - Sux4J is now distributed under the GNU Lesser General Public

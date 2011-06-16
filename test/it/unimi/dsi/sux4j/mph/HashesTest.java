@@ -50,6 +50,35 @@ public class HashesTest {
 	}
 
 	@Test
+	public void testMurmur3Preprocessing() {
+		Random r = new XorShiftStarRandom( 1 );
+		long[] h = new long[ 2 ];
+		for ( int l = 0; l < 1000; l++ ) {
+			LongArrayBitVector bv = LongArrayBitVector.getInstance();
+			for ( int i = 0; i < l; i++ )
+				bv.add( r.nextBoolean() );
+			long[][] state = Hashes.preprocessMurmur3( bv, 0 );
+			long m;
+			m = Hashes.murmur3( bv, 0 );
+			Hashes.murmur3( bv, 0, h );
+			assertEquals( m, h[ 0 ] );
+
+			for ( int i = 0; i < l; i++ ) {
+				m = Hashes.murmur3( bv.subVector( 0, i ), 0 );
+				assertEquals( "Prefix length " + i, m, Hashes.murmur3( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], state[ 3 ] ) );
+				Hashes.murmur3( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], state[ 3 ], h );
+				assertEquals( m, h[ 0 ] );
+				for ( int p = 0; p < l; p += 16 ) {
+					m = Hashes.murmur3( bv.subVector( 0, i ), 0 );
+					assertEquals( "Prefix length " + i + ", lcp " + p, m, Hashes.murmur3( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], state[ 3 ], p ) );
+					Hashes.murmur3( bv, i, state[ 0 ], state[ 1 ], state[ 2 ], state[ 3 ], p, h );
+					assertEquals( m, h[ 0 ] );
+				}
+			}
+		}
+	}
+
+	@Test
 	public void test0() {
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( BitVectors.EMPTY_VECTOR, 0, h );
