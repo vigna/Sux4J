@@ -131,7 +131,7 @@ public class HypergraphSorter<T> {
 	
 	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
 	 * are acyclic with high probability if the ratio vertices/edges exceeds this constant. */
-	public static final double GAMMA = 1.24;
+	public static final double GAMMA = 1.23;
 	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
 	public final int numVertices;
 	/** {@link #numVertices} / 3. */
@@ -206,10 +206,8 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( bv, seed, hash );
-		final int space = Math.min( ( partSize + 1 ) / 2, 4 );
-		
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
-		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
 	
@@ -241,10 +239,8 @@ public class HypergraphSorter<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.jenkins( triple, seed, hash );
-		final int space = Math.min( ( partSize + 1 ) / 2, 4 );
-	
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % ( partSize * 2 - space ) );
-		e[ 1 ] = e[ 0 ] + 1 + (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % space );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
+		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 	}
 	

@@ -788,8 +788,7 @@ public class Hashes {
 		h1 = finalizeMurmur3( h1 );
 		h2 = finalizeMurmur3( h2 );
 
-		h1 += h2;
-		return h1;
+		return h1 + h2;
 	}
 
 	/** Constant-time MurmurHash3 128-bit hashing for any prefix.
@@ -920,8 +919,7 @@ public class Hashes {
 		h1 = finalizeMurmur3( h1 );
 		h2 = finalizeMurmur3( h2 );
 
-		h1 += h2;
-		return h1;
+		return h1 + h2;
 	}
 	
 	/** Constant-time MurmurHash3 128-bit hashing reusing precomputed state partially.
@@ -1103,8 +1101,7 @@ public class Hashes {
 		h1 = finalizeMurmur3( h1 );
 		h2 = finalizeMurmur3( h2 );
 
-		h1 += h2;
-		return h1;
+		return h1 + h2;
 	}
 
 	/** Preprocesses a bit vector so that MurmurHash3 can be computed in constant time on all prefixes.
