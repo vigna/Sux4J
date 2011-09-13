@@ -22,6 +22,7 @@ source2:
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
+		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
