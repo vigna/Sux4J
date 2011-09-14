@@ -7,7 +7,6 @@
 	<condition property="j2se.apiurl" value="${local.j2se.apiurl}" else="${remote.j2se.apiurl}"><isset property="local"/></condition>
 	<condition property="fastutil.apiurl" value="${local.fastutil.apiurl}" else="${remote.fastutil.apiurl}"><isset property="local"/></condition>
 	<condition property="dsiutils.apiurl" value="${local.dsiutils.apiurl}" else="${remote.dsiutils.apiurl}"><isset property="local"/></condition>
-	<condition property="colt.apiurl" value="${local.colt.apiurl}" else="${remote.colt.apiurl}"><isset property="local"/></condition>
 	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
 	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
 	<condition property="log4j.apiurl" value="${local.log4j.apiurl}" else="${remote.log4j.apiurl}"><isset property="local"/></condition>
@@ -33,15 +32,21 @@
 		<mkdir dir="${instrumented}"/>
 	</target>
 
-	<target name="compile" depends="init" description="Compile standard sources (not test files)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.5"/>
+	<target name="compile" depends="init" description="Compile sources (without tests)">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6"/>
 	</target>
 	
-	<target name="compile-tests" depends="init" description="Compile all sources">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.5"/>
+	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.6"/>
 	</target>
 	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
+		<jar jarfile="sux4j-${version}.jar">
+			<fileset dir="${build}"/>
+		</jar>	
+	</target>
+	
+	<target name="jar-tests" depends="compile-tests" description="Creates jar (with tests)">
 		<jar jarfile="sux4j-${version}.jar">
 			<fileset dir="${build}"/>
 		</jar>	
@@ -57,12 +62,11 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					source="1.5" 
+					source="1.6" 
 					windowtitle="Sux4J ${version}">
 			<link href="${j2se.apiurl}"/>
 			<link href="${fastutil.apiurl}"/>
 			<link href="${dsiutils.apiurl}"/>
-			<link href="${colt.apiurl}"/>
 			<link href="${jsap.apiurl}"/>
 			<link href="${junit.apiurl}"/>
 			<link href="${log4j.apiurl}"/>
@@ -185,7 +189,6 @@
 
 	<target name="findbugs" depends="jar" description="Find bugs">
 		<findbugs home="${findbugs.home}" output="xml:withMessages" outputFile="findbugs.xml" excludeFilter="/home/vigna/law/java/conf/findbugs-excl.xml">
-			<auxClasspath path="${jar.base}/colt.jar"/>
 			<auxClasspath path="${jar.base}/mg4j.jar"/>
 			<auxClasspath path="${jar.base}/junit.jar"/>
 			<auxClasspath path="${jar.base}/fastutil.jar"/>

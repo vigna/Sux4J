@@ -618,6 +618,8 @@ public class Hashes {
 	 * <p>This code is based on a mix of the sources that can be found at
 	 * <a href="http://sites.google.com/site/smhasher/">MurmurHash's web site</a>.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @param h a pair of long values in which the two generated hashes will be saved.
@@ -709,6 +711,8 @@ public class Hashes {
 	 * <p>This code is based on a mix of the sources that can be found at
 	 * <a href="http://sites.google.com/site/smhasher/">MurmurHash's web site</a>.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @return a hash.
@@ -793,6 +797,8 @@ public class Hashes {
 
 	/** Constant-time MurmurHash3 128-bit hashing for any prefix.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
 	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
@@ -861,6 +867,8 @@ public class Hashes {
 	
 	/** Constant-time MurmurHash3 64-bit hashing for any prefix.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
 	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
@@ -923,6 +931,8 @@ public class Hashes {
 	}
 	
 	/** Constant-time MurmurHash3 128-bit hashing reusing precomputed state partially.
+	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
 	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
@@ -1017,6 +1027,8 @@ public class Hashes {
 
 	/** Constant-time MurmurHash3 64-bit hashing reusing precomputed state partially.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param prefixLength the length of the prefix of <code>bv</code> over which the hash must be computed.
 	 * @param hh1 the first component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
@@ -1106,6 +1118,8 @@ public class Hashes {
 
 	/** Preprocesses a bit vector so that MurmurHash3 can be computed in constant time on all prefixes.
 	 * 
+	 * <p><strong>Warning</strong>: this code is still experimental.
+	 * 
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @return an array of four component arrays containing the state of the variables <code>h1</code>, <code>h2</code>, <code>c1</code> and <code>c2</code>
@@ -1184,7 +1198,7 @@ public class Hashes {
 			pl.start( "Timing MurmurHash..." );
 
 			for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
-			if ( t == 0 ) System.err.println( t ); // To avoid elision
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
 
@@ -1195,7 +1209,7 @@ public class Hashes {
 				murmur3( bv, 0, h );
 				t += h[ 0 ];
 			}
-			if ( t == 0 ) System.err.println( t ); // To avoid elision
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
 
@@ -1205,7 +1219,7 @@ public class Hashes {
 				jenkins( bv, 0, h );
 				t += h[ 0 ];
 			}
-			if ( t == 0 ) System.err.println( t ); // To avoid elision
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
 
@@ -1214,7 +1228,20 @@ public class Hashes {
 			pl.start( "Timing preprocessed MurmurHash..." );
 
 			for( int i = n; i-- != 0; ) t += murmur( bv, l - 1, preprocessMurmur );
-			if ( t == 0 ) System.err.println( t ); // To avoid elision
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
+
+			pl.done( n );
+
+			final long[][] preprocessMurmur3 = preprocessMurmur3( bv, 0 );
+			long[] hh1 = preprocessMurmur3[ 0 ];
+			long[] hh2 = preprocessMurmur3[ 1 ];
+			long[] cc1 = preprocessMurmur3[ 2 ];
+			long[] cc2 = preprocessMurmur3[ 3 ];
+
+			pl.start( "Timing preprocessed MurmurHash3..." );
+
+			for( int i = n; i-- != 0; ) t += murmur3( bv, l - 1, hh1, hh2, cc1, cc2 );
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
 
@@ -1226,7 +1253,7 @@ public class Hashes {
 			pl.start( "Timing preprocessed Jenkins's hash..." );
 
 			for( int i = n; i-- != 0; ) t += jenkins( bv, l - 1, aa, bb, cc );
-			if ( t == 0 ) System.err.println( t ); // To avoid elision
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
 		}
