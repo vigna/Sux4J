@@ -10,16 +10,16 @@ Source0:        http://sux.dsi.unimi.it/%{name}-%{version}-src.tar.gz
 URL:            http://sux.dsi.unimi.it/
 Group:          Development/Libraries/Java
 BuildArch:      noarch
-Requires:       fastutil >= 6.3, java >= 1.5.0, jsap >= 2.0, dsiutils >= 2.0, junit4
+Requires:       fastutil >= 6.4, java >= 1.6.0, jsap >= 2.0, dsiutils >= 2.0, junit4
 Requires:       log4j
 Requires:       jakarta-commons-lang
 Requires:       jakarta-commons-io
 Requires:       jakarta-commons-collections 
 Requires:       jakarta-commons-configuration
 BuildRequires:  ant, jpackage-utils >= 0:5.0, /bin/bash
-BuildRequires:  fastutil >= 6.3, java >= 1.5.0, jsap >= 2.0, dsiutils >= 2.0, junit4
-BuildRequires:  java-devel >= 1.5.0
-BuildRequires:  java-javadoc fastutil-javadoc jsap-javadoc junit4-javadoc
+BuildRequires:  fastutil >= 6.4, java >= 1.6.0, jsap >= 2.0, dsiutils >= 2.0, junit4
+BuildRequires:  java-devel >= 1.6.0
+BuildRequires:  java-javadoc fastutil-javadoc jsap-javadoc
 BuildRequires:  log4j
 BuildRequires:  jakarta-commons-lang
 BuildRequires:  jakarta-commons-io
