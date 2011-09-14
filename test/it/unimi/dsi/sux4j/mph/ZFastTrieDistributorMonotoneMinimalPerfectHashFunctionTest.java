@@ -25,7 +25,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		for ( int b = -1; b < 3; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
 					TransformationStrategies.prefixFreeIso(), b );
-			assertEquals( "Bucket size: " + ( 1 << b ), 0, mph.size() );
+			assertEquals( "Bucket size: " + ( 1 << b ), 0, mph.size64() );
 			mph.numBits();
 		}
 	}

@@ -29,7 +29,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
-		assertEquals( 0, hollowTrie.size() );
+		assertEquals( 0, hollowTrie.size64() );
 	}
 
 	@Test
@@ -38,7 +38,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity() );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
-		assertEquals( 1, hollowTrie.size() );
+		assertEquals( 1, hollowTrie.size64() );
 	}
 
 	@Test
@@ -50,7 +50,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 		assertEquals( 1, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 0 ) ) );
 		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 0, 1 ) ) );
 		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 1, 0, 0, 1 ) ) );
-		assertEquals( 4, hollowTrie.size() );
+		assertEquals( 4, hollowTrie.size64() );
 
 
 		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>(
@@ -61,7 +61,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 		assertEquals( 2, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 0 ) ) );
 		assertEquals( 3, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 0, 1, 0, 1 ) ) );
 		assertEquals( 4, hollowTrie.getLong( LongArrayBitVector.of( 0, 1, 1, 1, 0 ) ) );
-		assertEquals( 5, hollowTrie.size() );
+		assertEquals( 5, hollowTrie.size64() );
 	}
 
 	@SuppressWarnings("unchecked")
@@ -85,7 +85,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 
 		for ( int i = 0; i < n; i++ )
 			assertEquals( i, hollowTrie.getLong( bitVector[ i ] ) );
-		assertEquals( n, hollowTrie.size() );
+		assertEquals( n, hollowTrie.size64() );
 
 		// Exercise code for negative results
 		for ( int i = 1000; i-- != 0; ) {
@@ -112,7 +112,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 			while ( l-- != 0 )
 				bitVector[ i ].add( r.nextBoolean() );
 		}
-		assertEquals( n, hollowTrie.size() );
+		assertEquals( n, hollowTrie.size64() );
 
 	}
 }
