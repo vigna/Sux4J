@@ -48,14 +48,7 @@ Javadoc for %{name}.
 
 %build
 export CLASSPATH=%(build-classpath fastutil dsiutils jsap junit log4j jakarta-commons-lang jakarta-commons-io jakarta-commons-collections jakarta-commons-configuration)
-ant \
-  -Dj2se.apiurl=%{_javadocdir}/java \
-  -Dfastutil.apiurl=%{_javadocdir}/fastutil \
-  -Ddsiutils.apiurl=%{_javadocdir}/dsiutils \
-  -Dlog4j.apiurl=%{_javadocdir}/log4j \
-  -Djsap.apiurl=%{_javadocdir}/jsap \
-  -Djunit.apiurl=%{_javadocdir}/junit \
-  jar javadoc
+ant -Dlocal jar javadoc
 
 %install
 rm -rf $RPM_BUILD_ROOT
