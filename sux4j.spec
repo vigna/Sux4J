@@ -48,7 +48,7 @@ Javadoc for %{name}.
 
 %build
 export CLASSPATH=%(build-classpath fastutil dsiutils jsap junit log4j jakarta-commons-lang jakarta-commons-io jakarta-commons-collections jakarta-commons-configuration)
-ant -Dlocal jar javadoc
+ant -Dlocal= jar javadoc
 
 %install
 rm -rf $RPM_BUILD_ROOT
