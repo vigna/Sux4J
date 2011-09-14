@@ -30,7 +30,7 @@ source2:
 		sux4j-$(version)/src/overview.html
 	rm sux4j-$(version)
 
-bin:
+binary:
 	-rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
 	(cd sux4j-$(version); ant clean jar javadoc)
@@ -38,6 +38,7 @@ bin:
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
+		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
 	-rm -r sux4j-$(version)

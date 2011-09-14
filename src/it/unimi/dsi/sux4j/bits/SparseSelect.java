@@ -127,8 +127,9 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 	
 	@Override
+	@Deprecated
 	public int size() {
-		throw new UnsupportedOperationException();
+		return (int)Math.min( n, Integer.MAX_VALUE );
 	}
 
 	@Override
