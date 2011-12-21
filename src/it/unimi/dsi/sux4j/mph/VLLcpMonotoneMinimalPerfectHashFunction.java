@@ -97,6 +97,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
+		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
@@ -138,6 +139,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			mph = null;
 			return;
 		}
+
+		defRetValue = -1; // For the very few cases in which we can decide
 
 		int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );

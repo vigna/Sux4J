@@ -58,4 +58,10 @@ public class LcpMonotoneMinimalPerfectHashFunctionTest {
 			assertEquals( i, mph.getLong( s[ i ] ) );
 
 	}
+	
+	@Test
+	public void testEmpty() throws IOException {
+		LcpMonotoneMinimalPerfectHashFunction<String> mph = new LcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( new String[] {} ), TransformationStrategies.prefixFreeUtf16() );
+		assertEquals( -1, mph.getLong( "" ) );
+	}
 }

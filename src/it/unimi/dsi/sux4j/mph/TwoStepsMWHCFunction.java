@@ -229,6 +229,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
+		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
 		if ( firstFunction != null ) {

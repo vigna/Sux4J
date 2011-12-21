@@ -82,7 +82,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		if ( size == 0 ) return -1;
+		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
@@ -112,6 +112,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final int log2BucketSize ) throws IOException {
 
 		this.transform = transform;
+		defRetValue = -1; // For the very few cases in which we can decide
 
 		long maxLength = 0;
 		long totalLength = 0;

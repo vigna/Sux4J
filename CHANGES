@@ -1,3 +1,8 @@
+3.0.1
+
+- Fixed minor inconsistencies in the values returned on empty functions
+  (some implementations would actually throw an exception).
+
 3.0
 
 - WARNING: This release has minor binary incompatibilities with previous

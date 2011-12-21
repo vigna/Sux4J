@@ -93,6 +93,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
+		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( bitVector, seed, triple );
