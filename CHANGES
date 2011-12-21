@@ -1,7 +1,8 @@
 3.0.1
 
 - Fixed minor inconsistencies in the values returned on empty functions
-  (some implementations would actually throw an exception).
+  (some implementations would actually throw an exception). Thanks to
+  Valentin Tablan for reporting the problem.
 
 3.0
 
