@@ -182,7 +182,8 @@
 					private="off"
 					overview="${src}/overview.html"
 					source="1.6" 
-					windowtitle="Sux4J ${version}">
+					windowtitle="Sux4J ${version}"
+					classpathref="build.classpath">
 			<link href="${j2se.apiurl}"/>
 			<link href="${fastutil.apiurl}"/>
 			<link href="${dsiutils.apiurl}"/>
