@@ -28,7 +28,7 @@
   <dependencies>
 
     <dependency>
-      <groupId>it.unimi.dsi</groupId>
+      <groupId>it.unimi</groupId>
       <artifactId>fastutil</artifactId>
       <version>latest.release</version>
     </dependency>

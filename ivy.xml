@@ -10,7 +10,7 @@
 	
 	<dependencies>
 
-		<dependency org="it.unimi.dsi" name="fastutil" rev="6.4.2" />
+		<dependency org="it.unimi" name="fastutil" rev="latest.release" />
 		<dependency org="it.unimi" name="dsiutils" rev="latest.release" />
 		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
 		<dependency org="junit" name="junit" rev="latest.release" conf="testing"/>
