@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ivy-module version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+	<info organisation="it.unimi" module="sux4j"/>
+	
+	<configurations defaultconf="runtime" defaultconfmapping="*->default">
+		<conf name="runtime"/>
+		<conf name="build" extends="runtime"/>
+		<conf name="testing" extends="runtime"/>
+	</configurations>
+	
+	<dependencies>
+
+		<dependency org="it.unimi.dsi" name="fastutil" rev="6.4.2" />
+		<dependency org="it.unimi" name="dsiutils" rev="latest.release" />
+		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
+		<dependency org="junit" name="junit" rev="latest.release" conf="testing"/>
+
+		<dependency org="log4j" name="log4j" rev="latest.release"/>
+		<dependency org="commons-configuration" name="commons-configuration" rev="1.8"/>
+		<dependency org="commons-io" name="commons-io" rev="latest.release"/>
+		<dependency org="commons-lang" name="commons-lang" rev="latest.release"/>
+		<dependency org="commons-collections" name="commons-collections" rev="latest.release"/>
+
+	</dependencies>
+</ivy-module>

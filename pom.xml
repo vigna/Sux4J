@@ -1,0 +1,80 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>it.unimi</groupId>
+  <artifactId>sux4j</artifactId>
+  <packaging>jar</packaging>
+  <name>Sux4J</name>
+  <version>3.0.1</version>
+  <description>sux4j is an implementation of succinct data structure in Java. It provides a number of related implementations covering ranking/selection over bit arrays, compressed lists and minimal perfect hashing.</description>
+  <url>http://sux4j.dsi.unimi.it/</url>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License Version 3+</name>
+      <url>http://www.gnu.org/licenses/lgpl.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git://github.com/vigna/Sux4J.git</connection>
+    <url>https://github.com/vigna/Su4xJ</url>
+  </scm>
+  <developers>
+    <developer>
+      <id>vigna</id>
+      <name>Sebastiano Vigna</name>
+      <email>vigna@dsi.unimi.it</email>
+    </developer>
+  </developers>
+  <dependencies>
+
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>dsiutils</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.martiansoftware</groupId>
+      <artifactId>jsap</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-configuration</groupId>
+      <artifactId>commons-configuration</artifactId>
+      <version>1.8</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>latest.release</version>
+    </dependency>
+
+
+  </dependencies>
+</project>

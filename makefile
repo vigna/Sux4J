@@ -20,6 +20,9 @@ source2:
 		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/build.xml \
+		sux4j-$(version)/ivy.xml \
+		sux4j-$(version)/ivysettings.xml \
+		sux4j-$(version)/pom.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
 		$$(find sux4j-$(version)/test/it/unimi/dsi/sux4j -iname \*.java) \
@@ -30,7 +33,7 @@ source2:
 binary:
 	-rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
-	(cd sux4j-$(version); ant clean jar javadoc)
+	(cd sux4j-$(version); ant clean ivy-setupjars jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
@@ -38,4 +41,3 @@ binary:
 		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
-	-rm -r sux4j-$(version)

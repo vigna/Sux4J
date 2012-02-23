@@ -1,8 +1,123 @@
-<project name="sux4j" default="jar" basedir=".">
+<project name="sux4j" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
 	
-	<property name="build.sysclasspath" value="last"/>
-	
+	<property name="build.sysclasspath" value="ignore"/>
+	<property name="jars.dir" value="${basedir}/jars"/>
 	<property file="build.properties"/>
+
+	<property name="ivy.install.version" value="2.2.0" />
+	<property name="ivy.jar.dir" value="${basedir}/.ivy" />
+	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+
+	<target name="ivy-init" description="Installs a local copy of ivy">
+		<mkdir dir="${ivy.jar.dir}"/>
+		<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true"/>
+		<path id="ivy.lib.path">
+			<pathelement location="${ivy.jar.file}"/>
+		</path>
+		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+	</target>
+
+	<target name="ivy-setupjars" depends="ivy-init" description="Downloads dependencies with ivy and generate report">
+		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact].[ext]"/>
+		<ivy:report todir="${build}/ivy-report"/>
+	</target>
+
+	<target name="ivy-clean" depends="ivy-init" description="Clean ivy cache, jars dir and ivy installation">
+		<ivy:cleancache/>
+		<delete dir="${jars.dir}"/>
+		<delete dir="${ivy.jar.dir}"/>
+	</target>
+	
+	<path id="build.classpath">
+		<fileset dir="${jars.dir}/build"/>
+	</path>	
+	<path id="testing.classpath">
+		<fileset dir="${jars.dir}/testing"/>
+	</path>	
+	<path id="project.classpath">
+		<fileset dir="${jars.dir}/runtime"/>
+	</path>	
+	
+
+	<!-- ************************************** WARNING: MAVEN SH*T ************************************** -->
+
+	<!-- define Maven coordinates -->
+	<property name="groupId" value="it.unimi.dsi" />
+	<property name="artifactId" value="sux4j" />
+	<property name="version" value="${version}" />
+
+        <!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="maven-jar" value="${dist}/lib/${artifactId}-${version}.jar" />
+	<property name="maven-javadoc-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
+	<property name="maven-sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+
+        <!-- defined maven snapshots and staging repository id and url -->
+	<property name="maven-snapshots-repository-id" value="sonatype-nexus-snapshots" />
+	<property name="maven-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
+	<property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
+	<property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
+
+	<target name="dist" depends="compile,javadoc" description="generate the distribution">
+
+		<!-- build the main artifact -->
+		<jar jarfile="${maven-jar}" basedir="${build}" />
+
+		<!-- build the javadoc artifact (from symbolic link created in init) -->
+		<jar jarfile="${maven-javadoc-jar}">
+			<fileset dir="${dist}/javadoc" />
+		</jar>
+
+		<!-- build the sources artifact -->
+		<jar jarfile="${maven-sources-jar}">
+			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,build.properties,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
+		</jar>
+	</target>
+
+	<target name="deploy" depends="dist" description="deploy snapshot version to Maven snapshot repository">
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+			<arg value="-Durl=${maven-snapshots-repository-url}" />
+			<arg value="-DrepositoryId=${maven-snapshots-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+		</artifact:mvn>
+	</target>
+
+	<target name="stage" depends="dist" description="deploy release version to Maven staging repository">
+		<!-- sign and deploy the main artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the sources artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-sources-jar}" />
+			<arg value="-Dclassifier=sources" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the javadoc artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-javadoc-jar}" />
+			<arg value="-Dclassifier=javadoc" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+	</target>
+
+	<!-- ************************************** END OF MAVEN SH*T ************************************** -->
 	
 	<condition property="j2se.apiurl" value="${local.j2se.apiurl}" else="${remote.j2se.apiurl}"><isset property="local"/></condition>
 	<condition property="fastutil.apiurl" value="${local.fastutil.apiurl}" else="${remote.fastutil.apiurl}"><isset property="local"/></condition>
@@ -26,18 +141,22 @@
 	
 	<!-- ************		SOURCE		********************* -->
 	<target name="init">
+		<available property="ivy.set.up" file="${jars.dir}"/>
+		<fail message="It appears that Ivy has not been set up properly. Please run &quot;ant ivy-setupjars&quot; and try again." unless="ivy.set.up"/>	
+		<mkdir dir="${dist}"/>
 		<mkdir dir="${build}"/>
 		<mkdir dir="${reports}"/>
 		<mkdir dir="${coverage}"/>
 		<mkdir dir="${instrumented}"/>
+		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6"/>
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6" classpathref="build.classpath"/>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.6"/>
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" target="1.6" classpathref="test.classpath"/>
 	</target>
 	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
@@ -171,6 +290,7 @@
 	
 	<!-- ************		CLEAN		********************* -->
 	<target name="clean">
+		<delete dir="${dist}"/>
 		<delete dir="${build}"/>
 		<delete dir="${reports}"/>
 		<delete dir="${coverage}"/>
@@ -180,32 +300,5 @@
 			<fileset dir="." includes="*.jar"/>
 		</delete>
   </target>
-
-
-	<!-- =========== An additional task to run FindBugs. ========== -->
-
-	<property name="findbugs.home" value="/usr/share/java/findbugs"/>
-	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" onerror="report"/>
-
-	<target name="findbugs" depends="jar" description="Find bugs">
-		<findbugs home="${findbugs.home}" output="xml:withMessages" outputFile="findbugs.xml" excludeFilter="/home/vigna/law/java/conf/findbugs-excl.xml">
-			<auxClasspath path="${jar.base}/mg4j.jar"/>
-			<auxClasspath path="${jar.base}/junit.jar"/>
-			<auxClasspath path="${jar.base}/fastutil.jar"/>
-			<auxClasspath path="${jar.base}/dsiutils.jar"/>
-			<auxClasspath path="${jar.base}/commons-collections.jar"/>
-			<auxClasspath path="${jar.base}/commons-lang.jar"/>
-			<auxClasspath path="${jar.base}/commons-io.jar"/>
-			<auxClasspath path="${jar.base}/commons-configuration.jar"/>
-			<auxClasspath path="${jar.base}/jsap.jar"/>
-			<auxClasspath path="${jar.base}/log4j.jar"/>
-			<sourcePath path="${src}"/>
-			<class location="mg4j-${version}.jar"/>
-		</findbugs>
-
-		<style includes="findbugs.xml" destdir="${findbugs}" style="xsl/default.xsl"/>
-	</target>
-
-
 </project>
 
