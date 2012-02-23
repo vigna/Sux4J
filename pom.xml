@@ -34,7 +34,7 @@
     </dependency>
 
     <dependency>
-      <groupId>it.unimi.dsi</groupId>
+      <groupId>it.unimi</groupId>
       <artifactId>dsiutils</artifactId>
       <version>latest.release</version>
     </dependency>
