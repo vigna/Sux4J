@@ -69,7 +69,7 @@
 
 		<!-- build the sources artifact -->
 		<jar jarfile="${maven-sources-jar}">
-			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,build.properties,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
+			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,build.properties,ivy.xml,ivysettings.xml,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
 		</jar>
 	</target>
 
