@@ -5,7 +5,7 @@
 		<ibiblio name="law" m2compatible="true" root="http://jars.law.dsi.unimi.it/content/repositories/public/"/>
 		<chain name="default" returnFirst="true">
 			<resolver ref="local"/>
-			<resolver ref="law"/>
+<!--			<resolver ref="law"/> -->
 			<resolver ref="main"/>
 		</chain>
 	</resolvers>
