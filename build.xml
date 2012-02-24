@@ -31,8 +31,8 @@
 	<path id="build.classpath">
 		<fileset dir="${jars.dir}/build"/>
 	</path>	
-	<path id="testing.classpath">
-		<fileset dir="${jars.dir}/testing"/>
+	<path id="test.classpath">
+		<fileset dir="${jars.dir}/test"/>
 	</path>	
 	<path id="project.classpath">
 		<fileset dir="${jars.dir}/runtime"/>
@@ -200,14 +200,17 @@
 	<target name="junit" depends="instrument" description="Runs JUnit tests">
 
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
-			<classpath location="${instrumented}/classes"/>
-			<classpath location="${src}"/>
-			<classpath location="${test}"/>
-			<classpath location="${jar.base}/emma.jar"/>
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${instrumented}/classes"/>
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${slow}"/>
+			</classpath>
+
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
 			<jvmarg value="-Xmx1G" />
-			<jvmarg value="-ea" />
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
@@ -250,17 +253,19 @@
 	</target>
 
 	<target name="junit-slow" depends="instrument" description="Runs JUnit slow tests">
-
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
-			<classpath location="${instrumented}/classes"/>
-			<classpath location="${src}"/>
-			<classpath location="${test}"/>
-			<classpath location="${slow}"/>
-			<classpath location="${jar.base}/emma.jar"/>
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${instrumented}/classes"/>
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${slow}"/>
+			</classpath>
+
 			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
 			<jvmarg value="-Demma.coverage.out.merge=true" />
+
 			<jvmarg value="-Xmx32G" />
-			<jvmarg value="-ea" />
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
