@@ -28,7 +28,7 @@
 	</target>
 	
 	<target name="ivy-pom" depends="ivy-init" description="Creates POM">
-		<ivy:makepom ivyfile="ivy.xml" templatefile="pom-model.xml" pomfile="prova.xml"/>
+		<ivy:makepom ivyfile="ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
 	</target>
 	
 	<path id="build.classpath">

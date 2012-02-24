@@ -22,7 +22,6 @@ source2:
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/ivy.xml \
 		sux4j-$(version)/ivysettings.xml \
-		sux4j-$(version)/pom.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
 		$$(find sux4j-$(version)/test/it/unimi/dsi/sux4j -iname \*.java) \
