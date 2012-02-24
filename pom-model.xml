@@ -1,0 +1,36 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>${ivy.pom.groupId}</groupId>
+  <artifactId>${ivy.pom.artifactId}</artifactId>
+  <packaging>jar</packaging>
+  <name>Sux4J</name>
+  <version>${ivy.pom.version}</version>
+  <description>Sux4j is an implementation of succinct data structure in Java. It provides a number of related implementations covering ranking/selection over bit arrays, compressed lists and minimal perfect hashing.</description>
+  <url>http://sux4j.dsi.unimi.it/</url>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License Version 3+</name>
+      <url>http://www.gnu.org/licenses/lgpl.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git://github.com/vigna/Sux4J.git</connection>
+    <url>https://github.com/vigna/Su4xJ</url>
+  </scm>
+  <developers>
+
+    <developer>
+      <id>boldi</id>
+      <name>Paolo Boldi</name>
+      <email>boldi@dsi.unimi.it</email>
+    </developer>
+
+    <developer>
+      <id>vigna</id>
+      <name>Sebastiano Vigna</name>
+      <email>vigna@dsi.unimi.it</email>
+    </developer>
+
+  </developers>
+</project>
