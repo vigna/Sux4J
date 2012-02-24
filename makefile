@@ -14,7 +14,7 @@ source2:
 	ln -s . sux4j-$(version)
 	ant clean
 	./genz.sh
-	$(TAR) zcvf sux4j-$(version)-src.tar.gz --owner=0 --group=0 \
+	$(TAR) zhcvf sux4j-$(version)-src.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
