@@ -217,6 +217,7 @@
 			<batchtest fork="yes" todir="${reports}">
 				<fileset dir="${instrumented}/classes">
 					<include name="**/*Test.class"/>
+					<include name="**/SlowTest.class"/>
 					<exclude name="**/test/*.class"/>
 				</fileset>
 			</batchtest>
