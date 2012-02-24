@@ -3,8 +3,10 @@
 	<include url="${ivy.default.settings.dir}/ivysettings.xml"/>
 	<resolvers>
 		<ibiblio name="law" m2compatible="true" root="http://jars.law.dsi.unimi.it/content/repositories/public/"/>
+		<ibiblio name="sonatype" m2compatible="true" root="https://oss.sonatype.org/content/repositories/public/"/>
 		<chain name="default" returnFirst="true">
 			<resolver ref="local"/>
+			<resolver ref="sonatype"/>
 <!--			<resolver ref="law"/> -->
 			<resolver ref="main"/>
 		</chain>
