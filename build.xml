@@ -23,9 +23,7 @@
 	</target>
 
 	<target name="ivy-clean" depends="ivy-init" description="Clean ivy cache, jars dir and ivy installation">
-		<ivy:cleancache/>
 		<delete dir="${jars.dir}"/>
-		<delete dir="${ivy.jar.dir}"/>
 	</target>
 	
 	<path id="build.classpath">
