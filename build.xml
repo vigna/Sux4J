@@ -142,6 +142,7 @@
 		<available property="ivy.set.up" file="${jars.dir}"/>
 		<fail message="It appears that Ivy has not been set up properly. Please run &quot;ant ivy-setupjars&quot; and try again." unless="ivy.set.up"/>	
 		<mkdir dir="${dist}"/>
+		<mkdir dir="${docs}"/>
 		<mkdir dir="${build}"/>
 		<mkdir dir="${reports}"/>
 		<mkdir dir="${coverage}"/>
