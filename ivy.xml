@@ -15,6 +15,7 @@
 		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 		<dependency org="emma" name="emma" rev="latest.release" conf="test"/>
+		<dependency org="emma" name="emma_ant" rev="latest.release" conf="test"/>
 
 		<dependency org="log4j" name="log4j" rev="latest.release"/>
 		<dependency org="commons-configuration" name="commons-configuration" rev="1.8"/>
