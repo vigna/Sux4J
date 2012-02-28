@@ -20,7 +20,7 @@
 
 	<target name="ivy-setupjars" depends="ivy-init" description="Downloads dependencies with ivy and generate report">
 		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact].[ext]"/>
-		<ivy:report todir="${build}/ivy-report"/>
+		<ivy:report todir="${dist}/ivy-report"/>
 	</target>
 
 	<target name="ivy-clean" depends="ivy-init" description="Clean ivy cache, jars dir and ivy installation">
@@ -28,7 +28,8 @@
 	</target>
 	
 	<target name="ivy-pom" depends="ivy-init" description="Creates POM">
-		<ivy:makepom ivyfile="ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
+		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
 	</target>
 	
 	<path id="build.classpath">
