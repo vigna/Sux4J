@@ -136,13 +136,6 @@
 
 	<property name="subdir"    value=""/>
   
-	<path id="emma.lib" >
-		<pathelement location="${jar.base}/emma.jar" />
-		<pathelement location="${jar.base}/emma_ant.jar" />
-	</path>
-
-	<taskdef resource="emma_ant.properties" classpathref="emma.lib" />
-	
 	<!-- ************		SOURCE		********************* -->
 	<target name="init">
 		<available property="ivy.set.up" file="${jars.dir}"/>
@@ -246,6 +239,7 @@
 	</target>
 
 	<target name="instrument" depends="compile-tests" description="Generate instrumented classes">
+		<taskdef resource="emma_ant.properties" classpathref="test.classpath"/>
 		<emma>
 			<instr mode="fullcopy"
 				 outdir="${instrumented}"
