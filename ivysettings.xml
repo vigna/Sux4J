@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <ivysettings>
 	<include url="${ivy.default.settings.dir}/ivysettings.xml"/>
-	<credentials host="jars.law.dsi.unimi.it" realm="Sonatype Nexus Repository Manager" username="lawdevel" passwd="${lawdevel.pw}"/>
+	<properties environment="env" />
+	<credentials host="jars.law.dsi.unimi.it" realm="Sonatype Nexus Repository Manager" username="lawdevel" passwd="${env.LAW_DEVEL_PW}"/>
 	<resolvers>
 		<ibiblio name="sonatype" m2compatible="true" root="https://oss.sonatype.org/content/repositories/public/"/>
 		<ibiblio name="law" m2compatible="true" root="http://jars.law.dsi.unimi.it/content/repositories/public/"/>
