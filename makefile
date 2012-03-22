@@ -21,7 +21,6 @@ source2:
 		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/ivy.xml \
-		sux4j-$(version)/ivysettings.xml \
 		sux4j-$(version)/pom-model.xml \
 		sux4j-$(version)/build.properties \
 		$$(find sux4j-$(version)/src/it/unimi/dsi/sux4j -iname \*.java -or -iname \*.html) \
@@ -33,6 +32,7 @@ source2:
 binary:
 	-rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
+	egrep -v law\|sonatype ivysettings.xml >sux4j-$(version)/ivysettings.xml
 	(cd sux4j-$(version); ant clean ivy-setupjars jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
