@@ -4,30 +4,24 @@
 	<property name="jars.dir" value="${basedir}/jars"/>
 	<property file="build.properties"/>
 
-	<property name="ivy.install.version" value="2.2.0" />
-	<property name="ivy.jar.dir" value="${basedir}/.ivy" />
-	<property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+	<property environment="env"/>
+
 	<property name="ivy.pom.version" value="${version}" />
+	<condition property="ivy.settings.file" value="${env.LOCAL_IVY_SETTINGS}"><isset property="env.LOCAL_IVY_SETTINGS"/></condition>
+	
+	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant"/>
 
-	<target name="ivy-init" description="Installs a local copy of ivy">
-		<mkdir dir="${ivy.jar.dir}"/>
-		<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true"/>
-		<path id="ivy.lib.path">
-			<pathelement location="${ivy.jar.file}"/>
-		</path>
-		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
-	</target>
-
-	<target name="ivy-setupjars" depends="ivy-init" description="Downloads dependencies with ivy and generate report">
+	<target name="ivy-setupjars" description="Downloads dependencies with ivy and generate report">
 		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact].[ext]"/>
 		<ivy:report todir="${dist}/ivy-report"/>
 	</target>
 
-	<target name="ivy-clean" depends="ivy-init" description="Clean ivy cache, jars dir and ivy installation">
+	<target name="ivy-clean" description="Cleans ivy cache, jars dir and ivy installation">
 		<delete dir="${jars.dir}"/>
 	</target>
-	
-	<target name="ivy-pom" depends="ivy-init" description="Creates POM">
+
+	<target name="ivy-pom" description="Creates POM">
+		<ivy:resolve/>
 		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
 		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
 	</target>
@@ -41,7 +35,6 @@
 	<path id="project.classpath">
 		<fileset dir="${jars.dir}/runtime"/>
 	</path>	
-	
 
 	<!-- ************************************** WARNING: MAVEN SH*T ************************************** -->
 
