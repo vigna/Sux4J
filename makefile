@@ -32,8 +32,7 @@ source2:
 binary:
 	-rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
-	egrep -v law\|sonatype ivysettings.xml >sux4j-$(version)/ivysettings.xml
-	(cd sux4j-$(version); ant clean ivy-setupjars jar javadoc)
+	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant clean ivy-setupjars jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
@@ -41,3 +40,6 @@ binary:
 		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
+
+stage:
+	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant stage)
