@@ -40,6 +40,7 @@ binary:
 		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
+	$(TAR) zcvf sux4j-deps.tar.gz --owner=0 --group=0 --transform='s|.*/||' $$(find sux4j-$(version)/jars/build -iname \*.jar -exec readlink {} \;) 
 
 stage:
 	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant stage)
