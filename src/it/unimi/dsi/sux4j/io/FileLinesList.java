@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.io;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2011 Sebastiano Vigna 
+ * Copyright (C) 2008-2012 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -68,7 +68,7 @@ import java.util.RandomAccess;
  * 
  * <p>Instances of this class perform a full scan of the specified file at construction time, representing
  * the list of pointers to the start of each line using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}. 
- * The memory occupation per line is thus bounded by 2 + log <var>l</var> bits, where <var>l</var> is the average line length.
+ * The memory occupation per line is thus bounded by 2 + log &#x2113; bits, where &#x2113; is the average line length.
  * 
  * @author Sebastiano Vigna
  * @since 1.1

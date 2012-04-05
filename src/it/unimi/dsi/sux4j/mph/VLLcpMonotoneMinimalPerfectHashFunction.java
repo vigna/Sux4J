@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2011 Sebastiano Vigna 
+ * Copyright (C) 2008-2012 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -65,8 +65,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
  * longest common prefixes as distributors, and store their lengths using a {@link MinimalPerfectHashFunction}
- * indexing an {@link EliasFanoLongBigList}. 
- * 
+ * indexing an {@link EliasFanoLongBigList}. In theory, this function should use less memory
+ * than an {@link LcpMonotoneMinimalPerfectHashFunction} when the lengths of common prefixes vary
+ * wildly, but in practice a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction} is often a better choice.
  */
 
 public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {

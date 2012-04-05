@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2011 Sebastiano Vigna 
+ * Copyright (C) 2008-2012 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -39,28 +39,8 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 
-/** A succinct implementation of a binary partial compacted trie based on a recursive bitstream.
- * 
- * <p>Instances of this class represent a <em>partial compacted trie</em> (PaCo trie). In such a trie,
- * just a prefix of the path at each node is actually stored: then, we just store the number of missing bits.
- * 
- * <p>The main purpose of PaCo tries is to serve as <em>distributors</em> for other data structures:
- * given a set of delimiters <var>D</var> of a set <var>S</var>, a PaCo trie will {@linkplain #getLong(Object) <em>rank</em>}
- * an elements <var>x</var> of <var>S</var> over <var>D</var>, that is, it will return how many elements of
- * <var>D</var> strictly precede <var>x</var>. To do so, a PaCo trie records at each node the smallest possible
- * prefix that make it possible to rank correctly the whole of <var>S</var>: depending on the strings in
- * <var>S</var>, the savings in space can be more or less significant.
- * 
- * <p>An instance of this class stores a trie as a <em>recursive bitstream</em>: a node <var>x</var> with
- * subtrees <var>A</var> and <var>B</var> is stored as
- *  <div style="text-align: center">
- *  <var>skip</var> <var>pathlen</var> <var>path</var> <var>missing</var> <var>leaves<sub>A</sub></var> <var>A</var> <var>B</var>,
- *  </div>
- * where except for <var>path</var>, which is the path at <var>x</var> represented literally,
- * all other components are numbers in {@linkplain OutputBitStream#writeDelta(int) &delta; coding}, and the
- * last two components are the recursive encodings of <var>A</var> and <var>B</var>. Leaves are
- * distinguished by having <var>skip</var> equal to zero (in which case, no information after the path is recorded). 
- * <var>leaves<sub>A</sub></var> is the number of leaves of <var>A</var>.
+/** A version of a {@link PaCoTrieDistributor} whose space usage depends on the <em>average</em>
+ * string length, rather than on the <em>maximum string length</em>; mainly of theoretical interest.
  * 
  * @author Sebastiano Vigna
  */

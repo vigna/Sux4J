@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2011 Sebastiano Vigna 
+ * Copyright (C) 2008-2012 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -59,8 +59,10 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * a {@linkplain PaCoTrieDistributor partial compacted binary trie (PaCo trie)} as distributor.
+/** A version of a {@link PaCoTrieDistributorMonotoneMinimalPerfectHashFunction} whose space usage depends on the <em>average</em>
+ * string length, rather than on the <em>maximum string length</em>; mainly of theoretical interest.
+ * 
+ * @author Sebastiano Vigna
  */
 
 public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {

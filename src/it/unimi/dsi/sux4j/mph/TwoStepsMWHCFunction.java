@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2011 Sebastiano Vigna 
+ * Copyright (C) 2008-2012 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -43,7 +43,8 @@ import org.apache.log4j.Logger;
 
 
 /** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
- * frequent values, and one for infrequent values.
+ * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
+ * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
  * 
  * <p>The constructor of this class performs a pre-scan of the values to be assigned. If possible, it finds the best possible
  * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
