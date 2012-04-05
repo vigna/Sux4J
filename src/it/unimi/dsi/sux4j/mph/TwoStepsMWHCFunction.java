@@ -152,7 +152,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		rankMean = (double)mean / n;
 		
 		// Analyze data and choose a threshold
-		long post = n, pre = 0, bestCost = Long.MAX_VALUE;
+		long post = n, bestCost = Long.MAX_VALUE;
 		int pos = 0, best = -1;
 		
 		// Examine every possible choice for r. Note that r = 0 implies one function, so we do not need to test the case r == w.
@@ -172,7 +172,6 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			/* We add to pre and subtract from post the counts of elements from position (1<<r)-1 to position (1<<r+1)-1. */
 			for( int j = 0; j < ( 1 << r ) && pos < m; j++ ) {
 				final long c = counts.get( keys[ pos++ ] ); 
-				pre += c;
 				post -= c;
 			}	
 		}

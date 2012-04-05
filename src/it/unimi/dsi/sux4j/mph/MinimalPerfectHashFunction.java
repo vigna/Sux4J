@@ -75,7 +75,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable constructors. Note that at construction time
  * you can {@linkplain #MinimalPerfectHashFunction(Iterable, TransformationStrategy, File, ChunkedHashStore) pass}
  * a {@link ChunkedHashStore} containing the elements associated with any value; note that, however, that if the store is rebuilt because of a
- * {@link ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
  * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
  * o(<var>n</var>) bits per element, plus the bits for the random hashes (which are usually

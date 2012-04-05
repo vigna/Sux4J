@@ -314,12 +314,11 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			}
 		};
 		
-		long maxSkip = 0, minSkip = Long.MAX_VALUE, sumOfSkipLengths = 0, s;
+		long maxSkip = 0, minSkip = Long.MAX_VALUE, s;
 		for( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
 			s = i.nextLong();
 			maxSkip = Math.max( s, maxSkip );
 			minSkip = Math.min( s, minSkip );
-			sumOfSkipLengths += Fast.length( s + 1 );
 		}
 		
 		final int skipWidth = Fast.ceilLog2( maxSkip );

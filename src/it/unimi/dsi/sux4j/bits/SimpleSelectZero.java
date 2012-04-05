@@ -147,7 +147,7 @@ public class SimpleSelectZero implements SelectZero {
 			d = 0;
 			int ones;
 			long diff16 = 0, start = 0, span = 0;
-			int spilled = 0, exact = 0,inventoryIndex = 0;
+			int spilled = 0, inventoryIndex = 0;
 
 			for( int i = 0; i < numWords; i++ )
 				// We estimate the subinventory and exact spill size
@@ -162,13 +162,7 @@ public class SimpleSelectZero implements SelectZero {
 
 							// We must always count (possibly unused) diff16's. And we cannot store less then 4 diff16.
 							diff16 += Math.max( 4, ( ones + onesPerSub16 - 1 ) >>> log2OnesPerSub16 );
-
-							// We accumulate space for exact pointers ONLY if necessary.
-							if ( span >= MAX_SPAN ) {
-								exact += ones;
-								if ( onesPerSub64 > 1 ) spilled += ones;
-							}
-
+							if ( span >= MAX_SPAN && onesPerSub64 > 1 ) spilled += ones;
 						}
 						d++;
 					}

@@ -97,8 +97,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * each key with its value instead.
  * 
  * <p>It is important to understand this difference because many constructors makes it possible to pass a chunked hash store.
- * This class will try to use the store before building a new one (possibly because of a {@link ChunkedHashStore.DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link ChunkedHashStore.DuplicateException} is
+ * This class will try to use the store before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
  * thrown, the constructors will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available. Constructors
  * without keys (e.g., {@link #MWHCFunction(TransformationStrategy, ChunkedHashStore, int)}) assume that the store is checked.
  * Note that it is your responsibility to pass a correct store.
@@ -131,8 +131,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 4L;
-    private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
+	private static final long serialVersionUID = 4L;
+	private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 		

@@ -30,7 +30,8 @@ import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
  */
 
 public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunction<K> implements Size64 {
-	public static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 2L;
+
 	public boolean containsKey( Object key ) {
 		return true;
 	}

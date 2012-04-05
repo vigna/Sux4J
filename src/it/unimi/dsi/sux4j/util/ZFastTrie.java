@@ -120,7 +120,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	
 	/** A linear-probing hash map that compares keys using signatures as a first try. */
 	protected final static class Handle2NodeMap<U> {
-		private static final long serialVersionUID = 1L;
 		private static final int INITIAL_LENGTH = 64;
 
 		/** The transformation strategy. */
