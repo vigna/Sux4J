@@ -1,3 +1,8 @@
+3.0.3
+
+- Replaced methods from it.unimi.dsi.bits.Fast with equivalent methods in
+  Integer/Long, as recent JVMs intrinsify such methods.
+
 3.0.2
 
 - Fixed minor inconsistencies in the values returned on empty functions

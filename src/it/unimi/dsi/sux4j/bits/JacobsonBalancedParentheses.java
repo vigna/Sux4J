@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.bits;
  */
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -346,7 +345,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		// TODO: check that in this case MSB(x&-x) isn't better.
-		final int block = Fast.leastSignificantBit( zeroes >>> 7 & ONES_STEP_8 );
+		final int block = Long.numberOfTrailingZeros( zeroes >>> 7 & ONES_STEP_8 );
 		// A simple trick to return 127 if block < 0 (i.e., no match)
 		return ( (int)( block + ( zeroes >>> block & 0x7F ) ) | ( block >> 8 ) ) & 0x7F;
 
@@ -418,7 +417,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		//for( int i = 0; i < 8; i++ ) System.err.print( (byte)(zeroes >>> i * 8 & 0xFF) + " " ); System.err.println();
 		
 		// TODO: check that in this case MSB(x&-x) isn't better.
-		final int block = Fast.leastSignificantBit( zeroes >>> 7 & ONES_STEP_8 );
+		final int block = Long.numberOfTrailingZeros( zeroes >>> 7 & ONES_STEP_8 );
 		// A simple trick to return 127 if block < 0 (i.e., no match)
 		return ( (int)( block + ( zeroes >>> block & 0x3F ) ) | ( block >> 8 ) ) & 0x7F;
 
@@ -618,7 +617,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		if ( ASSERTS ) assert word != match / Long.SIZE;
 		if ( ASSERTS ) assert pioneer < pos;
 		
-		int e = 2 * Fast.count( ( bits[ word ] >>> ( pioneer % Long.SIZE ) ) & ( 1L << dist ) - 1 ) - dist; 
+		int e = 2 * Long.bitCount( ( bits[ word ] >>> ( pioneer % Long.SIZE ) ) & ( 1L << dist ) - 1 ) - dist; 
 		if ( ASSERTS ) {
 			assert e >= 1;
 			int ee = 0;
@@ -631,7 +630,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		final int matchWord = (int)( match / Long.SIZE );
 		final int matchBit = (int)( match % Long.SIZE );
 		
-		final int numFarClose = matchBit - 2 * Fast.count( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
+		final int numFarClose = matchBit - 2 * Long.bitCount( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
 
 		if ( DEBUG ) System.err.println( "far close before match: " + numFarClose );
 		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], numFarClose - e );

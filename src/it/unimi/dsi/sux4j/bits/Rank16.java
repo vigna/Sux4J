@@ -66,7 +66,7 @@ public class Rank16 extends AbstractRank implements Rank {
 		for( int i = 0; i < numWords; i++ ) {
 			if ( i % BLOCK_LENGTH == 0 ) superCount[ i / BLOCK_LENGTH ] = c;
 			if ( i % 2 == 0 ) count[ i / 2 ] = (short)( c - superCount[ i / BLOCK_LENGTH ] );
-			c += Fast.count( bits[ i ] );
+			c += Long.bitCount( bits[ i ] );
 			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
 		}
 		
@@ -86,8 +86,8 @@ public class Rank16 extends AbstractRank implements Rank {
 		final int offset = word / 2;
         
 		return word % 2 == 0 ?
-				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) ) :
-				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Fast.count( bits[ word - 1 ] ) + Fast.count( bits[ word ] & ( 1L << pos % 64 ) - 1 );
+				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) ) :
+				superCount[ block ] + ( count[ offset ] & 0xFFFF ) + Long.bitCount( bits[ word - 1 ] ) + Long.bitCount( bits[ word ] & ( 1L << pos % 64 ) - 1 );
 	}
 
 	public long numBits() {

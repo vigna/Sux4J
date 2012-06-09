@@ -113,7 +113,7 @@ public class SimpleSelectZero implements SelectZero {
 		
 		// We compute quickly the number of ones (possibly counting spurious bits in the last word).
 		long d = 0;
-		for( int i = numWords; i-- != 0; ) d += Fast.count( ~bits[ i ] );
+		for( int i = numWords; i-- != 0; ) d += Long.bitCount( ~bits[ i ] );
 
 		onesPerInventory = 1 << ( log2OnesPerInventory = Fast.mostSignificantBit( length == 0 ? 1 : (int)( ( d * MAX_ONES_PER_INVENTORY + length - 1 ) / length ) ) );
 		onesPerInventoryMask = onesPerInventory - 1;

@@ -66,12 +66,12 @@ public class Rank9 extends AbstractRank implements Rank {
 		int pos = 0;
 		for( int i = 0; i < numWords; i += 8, pos += 2 ) {
 			count[ pos ] = c;
-			c += Fast.count( bits[ i ] );
+			c += Long.bitCount( bits[ i ] );
 			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
 			for( int j = 1;  j < 8; j++ ) {
 				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
 				if ( i + j < numWords ) {
-					c += Fast.count( bits[ i + j ] );
+					c += Long.bitCount( bits[ i + j ] );
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
 				}
 			}
@@ -93,7 +93,7 @@ public class Rank9 extends AbstractRank implements Rank {
 		final int block = word / 4 & ~1;
 		final int offset = word % 8 - 1;
         
-		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Fast.count( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
+		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
 	}
 
 	public long numBits() {

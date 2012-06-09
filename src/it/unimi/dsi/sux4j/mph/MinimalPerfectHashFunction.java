@@ -391,7 +391,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * Counts the number of nonzero pairs of bits in a long.
 	 * 
 	 * <p>This method uses a very simple modification of the classical
-	 * {@linkplain Fast#count(long) broadword algorithm to count the number of ones in a word}.
+	 * broadword algorithm to count the number of ones in a word.
 	 * Usually, in the first step of the algorithm one computes the number of ones in each pair of
 	 * bits. Instead, we compute one iff at least one of the bits in the pair is nonzero.
 	 * 
