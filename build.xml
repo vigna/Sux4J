@@ -26,8 +26,8 @@
 		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
 	</target>
 	
-	<path id="build.classpath">
-		<fileset dir="${jars.dir}/build"/>
+	<path id="compile.classpath">
+		<fileset dir="${jars.dir}/compile"/>
 	</path>	
 	<path id="test.classpath">
 		<fileset dir="${jars.dir}/test"/>
@@ -143,7 +143,7 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6" classpathref="build.classpath"/>
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6" classpathref="compile.classpath"/>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
@@ -174,7 +174,7 @@
 					overview="${src}/overview.html"
 					source="1.6" 
 					windowtitle="Sux4J ${version}"
-					classpathref="build.classpath">
+					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>
 			<link href="${fastutil.apiurl}"/>
 			<link href="${dsiutils.apiurl}"/>
