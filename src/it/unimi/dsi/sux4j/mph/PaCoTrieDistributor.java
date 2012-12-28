@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -36,7 +35,8 @@ import it.unimi.dsi.logging.ProgressLogger;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A succinct implementation of a binary partial compacted trie based on a recursive bitstream.
  * 
@@ -65,7 +65,7 @@ import org.apache.log4j.Logger;
  */
 
 public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = Util.getLogger( PaCoTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( PaCoTrieDistributor.class );
 	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;

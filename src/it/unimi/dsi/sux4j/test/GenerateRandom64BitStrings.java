@@ -1,6 +1,5 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XorShiftStarRandom;
@@ -12,7 +11,8 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.Random;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -22,7 +22,7 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
 
 public class GenerateRandom64BitStrings {
-	public static final Logger LOGGER = Util.getLogger( GenerateRandom64BitStrings.class );
+	public static final Logger LOGGER = LoggerFactory.getLogger( GenerateRandom64BitStrings.class );
 	
 	public static void main( final String[] arg ) throws JSAPException, IOException {
 

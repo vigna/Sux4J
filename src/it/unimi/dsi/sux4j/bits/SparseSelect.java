@@ -22,10 +22,10 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /** A select implementation for sparse bit arrays based on the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation of monotone functions}. 
  * 

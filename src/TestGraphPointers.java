@@ -8,6 +8,7 @@ public class TestGraphPointers {
 
 	
 	public static void main( String a[] ) throws IOException {
+		@SuppressWarnings("resource")
 		final InputBitStream skips = new InputBitStream( a[ 0 ] );
 		final long n = Long.parseLong( a[ 1 ] );
 		final long m = Long.parseLong( a[ 2 ] );

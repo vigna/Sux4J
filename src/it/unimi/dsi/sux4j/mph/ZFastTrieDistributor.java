@@ -22,7 +22,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.bits.Fast.log2;
 import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -49,14 +48,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A distributor based on a z-fast trie.
  *
  */
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = Util.getLogger( ZFastTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;

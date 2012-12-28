@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -37,7 +36,8 @@ import it.unimi.dsi.logging.ProgressLogger;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A version of a {@link PaCoTrieDistributor} whose space usage depends on the <em>average</em>
  * string length, rather than on the <em>maximum string length</em>; mainly of theoretical interest.
@@ -46,7 +46,7 @@ import org.apache.log4j.Logger;
  */
 
 public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = Util.getLogger( VLPaCoTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( VLPaCoTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;

@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.io;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
@@ -50,7 +49,8 @@ import java.util.Random;
 
 import org.apache.commons.collections.Predicate;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A temporary store of hash triples virtually divided into chunks.
  * 
@@ -127,7 +127,7 @@ import org.apache.log4j.Logger;
 
 public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Chunk> {
     public static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = Util.getLogger( ChunkedHashStore.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( ChunkedHashStore.class );
 	private static final boolean DEBUG = false;
 
 	/** Denotes that the chunked hash store contains a duplicate hash triple. */

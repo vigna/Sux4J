@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
@@ -45,7 +44,8 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -63,7 +63,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 3L;
-	private static final Logger LOGGER = Util.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final long size;

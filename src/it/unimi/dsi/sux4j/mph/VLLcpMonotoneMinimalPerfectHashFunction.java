@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -31,6 +30,7 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -40,7 +40,6 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XorShiftStarRandom;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -51,7 +50,8 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -72,7 +72,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 2L;
-	private static final Logger LOGGER = Util.getLogger( VLLcpMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( VLLcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	
 	/** The number of elements. */

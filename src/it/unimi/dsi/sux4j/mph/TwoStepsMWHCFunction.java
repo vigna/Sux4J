@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
@@ -39,7 +38,8 @@ import java.io.Serializable;
 import java.util.Random;
 
 import org.apache.commons.collections.Predicate;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
@@ -57,7 +57,7 @@ import org.apache.log4j.Logger;
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 3L;
-    private static final Logger LOGGER = Util.getLogger( TwoStepsMWHCFunction.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;
     

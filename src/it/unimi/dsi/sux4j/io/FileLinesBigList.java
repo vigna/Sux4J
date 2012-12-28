@@ -20,6 +20,7 @@ package it.unimi.dsi.sux4j.io;
  *
  */
 
+import it.unimi.dsi.big.io.FileLinesCollection;
 import it.unimi.dsi.fastutil.BigList;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
@@ -27,7 +28,6 @@ import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObjectBigListIterator;
-import it.unimi.dsi.big.io.FileLinesCollection;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;

@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -28,7 +27,8 @@ import it.unimi.dsi.fastutil.ints.IntArrays;
 
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
  * Majewski-Wormald-Havas-Czech technique.
@@ -114,8 +114,7 @@ import org.apache.log4j.Logger;
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
  * <P>To help diagnosing problem with the generation process
- * class, this class will log at {@link org.apache.log4j.Level#DEBUG DEBUG} level
- * what's happening.
+ * class, this class will {@link Logger#debug(String) log at debug level} what's happening.
  *
  * <P>Note that if the the peeling process fails more than twice, you should
  * suspect that there are duplicates in the string list (unless the number of vertices is very small).
@@ -127,7 +126,7 @@ import org.apache.log4j.Logger;
 public class HypergraphSorter<T> {
 	/** The initial size of the queue used to peel the 3-hypergraph. */
 	private static final int INITIAL_QUEUE_SIZE = 1024;
-	private final static Logger LOGGER = Util.getLogger( HypergraphSorter.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( HypergraphSorter.class );
 	
 	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
 	 * are acyclic with high probability if the ratio vertices/edges exceeds this constant. */

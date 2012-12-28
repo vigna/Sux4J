@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.util;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -61,7 +60,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -89,7 +89,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 2L;
-	private static final Logger LOGGER = Util.getLogger( ZFastTrie.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( ZFastTrie.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DDDEBUG = false;
 	private static final boolean DDEBUG = false || DDDEBUG;

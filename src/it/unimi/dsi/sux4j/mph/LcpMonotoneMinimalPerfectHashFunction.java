@@ -52,7 +52,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -70,7 +71,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 3L;
-	private static final Logger LOGGER = Util.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 	

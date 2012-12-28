@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
@@ -44,7 +43,8 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -64,7 +64,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 4L;
-	private static final Logger LOGGER = Util.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final long size;

@@ -1,3 +1,7 @@
+3.0.6
+
+- Switched to SLF4J for logging.
+
 3.0.5
 
 - The Ivy dependency file has been Maven-normalized (now we have a

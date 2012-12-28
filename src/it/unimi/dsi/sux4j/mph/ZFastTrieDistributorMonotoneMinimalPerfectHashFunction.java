@@ -20,7 +20,10 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
+import static it.unimi.dsi.bits.Fast.log2;
+import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
+import static java.lang.Math.E;
+import static java.lang.Math.log;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
@@ -44,7 +47,8 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -55,10 +59,6 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
-import static it.unimi.dsi.bits.Fast.log2;
-import static java.lang.Math.log;
-import static java.lang.Math.E;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
  * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
@@ -67,7 +67,7 @@ import static java.lang.Math.E;
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 2L;
-	private static final Logger LOGGER = Util.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
 	private final long size;

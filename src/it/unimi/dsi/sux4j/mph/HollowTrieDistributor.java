@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -29,6 +28,7 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
@@ -38,14 +38,14 @@ import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A distributor based on a hollow trie.
  * 
@@ -61,7 +61,7 @@ import org.apache.log4j.Logger;
  */
 
 public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = Util.getLogger( HollowTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( HollowTrieDistributor.class );
 	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;

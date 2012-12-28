@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -56,7 +55,8 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -132,7 +132,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 4L;
-	private static final Logger LOGGER = Util.getLogger( MWHCFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 		
