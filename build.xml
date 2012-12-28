@@ -115,19 +115,6 @@
 	</target>
 
 	<!-- ************************************** END OF MAVEN SH*T ************************************** -->
-	
-	<condition property="j2se.apiurl" value="${local.j2se.apiurl}" else="${remote.j2se.apiurl}"><isset property="local"/></condition>
-	<condition property="fastutil.apiurl" value="${local.fastutil.apiurl}" else="${remote.fastutil.apiurl}"><isset property="local"/></condition>
-	<condition property="dsiutils.apiurl" value="${local.dsiutils.apiurl}" else="${remote.dsiutils.apiurl}"><isset property="local"/></condition>
-	<condition property="jsap.apiurl" value="${local.jsap.apiurl}" else="${remote.jsap.apiurl}"><isset property="local"/></condition>
-	<condition property="junit.apiurl" value="${local.junit.apiurl}" else="${remote.junit.apiurl}"><isset property="local"/></condition>
-	<condition property="log4j.apiurl" value="${local.log4j.apiurl}" else="${remote.log4j.apiurl}"><isset property="local"/></condition>
-	<condition property="commons-io.apiurl" value="${local.commons-io.apiurl}" else="${remote.commons-io.apiurl}"><isset property="local"/></condition>
-	<condition property="commons-lang.apiurl" value="${local.commons-lang.apiurl}" else="${remote.commons-lang.apiurl}"><isset property="local"/></condition>
-	<condition property="commons-configuration.apiurl" value="${local.commons-configuration.apiurl}" else="${remote.commons-configuration.apiurl}"><isset property="local"/></condition>
-	<condition property="commons-collections.apiurl" value="${local.commons-collections.apiurl}" else="${remote.commons-collections.apiurl}"><isset property="local"/></condition>
-
-	<property name="subdir"    value=""/>
   
 	<!-- ************		SOURCE		********************* -->
 	<target name="init">
@@ -180,7 +167,7 @@
 			<link href="${dsiutils.apiurl}"/>
 			<link href="${jsap.apiurl}"/>
 			<link href="${junit.apiurl}"/>
-			<link href="${log4j.apiurl}"/>
+			<link href="${slf4j.apiurl}"/>
 			<link href="${commons-io.apiurl}"/>
 			<link href="${commons-lang.apiurl}"/>
 			<link href="${commons-configuration.apiurl}"/>
