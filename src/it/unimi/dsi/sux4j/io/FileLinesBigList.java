@@ -42,11 +42,10 @@ import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 
-/** A wrapper exhibiting the lines of a file as a {@linkplain List list}.
+/** A wrapper exhibiting the lines of a file as a {@linkplain BigList big list}.
  * 
  * <P>An instance of this class allows to access the lines of a file as a
  * {@link BigList}. Contrarily to a big {@link FileLinesCollection}, {@linkplain #get(long) direct access} 
