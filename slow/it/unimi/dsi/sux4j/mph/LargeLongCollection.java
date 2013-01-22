@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 
 final class LargeLongCollection implements Iterable<Long>, Size64 {
 	
-	public final static long SIZE = 3000000000L;
+	public final static long SIZE = 3000000005L; // An odd number is essential to catch problems in the computation of the last bucket.
 	private final static long INCREMENT = ( ( 1L << 62 ) / SIZE );
 
 	private LargeLongCollection() {}

@@ -162,7 +162,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		pl.start( "Scanning collection..." );
 		
 		final Iterator<? extends T> iterator = iterable.iterator();
-		for( int b = 0; b < numBuckets; b++ ) {
+		for( long b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
 			chunkedHashStore.add( prev );
 			pl.lightUpdate();

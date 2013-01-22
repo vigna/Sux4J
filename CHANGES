@@ -1,3 +1,8 @@
+3.0.7
+
+- Some monotone hash functions would crash during construction due to an
+  integer overflow. Thanks to Tim Potter for reporting this bug.
+
 3.0.6
 
 - Switched to SLF4J for logging.

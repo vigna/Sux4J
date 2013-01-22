@@ -161,7 +161,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		pl.start( "Scanning collection..." );
 		
 		Iterator<? extends T> iterator = iterable.iterator();
-		for( int b = 0; b < numBuckets; b++ ) {
+		for( long b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
 			chunkedHashStore.add( prev );
 			pl.lightUpdate();
