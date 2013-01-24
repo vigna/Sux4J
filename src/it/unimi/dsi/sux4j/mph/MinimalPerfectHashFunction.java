@@ -400,10 +400,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 */
 
 	public static int countNonzeroPairs( final long x ) {
-		long byteSums = ( x | x >>> 1 ) & 0x5 * ONES_STEP_4;
-		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
-		byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
-		return (int)( byteSums * ONES_STEP_8 >>> 56 );
+		return Long.bitCount( ( x | x >>> 1 ) & 0x5 * ONES_STEP_4 );
 	}
 
 	private long rank( long x ) {

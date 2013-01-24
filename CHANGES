@@ -1,3 +1,10 @@
+3.0.8
+
+- Significantly improved speed of SimpleSelect and all related
+  classes (Elias-Fano lists, etc.).
+
+- Improved speed of MinimalPerfectHashFunction.
+
 3.0.7
 
 - Some monotone hash functions would crash during construction due to an

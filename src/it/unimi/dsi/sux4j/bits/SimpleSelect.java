@@ -46,7 +46,6 @@ public class SimpleSelect implements Select {
 	private static final int MAX_ONES_PER_INVENTORY = 8192;
 	private static final int MAX_LOG2_LONGWORDS_PER_SUBINVENTORY = 3;
 	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
-	private static final long INCR_STEP_8 = 0x80L << 56 | 0x40L << 48 | 0x20L << 40 | 0x10L << 32 | 0x8L << 24 | 0x4L << 16 | 0x2L << 8 | 0x1;
 
 	/** The maximum size of span to qualify for a subinventory made of 16-bit offsets. */
 	private static final int MAX_SPAN = ( 1 << 16 );
@@ -246,36 +245,26 @@ public class SimpleSelect implements Select {
 		final long bits[] = this.bits;
 		int wordIndex = (int)( start / 64 );
 		long word = bits[ wordIndex ] & -1L << start;
-		long byteSums;
 
 		for(;;) {
-			// Phase 1: sums by byte
-			byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
-			byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
-			byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
-			byteSums *= ONES_STEP_8;
-
-			final int bitCount = (int)( byteSums >>> 56 );
+			final int bitCount = Long.bitCount( word );
 			if ( residual < bitCount ) break;
-
 			word = bits[ ++wordIndex ];
 			residual -= bitCount;
 		} 
+		// Phase 1: sums by byte
+		long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+		byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
+		byteSums *= ONES_STEP_8;
 
-        // Phase 2: compare each byte sum with k
-        final long residualStep8 = residual * ONES_STEP_8;
-        final long byteOffset = ( ( ( ( ( ( residualStep8 | MSBS_STEP_8 ) - ( byteSums & ~MSBS_STEP_8 ) ) ^ byteSums ^ residualStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 53 ) & ~0x7;
+        // Phase 2: compare each byte sum with rank to obtain the relevant byte
+        final long residualPlusOneStep8 = ( residual + 1 ) * ONES_STEP_8;
+        final long byteOffset = Long.numberOfTrailingZeros( ( ( ( byteSums | MSBS_STEP_8 ) - residualPlusOneStep8 ) & MSBS_STEP_8 ) >>> 7 );
 
-        // Phase 3: Locate the relevant byte and make 8 copies with incremental masks
         final int byteRank = (int)( residual - ( ( ( byteSums << 8 ) >>> byteOffset ) & 0xFF ) );
 
-        final long spreadBits = ( word >>> byteOffset & 0xFF ) * ONES_STEP_8 & INCR_STEP_8;
-        final long bitSums = ( ( ( spreadBits | ( ( spreadBits | MSBS_STEP_8 ) - ONES_STEP_8 ) ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8;
-
-        // Compute the inside-byte location and return the sum
-        final long byteRankStep8 = byteRank * ONES_STEP_8;
-
-        return wordIndex * 64L + byteOffset + ( ( ( ( ( ( byteRankStep8 | MSBS_STEP_8 ) - ( bitSums & ~MSBS_STEP_8 ) ) ^ bitSums ^ byteRankStep8 ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 56 );
+        return wordIndex * 64L + byteOffset + Fast.selectInByte[ (int)( word >>> byteOffset & 0xFF ) | byteRank << 8 ];		
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
@@ -283,7 +272,6 @@ public class SimpleSelect implements Select {
 		subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
 		bits = bitVector.bits();
 	}
-
 	
 	public long numBits() {
 		return inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE + exactSpill.length * (long)Long.SIZE;
