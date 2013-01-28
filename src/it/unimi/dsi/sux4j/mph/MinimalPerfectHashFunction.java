@@ -133,10 +133,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 10;
 
-	private static final long ONES_STEP_4 = 0x1111111111111111L;
-
-	private static final long ONES_STEP_8 = 0x0101010101010101L;
-
 	/** The number of elements. */
 	protected final long n;
 
@@ -366,8 +362,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return values.size64() * 2 + count.length * (long)Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
 	}
 
-
-
 	/**
 	 * Creates a new minimal perfect hash by copying a given one; non-transient fields are (shallow)
 	 * copied.
@@ -390,17 +384,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/**
 	 * Counts the number of nonzero pairs of bits in a long.
 	 * 
-	 * <p>This method uses a very simple modification of the classical
-	 * broadword algorithm to count the number of ones in a word.
-	 * Usually, in the first step of the algorithm one computes the number of ones in each pair of
-	 * bits. Instead, we compute one iff at least one of the bits in the pair is nonzero.
-	 * 
 	 * @param x a long.
 	 * @return the number of nonzero bit pairs in <code>x</code>.
 	 */
-
 	public static int countNonzeroPairs( final long x ) {
-		return Long.bitCount( ( x | x >>> 1 ) & 0x5 * ONES_STEP_4 );
+		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
 	}
 
 	private long rank( long x ) {
@@ -408,8 +396,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int word = (int)( x / Long.SIZE );
 		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
 		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
-		while ( wordInBlock < word )
-			rank += countNonzeroPairs( array[ wordInBlock++ ] );
+		while ( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
 
 		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
 	}
