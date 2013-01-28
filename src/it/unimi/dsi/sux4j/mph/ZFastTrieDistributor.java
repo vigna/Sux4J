@@ -528,7 +528,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
 			final IntOpenHashSet mistakeSignatures = new IntOpenHashSet();
-			int c;
+			long c;
 
 			pl.itemsName = "keys";
 			pl.expectedUpdates = size;
