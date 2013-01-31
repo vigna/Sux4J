@@ -82,9 +82,6 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}	
 	
 	/** Creates a new select structure using a {@linkplain LongList list} of longs.
-	 * 
-	 * <p>This constructor is particularly useful if the positions of the ones are provided by
-	 * some sequential source.
 	 *
 	 * @param list the list of the positions of ones.
 	 */
