@@ -147,14 +147,17 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/** Computes the number of elements and the last element returned by the given iterator.
 	 * 
+	 * 
 	 * @param iterator an iterator.
 	 * @return a two-element array of longs containing the number of elements returned by
 	 * the iterator and the last returned element, respectively.
 	 */
 	private static long[] computeParameters( final LongIterator iterator ) {
-		long v = -1, c = 0;
+		long v = -1, prev = -1, c = 0;
 		while( iterator.hasNext() ) {
 			v = iterator.nextLong();
+			if ( prev > v ) throw new IllegalArgumentException( "The list of values is not monotone: " + prev + " > " + v );
+			prev = v;
 			c++;
 		}
 		
