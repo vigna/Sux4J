@@ -540,10 +540,10 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 								countFarOpening--;
 								if ( --count[ matchingBlock ] == 0 || countFarOpening == 0 ) {
 									// This is an opening pioneer
-									if ( DEBUG ) System.err.println( "+( " + ( block * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
-									openingPioneers.add( block * Long.SIZE + j );
-									openingPioneerMatches.add( - ( block * Long.SIZE + j ) + ( matchingBlock * Long.SIZE + findFarClose( bits[ matchingBlock ], residual[ matchingBlock ]) ) );
-									//if ( block == 14 ) System.err.println( "Adding " + block * Long.SIZE + j );
+									if ( DEBUG ) System.err.println( "+( " + ( block * (long)Long.SIZE + j ) + " " + Arrays.toString(  count ) );
+									openingPioneers.add( block * (long)Long.SIZE + j );
+									openingPioneerMatches.add( - ( block * (long)Long.SIZE + j ) + ( matchingBlock * (long)Long.SIZE + findFarClose( bits[ matchingBlock ], residual[ matchingBlock ]) ) );
+									//if ( block == 14 ) System.err.println( "Adding " + block * (long)Long.SIZE + j );
 									if ( ASSERTS ) somethingAdded = true;
 								}
 								residual[ matchingBlock ]++;
@@ -597,7 +597,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 			if ( ASSERTS ) assert ( c != 0 ) || ( b == bit + result ) : b + " != " + ( bit + result ) + " (bit:" + bit + ")" + LongArrayBitVector.wrap(  new long[] { bits[ word ] >>> bit } );
 		}
 		if ( result < Long.SIZE - bit ) {
-			if ( DEBUG ) System.err.println( "Returning in-word value: " + ( word * Long.SIZE + bit + result ) );
+			if ( DEBUG ) System.err.println( "Returning in-word value: " + ( word * (long)Long.SIZE + bit + result ) );
 			return word * (long)Long.SIZE + bit + result;
 		}
 
