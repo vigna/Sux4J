@@ -475,7 +475,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 			closingPioneerMatches = new LongArrayList();
 			for( int block = 0; block < numWords; block++ ) {
 				if ( DEBUG ) System.err.println( "Scanning word " + block + " (" + LongArrayBitVector.wrap( new long[] { bits[ block ] } ) + ")" );
-				final int l = (int)Math.min( Long.SIZE, length - block * Long.SIZE );
+				final int l = (int)Math.min( Long.SIZE, length - block * (long)Long.SIZE );
 
 				if ( block > 0 ) {
 					int excess = 0;
@@ -520,7 +520,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 
 			for( int block = numWords; block-- != 0; ) {
 				if ( DEBUG ) System.err.println( "Scanning word " + block + " (" + LongArrayBitVector.wrap( new long[] { bits[ block ] } ) + ")" );
-				final int l = (int)Math.min( Long.SIZE, length - block * Long.SIZE );
+				final int l = (int)Math.min( Long.SIZE, length - block * (long)Long.SIZE );
 
 				if ( block != numWords -1 ) {
 					int excess = 0;
@@ -598,7 +598,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		}
 		if ( result < Long.SIZE - bit ) {
 			if ( DEBUG ) System.err.println( "Returning in-word value: " + ( word * Long.SIZE + bit + result ) );
-			return word * Long.SIZE + bit + result;
+			return word * (long)Long.SIZE + bit + result;
 		}
 
 		final long pioneerIndex = openingPioneersRank.rank( pos + 1 ) - 1;
@@ -617,11 +617,11 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		if ( ASSERTS ) assert word != match / Long.SIZE;
 		if ( ASSERTS ) assert pioneer < pos;
 		
-		int e = 2 * Long.bitCount( ( bits[ word ] >>> ( pioneer % Long.SIZE ) ) & ( 1L << dist ) - 1 ) - dist; 
+		int e = 2 * Long.bitCount( ( bits[ word ] >>> pioneer ) & ( 1L << dist ) - 1 ) - dist; 
 		if ( ASSERTS ) {
 			assert e >= 1;
 			int ee = 0;
-			for( long p = pioneer; p < pos; p++ ) if ( ( bits[ (int)( p / Long.SIZE ) ] & 1L << ( p % Long.SIZE ) ) != 0 ) ee++;
+			for( long p = pioneer; p < pos; p++ ) if ( ( bits[ (int)( p / Long.SIZE ) ] & 1L << p ) != 0 ) ee++;
 			else ee--;
 			assert ee == e: ee + " != " + e;
 		}
@@ -633,7 +633,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		final int numFarClose = matchBit - 2 * Long.bitCount( bits[ matchWord ] & ( 1L << matchBit ) - 1 );
 
 		if ( DEBUG ) System.err.println( "far close before match: " + numFarClose );
-		return matchWord * Long.SIZE + findFarClose( bits[ matchWord ], numFarClose - e );
+		return matchWord * (long)Long.SIZE + findFarClose( bits[ matchWord ], numFarClose - e );
 	}
 
 	public long findOpen( long pos ) {
