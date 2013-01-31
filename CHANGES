@@ -5,6 +5,8 @@
 
 - Improved speed of MinimalPerfectHashFunction.
 
+- Integer overflow bugs fixes (thanks to Tim Potter).
+
 3.0.7
 
 - Some monotone hash functions would crash during construction due to an

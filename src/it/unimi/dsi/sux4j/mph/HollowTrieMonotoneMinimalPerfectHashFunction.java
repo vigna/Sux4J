@@ -29,6 +29,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntBigArrayBigList;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -88,7 +89,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	private final static class Node {
 		Node right;
 		int skip;
-		IntArrayList skips = new IntArrayList();
+		IntBigArrayBigList skips = new IntBigArrayBigList();
 		LongArrayBitVector repr = LongArrayBitVector.getInstance();
 		
 		public Node( final Node right, final int skip ) {
@@ -105,7 +106,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
 		long p = 1, length = bitVector.length(), index = 0;
-		int s = 0, r = 0;
+		long s = 0, r = 0;
 		
 		for(;;) {
 			if ( ( s += (int)skips.getLong( r ) ) >= length ) return defRetValue;
@@ -211,10 +212,10 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 					Node n = node;
 					long reprSize = 0;
-					int skipSize = 0;
+					long skipSize = 0;
 					do {
 						reprSize += n.repr.length() + 2;
-						skipSize += n.skips.size() + 1;
+						skipSize += n.skips.size64() + 1;
 					} while( ( n = n.right ) != null );
 
 					n = node;
@@ -292,7 +293,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			public LongIterator iterator() {
 				return new AbstractLongIterator() {
 					Node curr = finalRoot;
-					int currElem = -1;
+					long currElem = -1;
 					
 					public long nextLong() {
 						if ( currElem == -1 ) {
@@ -300,7 +301,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 							return curr.skip;
 						}
 						else {
-							if ( currElem < curr.skips.size() ) return curr.skips.getInt( currElem++ );
+							if ( currElem < curr.skips.size64() ) return curr.skips.getInt( currElem++ );
 							curr = curr.right;
 							currElem = 0;
 							return curr.skip;
@@ -308,7 +309,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 					}
 					
 					public boolean hasNext() {
-						return curr != null && ( currElem < curr.skips.size() || currElem == curr.skips.size() && curr.right != null );
+						return curr != null && ( currElem < curr.skips.size64() || currElem == curr.skips.size64() && curr.right != null );
 					}
 				};
 			}
