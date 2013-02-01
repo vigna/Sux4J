@@ -64,10 +64,10 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A hollow trie, that is, a compacted trie recording just the length of the paths associated to the internal nodes.
- *
- * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys.
- */
+/** A hollow trie, that is, a compacted trie recording just the length of the paths associated to the
+ * internal nodes.
+ * 
+ * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys. */
 
 public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
 	private static final Logger LOGGER = LoggerFactory.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
@@ -75,7 +75,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
-	
+
 	protected EliasFanoLongBigList skips;
 	/** The bit vector containing Jacobson's representation of the trie. */
 	protected final LongArrayBitVector trie;
@@ -85,55 +85,57 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	private final TransformationStrategy<? super T> transform;
 	/** The number of elements in this hollow trie. */
 	private long size;
-	
+
 	private final static class Node {
 		Node right;
 		int skip;
 		IntBigArrayBigList skips = new IntBigArrayBigList();
 		LongArrayBitVector repr = LongArrayBitVector.getInstance();
-		
+
 		public Node( final Node right, final int skip ) {
 			this.right = right;
 			this.skip = skip;
 			if ( ASSERTS ) assert skip >= 0 : skip + " < " + 0;
 		}
 	}
-	
-	
+
+
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object object ) {
-		//System.err.println( "Hashing " + object + "..." );
+		// System.err.println( "Hashing " + object + "..." );
 		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
 		long p = 1, length = bitVector.length(), index = 0;
 		long s = 0, r = 0;
-		
-		for(;;) {
+
+		for ( ;; ) {
 			if ( ( s += (int)skips.getLong( r ) ) >= length ) return defRetValue;
-			//System.err.println( "Skipping " + rank9.rank( p ) + " bits..." );
-			
-			//System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) + " at bit " + s + "... \n" );
+			// System.err.println( "Skipping " + rank9.rank( p ) + " bits..." );
+
+			// System.err.print( "Turning " + ( bitVector.getBoolean( s ) ? "right" : "left" ) +
+			// " at bit " + s + "... \n" );
 			if ( bitVector.getBoolean( s ) ) {
 				final long q = balParen.findClose( p ) + 1;
-				r += ( q - p ) / 2 ;
+				r += ( q - p ) / 2;
 				index += ( q - p ) / 2;
-				//System.err.println( "Increasing index by " + ( q - p + 1 ) / 2 + " to " + index + "..." );
-				if ( ! trie.getBoolean( q ) ) return index;
+				// System.err.println( "Increasing index by " + ( q - p + 1 ) / 2 + " to " + index +
+				// "..." );
+				if ( !trie.getBoolean( q ) ) return index;
 				p = q;
 			}
 			else {
-				if ( ! trie.getBoolean( ++p ) ) return index;
+				if ( !trie.getBoolean( ++p ) ) return index;
 				r++;
 			}
-			
+
 			s++;
 		}
 	}
-	
+
 	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) {
 		this( iterable.iterator(), transform );
 	}
-		
+
 	public HollowTrieMonotoneMinimalPerfectHashFunction( final Iterator<? extends T> iterator, final TransformationStrategy<? super T> transform ) {
 
 		this.transform = transform;
@@ -142,13 +144,13 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		long size = 0;
 		long numNodes = 0;
 		long maxLength = 0, totalLength = 0;
-		
+
 		Node root = null, node, parent;
 		int prefix;
 
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
-		
+
 		pl.start( "Generating hollow trie..." );
 
 		if ( iterator.hasNext() ) {
@@ -157,15 +159,16 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			int last = -1;
 			// The stack of nodes forming the right border of the current trie
 			final ObjectArrayList<Node> stack = new ObjectArrayList<Node>();
-			// The length of the path compacted in the trie up to the corresponding node in stack, included
+			// The length of the path compacted in the trie up to the corresponding node in stack,
+			// included
 			final IntArrayList len = new IntArrayList();
 			if ( DEBUG ) System.err.println( prev );
 			pl.lightUpdate();
 			totalLength = maxLength = prev.length();
-			
+
 			size++;
 
-			while( iterator.hasNext() ) {
+			while ( iterator.hasNext() ) {
 				size++;
 				curr.replace( transform.toBitVector( iterator.next() ) );
 				if ( DEBUG ) System.err.println( curr );
@@ -173,12 +176,13 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				if ( maxLength < curr.length() ) maxLength = curr.length();
 				totalLength += curr.length();
 				prefix = (int)curr.longestCommonPrefixLength( prev );
-				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
+				if ( prefix == prev.length() && prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
 
 				// TODO: might use a binary search
-				while( last >= 0 && len.getInt( last ) > prefix ) last--;
+				while ( last >= 0 && len.getInt( last ) > prefix )
+					last--;
 				if ( last >= 0 ) {
 					parent = stack.get( last );
 					node = parent.right;
@@ -216,7 +220,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 					do {
 						reprSize += n.repr.length() + 2;
 						skipSize += n.skips.size64() + 1;
-					} while( ( n = n.right ) != null );
+					} while ( ( n = n.right ) != null );
 
 					n = node;
 					newNode.repr.ensureCapacity( reprSize );
@@ -228,7 +232,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 						newNode.repr.add( false );
 						newNode.skips.add( n.skip );
 						newNode.skips.addAll( n.skips );
-					} while( ( n = n.right ) != null );
+					} while ( ( n = n.right ) != null );
 
 					len.push( ( last < 0 ? 0 : len.getInt( last ) ) + 1 + newNode.skip );
 					stack.push( newNode );
@@ -256,11 +260,11 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 				curr = temp;
 			}
 		}
-		
+
 		this.size = size;
 
 		pl.done();
-		
+
 		if ( size <= 1 ) {
 			balParen = new JacobsonBalancedParentheses( BitVectors.EMPTY_VECTOR );
 			trie = LongArrayBitVector.getInstance( 0 );
@@ -268,7 +272,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		}
 
 		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance( 2 * numNodes + 2 );
-		
+
 		bitVector.add( true ); // Fake open parenthesis
 
 		Node m = root;
@@ -276,25 +280,25 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			bitVector.add( true );
 			bitVector.append( m.repr );
 			bitVector.add( false );
-		} while( ( m = m.right ) != null );
-		
+		} while ( ( m = m.right ) != null );
+
 		bitVector.add( false );
-		
+
 		if ( ASSERTS ) assert bitVector.length() == 2 * numNodes + 2;
-		
+
 		LOGGER.debug( "Generating succinct representations..." );
-		
+
 		trie = bitVector;
 		balParen = new JacobsonBalancedParentheses( bitVector, false, true, false );
 
 		final Node finalRoot = root;
-		
+
 		final LongIterable skipIterable = new LongIterable() {
 			public LongIterator iterator() {
 				return new AbstractLongIterator() {
 					Node curr = finalRoot;
 					long currElem = -1;
-					
+
 					public long nextLong() {
 						if ( currElem == -1 ) {
 							currElem++;
@@ -307,33 +311,33 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 							return curr.skip;
 						}
 					}
-					
+
 					public boolean hasNext() {
 						return curr != null && ( currElem < curr.skips.size64() || currElem == curr.skips.size64() && curr.right != null );
 					}
 				};
 			}
 		};
-		
+
 		long maxSkip = 0, minSkip = Long.MAX_VALUE, s;
-		for( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
+		for ( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
 			s = i.nextLong();
 			maxSkip = Math.max( s, maxSkip );
 			minSkip = Math.min( s, minSkip );
 		}
-		
+
 		final int skipWidth = Fast.ceilLog2( maxSkip );
 
 		LOGGER.debug( "Max skip: " + maxSkip );
 		LOGGER.debug( "Max skip width: " + skipWidth );
 
 		skips = new EliasFanoLongBigList( skipIterable.iterator(), minSkip, true );
-		
+
 		if ( DEBUG ) {
 			System.err.println( skips );
 			System.err.println( this.skips );
 		}
-		
+
 		final long numBits = numBits();
 		LOGGER.debug( "Bits: " + numBits );
 		LOGGER.debug( "Bits per open parenthesis: " + (double)balParen.numBits() / size );
@@ -341,32 +345,34 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		// This is empirical--based on statistics about the average skip length in bits
 		// final double avgSkipLength = (double)sumOfSkipLengths / skips.size();
-		// LOGGER.info( "Empirical bit cost per element: " + ( 4 + avgSkipLength + Fast.log2( avgSkipLength ) ) );
+		// LOGGER.info( "Empirical bit cost per element: " + ( 4 + avgSkipLength + Fast.log2(
+		// avgSkipLength ) ) );
 		// TODO: remove + 1
 		LOGGER.info( "Forecast bit cost per element: " + ( 4 + Fast.log2( avgLength ) + 1 + Fast.log2( Fast.log2( avgLength + 1 ) + 1 ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits / size );
 	}
-	
-	
+
+
 	public long size64() {
 		return size;
 	}
-	
+
 	public long numBits() {
 		return balParen.numBits() + trie.length() + this.skips.numBits() + transform.numBits();
 	}
-		
+
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a hollow trie reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised hollow trie." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
-		});
+						new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+						new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
+						new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+						new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+						new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised hollow trie." ),
+						new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
+								"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+				} );
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
@@ -386,11 +392,11 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
-			? new HuTuckerTransformationStrategy( collection, true )
-			: iso
-				? TransformationStrategies.prefixFreeIso() 
-				: TransformationStrategies.prefixFreeUtf16();
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
+				? new HuTuckerTransformationStrategy( collection, true )
+				: iso
+						? TransformationStrategies.prefixFreeIso()
+						: TransformationStrategies.prefixFreeUtf16();
 
 		BinIO.storeObject( new HollowTrieMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), trieName );
 		LOGGER.info( "Completed." );
