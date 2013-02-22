@@ -5,3 +5,4 @@
 - Add logging line in main methods to start counters correctly
 - Comment all classes!
 - Support enclose() in JacobsonBalancedParentheses
+- Support UTF-32 in all main() methods.
