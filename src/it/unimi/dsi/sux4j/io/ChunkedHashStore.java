@@ -169,8 +169,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private int virtualDiskChunks;
 	/** If not <code>null</code>, a filter that will be used to select triples. */
 	private Predicate filter;
-	/** The maximum number of triples in a disk chunk. */
-	private int maxCount;
 	/** Whether this store is locked. Any attempt to {@link #reset(long)} the store will cause an {@link IllegalStateException} if this variable is true.*/
 	private boolean locked;
 	/** Whether this store has already been closed. */
@@ -447,12 +445,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		this.chunks = 1 << log2chunks;
 		diskChunkStep = (int)Math.max( DISK_CHUNKS / chunks, 1 );
 		virtualDiskChunks = DISK_CHUNKS / diskChunkStep;
-		maxCount = 0;
-		for( int i = 0; i < virtualDiskChunks; i++ ) {
-			int s = 0;
-			for( int j = 0; j < diskChunkStep; j++ ) s += count[ i * diskChunkStep + j ];
-			if ( s > maxCount ) maxCount = s;
-		}
 
 		if ( DEBUG ) {
 			System.err.print( "Chunk sizes: " );
@@ -570,9 +562,18 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			catch ( IOException e ) {
 				throw new RuntimeException( e );
 			}
+
+		int m = 0;
+		for( int i = 0; i < virtualDiskChunks; i++ ) {
+			int s = 0;
+			for( int j = 0; j < diskChunkStep; j++ ) s += count[ i * diskChunkStep + j ];
+			if ( s > m ) m = s;
+		}
+
+		final int maxCount = m;
 		
 		return new AbstractObjectIterator<Chunk>() {
-			private int chunk = 0;
+			private int chunk;
 			private FastBufferedInputStream fbis;
 			private int last;
 			private int chunkSize;
