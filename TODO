@@ -6,3 +6,4 @@
 - Comment all classes!
 - Support enclose() in JacobsonBalancedParentheses
 - Support UTF-32 in all main() methods.
+- Redo Elias-Fano using skip pointers.
