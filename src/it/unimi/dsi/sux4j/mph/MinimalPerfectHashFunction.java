@@ -112,9 +112,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * output value for some element. The final value of the minimal perfect hash function is the number
  * of nonzero pairs of bits that precede the perfect hash value for the element. To compute this
  * number, we use a simple table-free ranking scheme, recording the number of nonzero pairs each
- * {@link #BITS_PER_BLOCK} bits and modifying the standard broadword algorithm for computing the
- * number of ones in a word into an algorithm that {@linkplain #countNonzeroPairs(long) counts the
- * number of nonzero pairs of bits in a word}.
+ * {@link #BITS_PER_BLOCK} bits and using {@link Long#bitCount(long)} to 
+ * {@linkplain #countNonzeroPairs(long) count the number of nonzero pairs of bits in a word}.
  * 
  * @author Sebastiano Vigna
  * @since 0.1
@@ -167,7 +166,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final TransformationStrategy<? super T> transform;
 
 	/**
-	 * Creates a new minimal perfect hash table for the given elements.
+	 * Creates a new minimal perfect hash function for the given elements.
 	 * 
 	 * @param elements the elements to hash.
 	 * @param transform a transformation strategy for the elements.
@@ -178,7 +177,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 
 	/**
-	 * Creates a new minimal perfect hash table for the given elements.
+	 * Creates a new minimal perfect hash function for the given elements.
 	 * 
 	 * @param elements the elements to hash.
 	 * @param transform a transformation strategy for the elements.
@@ -190,7 +189,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 
 	/**
-	 * Creates a new minimal perfect hash table for elements provided by a {@link ChunkedHashStore}.
+	 * Creates a new minimal perfect hash function for elements provided by a {@link ChunkedHashStore}.
 	 * 
 	 * @param transform a transformation strategy for the elements.
 	 * @param chunkedHashStore a checked chunked hash store containing the elements. 
@@ -201,7 +200,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 	
 	/**
-	 * Creates a new minimal perfect hash table for the given elements.
+	 * Creates a new minimal perfect hash function for the given elements.
 	 * 
 	 * @param elements the elements to hash, or <code>null</code>.
 	 * @param transform a transformation strategy for the elements.
@@ -214,7 +213,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 	
 	/**
-	 * Creates a new minimal perfect hash table for the given elements.
+	 * Creates a new minimal perfect hash function for the given elements.
 	 * 
 	 * @param elements the elements to hash, or <code>null</code>.
 	 * @param transform a transformation strategy for the elements.
