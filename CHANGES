@@ -3,6 +3,9 @@
 - Fixed subtle bug in ChunkedHashStore that could cause an out-of-bounds
   access to an array in the (very rare) case of a retry.
 
+- The documentation of Jenkins hashes was still stating, erroneously,
+  that we return the first computed value (we return the third one).
+
 3.0.8
 
 - Significantly improved speed of SimpleSelect and all related

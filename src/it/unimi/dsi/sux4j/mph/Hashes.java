@@ -123,7 +123,7 @@ public class Hashes {
 	 * 
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
-	 * @return the first of the three hash values returned by {@link #jenkins(BitVector, long, long[])}.
+	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[])}.
 	 */
 	
 	public static long jenkins( final BitVector bv, final long seed )  {
@@ -189,7 +189,7 @@ public class Hashes {
 	 * the hash value returned.
 	 * 
 	 * @param bv a bit vector.
-	 * @return the first of the three hash values returned by {@link #jenkins(BitVector, long, long[])} with seed 0.
+	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[])} with seed 0.
 	 */
 	public static long jenkins( final BitVector bv )  {
 		return jenkins( bv, 0 );
@@ -341,7 +341,7 @@ public class Hashes {
 	 * @param aa the first state array returned by {@link #preprocessJenkins(BitVector, long)}.
 	 * @param bb the second state array returned by {@link #preprocessJenkins(BitVector, long)}.
 	 * @param cc the third state array returned by {@link #preprocessJenkins(BitVector, long)}.
-	 * @return the first of the three hash values returned by {@link #jenkins(BitVector, long, long[], long[], long[], long[])}.
+	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[], long[], long[], long[])}.
 	 */
 	
 	public static long jenkins( final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[] )  {
