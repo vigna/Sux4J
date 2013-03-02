@@ -129,6 +129,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
+			chunkedHashStore.close();
 			return;
 		}
 

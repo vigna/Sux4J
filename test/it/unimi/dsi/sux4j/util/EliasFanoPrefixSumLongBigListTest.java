@@ -12,7 +12,6 @@ public class EliasFanoPrefixSumLongBigListTest {
 		LongBigArrayBigList l;
 
 		l = new LongBigArrayBigList( new long[][] { { 0, 0, 0 } } );
-		System.err.println( new EliasFanoPrefixSumLongBigList( l ).size64() );
 		assertEquals( l, new EliasFanoPrefixSumLongBigList( l ) );
 
 		l = new LongBigArrayBigList( new long[][] { { 0, 1, 0 } } );

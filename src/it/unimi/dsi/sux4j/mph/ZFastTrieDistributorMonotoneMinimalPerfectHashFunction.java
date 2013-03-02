@@ -140,6 +140,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			this.log2BucketSize = -1;
 			distributor = null;
 			offset = null;
+			chunkedHashStore.close();
 			return;
 		}
 

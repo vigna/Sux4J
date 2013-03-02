@@ -395,6 +395,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
+	@SuppressWarnings("resource")
 	public PaCoTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -429,6 +430,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 			if ( DEBUG ) System.err.println( "Getting " + o + "...");
 			final BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
 			final long length = v.length();
+			@SuppressWarnings("resource")
 			final InputBitStream trie = new InputBitStream( this.trie );
 
 			long pos = 0, readBits, skip, xor, t;

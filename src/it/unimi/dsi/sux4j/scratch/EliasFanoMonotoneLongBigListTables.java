@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.util;
+package it.unimi.dsi.sux4j.scratch;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -20,6 +20,9 @@ package it.unimi.dsi.sux4j.util;
  *
  */
 
+import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
+import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
+import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -68,46 +71,50 @@ import java.io.Serializable;
  * the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> + <var>i</var>; the value can then be recovered
  * by selecting the <var>i</var>-th bit of the resulting bit array and subtracting <var>i</var> (note that this will
  * work because the upper bits are nondecreasing).
- * 
- * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array.
- * 
- * <!--<h2><var>k</var>-monotone sequences</h2>
- * 
- * <p>We say that <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub> is
- * <em><var>k</var>-monotone</em> if <var>x</var><sub><var>i</var></sub> &minus; <var>x</var><sub><var>i</var> &minus; 1</sub> &ge; <var>k</var>.
- * There is a natural bijection between <var>k</var>-monotone sequences of <var>n</var> elements with upper bound <var>u</var>
- * and monotone sequences of <var>n</var> elements with upper bound <var>u</var> &minus; <var>kn</var> that can be used to 
- * further reduce space occupancy.
- * -->
+ * <p>This implementation uses tables recording the position of one each 2<sup>{@value #LOG_2_QUANTUM}</sup>
+ * ones and zeroes.
  */
 
-public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
-	private static final long serialVersionUID = 4L;
+public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList implements Serializable {
+	private static final long serialVersionUID = 3L;
+	public final static int LOG_2_QUANTUM = 9;
 	
 	/** The length of the sequence. */
 	protected final long length;
 	/** The number of lower bits. */
 	protected final int l;
-	/** The list of lower bits of each element, stored explicitly. */
-	protected final long[] lowerBits;
-	/** The select structure used to extract the upper bits. */ 
-	protected final SimpleSelect selectUpper;
-	/** The mask for the lower bits. */
+	/** The mask for lower bits. */
 	protected final long mask;
+	/** The lower bits of each element, stored explicitly. */
+	protected final long[] lowerBits;
+	/** The upper bits. */
+	protected final long[] upperBits;
+	/** The skips for ones (the <var>k</var>-th element contains the position of the ({@link #quantum}<var>k</var>)-th one). */
+	protected final long[] skipToOne;
+	/** The skips for zeroes (the <var>k</var>-th element contains the position of the ({@link #quantum}<var>k</var>)-th zero). */
+	protected final long[] skipToZero;
+	/** The indexing quantum. */
+	protected final int quantum;
+	/** The base-2 logarithm of {@link #quantum}. */
+	protected final int log2Quantum;
 	
-	protected EliasFanoMonotoneLongBigList( final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneLongBigListTables( final long length, final int l, final long skipToOne[], final long[] skipToZero, final long[] upperBits, final long[] lowerBits ) {
 		this.length = length;
 		this.l = l;
-		this.lowerBits = lowerBits;
-		this.selectUpper = selectUpper;
 		this.mask = ( 1L << l ) - 1;
+		this.lowerBits = lowerBits;
+		this.upperBits = upperBits;
+		this.skipToOne = skipToOne;
+		this.skipToZero = skipToZero;
+		this.log2Quantum = LOG_2_QUANTUM;
+		this.quantum = 1 << LOG_2_QUANTUM;
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final IntIterable list ) {
+	public EliasFanoMonotoneLongBigListTables( final IntIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -119,7 +126,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final ShortIterable list ) {
+	public EliasFanoMonotoneLongBigListTables( final ShortIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -131,7 +138,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * 
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final ByteIterable list ) {
+	public EliasFanoMonotoneLongBigListTables( final ByteIterable list ) {
 		this( new LongIterable() {
 			public LongIterator iterator() {
 				return LongIterators.wrap( list.iterator() );
@@ -144,7 +151,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @param list an iterable object.
 	 */
 
-	public EliasFanoMonotoneLongBigList( final LongIterable list ) {
+	public EliasFanoMonotoneLongBigListTables( final LongIterable list ) {
 		this( computeParameters( list.iterator() ), list.iterator() );
 	}
 
@@ -163,8 +170,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			prev = v;
 			c++;
 		}
-		
-		return new long[] { c, v + 1 };
+		return new long[] { c, v };
 	}
 	
 
@@ -175,10 +181,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ByteIterator iterator ) {
+	public EliasFanoMonotoneLongBigListTables( final long n, final long upperBound, final ByteIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -189,10 +196,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ShortIterator iterator ) {
+	public EliasFanoMonotoneLongBigListTables( final long n, final long upperBound, final ShortIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -203,10 +211,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final IntIterator iterator ) {
+	public EliasFanoMonotoneLongBigListTables( final long n, final long upperBound, final IntIterator iterator ) {
 		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
 	}
 
@@ -217,10 +226,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final LongIterator iterator ) {
+	public EliasFanoMonotoneLongBigListTables( final long n, final long upperBound, final LongIterator iterator ) {
 		this( new long[] { n, upperBound }, iterator );
 	}
 
@@ -234,40 +244,105 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneLongBigList( long[] a, final LongIterator iterator ) {
+	protected EliasFanoMonotoneLongBigListTables( long[] a, final LongIterator iterator ) {
 		length = a[ 0 ];
+		this.log2Quantum = LOG_2_QUANTUM;
+		this.quantum = 1 << LOG_2_QUANTUM;
 		long v = -1;
 		final long upperBound = a[ 1 ];
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
 		mask = ( 1L << l ) - 1;
 		final long lowerBitsMask = ( 1L << l ) - 1;
-		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
-		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
+		final LongArrayBitVector lowerBitVector = LongArrayBitVector.getInstance();
+		final LongBigList lowerBitsList = lowerBitVector.asLongBigList( l );
 		lowerBitsList.size( length );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
+		final BitVector upperBitVector = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();
-			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
+			if ( v > upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
 			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
-			upperBits.set( ( v >>> l ) + i );
+			upperBitVector.set( ( v >>> l ) + i );
 			last = v;
 		}
 		
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
-		this.lowerBits = lowerBitsVector.bits();
-		selectUpper = new SimpleSelect( upperBits );
+		this.lowerBits = lowerBitVector.bits();
+		this.upperBits = upperBitVector.bits();
+
+		if ( length == 0 ) {
+			skipToOne = skipToZero = null;
+		}
+		else {
+			skipToZero = new long[ (int)( ( upperBound >>> l ) >>> log2Quantum ) ];
+			skipToOne = new long[ (int)( length - 1 >>> log2Quantum ) ];
+		}
+		
+		int po = 0, pz = 0;
+		for( long i = 0, cz = 0, co=0; i < upperBitVector.length(); i++ ) {
+			final boolean bit = upperBitVector.getBoolean( i );
+			if ( bit ) {
+				if ( co != 0 && co % quantum == 0 ) skipToOne[ po++ ] = i;
+				co++;
+			}
+			else {
+				if ( cz != 0 && cz % quantum == 0 ) skipToZero[ pz++ ] = i;
+				cz++;
+			}
+		}
+		
+		assert po == skipToOne.length : po + " != " + skipToOne.length;
+		assert pz == skipToZero.length: pz + " != " + skipToZero.length;;
 	}
 	
 	
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE;
+		return ( (long)upperBits.length + lowerBits.length + ( skipToOne != null ? skipToOne.length : 0 ) + ( skipToZero != null ? skipToZero.length : 0 ) ) * Long.SIZE;
 	}
-
+	
 	public long getLong( final long index ) {
-		final int l = this.l;
-		final long upperBits = selectUpper.select( index ) - index; 
+		long delta = index;
+		int curr = 0;
+		long window;
+		
+		if ( index >= quantum ) {
+			final long block = index >>> log2Quantum;
+			assert block > 0;
+			assert block <= skipToOne.length;
+			final long position = skipToOne[ (int)( block - 1 ) ];
+			window = upperBits[ curr = (int)( position / Long.SIZE ) ] & -1L << (int)( position );
+			delta = index - ( block << log2Quantum );
+		}
+		else window = upperBits[ curr = 0 ];
+
+		for( int bitCount; ( bitCount = Long.bitCount( window ) ) <= delta; delta -= bitCount )
+			window = upperBits[ ++curr ];
+		
+		assert window != 0;
+		final int select;
+		/* This appears to be faster than != 0 (WTF?!). Note that for delta == 1 the following code is a NOP. */
+		if ( delta != 0 ) {
+			// Phase 1: sums by byte
+			final long word = window;
+			assert delta < Long.bitCount( word ) : delta + " >= " + Long.bitCount( word );
+			long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
+			byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
+			byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
+			byteSums *= ONES_STEP_8;
+
+			// Phase 2: compare each byte sum with delta to obtain the relevant byte
+			final long rankStep8 = delta * ONES_STEP_8;
+			final long byteOffset = ( ( ( ( ( rankStep8 | MSBS_STEP_8 ) - byteSums ) & MSBS_STEP_8 ) >>> 7 ) * ONES_STEP_8 >>> 53 ) & ~0x7;
+
+			final int byteRank = (int)( delta - ( ( ( byteSums << 8 ) >>> byteOffset ) & 0xFF ) );
+
+			select = (int)( byteOffset + Fast.selectInByte[ (int)( word >>> byteOffset & 0xFF ) | byteRank << 8 ] );
+		}
+		else select = Long.numberOfTrailingZeros( window );
+
+		final long upperBits = curr * Long.SIZE + select - index << l;
+		
 		if ( l == 0 ) return upperBits;
 		
 		final long position = index * l; 
@@ -275,12 +350,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final int startBit = (int)( position % Long.SIZE );
 		final int totalOffset = startBit + l;
 		final long result = lowerBits[ startWord ] >>> startBit;
-		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & mask;
-	}
-
-	@Deprecated
-	public long length() {
-		return size64();
+		return upperBits | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & mask;
 	}
 
 	public long size64() {
