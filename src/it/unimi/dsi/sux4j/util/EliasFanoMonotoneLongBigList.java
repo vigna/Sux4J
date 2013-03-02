@@ -70,15 +70,6 @@ import java.io.Serializable;
  * work because the upper bits are nondecreasing).
  * 
  * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array.
- * 
- * <!--<h2><var>k</var>-monotone sequences</h2>
- * 
- * <p>We say that <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub> is
- * <em><var>k</var>-monotone</em> if <var>x</var><sub><var>i</var></sub> &minus; <var>x</var><sub><var>i</var> &minus; 1</sub> &ge; <var>k</var>.
- * There is a natural bijection between <var>k</var>-monotone sequences of <var>n</var> elements with upper bound <var>u</var>
- * and monotone sequences of <var>n</var> elements with upper bound <var>u</var> &minus; <var>kn</var> that can be used to 
- * further reduce space occupancy.
- * -->
  */
 
 public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
@@ -93,14 +84,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The select structure used to extract the upper bits. */ 
 	protected final SimpleSelect selectUpper;
 	/** The mask for the lower bits. */
-	protected final long mask;
+	protected final long lowerBitsMask;
 	
 	protected EliasFanoMonotoneLongBigList( final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
 		this.selectUpper = selectUpper;
-		this.mask = ( 1L << l ) - 1;
+		this.lowerBitsMask = ( 1L << l ) - 1;
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
@@ -164,7 +155,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			c++;
 		}
 		
-		return new long[] { c, v + 1 };
+		return new long[] { c, v };
 	}
 	
 
@@ -175,7 +166,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
 	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ByteIterator iterator ) {
@@ -189,7 +181,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
 	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ShortIterator iterator ) {
@@ -203,7 +196,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
 	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final IntIterator iterator ) {
@@ -217,7 +211,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * some sequential source.
 	 * 
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound a (strict) upper bound to the values returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
 	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final LongIterator iterator ) {
@@ -239,7 +234,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		long v = -1;
 		final long upperBound = a[ 1 ];
 		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
-		mask = ( 1L << l ) - 1;
+		lowerBitsMask = ( 1L << l ) - 1;
 		final long lowerBitsMask = ( 1L << l ) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
@@ -248,7 +243,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();
-			if ( v >= upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
+			if ( v > upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " > " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
 			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
 			upperBits.set( ( v >>> l ) + i );
@@ -275,12 +270,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final int startBit = (int)( position % Long.SIZE );
 		final int totalOffset = startBit + l;
 		final long result = lowerBits[ startWord ] >>> startBit;
-		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & mask;
-	}
-
-	@Deprecated
-	public long length() {
-		return size64();
+		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
 	}
 
 	public long size64() {

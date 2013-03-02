@@ -120,14 +120,16 @@ public class SparseRank extends AbstractRank {
 		this.fromSelect = true;
 	}
 
-	private final static long getLong( long[] bits, long index, int l ) {
+	private final long extractLowerBits( final long index ) {
+		final int l = this.l;
 		if ( l == 0 ) return 0;
-		final int m = Long.SIZE - l;
-		final long start = index * l; 
-		final int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
-		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
-
-		return startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m;
+		
+		final long position = index * l; 
+		final int startWord = (int)( position / Long.SIZE );
+		final int startBit = (int)( position % Long.SIZE );
+		final int totalOffset = startBit + l;
+		final long result = lowerBits[ startWord ] >>> startBit;
+		return ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerLBitsMask;
 	}
 	
 	public long rank( final long pos ) {
@@ -142,7 +144,7 @@ public class SparseRank extends AbstractRank {
 	    do {
 	    	rank--; 
 	    	upperPos--; 
-	    } while( upperPos >= 0 && upperBits.getBoolean( upperPos ) && getLong( lowerBits, rank, l ) >= posLowerBits );
+	    } while( upperPos >= 0 && upperBits.getBoolean( upperPos ) && extractLowerBits( rank ) >= posLowerBits );
 
 	    return ++rank;
 	}

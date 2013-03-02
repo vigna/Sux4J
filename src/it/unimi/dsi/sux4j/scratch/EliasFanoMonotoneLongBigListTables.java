@@ -259,7 +259,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		long last = Long.MIN_VALUE;
 		for( long i = 0; i < length; i++ ) {
 			v = iterator.nextLong();
-			if ( v > upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " >= " + upperBound );
+			if ( v > upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " > " + upperBound );
 			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
 			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
 			upperBitVector.set( ( v >>> l ) + i );

@@ -193,11 +193,6 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		return small.getLong( index - rank.rank( index ) );
 	}
 
-	@Deprecated
-	public long length() {
-		return length;
-	}
-	
 	public long size64() {
 		return length;
 	}

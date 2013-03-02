@@ -250,11 +250,6 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 		return ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - offset;
 	}
 
-	@Deprecated
-	public long length() {
-		return length;
-	}
-	
 	public long size64() {
 		return length;
 	}

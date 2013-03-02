@@ -140,16 +140,16 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 
 	public long select( final long rank ) {
 		if ( rank >= length ) return -1;
-
 		final int l = this.l;
-		if ( l == 0 ) return selectUpper.select( rank ) - rank;
-		final int m = Long.SIZE - l;
-		final long start = rank * l; 
-		final int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
-		final int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
-
-		return ( selectUpper.select( rank ) - rank ) << l | 
-			( startBit <= m ? lowerBits[ startWord ] << m - startBit >>> m : lowerBits[ startWord ] >>> startBit | lowerBits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m );
+		final long upperBits = selectUpper.select( rank ) - rank; 
+		if ( l == 0 ) return upperBits;
+		
+		final long position = rank * l; 
+		final int startWord = (int)( position / Long.SIZE );
+		final int startBit = (int)( position % Long.SIZE );
+		final int totalOffset = startBit + l;
+		final long result = lowerBits[ startWord ] >>> startBit;
+		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
 	}
 
 	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
