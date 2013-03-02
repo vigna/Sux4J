@@ -37,7 +37,6 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 import java.io.Serializable;
 
