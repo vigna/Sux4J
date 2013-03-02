@@ -4,8 +4,8 @@
   EliasFanoMonotoneLongBigList, which made it necessary to bump the
   serialVersionUID.
 
-- Aligned the behaviour with that of MG4J's implementation--the upper
-  bound is not necessarily strict.
+- Aligned the behaviour of EliasFanoMonotoneLongBigList with that of
+  MG4J's implementation--the upper bound is not necessarily strict.
 
 - Fixed subtle bug in ChunkedHashStore that could cause an out-of-bounds
   access to an array in the (very rare) case of a retry.
