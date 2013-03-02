@@ -169,14 +169,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		falseFollowsKeyFile = File.createTempFile( HollowTrieDistributor.class.getName(), "false", tempDir );
 		falseFollowsKeyFile.deleteOnExit();
 
-		final OutputBitStream externalKeys = new OutputBitStream( externalKeysFile );
-		final OutputBitStream falseFollowsKeys = new OutputBitStream( falseFollowsKeyFile );
-
 		externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		falseFollowsValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		long sumOfSkipLengths = 0;
 		
 		if ( intermediateTrie.size64() > 0 ) {
+			final OutputBitStream externalKeys = new OutputBitStream( externalKeysFile );
+			final OutputBitStream falseFollowsKeys = new OutputBitStream( falseFollowsKeyFile );
 
 			Iterator<? extends T> iterator = elements.iterator();
 			LongArrayBitVector bucketKey[] = new LongArrayBitVector[ bucketSize ];

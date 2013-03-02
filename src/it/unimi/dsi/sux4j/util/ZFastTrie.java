@@ -1709,6 +1709,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "loadAll", 'l', "load-all", "Load all strings into memory before building the trie." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "bitVector", 'b', "bit-vector", "Build a trie of bit vectors, rather than a trie of strings." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised z-fast trie." ),
@@ -1723,6 +1724,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final boolean bitVector = jsapResult.getBoolean( "bitVector" );
 		
 		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );
@@ -1731,8 +1733,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( jsapResult.userSpecified( "loadAll" ) ) lineIterator = ((LineIterator)lineIterator).allLines().iterator();
 		
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
-		? TransformationStrategies.prefixFreeIso() 
-				: TransformationStrategies.prefixFreeUtf16();
+					? TransformationStrategies.prefixFreeIso() 
+					: utf32
+						? TransformationStrategies.prefixFreeUtf32()
+						: TransformationStrategies.prefixFreeUtf16();
 
 		ProgressLogger pl = new ProgressLogger();
 		pl.itemsName = "keys";

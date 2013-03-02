@@ -597,6 +597,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
@@ -610,6 +611,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -621,7 +623,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
 				? TransformationStrategies.iso() 
-				: TransformationStrategies.utf16();
+				: utf32 
+					? TransformationStrategies.utf32()
+					: TransformationStrategies.utf16();
 
 		BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir" ) ), functionName );
 		LOGGER.info( "Completed." );

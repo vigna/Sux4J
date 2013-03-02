@@ -229,6 +229,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
@@ -242,6 +243,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
 
 		final Collection<MutableString> collection;
@@ -253,10 +255,12 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
-			? new HuTuckerTransformationStrategy( collection, true )
-			: iso
-				? TransformationStrategies.prefixFreeIso() 
-				: TransformationStrategies.prefixFreeUtf16();
+				? new HuTuckerTransformationStrategy( collection, true )
+				: iso
+					? TransformationStrategies.prefixFreeIso() 
+					: utf32
+						? TransformationStrategies.prefixFreeUtf32()
+						: TransformationStrategies.prefixFreeUtf16();
 
 		BinIO.storeObject( new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );
