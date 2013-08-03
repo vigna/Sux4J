@@ -6,7 +6,7 @@
   <name>Sux4J</name>
   <version>${ivy.pom.version}</version>
   <description>Sux4j is an implementation of succinct data structure in Java. It provides a number of related implementations covering ranking/selection over bit arrays, compressed lists and minimal perfect hashing.</description>
-  <url>http://sux4j.dsi.unimi.it/</url>
+  <url>http://sux4j.di.unimi.it/</url>
   <licenses>
     <license>
       <name>GNU Lesser General Public License Version 3+</name>
@@ -23,13 +23,13 @@
     <developer>
       <id>boldi</id>
       <name>Paolo Boldi</name>
-      <email>boldi@dsi.unimi.it</email>
+      <email>boldi@di.unimi.it</email>
     </developer>
 
     <developer>
       <id>vigna</id>
       <name>Sebastiano Vigna</name>
-      <email>vigna@dsi.unimi.it</email>
+      <email>vigna@di.unimi.it</email>
     </developer>
 
   </developers>
