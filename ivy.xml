@@ -23,5 +23,8 @@
 		<dependency org="commons-lang" name="commons-lang" rev="latest.release"/>
 		<dependency org="commons-collections" name="commons-collections" rev="latest.release"/>
 
+		<exclude org="log4j"/>
+		<exclude org="commons-logging"/>
+		<exclude org="org.slf4j" artifact="slf4j-log4j12"/>
 	</dependencies>
 </ivy-module>
