@@ -18,6 +18,7 @@
 		<dependency org="emma" name="emma_ant" rev="latest.release" conf="test"/>
 
 		<dependency org="ch.qos.logback" name="logback-classic" rev="latest.release"/>
+		<dependency org="org.slf4j" name="log4j-over-slf4j" rev="latest.release"/>
 		<dependency org="commons-configuration" name="commons-configuration" rev="1.8"/>
 		<dependency org="commons-io" name="commons-io" rev="latest.release"/>
 		<dependency org="commons-lang" name="commons-lang" rev="latest.release"/>
