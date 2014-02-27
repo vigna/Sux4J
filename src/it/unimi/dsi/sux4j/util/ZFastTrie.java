@@ -655,7 +655,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 	}		
 
-	/** An external node, a.k.a. leaf. */
+	/** An external node, a&#46;k&#46;a&#46; leaf. */
 	protected final static class Leaf<U> extends Node<U> {
 		/** The previous leaf. */
 		protected Leaf<U> prev;
