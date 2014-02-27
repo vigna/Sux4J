@@ -6,7 +6,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +67,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testRandom() throws IOException, ClassNotFoundException {
-		Random r = new XorShiftStarRandom( 3 );
+		Random r = new XorShift1024StarRandom( 3 );
 		final int n = 10;
 		final LongArrayBitVector[] bitVector = new LongArrayBitVector[ n ];
 		for ( int i = 0; i < n; i++ ) {

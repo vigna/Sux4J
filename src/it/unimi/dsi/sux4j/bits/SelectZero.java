@@ -36,13 +36,13 @@ import java.io.Serializable;
  */
 public interface SelectZero extends Serializable {
 
-	/** Returns the position of the bit of given rank. 
-	 *  Equivalently, returns the greatest position that is preceded by the specified number of ones.
+	/** Returns the position of the bit of given zero rank. 
+	 *  Equivalently, returns the greatest position that is preceded by the specified number of zeroes.
 	 * 
-	 * @param rank a rank.
-	 * @return the position of the bit of given rank; if no such position exists, &minus;1 is returned.
+	 * @param zeroRank a zero rank.
+	 * @return the position of the bit of given zero rank; if no such position exists, &minus;1 is returned.
 	 */
-	public long selectZero( long rank );
+	public long selectZero( long zeroRank );
 
 	/** Returns the bit vector indexed by this structure.
 	 * 

@@ -32,7 +32,7 @@ import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -405,7 +405,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
 	public void checkAndRetry( final Iterable<? extends T> iterable, final LongIterable values ) throws IOException {
-		final Random random = new XorShiftStarRandom();
+		final Random random = new XorShift1024StarRandom();
 		int duplicates = 0;
 
 		for(;;)

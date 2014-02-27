@@ -1,5 +1,5 @@
 import it.unimi.dsi.sux4j.bits.JacobsonBalancedParentheses;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.util.Random;
 
@@ -27,7 +27,7 @@ public class TestFindClose {
 	}
 
 	public static void fillParen( long bits[], long num_bits ) {
-		Random random = new XorShiftStarRandom( 1 );
+		Random random = new XorShift1024StarRandom( 1 );
 		bits[ 0 ] = 1; // First open parenthesis
 		for( int i = 1, r = 0; i < num_bits - 1; i++ ) {
 			assert( r * ( num_bits - 1 - i + r + 2 ) / ( 2. * ( num_bits - 1 - i ) * ( r + 1 ) ) >= 0 );
@@ -43,7 +43,7 @@ public class TestFindClose {
 
 	
 	public static void main( String a[] ) {
-		Random random = new XorShiftStarRandom( 1 );
+		Random random = new XorShift1024StarRandom( 1 );
 		final long n = Long.parseLong( a[ 0 ] );
 		final double p = a.length > 1 ? Double.parseDouble( a[ 1 ] ) : .5;
 		

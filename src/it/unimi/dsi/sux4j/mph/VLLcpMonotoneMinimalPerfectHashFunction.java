@@ -39,7 +39,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -119,7 +119,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
 		this.transform = transform;
-		final Random r = new XorShiftStarRandom();
+		final Random r = new XorShift1024StarRandom();
 
 		if ( numElements == -1 ) {
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();

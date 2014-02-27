@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.util.Random;
 
@@ -15,7 +15,7 @@ public class HashesTest {
 
 	@Test
 	public void testJenkinsPreprocessing() {
-		Random r = new XorShiftStarRandom( 1 );
+		Random r = new XorShift1024StarRandom( 1 );
 		for ( int l = 0; l < 1000; l++ ) {
 			LongArrayBitVector bv = LongArrayBitVector.getInstance();
 			for ( int i = 0; i < l; i++ )
@@ -35,7 +35,7 @@ public class HashesTest {
 
 	@Test
 	public void testMurmurPreprocessing() {
-		Random r = new XorShiftStarRandom( 1 );
+		Random r = new XorShift1024StarRandom( 1 );
 		for ( int l = 0; l < 1000; l++ ) {
 			LongArrayBitVector bv = LongArrayBitVector.getInstance();
 			for ( int i = 0; i < l; i++ )
@@ -51,7 +51,7 @@ public class HashesTest {
 
 	@Test
 	public void testMurmur3Preprocessing() {
-		Random r = new XorShiftStarRandom( 1 );
+		Random r = new XorShift1024StarRandom( 1 );
 		long[] h = new long[ 2 ];
 		for ( int l = 0; l < 1000; l++ ) {
 			LongArrayBitVector bv = LongArrayBitVector.getInstance();

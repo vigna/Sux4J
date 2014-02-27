@@ -37,7 +37,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -116,7 +116,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 		long maxLength = 0;
 		long totalLength = 0;
-		Random r = new XorShiftStarRandom();
+		Random r = new XorShift1024StarRandom();
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
 		chunkedHashStore.reset( r.nextLong() );
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );

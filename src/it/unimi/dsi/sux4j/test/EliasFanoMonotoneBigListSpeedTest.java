@@ -2,11 +2,7 @@ package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
-import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;
-import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.util.Random;
 
@@ -36,7 +32,7 @@ public class EliasFanoMonotoneBigListSpeedTest {
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
 
-		Random random = new XorShiftStarRandom( 42 );
+		Random random = new XorShift1024StarRandom( 42 );
 		final IntArrayList list = new IntArrayList( numElements );
 		for( long i = numElements; i-- != 0; ) list.add( random.nextDouble() < density ? 0 : 100 );
 		

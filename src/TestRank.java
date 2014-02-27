@@ -1,5 +1,5 @@
 import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.util.Random;
 
@@ -90,7 +90,7 @@ public class TestRank {
 	}
 	
 	public static void main( String a[] ) {
-		Random random = new XorShiftStarRandom( 1 );
+		Random random = new XorShift1024StarRandom( 1 );
 		
 		long test[] = new long[10000000];
 		int pos[] = new int[ 10000000 ], count;

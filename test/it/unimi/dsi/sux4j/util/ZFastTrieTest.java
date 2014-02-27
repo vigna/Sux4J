@@ -10,7 +10,7 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -350,7 +350,7 @@ public class ZFastTrieTest {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		ZFastTrie<String> zft;
 		File temp;
-		Random random = new XorShiftStarRandom( 1 );
+		Random random = new XorShift1024StarRandom( 1 );
 
 		for ( int d = 10; d < 10000; d *= 10 ) {
 			String[] s = new String[ d ];
@@ -411,7 +411,7 @@ public class ZFastTrieTest {
 						assertFalse( zft.contains( s[ i ] ) );
 					}
 
-					Collections.shuffle( Arrays.asList( s ), new XorShiftStarRandom( 1 ) );
+					Collections.shuffle( Arrays.asList( s ), new XorShift1024StarRandom( 1 ) );
 				}
 			}
 

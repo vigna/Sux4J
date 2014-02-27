@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -37,7 +37,7 @@ public class GenerateRandomStrings {
 		final String output = jsapResult.getString( "output" );
 		
 		MutableString[] s = new MutableString[ n ];
-		Random r = new XorShiftStarRandom();
+		Random r = new XorShift1024StarRandom();
 
 		int p;
 

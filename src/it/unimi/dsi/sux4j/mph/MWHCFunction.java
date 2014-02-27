@@ -44,7 +44,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -334,7 +334,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
-		final Random r = new XorShiftStarRandom();
+		final Random r = new XorShift1024StarRandom();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
@@ -429,6 +429,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
+				pl.itemsName = "keys";
 				if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
 				else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
 			}
@@ -600,7 +601,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A text file containing a value for each string (otherwise, the values will be the ordinal positions of the strings)." ),
+			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});

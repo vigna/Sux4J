@@ -35,7 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -227,7 +227,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayFreeMemory = true;
-		final Random r = new XorShiftStarRandom();
+		final Random r = new XorShift1024StarRandom();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;

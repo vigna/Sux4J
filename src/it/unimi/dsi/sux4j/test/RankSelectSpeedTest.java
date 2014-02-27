@@ -7,7 +7,7 @@ import it.unimi.dsi.sux4j.bits.Rank9;
 import it.unimi.dsi.sux4j.bits.Select9;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.util.XorShiftStarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.util.Random;
 
@@ -41,7 +41,7 @@ public class RankSelectSpeedTest {
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
 
-		Random random = new XorShiftStarRandom( 42 );
+		Random random = new XorShift1024StarRandom( 42 );
 		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( numBits );
 		long c = 0;
 		for( long i = numBits; i-- != 0; ) 
