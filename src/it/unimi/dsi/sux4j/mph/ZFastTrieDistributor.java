@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -425,6 +425,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		this.transformationStrategy = transformationStrategy;
 		this.seed = chunkedHashStore.seed();
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<T>( elements, log2BucketSize, transformationStrategy, seed, pl );
 

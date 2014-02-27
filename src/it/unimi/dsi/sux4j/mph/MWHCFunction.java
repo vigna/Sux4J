@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2013 Sebastiano Vigna 
+ * Copyright (C) 2002-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -333,6 +333,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final LongBigList valueList = override ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final Random r = new XorShift1024StarRandom();
 		pl.itemsName = "keys";
@@ -370,6 +371,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
+		@SuppressWarnings("resource")
 		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 
 		int duplicates = 0;
@@ -619,6 +621,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
 			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();

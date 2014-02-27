@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2013 Sebastiano Vigna 
+ * Copyright (C) 2002-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -226,6 +226,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final Random r = new XorShift1024StarRandom();
 		pl.itemsName = "keys";
@@ -462,6 +463,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
 			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();

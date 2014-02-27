@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -115,6 +115,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	@SuppressWarnings("unused")
 	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final long numElements, final TransformationStrategy<? super T> transform ) throws IOException {
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		this.transform = transform;
 
@@ -149,6 +150,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
+		@SuppressWarnings("resource")
 		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		final int[][] lcpLengths = IntBigArrays.newBigArray( numBuckets );
 		int maxLcp = 0;
@@ -156,6 +158,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		pl.expectedUpdates = n;
 		
+		@SuppressWarnings("resource")
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
 		chunkedHashStore.reset( Util.randomSeed() );
 
@@ -294,6 +297,8 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
 			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();

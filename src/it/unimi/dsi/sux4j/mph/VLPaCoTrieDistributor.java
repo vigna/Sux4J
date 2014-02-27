@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -383,6 +383,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	public VLPaCoTrieDistributor( final Iterable<? extends T> elements, final long size, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
 		PartialTrie<T> immutableBinaryTrie = new PartialTrie<T>( elements, size, bucketSize, transformationStrategy, pl );

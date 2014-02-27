@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -109,6 +109,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		BitVector bv;
 		final Random random = new XorShift1024StarRandom();
 		ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
 		
@@ -249,6 +250,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
 			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();

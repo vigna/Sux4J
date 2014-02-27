@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -117,6 +117,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final int numElements, final TransformationStrategy<? super T> transform ) throws IOException {
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		this.transform = transform;
 		final Random r = new XorShift1024StarRandom();
@@ -156,8 +157,10 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		int maxLcp = 0, minLcp = Integer.MAX_VALUE;
 		long maxLength = 0, totalLength = 0;
 
+		@SuppressWarnings("resource")
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
 		chunkedHashStore.reset( r.nextLong() );
+		@SuppressWarnings("resource")
 		OfflineIterable<BitVector,LongArrayBitVector> lcps = new OfflineIterable<BitVector,LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
@@ -307,6 +310,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
 			pl.start( "Loading strings..." );
 			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
 			pl.done();

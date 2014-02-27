@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2013 Sebastiano Vigna 
+ * Copyright (C) 2008-2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -174,7 +174,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		long sumOfSkipLengths = 0;
 		
 		if ( intermediateTrie.size64() > 0 ) {
+			@SuppressWarnings("resource")
 			final OutputBitStream externalKeys = new OutputBitStream( externalKeysFile );
+			@SuppressWarnings("resource")
 			final OutputBitStream falseFollowsKeys = new OutputBitStream( falseFollowsKeyFile );
 
 			Iterator<? extends T> iterator = elements.iterator();
@@ -189,6 +191,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size64() );
 
 			ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
 			pl.displayFreeMemory = true;
 			pl.expectedUpdates = size;
 			pl.start( "Computing function keys..." );
