@@ -6,3 +6,4 @@
 - Comment all classes!
 - Support enclose() in JacobsonBalancedParentheses
 - Support UTF-32 in all main() methods.
+- Find a way to make the hash computed for functions percolate to a signature, so we don't compute it twice

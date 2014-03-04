@@ -36,9 +36,9 @@ public class FunctionSpeedTest {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
-					new FlaggedOption( "save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of random test, save to this file the strings used." ),
+					new FlaggedOption( "save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used." ),
 					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
-					new Switch( "random", 'r', "random", "Do a random test on at most 1 million strings." ),
+					new Switch( "random", 'r', "random", "Test randomly selected and shuffled strings." ),
 					new Switch( "check", 'c', "check", "Check that the term list is mapped to its ordinal position." ),
 					new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised function." ),
 					new UnflaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "Read terms from this file." ),
@@ -79,34 +79,39 @@ public class FunctionSpeedTest {
 			
 			long total = 0;
 			for( int k = 13; k-- != 0; ) {
-				long time = -System.currentTimeMillis();
+				long time = -System.nanoTime();
 				for( int i = 0; i < n; i++ ) {
 					function.getLong( test[ i ] );
 					if ( i++ % 100000 == 0 ) System.out.print('.');
 				}
 				System.out.println();
-				time += System.currentTimeMillis();
+				time += System.nanoTime();
 				if ( k < 10 ) total += time;
-				System.out.println( time / 1E3 + "s, " + ( time * 1E3 ) / n + " \u00b5s/item" );
+				System.out.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / n ) + " ns/item" );
 			}
-			System.out.println( "Average: " + Util.format( total / 10E3 ) + "s, " + Util.format( ( total * 1E3 ) / ( 10 * n ) ) + " \u00b5s/item" );
+			System.out.println( "Average: " + Util.format( total / 10E9 ) + "s, " + Util.format( total / ( 10. * n ) ) + " ns/item" );
 		}
 		else {
-			for( int k = 10; k-- != 0; ) {
+			long total = 0;
+			int size = 0;
+			for( int k = 13; k-- != 0; ) {
 				final Iterator<? extends CharSequence> i = flc.iterator();
 
-				long time = -System.currentTimeMillis();
+				long time = -System.nanoTime();
 				int j = 0;
 				long index;
 				while( i.hasNext() ) {
 					index = function.getLong( i.next() );
 					if ( check && index != j ) throw new AssertionError( index + " != " + j ); 
-					if ( j++ % 10000 == 0 ) System.err.print('.');
+					if ( j++ % 100000 == 0 ) System.err.print('.');
 				}
+				size = j;
 				System.err.println();
-				time += System.currentTimeMillis();
-				System.err.println( time / 1E3 + "s, " + ( time * 1E6 ) / j + " ns/item" );
+				time += System.nanoTime();
+				if ( k < 10 ) total += time;
+				System.err.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / j ) + " ns/item" );
 			}
+			System.out.println( "Average: " + Util.format( total / 10E9 ) + "s, " + Util.format( total / ( 10. * size ) ) + " ns/item" );
 		}
 	}
 }
