@@ -114,7 +114,7 @@ import org.slf4j.LoggerFactory;
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
  * <P>To help diagnosing problem with the generation process
- * class, this class will {@link Logger#debug(String) log at debug level} what's happening.
+ * class, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
  *
  * <P>Note that if the the peeling process fails more than twice, you should
  * suspect that there are duplicates in the string list (unless the number of vertices is very small).

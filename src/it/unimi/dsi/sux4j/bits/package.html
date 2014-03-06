@@ -8,7 +8,7 @@ Ranking and selection structures.
 <p>This package provides a number of implementations of <em>rank/select queries</em> for bits vectors. <em>Ranking</em> is 
 counting the number of ones in an initial segment of a bit vector. <em>Selection</em> is finding the position of the
 <var>r</var>-th one. Both operation can be performed in constant time on an array of <var>n</var> bits
-using <i>o</i>(<var>n</var>) additional bits, but in practise linear data structures with small constants and theoretically non-constant
+using <i>o</i>(<var>n</var>) additional bits, but in practice linear data structures with small constants and theoretically non-constant
 time work much better. Sux4J proposes a number of new, very efficient implementation of rank and select oriented to 64-bit processors
 (in other words: they will be fairly slow on 32-bit processors).
 The implementations are based on <em>broadword programming</em> and described in 
