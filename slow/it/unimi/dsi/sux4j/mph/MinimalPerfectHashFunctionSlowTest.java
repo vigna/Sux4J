@@ -16,7 +16,7 @@ public class MinimalPerfectHashFunctionSlowTest {
 		Iterable<Long> p = LargeLongCollection.getInstance();
 
 		final LongArrayBitVector b = LongArrayBitVector.ofLength( LargeLongCollection.SIZE );
-		final MinimalPerfectHashFunction<Long> mph = new MinimalPerfectHashFunction<Long>( p, TransformationStrategies.fixedLong() );
+		final MinimalPerfectHashFunction<Long> mph = new MinimalPerfectHashFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).build();
 				
 		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {
 			final long pos = mph.getLong( i.next() );

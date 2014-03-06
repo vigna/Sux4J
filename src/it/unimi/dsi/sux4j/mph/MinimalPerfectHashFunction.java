@@ -65,26 +65,33 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 /**
  * A minimal perfect hash function.
  * 
- * <P>Given a list of elements without duplicates, the constructors of this class finds a minimal
+ * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
  * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each elements in the list. For elements out of the list, the
- * resulting number is not specified. In some (rare) cases it might be possible to establish that an
- * element was not in the original list, and in that case -1 will be returned. The class can then be
+ * return a distinct number for each keys in the list. For keys out of the list, the
+ * resulting number is not specified. In some (rare) cases it might be possible to establish that a
+ * key was not in the original list, and in that case -1 will be returned; this behaviour
+ * can be made standard by <em>signing</em> the function (see below). The class can then be
  * saved by serialisation and reused later. 
  * 
- * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable constructors. Note that at construction time
- * you can {@linkplain #MinimalPerfectHashFunction(Iterable, TransformationStrategy, File, ChunkedHashStore) pass}
- * a {@link ChunkedHashStore} containing the elements associated with any value; note that, however, that if the store is rebuilt because of a
+ * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
+ * you can {@linkplain Builder#store(ChunkedHashStore) pass a ChunkedHashStore}
+ * containing the keys (associated with any value); however, if the store is rebuilt because of a
  * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
  * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
- * o(<var>n</var>) bits per element, plus the bits for the random hashes (which are usually
+ * o(<var>n</var>) bits per key, plus the bits for the random hashes (which are usually
  * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 0.625%, bringing the actual occupied space to around 2.68 bits per element.
+ * occupancy by 0.625%, bringing the actual occupied space to around 2.68 bits per key.
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
+ * 
+ * <h3>Signing</h3>
+ * 
+ * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect hash function. A <var>w</var>-bit signature will
+ * be associated with each key, so that {@link #getLong(Object)} will return -1 on strings that are not
+ * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  * 
  * <h3>How it Works</h3>
  * 
@@ -109,8 +116,8 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value
  * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
- * output value for some element. The final value of the minimal perfect hash function is the number
- * of nonzero pairs of bits that precede the perfect hash value for the element. To compute this
+ * output value for some key. The final value of the minimal perfect hash function is the number
+ * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
  * number, we use a simple table-free ranking scheme, recording the number of nonzero pairs each
  * {@link #BITS_PER_BLOCK} bits and using {@link Long#bitCount(long)} to 
  * {@linkplain #countNonzeroPairs(long) count the number of nonzero pairs of bits in a word}.
@@ -121,18 +128,95 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
-
 	private static final boolean ASSERTS = false;
 
 	public static final long serialVersionUID = 4L;
 
+	/** A builder class for {@link MinimalPerfectHashFunction}. */
+	public static class Builder<T> {
+		protected Iterable<? extends T> keys;
+		protected TransformationStrategy<? super T> transform;
+		protected int signatureWidth;
+		protected File tempDir;
+		protected ChunkedHashStore<T> chunkedHashStore;
+		/** Whether {@link #build()} has already been called. */
+		protected boolean built;
+		
+		/** Specifies the keys to hash; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		 * 
+		 * @param keys the keys to hash.
+		 * @return this builder.
+		 */
+		public Builder<T> keys( final Iterable<? extends T> keys ) {
+			this.keys = keys;
+			return this;
+		}
+		
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
+		 * 
+		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
+		 * @return this builder.
+		 */
+		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+			this.transform = transform;
+			return this;
+		}
+		
+		/** Specifies that the resulting {@link MinimalPerfectHashFunction} should be signed using a given number of bits per key.
+		 * 
+		 * @param signatureWidth a signature width, or 0 for no signature.
+		 * @return this builder.
+		 */
+		public Builder<T> signed( final int signatureWidth ) {
+			this.signatureWidth = signatureWidth;
+			return this;
+		}
+		
+		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		 * 
+		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @return this builder.
+		 */
+		public Builder<T> tempDir( final File tempDir ) {
+			this.tempDir = tempDir;
+			return this;
+		}
+		
+		/** Specifies a chunked hash store containing the keys.
+		 * 
+		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * @return this builder.
+		 */
+		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+			this.chunkedHashStore = chunkedHashStore;
+			return this;
+		}
+		
+		/** Builds a minimal perfect hash function.
+		 * 
+		 * @return a {@link MinimalPerfectHashFunction} instance with the specified parameters.
+		 * @throws IllegalStateException if called more than once.
+		 */
+		public MinimalPerfectHashFunction<T> build() throws IOException {
+			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			built = true;
+			if ( transform == null ) {
+				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			}
+			return new MinimalPerfectHashFunction<T>( keys, transform, signatureWidth, tempDir, chunkedHashStore );
+		}
+	}
+	
 	/** The number of bits per block in the rank structure. */
 	public static final int BITS_PER_BLOCK = 1024;
 
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 10;
 
-	/** The number of elements. */
+	/** The number of keys. */
 	protected final long n;
 
 	/** The shift for chunks. */
@@ -147,10 +231,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The start offset of each block. */
 	protected final long[] offset;
 
-	/**
-	 * The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash
-	 * function.
-	 */
+	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
 	protected final LongBigList values;
 
 	/** The bit vector underlying {@link #values}. */
@@ -164,65 +245,90 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
+	
+	/** The mask to compare signatures, or zero for no signatures. */
+	protected final long signatureMask;
+	
+	/** The signatures. */
+	protected final LongBigList signatures; 
 
 	/**
-	 * Creates a new minimal perfect hash function for the given elements.
+	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param elements the elements to hash.
-	 * @param transform a transformation strategy for the elements.
+	 * @param keys the keys to hash.
+	 * @param transform a transformation strategy for the keys.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null, null );
+	@Deprecated
+	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( keys, transform, null, null );
 	}
 
 	/**
-	 * Creates a new minimal perfect hash function for the given elements.
+	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param elements the elements to hash.
-	 * @param transform a transformation strategy for the elements.
+	 * @param keys the keys to hash.
+	 * @param transform a transformation strategy for the keys.
 	 * @param tempDir a temporary directory for the chunked hash store files, or <code>null</code> for the current directory.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
-		this( elements, transform, tempDir, null );
+	@Deprecated
+	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+		this( keys, transform, tempDir, null );
 	}
 
 	/**
-	 * Creates a new minimal perfect hash function for elements provided by a {@link ChunkedHashStore}.
+	 * Creates a new minimal perfect hash function for keys provided by a {@link ChunkedHashStore}.
 	 * 
-	 * @param transform a transformation strategy for the elements.
-	 * @param chunkedHashStore a checked chunked hash store containing the elements. 
+	 * @param transform a transformation strategy for the keys.
+	 * @param chunkedHashStore a checked chunked hash store containing the keys. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-
+	@Deprecated
 	public MinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this( null, transform, null, chunkedHashStore );
 	}
 	
 	/**
-	 * Creates a new minimal perfect hash function for the given elements.
+	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param elements the elements to hash, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param chunkedHashStore a chunked hash store containing the elements, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, null, chunkedHashStore );
+	@Deprecated
+	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, null, chunkedHashStore );
 	}
-	
-	/**
-	 * Creates a new minimal perfect hash function for the given elements.
-	 * 
-	 * @param elements the elements to hash, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the elements, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
-	 */
 
-	public MinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	/**
+	 * Creates a new minimal perfect hash function for the given keys.
+	 * 
+	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
+	 */
+	@Deprecated
+	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, 0, tempDir, chunkedHashStore );
+	}
+
+	/**
+	 * Creates a new minimal perfect hash function for the given keys.
+	 * 
+	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param signatureWidth a signature width, or 0 for no signature.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -235,7 +341,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( !givenChunkedHashStore ) {
 			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, pl );
 			chunkedHashStore.reset( r.nextLong() );
-			chunkedHashStore.addAll( elements.iterator() );
+			chunkedHashStore.addAll( keys.iterator() );
 		}
 		n = chunkedHashStore.size();
 
@@ -310,17 +416,15 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				break;
 			}
 			catch ( ChunkedHashStore.DuplicateException e ) {
-				if ( elements == null ) throw new IllegalStateException( "You provided no elements, but the chunked hash store was not checked" );
+				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
-				chunkedHashStore.addAll( elements.iterator() );
+				chunkedHashStore.addAll( keys.iterator() );
 			}
 		}
 
 		globalSeed = chunkedHashStore.seed();
-
-		if ( !givenChunkedHashStore ) chunkedHashStore.close();
 
 		if ( n > 0 ) {
 			long m = values.size64();
@@ -335,22 +439,47 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			if ( ASSERTS ) {
 				int k = 0;
-				for ( int i = 0; i < m; i++ ) {
+				for ( long i = 0; i < m; i++ ) {
 					assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i );
 					if ( values.getLong( i ) != 0 ) k++;
 					assert k <= n;
 				}
 
-				final Iterator<? extends T> iterator = elements.iterator();
-				for ( int i = 0; i < n; i++ )
+				final Iterator<? extends T> iterator = keys.iterator();
+				for ( long i = 0; i < n; i++ )
 					assert getLong( iterator.next() ) < n;
 			}
 		}
 		else count = LongArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
+		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
+
+
+		if ( signatureWidth != 0 ) {
+			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
+			pl.expectedUpdates = n;
+			pl.itemsName = "signatures";
+			pl.start( "Signing..." );
+			for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+				Iterator<long[]> iterator = chunk.iterator();
+				for( int i = chunk.size(); i-- != 0; ) { 
+					final long[] triple = iterator.next();
+					final int[] e = new int[ 3 ];
+					signatures.set( getLongByTripleNoCheck( triple, e ), signatureMask & triple[ 0 ] );
+					pl.lightUpdate();
+				}
+			}
+			pl.done();
+		}
+		else {
+			signatureMask = 0;
+			signatures = null;
+		}
+
+		if ( !givenChunkedHashStore ) chunkedHashStore.close();
 	}
 
 	/**
@@ -367,7 +496,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * copied.
 	 * 
 	 * @param mph the perfect hash to be copied.
+	 * @deprecated Unused.
 	 */
+	@Deprecated
 	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
 		this.n = mph.n;
 		this.seed = mph.seed;
@@ -379,6 +510,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.array = mph.array;
 		this.count = mph.count;
 		this.transform = mph.transform.copy();
+		this.signatureMask = mph.signatureMask;
+		this.signatures = mph.signatures;
 	}
 
 	/**
@@ -412,10 +545,20 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
 
+	/** Low-level access to the output of this minimal perfect hash function.
+	 *
+	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
+	 * then retrieve the resulting values by generating a single triple of hashes. The method 
+	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 *
+	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
+	 * @return the output of the function.
+	 */
 	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
@@ -424,8 +567,18 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
+	}
+
+	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
+	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
+	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		return rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
 	}
 
 	public long size64() {
@@ -445,6 +598,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 				new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+				new FlaggedOption( "width", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'w', "width", "If specified, the signature width in bits." ),
 				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
 				new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
@@ -459,6 +613,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
+		final int width = jsapResult.getInt( "width", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -476,7 +631,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir") ), functionName );
-		LOGGER.info( "Completed." );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, width, jsapResult.getFile( "tempDir"), null ), functionName );
+		LOGGER.info( "Saved." );
 	}
 }

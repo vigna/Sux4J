@@ -166,14 +166,14 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		LOGGER.info( "Generating offset function..." );
 		
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+		offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
 			public long size64() {
 				return size;
 			}
-		}, log2BucketSize );
+		}, log2BucketSize ).indirect().build();
 
 		chunkedHashStore.close();
 

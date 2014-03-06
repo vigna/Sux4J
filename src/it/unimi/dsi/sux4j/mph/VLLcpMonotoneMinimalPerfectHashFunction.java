@@ -199,7 +199,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.done();
 		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity() );
+		lcp2Bucket = new MWHCFunction.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
 		final int[][] lcpLength = IntBigArrays.newBigArray( lcps.size64() );
 		long p = 0;
 		for( LongArrayBitVector bv : lcps ) IntBigArrays.set( lcpLength, p++, (int)bv.length() );
@@ -219,7 +219,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build mph on elements.
-		mph = new MinimalPerfectHashFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore );
+		mph = new MinimalPerfectHashFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).build();
 		this.seed = chunkedHashStore.seed();
 		
 		// Build function assigning the lcp length and the bucketing data to each element.

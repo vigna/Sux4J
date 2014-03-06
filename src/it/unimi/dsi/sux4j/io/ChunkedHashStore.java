@@ -56,7 +56,8 @@ import org.slf4j.LoggerFactory;
 
 /** A temporary store of hash triples virtually divided into chunks.
  * 
- * <p>A chunked hash store accumulates objects of type <code>T</code> by turning them into bit vectors (using a provided {@link TransformationStrategy})
+ * <p>A chunked hash store accumulates elements (objects of type {@code T}) 
+ * by turning them into bit vectors (using a provided {@link TransformationStrategy})
  * and then hashing such vectors into a triple of longs (i.e., overall we get a hash of 192 bits). 
  * Elements can be added {@linkplain #add(Object, long) one by one}
  * or {@linkplain #addAll(Iterator, LongIterator) in batches}. 

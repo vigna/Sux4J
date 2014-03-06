@@ -194,7 +194,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, new AbstractLongBigList() {
+			firstFunction = new MWHCFunction.Builder<T>().keys( elements ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 				public long getLong( long index ) {
 					long value = map.get( values.getLong( index ) );
 					if ( value != -1 ) return value;
@@ -205,7 +205,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 					return n;
 				}
 
-			}, best );
+			}, best ).indirect().build();
 
 			LOGGER.debug( "Actual bit cost per element of first function: " + (double)firstFunction.numBits() / n );
 		}
@@ -217,7 +217,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 		});
 		
-		secondFunction = new MWHCFunction<T>( elements, transform, chunkedHashStore, values, w );
+		secondFunction = new MWHCFunction.Builder<T>().keys( elements ).transform( transform ).store( chunkedHashStore ).values( values, w ).indirect().build();
 		
 		this.seed = chunkedHashStore.seed();
 		

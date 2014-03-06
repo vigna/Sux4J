@@ -157,7 +157,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction<BitVector>( TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+		offset = new MWHCFunction.Builder<BitVector>().transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
@@ -165,7 +165,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			public long size64() {
 				return size;
 			}
-		}, this.log2BucketSize );
+		}, this.log2BucketSize ).indirect().build();
 		//System.err.println( "*********" + chunkedHashStore.seed() );
 		
 		chunkedHashStore.close();

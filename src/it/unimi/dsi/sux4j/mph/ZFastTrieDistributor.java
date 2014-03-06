@@ -445,7 +445,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		signatureMask =  intermediateTrie.signatureMask;
 
 		LOGGER.info( "Computing behaviour function..." );
-		behaviour = new MWHCFunction<BitVector>( TransformationStrategies.wrap( elements, transformationStrategy ), TransformationStrategies.identity(), chunkedHashStore, intermediateTrie.externalValues, 1 );
+		behaviour = new MWHCFunction.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {
@@ -521,7 +521,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			rankerArray = null;
 
 			LOGGER.info( "Computing length/signature map..." );
-			signatures = new MWHCFunction<BitVector>( intermediateTrie.internalNodeKeys, TransformationStrategies.identity(), intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize );
+			signatures = new MWHCFunction.Builder<BitVector>().keys( intermediateTrie.internalNodeKeys ).transform( TransformationStrategies.identity() ).values( intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
@@ -578,7 +578,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			this.mistakeSignatures = mistakeSignatures;
 
 			LOGGER.info( "Creating correction function..." );
-			corrections = new MWHCFunction<BitVector>( positives, TransformationStrategies.identity(), results, logW );
+			corrections = new MWHCFunction.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
 
 			final int bucketSize = 1 << log2BucketSize;
 			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );

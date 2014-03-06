@@ -190,7 +190,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		
 		if ( size > 0 ) {
-			offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+			offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 				public long getLong( long index ) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
@@ -202,7 +202,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 				public long size64() {
 					return size;
 				}
-			}, log2BucketSize + 1 );
+			}, log2BucketSize + 1 ).indirect().build();
 
 		}
 		else offset = null;

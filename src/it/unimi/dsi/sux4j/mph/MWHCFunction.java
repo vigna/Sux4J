@@ -53,6 +53,7 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
@@ -70,47 +71,54 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** An immutable function stored using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+/** An immutable function stored quasi-succinctly using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
  * 
- * <p><strong>Warning:</strong> With Sux4J 2.1, the semantics of a few constructors has changed significantly.
- * 
- * <p>Instance of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
- * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. 
- * A convenient {@linkplain #MWHCFunction(Iterable, TransformationStrategy) constructor} 
- * automatically assigns to each key its rank (e.g., its position in iteration order). 
+ * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
+ * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
+ * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero). 
  * 
  * <P>As a commodity, this class provides a main method that reads from
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
- * writes a serialised function mapping each element of the list to its position.
+ * writes a serialised function mapping each element of the list to its position, or to a given list of values.
  *
  * <h2>Building a function</h2>
  * 
- * <p>This class provides a great amount of flexibility when creating a new function. This is reflected in the large number of constructors,
- * which can be quite confusing. To exploit the various possibilities, you must understand some details of the construction.
+ * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
+ * To exploit the various possibilities, you must understand some details of the construction.
  * 
- * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys and associated values. Depending
- * on the constructor chosen, the store will associate each hash either with the ordinal position of the key, or with the
- * value that must be associated with the key. It is easy to tell the difference because in constructors associating the ordinal
- * position the store appears just after the keys and the transformation strategy as, for example, in 
- * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)} or
- * {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore)}. If the store appears after keys and values
- * (e.g., {@link #MWHCFunction(Iterable, TransformationStrategy, LongIterable, int, ChunkedHashStore)}) the store associates
- * each key with its value instead.
+ * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
+ * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
+ * the store will associate with each hash the corresponding value. 
  * 
- * <p>It is important to understand this difference because many constructors makes it possible to pass a chunked hash store.
- * This class will try to use the store before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
+ * <p>However, if you further require an {@link Builder#indirect() indirect}
+ * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
+ * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
+ * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
+ * Storing values in the {@link ChunkedHashStore}
+ * is extremely scalable because the values must just be a {@link LongIterable} that
+ * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
+ * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
+ * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
+ * 
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
  * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
- * thrown, the constructors will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available. Constructors
- * without keys (e.g., {@link #MWHCFunction(TransformationStrategy, ChunkedHashStore, int)}) assume that the store is checked.
+ * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
  * 
- * <p>The reason for this proliferation of constructors is that they are useful in different situations. The constructors
- * that store associations with values are extremely scalable because the values must just be a {@link LongIterable} that
- * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
- * associates ordinal positions, and you want to build a new function for which a {@link LongList} of values needs little space (e.g.,
- * because it is described implicitly), you can use a constructor that accepts a {@link LongList} but uses the already built store. 
+ * <h3>Signing</h3>
  * 
+ * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an {@link MWHCFunction}.
+ * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
+ * is no way to associate a key with its signature). A <var>w</var>-bit signature will
+ * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
+ * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  * 
+ * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
+ * you can {@linkplain Builder#dictionary(int) turn the function into a dictionary}. In this case, the value associated
+ * by the function with a key is exactly its signature, which means that the only space used by the function is
+ * that occupied by signatures: this is one of the fastest and most compact way of storing a static dictionary.
+ * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
+ *  
  * <h2>Implementation Details</h2>
  * 
  * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges
@@ -122,9 +130,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
  * in a separate array, using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
  * 
- * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> elements requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
+ * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> keys requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
  * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently chose
+ * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
  * the most space-efficient method.
  * 
  * @author Sebastiano Vigna
@@ -136,12 +144,155 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final Logger LOGGER = LoggerFactory.getLogger( MWHCFunction.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
+
+	/** A builder class for {@link MWHCFunction}. */
+	public static class Builder<T> {
+		protected Iterable<? extends T> keys;
+		protected TransformationStrategy<? super T> transform;
+		protected int signatureWidth;
+		protected File tempDir;
+		protected ChunkedHashStore<T> chunkedHashStore;
+		private LongIterable values;
+		private int outputWidth = -1;
+		private boolean indirect;
+		/** Whether {@link #build()} has already been called. */
+		protected boolean built;
+
+		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		 * 
+		 * @param keys the keys of the function.
+		 * @return this builder.
+		 */
+		public Builder<T> keys( final Iterable<? extends T> keys ) {
+			this.keys = keys;
+			return this;
+		}
 		
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		 * 
+		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		 * @return this builder.
+		 */
+		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+			this.transform = transform;
+			return this;
+		}
+		
+		/** Specifies that the resulting {@link MWHCFunction} should be signed using a given number of bits per element;
+		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
+		 * 
+		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
+		 * @return this builder.
+		 */
+		public Builder<T> signed( final int signatureWidth ) {
+			this.signatureWidth = signatureWidth;
+			return this;
+		}
+		
+		/** Specifies that the resulting {@link MWHCFunction} should be a dictionary: the output value will be a signature,
+		 * and {@link MWHCFunction#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
+		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
+		 * 
+		 * <p>Note that checking against a signature has the usual probability of a false positive.
+		 * 
+		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #signed(int)} with the opposite argument).
+		 * @return this builder.
+		 */
+		public Builder<T> dictionary( final int signatureWidth ) {
+			this.signatureWidth = - signatureWidth;
+			return this;
+		}
+		
+		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		 * 
+		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @return this builder.
+		 */
+		public Builder<T> tempDir( final File tempDir ) {
+			this.tempDir = tempDir;
+			return this;
+		}
+		
+		/** Specifies a chunked hash store containing the keys.
+		 * 
+		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * @return this builder.
+		 */
+		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+			this.chunkedHashStore = chunkedHashStore;
+			return this;
+		}
+
+		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}.
+		 * 
+		 * <p>Contrarily to {@link #values(LongIterable)}, this method does not require a complete scan of the value
+		 * to determine the output width. 
+		 * 
+		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
+		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all {@code values}.
+		 * @return this builder.
+		 * @see #values(LongIterable)
+		 */
+		public Builder<T> values( final LongIterable values, final int outputWidth ) {
+			this.values = values;
+			this.outputWidth = outputWidth;
+			return this;
+		}
+		
+		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the function will
+		 * be the minimum width needed to represent all values.
+		 * 
+		 * <p>Contrarily to {@link #values(LongIterable, int)}, this method requires a complete scan of the value
+		 * to determine the output width.  
+		 * 
+		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
+		 * @return this builder.
+		 * @see #values(LongIterable,int)
+		 */
+		public Builder<T> values(  final LongIterable values ) {
+			this.values = values;
+			int outputWidth = 0;
+			for( LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
+			this.outputWidth = outputWidth;
+			return this;
+		}
+		
+		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(ChunkedHashStore) store} contains
+		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
+		 * 
+		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
+		 * 
+		 * @return this builder.
+		 */
+		public Builder<T> indirect() {
+			this.indirect = true;
+			return this;
+		}
+		
+
+		/** Builds a new function.
+		 * 
+		 * @return an {@link MWHCFunction} instance with the specified parameters.
+		 * @throws IllegalStateException if called more than once.
+		 */
+		public MWHCFunction<T> build() throws IOException {
+			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			built = true;
+			if ( transform == null ) {
+				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			}
+			return new MWHCFunction<T>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect );
+		}
+	}
+
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 10;
 	/** The shift for chunks. */
 	private final int chunkShift;
-	/** The number of elements. */
+	/** The number of keys. */
 	protected final long n;
 	/** The number of vertices of the intermediate hypergraph. */
 	protected final long m;
@@ -162,175 +313,207 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	protected final Rank16 rank;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	protected final TransformationStrategy<? super T> transform;
+	/** The mask to compare signatures, or zero for no signatures. */
+	protected final long signatureMask;
+	/** The signatures. */
+	protected final LongBigList signatures; 
 
-	/** Creates a new function for the given elements that will map them to their ordinal position.
+
+	/** Creates a new function for the given keys that will map them to their ordinal position.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or <code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, null, -1, null, chunkedHashStore, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, 0, null, -1, null, chunkedHashStore, false );
 	}
 
-	/** Creates a new function for the given elements that will map them to their ordinal position.
+	/** Creates a new function for the given keys that will map them to their ordinal position.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the elements, or <code>null</code>. 
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or <code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, null, -1, tempDir, chunkedHashStore, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, 0, null, -1, tempDir, chunkedHashStore, false );
 	}
 
-	/** Creates a new function for the given elements that will map them to their ordinal position.
+	/** Creates a new function for the given keys that will map them to their ordinal position.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, null, -1, null, null, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( keys, transform, 0, null, -1, null, null, false );
 	}
 
-	/** Creates a new function for the given elements that will map them to their ordinal position.
+	/** Creates a new function for the given keys that will map them to their ordinal position.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
-		this( elements, transform, tempDir, null );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+		this( keys, transform, tempDir, null );
 	}
 
-	/** Creates a new function for the given elements and values.
+	/** Creates a new function for the given keys and values.
 	 * 
 	 * <p><strong>Warning</strong>: if you were using this constructor before Sux4J 2.1, you should switch
 	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)}, as the
 	 * semantics has changed (see the {@linkplain MWHCFunction class documentation}).
 	 * 
-	 * @param elements the elements in the domain of the function, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param chunkedHashStore a chunked hash store containing the elements associated with their value, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, values, width, null, chunkedHashStore, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, 0, values, width, null, chunkedHashStore, false );
 	}
 
-	/** Creates a new function for the given elements and values.
+	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the elements associated with their value, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( elements, transform, values, width, tempDir, chunkedHashStore, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, final ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, 0, values, width, tempDir, chunkedHashStore, false );
 	}
 
-	/** Creates a new function for the given elements and values.
+	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width ) throws IOException {
-		this( elements, transform, values, width, null, null, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final int width ) throws IOException {
+		this( keys, transform, 0, values, width, null, null, false );
 	}
 
-	/** Creates a new function for the given elements and values.
+	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir ) throws IOException {
-		this( elements, transform, values, width, tempDir, null, false );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir ) throws IOException {
+		this( keys, transform, 0, values, width, tempDir, null, false );
 	}
 
 	/** Creates a new function using a given checked chunked hash store.
 	 * 
-	 * @param transform a transformation strategy for the elements.
-	 * @param chunkedHashStore a checked chunked hash store containing the elements associated with their value. 
+	 * @param transform a transformation strategy for the keys.
+	 * @param chunkedHashStore a checked chunked hash store containing the keys associated with their value. 
 	 * @param width the bit width of the values contained in <code>chunkedHashStore</code>.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
+	@Deprecated
 	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, int width ) throws IOException {
-		this( null, transform, null, width, null, chunkedHashStore, false );
+		this( null, transform, 0, null, width, null, chunkedHashStore, false );
 	}
 
 
-	/** Creates a new function for the given elements using a chunked hash store containing ordinal positions.
+	/** Creates a new function for the given keys using a chunked hash store containing ordinal positions.
 	 * 
-	 * @param elements the elements in the domain of the function, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
-		this( elements, transform, values, width, null, chunkedHashStore, true );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
+		this( keys, transform, 0, values, width, null, chunkedHashStore, true );
 	}
 
-	/** Creates a new function for the given elements using a chunked hash store containing ordinal positions.
+	/** Creates a new function for the given keys using a chunked hash store containing ordinal positions.
 	 * 
-	 * @param elements the elements in the domain of the function, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
 	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
-		this( elements, transform, values, width, tempDir, chunkedHashStore, true );
+	@Deprecated
+	public MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
+		this( keys, transform, 0, values, width, tempDir, chunkedHashStore, true );
 	}
-
 
 	
 	/** Creates a new function using a given checked chunked hash store containing ordinal positions and a list of values.
 	 * 
-	 * @param transform a transformation strategy for the elements.
-	 * @param chunkedHashStore a checked chunked hash store containing the elements associated with their ordinal position. 
+	 * @param transform a transformation strategy for the keys.
+	 * @param chunkedHashStore a checked chunked hash store containing the keys associated with their ordinal position. 
 	 * @param values values to be assigned to each element.
 	 * @param width the bit width of the <code>values</code>.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
+	@Deprecated
 	public MWHCFunction( final TransformationStrategy<? super T> transform, final ChunkedHashStore<T> chunkedHashStore, final LongIterable values, final int width ) throws IOException {
-		this( null, transform, values, width, null, chunkedHashStore, true );
+		this( null, transform, 0, values, width, null, chunkedHashStore, true );
 	}
 
-	/** Creates a new function for the given elements and values.
+	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function, or <code>null</code>.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
+	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param transform a transformation strategy for the keys.
+	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param chunkedHashStore a chunked hash store containing the elements associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>elements</code> and <code>transform</code> must be non-<code>null</code>. 
-	 * @param override if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
-	protected MWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean override ) throws IOException {
+	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect ) throws IOException {
 		this.transform = transform;
+
+		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
+		if ( signatureWidth != 0 && width != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
 		
-		// If we have no elements, values must be a random-access list of longs.
-		final LongBigList valueList = override ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
+		// If we have no keys, values must be a random-access list of longs.
+		final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
@@ -340,14 +523,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( ! givenChunkedHashStore ) {
-			if ( elements == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the elements" );
-			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, pl );
+			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
+			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, - Math.min( signatureWidth, 0 ), pl );
 			chunkedHashStore.reset( r.nextLong() );
-			if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
-			else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
+			if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
+			else chunkedHashStore.addAll( keys.iterator(), values != null ? values.iterator() : null );
 		}
 		n = chunkedHashStore.size();
-		defRetValue = -1; // For the very few cases in which we can decide
+		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default resturn value.
 
 		if ( n == 0 ) {
 			m = this.globalSeed = chunkShift = this.width = 0;
@@ -356,6 +539,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			rank = null;
 			seed = null;
 			offset = null;
+			signatureMask = 0;
+			signatures = null;
 			return;
 		}
 
@@ -368,7 +553,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		seed = new long[ numChunks ];
 		offset = new long[ numChunks + 1 ];
 		
-		this.width = width == -1 ? Fast.ceilLog2( n ) : width;
+		this.width = signatureWidth < 0 ? -signatureWidth : width == -1 ? Fast.ceilLog2( n ) : width;
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
@@ -411,9 +596,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						x = stack[ --top ];
 						k = edge[ x ];
 						final long s = data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] );
-						final long value = override ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
+						final long value = indirect ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
 						data.set( x, value ^ s );
-						
+
 						if ( ASSERTS ) assert ( value == ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) ) ) :
 							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) );
 					}
@@ -427,13 +612,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				break;
 			}
 			catch( ChunkedHashStore.DuplicateException e ) {
-				if ( elements == null ) throw new IllegalStateException( "You provided no elements, but the chunked hash store was not checked" );
+				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
 				pl.itemsName = "keys";
-				if ( values == null || override ) chunkedHashStore.addAll( elements.iterator() );
-				else chunkedHashStore.addAll( elements.iterator(), values != null ? values.iterator() : null );
+				if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
+				else chunkedHashStore.addAll( keys.iterator(), values != null ? values.iterator() : null );
 			}
 		}
 
@@ -441,8 +626,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		globalSeed = chunkedHashStore.seed();
 
-		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
-		
 		// Check for compaction
 		long nonZero = 0;
 		m = offset[ offset.length - 1 ];
@@ -507,7 +690,35 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		}
 		
 		offlineData.close();
+		
+		if ( signatureWidth > 0 ) {
+			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
+			pl.expectedUpdates = n;
+			pl.itemsName = "signatures";
+			pl.start( "Signing..." );
+			for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+				Iterator<long[]> iterator3 = chunk.iterator();
+				for( int i = chunk.size(); i-- != 0; ) { 
+					final long[] triple = iterator3.next();
+					final int[] e = new int[ 3 ];
+					signatures.set( getLongByTripleNoCheck( triple, e ), signatureMask & triple[ 0 ] );
+					pl.lightUpdate();
+				}
+			}
+			pl.done();
+		}
+		else if ( signatureWidth < 0 ) {
+			signatureMask = -1L >>> Long.SIZE + signatureWidth;
+			signatures = null;
+		}
+		else {
+			signatureMask = 0;
+			signatures = null;
+		}
 
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
+		
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
 				HypergraphSorter.GAMMA * this.width :
@@ -526,13 +737,27 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
-		return rank == null ?
+		
+		final long result = rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
 				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
 				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
+		if ( signatureMask == 0 ) return result;
+		// Out-of-set strings can generate bizarre 3-hyperedges.
+		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
 	
+	/** Low-level access to the output of this function.
+	 *
+	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
+	 * then retrieve the resulting values by generating a single triple of hashes. The method 
+	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 *
+	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
+	 * @return the output of the function.
+	 */
 	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
@@ -541,6 +766,24 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
+		final long result = rank == null ?
+				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
+				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
+				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
+				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
+		if ( signatureMask == 0 ) return result;
+		// Out-of-set strings can generate bizarre 3-hyperedges.
+		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
+	}
+	
+	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
+	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
+	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+		final long chunkOffset = offset[ chunk ];
+		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		return rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
@@ -550,9 +793,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	
 
 	
-	/** Returns the number of elements in the function domain.
+	/** Returns the number of keys in the function domain.
 	 *
-	 * @return the number of the elements in the function domain.
+	 * @return the number of the keys in the function domain.
 	 */
 	public long size64() {
 		return n;
@@ -575,7 +818,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.
 	 * 
 	 * @param function the function to be copied.
+	 * @deprecated Unused.
 	 */
+	@Deprecated
 	protected MWHCFunction( final MWHCFunction<T> function ) {
 		this.n = function.n;
 		this.m = function.m;
@@ -588,6 +833,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.rank = function.rank;
 		this.marker = function.marker;
 		this.transform = function.transform.copy();
+		this.signatureMask = function.signatureMask;
+		this.signatures = function.signatures;
 	}
 	
 	public boolean containsKey( final Object o ) {
@@ -602,6 +849,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new FlaggedOption( "width", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'w', "width", "If specified, the signature width in bits." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
@@ -617,6 +865,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
+		final int signatureWidth = jsapResult.getInt( "width", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -636,10 +885,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		if ( jsapResult.userSpecified( "values" ) ) {
 			final String values = jsapResult.getString( "values" );
-			int width = 0;
-			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) width = Math.max( width, Fast.length( i.nextLong() ) );
+			int dataWidth = 0;
+			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( signatureWidth, Fast.length( i.nextLong() ) );
 
-			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, BinIO.asLongIterable( values ), width, jsapResult.getFile( "tempDir" ) ), functionName );
+			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, BinIO.asLongIterable( values ), dataWidth, jsapResult.getFile( "tempDir" ) ), functionName );
 		}
 					
 		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir" ) ), functionName ); 

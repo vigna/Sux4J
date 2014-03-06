@@ -1,3 +1,18 @@
+3.1
+
+- MinimalPerfectHashFunction, MWHCFunction and
+  LcpMonotoneMinimalPerfectHashing have now built-in signing. The effort
+  was relatively small, and the gain in speed is huge, as we can use
+  part of the hash computed by the ChunkedHashStore as a signature.
+
+- New "dictionary" option in MWHCFunction which stores the signature as a
+  value. It gives the fastest and most compact probabilistic dictionary.
+
+- Big switch to builders for MinimalPerfectHashFunction, MWHCFunction and
+  LcpMonotoneMinimalPerfectHashing. As a final goal, multiple constructors
+  will be eliminated in favour of Guava-style static nested Builder
+  classes.
+
 3.0.11
 
 - Now we use XorShift1024StarRandom everywhere.

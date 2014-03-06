@@ -447,8 +447,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			}
 		};
 
-		externalBehaviour = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( externalKeysFile ), externalTestFunction, externalValues ), TransformationStrategies.identity(), externalValues, 1 );
-		falseFollowsDetector = new MWHCFunction<BitVector>( new IterableStream( new InputBitStream( falseFollowsKeyFile ), falseFollows, falseFollowsValues ), TransformationStrategies.identity(), falseFollowsValues, 1 );
+		externalBehaviour = new MWHCFunction.Builder<BitVector>().keys( new IterableStream( new InputBitStream( externalKeysFile ), externalTestFunction, externalValues ) ).transform( TransformationStrategies.identity() ).values( externalValues, 1 ).build();
+		falseFollowsDetector = new MWHCFunction.Builder<BitVector>().keys( new IterableStream( new InputBitStream( falseFollowsKeyFile ), falseFollows, falseFollowsValues ) ).transform( TransformationStrategies.identity() ).values( falseFollowsValues, 1 ).build();
 
 		if ( ASSERTS ) {
 			assert externalBehaviour.size64() == externalTestFunction.size();

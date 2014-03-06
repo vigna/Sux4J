@@ -142,14 +142,14 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		distributor = new HollowTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
-		offset = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
+		offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketMask; 
 			}
 			public long size64() {
 				return size;
 			}
-		}, log2BucketSize );
+		}, log2BucketSize ).build();
 
 		
 		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GAMMA ) ) + Fast.log2( 4 + Fast.log2( averageLength ) + 1 + Fast.log2( Fast.log2( averageLength + 1 ) + 1 ) ) ) );

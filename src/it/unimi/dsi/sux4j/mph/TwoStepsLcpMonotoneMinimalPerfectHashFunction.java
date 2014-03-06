@@ -200,7 +200,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}
 
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction<BitVector>( lcps, TransformationStrategies.identity() );
+		lcp2Bucket = new MWHCFunction.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -218,14 +218,14 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsets = new MWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), chunkedHashStore, new AbstractLongBigList() {
+		offsets = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
 			public long size64() {
 				return n;
 			}
-		}, log2BucketSize );
+		}, log2BucketSize ).indirect().build();
 
 		this.lcpLengths = new TwoStepsMWHCFunction<BitVector>( bitVectors, TransformationStrategies.identity(), new AbstractLongBigList() {
 			public long getLong( long index ) {

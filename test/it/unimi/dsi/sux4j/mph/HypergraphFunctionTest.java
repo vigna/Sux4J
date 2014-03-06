@@ -25,7 +25,7 @@ public class HypergraphFunctionTest {
 			for ( int i = s.length; i-- != 0; )
 				s[ (int)( v[ i ] = i ) ] = Integer.toString( i );
 
-			MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
+			MWHCFunction<String> function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
 
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
@@ -37,7 +37,7 @@ public class HypergraphFunctionTest {
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
 
-			function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), null, 12 );
+			function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).build();
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
 		}
@@ -57,7 +57,7 @@ public class HypergraphFunctionTest {
 		for ( int i = s.length; i-- != 0; )
 			s[ (int)( v[ i ] = i ) ] = binary( i );
 
-		MWHCFunction<String> function = new MWHCFunction<String>( Arrays.asList( s ), TransformationStrategies.utf16(), LongArrayList.wrap( v ), 12 );
+		MWHCFunction<String> function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
 
 		int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );

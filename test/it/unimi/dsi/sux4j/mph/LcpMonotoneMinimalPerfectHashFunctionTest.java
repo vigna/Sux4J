@@ -19,49 +19,53 @@ public class LcpMonotoneMinimalPerfectHashFunctionTest {
 		return s.substring( s.length() - 32 );
 	}
 
+	private void check( String[] s, int size, LcpMonotoneMinimalPerfectHashFunction<String> mph, int signatureWidth ) {
+		for ( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+		// Exercise code for negative results
+		if ( signatureWidth == 0 ) for ( int i = size; i-- != 0; ) mph.getLong( binary( i + size ) );
+		else for ( int i = size; i-- != 0; ) assertEquals( -1, mph.getLong( binary( i + size ) ) );
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 
-		String[] s = new String[ 1000 ];
-		int[] v = new int[ s.length ];
-		for ( int i = s.length; i-- != 0; )
-			s[ v[ i ] = i ] = binary( i );
+		for ( int size = 1000; size < 10000000; size *= 10 ) {
+			for ( int signatureWidth: new int[] { 0, 32, 64 } ) {
+				System.err.println( "Size: " + size + " Signature width: " + signatureWidth );
+				String[] s = new String[ size ];
+				int[] v = new int[ s.length ];
+				for ( int i = s.length; i-- != 0; )
+					s[ v[ i ] = i ] = binary( i );
 
-		LcpMonotoneMinimalPerfectHashFunction<String> mph = new LcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+				LcpMonotoneMinimalPerfectHashFunction<String> mph = new LcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.prefixFreeUtf16() ).signed( signatureWidth ).build();
 
-		for ( int i = s.length; i-- != 0; )
-			assertEquals( i, mph.getLong( s[ i ] ) );
+				check( s, size, mph, signatureWidth );
 
-		// Exercise code for negative results
-		for ( int i = 1000; i-- != 0; )
-			mph.getLong( binary( i * i + 1000 ) );
+				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
+				mph = (LcpMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 
-		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (LcpMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; )
-			assertEquals( i, mph.getLong( s[ i ] ) );
+				check( s, size, mph, signatureWidth );
 
+				mph = new LcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) ).signed( signatureWidth ).build();
 
-		mph = new LcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+				check( s, size, mph, signatureWidth );
 
-		for ( int i = s.length; i-- != 0; )
-			assertEquals( i, mph.getLong( s[ i ] ) );
+				temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
 
-		temp = File.createTempFile( getClass().getSimpleName(), "test" );
-		temp.deleteOnExit();
-		BinIO.storeObject( mph, temp );
-		mph = (LcpMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-		for ( int i = s.length; i-- != 0; )
-			assertEquals( i, mph.getLong( s[ i ] ) );
-
+				check( s, size, mph, signatureWidth );
+			}
+		}
 	}
-	
+
 	@Test
 	public void testEmpty() throws IOException {
-		LcpMonotoneMinimalPerfectHashFunction<String> mph = new LcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( new String[] {} ), TransformationStrategies.prefixFreeUtf16() );
+		LcpMonotoneMinimalPerfectHashFunction<String> mph = new LcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys( Arrays.asList( new String[] {} ) ).transform( TransformationStrategies.prefixFreeUtf16() ).build();
 		assertEquals( -1, mph.getLong( "" ) );
 	}
 }
