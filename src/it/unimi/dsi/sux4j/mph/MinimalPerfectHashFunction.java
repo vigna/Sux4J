@@ -598,7 +598,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 				new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-				new FlaggedOption( "width", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'w', "width", "If specified, the signature width in bits." ),
+				new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
 				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
 				new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
@@ -613,7 +613,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int width = jsapResult.getInt( "width", 0 ); 
+		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -631,7 +631,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, width, jsapResult.getFile( "tempDir"), null ), functionName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
 		LOGGER.info( "Saved." );
 	}
 }

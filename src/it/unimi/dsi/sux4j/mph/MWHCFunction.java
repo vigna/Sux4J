@@ -849,7 +849,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new FlaggedOption( "width", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'w', "width", "If specified, the signature width in bits." ),
+			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
@@ -865,7 +865,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "width", 0 ); 
+		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -888,10 +888,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			int dataWidth = 0;
 			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( signatureWidth, Fast.length( i.nextLong() ) );
 
-			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, BinIO.asLongIterable( values ), dataWidth, jsapResult.getFile( "tempDir" ) ), functionName );
+			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, jsapResult.getFile( "tempDir" ), null, false ), functionName );
 		}
 					
-		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, jsapResult.getFile( "tempDir" ) ), functionName ); 
+		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, jsapResult.getFile( "tempDir" ), null, false ), functionName ); 
 		LOGGER.info( "Completed." );
 	}
 }
