@@ -82,7 +82,7 @@ public class FunctionSpeedTest {
 				long time = -System.nanoTime();
 				for( int i = 0; i < n; i++ ) {
 					function.getLong( test[ i ] );
-					if ( i++ % 100000 == 0 ) System.out.print('.');
+					if ( i % 100000 == 0 ) System.out.print('.');
 				}
 				System.out.println();
 				time += System.nanoTime();
