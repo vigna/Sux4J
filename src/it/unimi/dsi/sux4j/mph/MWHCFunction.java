@@ -862,6 +862,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
@@ -888,10 +889,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			int dataWidth = 0;
 			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( signatureWidth, Fast.length( i.nextLong() ) );
 
-			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, jsapResult.getFile( "tempDir" ), null, false ), functionName );
+			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false ), functionName );
 		}
 					
-		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, jsapResult.getFile( "tempDir" ), null, false ), functionName ); 
+		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false ), functionName ); 
 		LOGGER.info( "Completed." );
 	}
 }

@@ -65,6 +65,7 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
@@ -398,7 +399,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
-		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
+		final BitVector bitVector = transform.toBitVector( (T)o );
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( bitVector, seed, triple );
 		final long value = offsetLcpLength.getLongByTriple( triple );
@@ -431,9 +432,11 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
@@ -445,10 +448,12 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
+		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -467,7 +472,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 				: utf32
 					? TransformationStrategies.prefixFreeUtf32()
 					: TransformationStrategies.prefixFreeUtf16();
-		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
+		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, -1, transformationStrategy, signatureWidth, tempDir ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }
