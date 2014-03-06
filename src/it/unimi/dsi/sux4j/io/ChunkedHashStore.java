@@ -31,6 +31,8 @@ import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.Hashes;
+import it.unimi.dsi.sux4j.mph.MWHCFunction;
+import it.unimi.dsi.sux4j.mph.MWHCFunction.Builder;
 import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 import it.unimi.dsi.util.XorShift1024StarRandom;
 
@@ -57,9 +59,15 @@ import org.slf4j.LoggerFactory;
  * <p>A chunked hash store accumulates objects of type <code>T</code> by turning them into bit vectors (using a provided {@link TransformationStrategy})
  * and then hashing such vectors into a triple of longs (i.e., overall we get a hash of 192 bits). 
  * Elements can be added {@linkplain #add(Object, long) one by one}
- * or {@linkplain #addAll(Iterator, LongIterator) in batches}. Besides the hashes, we store some data associated with each element:
- * if no data is specified, we store the <em>offset</em> of each element added (the first element added has offset 0,
- * the second one has offset 1, and so on). Elements must be distinct, or, more precisely, they must be transformed into distinct bit vectors.
+ * or {@linkplain #addAll(Iterator, LongIterator) in batches}. 
+ * Elements must be distinct, or, more precisely, they must be transformed into distinct bit vectors.
+ * 
+ * <p>Besides the hashes, we store some data associated with each element:
+ * if {@linkplain #add(Object) no data is specified}, we store the <em>rank</em> of each element added (the first element added has rank 0,
+ * the second one has rank 1, and so on), unless you specified at {@linkplain #ChunkedHashStore(TransformationStrategy, File, int, ProgressLogger) construction time}
+ * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the triple
+ * associated with the object (the hash width is the number of bits stored). This feature makes it possible, for example, to implement a static
+ * {@linkplain Builder#dictionary(int) dictionary} using an {@link MWHCFunction}.
  * 
  * <p>Once all elements have been added, they can be gathered into <em>chunks</em> whose 
  * tentative size can be set by calling {@link #log2Chunks(int)}. More precisely,
@@ -163,6 +171,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private final TransformationStrategy<? super T> transform;
 	/** A progress logger. */
 	private final ProgressLogger pl;
+	/** If nonzero, no associated data is saved in the store: {@link Chunk#data(long)} will return the first of the three hashes associated with the key, masked by this value. */
+	private final long hashMask;
 	/** The data output streams for the disk chunks. */
 	private DataOutputStream[] dos;
 	/** The number of disk chunks divided by {@link #diskChunkStep}. */
@@ -200,7 +210,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
 		this( transform, null, pl );
 	}
-		
+
 	/** Creates a chunked hash store with given transformation strategy and progress logger.
 	 * 
 	 * @param transform a transformation strategy for the elements.
@@ -208,9 +218,23 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir , final ProgressLogger pl ) throws IOException {
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final ProgressLogger pl ) throws IOException {
+		this( transform, tempDir, 0, pl );
+	}
+	
+	/** Creates a chunked hash store with given transformation strategy and progress logger.
+	 * 
+	 * @param transform a transformation strategy for the elements.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the current directory.
+	 * @param hashWidth if nonzero, no associated data is saved in the store: {@link Chunk#data(long)} will return this many lower bits
+	 * of the first of the three hashes associated with the key. 
+	 * @param pl a progress logger, or <code>null</code>.
+	 */
+
+	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final int hashWidth, final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
+		this.hashMask = hashWidth == 0 ? 0 : -1L >>> Long.SIZE - hashWidth;
 		
 		file = new File[ DISK_CHUNKS ];
 		dos = new DataOutputStream[ DISK_CHUNKS ];
@@ -234,8 +258,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		return seed;
 	}
 	
+	/** Return the transformation strategy provided at construction time. 
+	 * @return the transformation strategy provided at construction time. */
+	public TransformationStrategy<? super T> transform() {
+		return transform;
+	}
 	
-	/** Adds an element to this store.
+	/** Adds an element to this store, associating it with a specified value.
 	 * 
 	 * @param o the element to be added.
 	 * @param value the associated value.
@@ -267,11 +296,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		dos[ chunk ].writeLong( triple[ 0 ] );
 		dos[ chunk ].writeLong( triple[ 1 ] );
 		dos[ chunk ].writeLong( triple[ 2 ] );
-		dos[ chunk ].writeLong( value );
+		if ( hashMask == 0 ) dos[ chunk ].writeLong( value );
 		if ( n != -1 && ( filter == null || filter.evaluate( triple ) ) ) n++;
 	}
 	
-	/** Adds the elements returned by an iterator to this store.
+	/** Adds the elements returned by an iterator to this store, associating them with specified values.
 	 * 
 	 * @param elements an iterator returning elements.
 	 */
@@ -287,7 +316,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		if ( pl != null ) pl.done();
 	}
 
-	/** Adds the elements returned by an iterator to this store.
+	/** Adds the elements returned by an iterator to this store, associating them with their ordinal position.
 	 * 
 	 * @param elements an iterator returning elements.
 	 */
@@ -315,7 +344,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 						triple[ 0 ] = dis.readLong();
 						triple[ 1 ] = dis.readLong();
 						triple[ 2 ] = dis.readLong();
-						dis.readLong();
+						if ( hashMask == 0 ) dis.readLong();
 						if ( filter.evaluate( triple ) ) c++;
 					}
 					dis.close();
@@ -425,6 +454,9 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	
 	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
 	 * 
+	 * <p><strong>Warning</strong>: the actions are executed exactly in the specified order&mdash;<em>first</em>
+	 * check, <em>then</em> retry. If you invoke this method on an empty store you'll get a checked empty store.
+	 * 
 	 * @param iterable the elements with which the store will be refilled if there are duplicate triples. 
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
@@ -479,11 +511,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		private final long[] buffer1;
 		private final long[] buffer2;
 		private final long[] data;
+		private final long hashMask;
 		
-		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final int start, final int end ) {
+		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end ) {
 			this.start = start;
 			this.end = end;
 			this.data = data;
+			this.hashMask = hashMask;
 			this.buffer0 = buffer0;
 			this.buffer1 = buffer1;
 			this.buffer2 = buffer2;
@@ -507,7 +541,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 */
 		
 		public long data( final long k ) {
-			return data[ (int)( start + k ) ];
+			return data != null ? data[ (int)( start + k ) ] : ( buffer0[ (int)( start + k ) ] & hashMask );
 		}
 		
 		
@@ -531,7 +565,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					quadruple[ 0 ] = buffer0[ pos ];
 					quadruple[ 1 ] = buffer1[ pos ];
 					quadruple[ 2 ] = buffer2[ pos ];
-					quadruple[ 3 ] = data[ pos ];
+					quadruple[ 3 ] = data != null ? data[ pos ] : buffer0[ pos ] & hashMask;
 					pos++;
 					return quadruple;
 				}
@@ -555,6 +589,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	
 	public Iterator<Chunk> iterator() {
+		if ( closed ) throw new IllegalStateException( "This " + getClass().getSimpleName() + " has been closed " );
 		for( DataOutputStream d: dos )
 			try {
 				d.flush();
@@ -580,7 +615,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			private final long[] buffer0 = new long[ maxCount ];
 			private final long[] buffer1 = new long[ maxCount ];
 			private final long[] buffer2 = new long[ maxCount ];
-			private final long[] data = new long[ maxCount ];
+			private final long[] data = hashMask != 0 ? null : new long[ maxCount ];
 			
 			public boolean hasNext() {
 				return chunk < chunks;
@@ -624,10 +659,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 								buffer0[ count ] = triple[ 0 ]; 
 								buffer1[ count ] = triple[ 1 ]; 
 								buffer2[ count ] = triple[ 2 ]; 
-								data[ count ] = dis.readLong();
+								if ( hashMask == 0 ) data[ count ] = dis.readLong();
 								count++;
 							}
-							else dis.readLong(); // Discard data
+							else if ( hashMask == 0 ) dis.readLong(); // Discard data
 						}
 						
 						chunkSize = count;
@@ -645,15 +680,17 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					new Swapper() {
 						public void swap( final int x, final int y ) {
 							final long e0 = buffer0[ x ], e1 = buffer1[ x ], e2 = buffer2[ x ];
-							final long v = data[ x ];
 							buffer0[ x ] = buffer0[ y ];
 							buffer1[ x ] = buffer1[ y ];
 							buffer2[ x ] = buffer2[ y ];
-							data[ x ] = data[ y ];
 							buffer0[ y ] = e0;
 							buffer1[ y ] = e1;
 							buffer2[ y ] = e2;
-							data[ y ] = v;
+							if ( hashMask == 0 ) {
+								final long v = data[ x ];
+								data[ x ] = data[ y ];
+								data[ y ] = v;
+							}
 						}
 					});
 
@@ -671,7 +708,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				while( last < chunkSize && ( chunkShift == Long.SIZE ? 0 : buffer0[ last ] >>> chunkShift ) == chunk ) last++;
 				chunk++;
 
-				return new Chunk( buffer0, buffer1, buffer2, data, start, last );
+				return new Chunk( buffer0, buffer1, buffer2, data, hashMask, start, last );
 			}
 		};
 	}
