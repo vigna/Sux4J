@@ -13,7 +13,7 @@ public class LcpMonotoneMinimalPerfectHashFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final LcpMonotoneMinimalPerfectHashFunction<Long> f = new LcpMonotoneMinimalPerfectHashFunction<Long>( p, TransformationStrategies.fixedLong() );
+		final LcpMonotoneMinimalPerfectHashFunction<Long> f = new LcpMonotoneMinimalPerfectHashFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).build();
 				
 		long j = 0;
 		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {

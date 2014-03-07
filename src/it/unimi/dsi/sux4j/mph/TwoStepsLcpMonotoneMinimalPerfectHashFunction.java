@@ -105,6 +105,13 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
 	}
 
+	public long getLongByBitVectorAndTriple( final BitVector bitVector, final long[] triple ) {
+		if ( n == 0 ) return defRetValue;
+		final long prefix = lcpLengths.getLongByTriple( triple ); 
+		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
+		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
+	}
+
 	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( iterable, -1, transform );
 	}

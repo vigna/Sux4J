@@ -13,7 +13,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<Long>( p, TransformationStrategies.fixedLong() );
+		final ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).build();
 				
 		long j = 0;
 		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {
