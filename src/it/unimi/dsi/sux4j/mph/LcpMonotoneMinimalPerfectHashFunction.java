@@ -423,10 +423,6 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		return offsetLcpLength.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
-	public boolean hasTerms() {
-		return false;
-	}
-
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",

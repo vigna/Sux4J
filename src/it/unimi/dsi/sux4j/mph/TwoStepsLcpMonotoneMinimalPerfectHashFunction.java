@@ -94,24 +94,6 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	/** The seed to be used when converting keys to triples. */
 	private long seed;
 	
-	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( n == 0 ) return defRetValue;
-		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
-		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
-		final long prefix = lcpLengths.getLongByTriple( triple ); 
-		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
-		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
-	}
-
-	public long getLongByBitVectorAndTriple( final BitVector bitVector, final long[] triple ) {
-		if ( n == 0 ) return defRetValue;
-		final long prefix = lcpLengths.getLongByTriple( triple ); 
-		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
-		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
-	}
-
 	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( iterable, -1, transform );
 	}
@@ -297,9 +279,24 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		return offsets.numBits() + lcpLengths.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
-	public boolean hasTerms() {
-		return false;
+	@SuppressWarnings("unchecked")
+	public long getLong( final Object o ) {
+		if ( n == 0 ) return defRetValue;
+		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
+		final long prefix = lcpLengths.getLongByTriple( triple ); 
+		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
+		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
 	}
+
+	public long getLongByBitVectorAndTriple( final BitVector bitVector, final long[] triple ) {
+		if ( n == 0 ) return defRetValue;
+		final long prefix = lcpLengths.getLongByTriple( triple ); 
+		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
+		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );
+	}
+
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
@@ -335,10 +332,10 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
-				? TransformationStrategies.iso() 
+				? TransformationStrategies.prefixFreeIso()
 				: utf32 
-					? TransformationStrategies.utf32()
-					: TransformationStrategies.utf16();
+					? TransformationStrategies.prefixFreeUtf32()
+					: TransformationStrategies.prefixFreeUtf16();
 
 		BinIO.storeObject( new TwoStepsLcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy ), functionName );
 		LOGGER.info( "Completed." );

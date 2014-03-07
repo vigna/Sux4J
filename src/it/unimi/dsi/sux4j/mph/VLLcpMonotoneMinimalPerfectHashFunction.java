@@ -279,9 +279,6 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		return offsets.size64() * log2BucketSize + lcpLengths.numBits() + lcp2Bucket.numBits() + mph.numBits() + transform.numBits();
 	}
 
-	public boolean hasTerms() {
-		return false;
-	}
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
