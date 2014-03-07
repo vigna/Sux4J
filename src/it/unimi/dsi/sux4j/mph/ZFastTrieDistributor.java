@@ -543,7 +543,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
 					long h = Hashes.jenkins( curr, seed );
-					mistakeSignatures.add( (int)( h ^ h >>> 32 ) );
+					mistakeSignatures.add( (int)h );
 					mistakes++;
 				}
 
@@ -564,7 +564,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			
 			for( BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
 				long h = Hashes.jenkins( curr, seed );
-				if ( mistakeSignatures.contains( (int)( h ^ h >>> 32 ) ) ) {
+				if ( mistakeSignatures.contains( (int)h ) ) {
 					positives.add( curr.copy() );
 					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) ); 
 				}
@@ -622,7 +622,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
 		
 		final long corr = Hashes.jenkins( v, v.length(), a, b, c );
-		if ( mistakeSignatures.contains( (int)( corr ^ corr >>> 32 ) ) ) {
+		if ( mistakeSignatures.contains( (int)corr ) ) {
 			if ( DEBUG ) System.err.println( "Correcting..." );
 			return corrections.getLong( v );
 		}
@@ -631,13 +631,15 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		long l = 0;
 		int i = Fast.mostSignificantBit( r );
 		long mask = 1L << i;
+		final long triple[] = new long[ 3 ];
 		while( r - l > 1 ) {
 			if ( ASSERTS ) assert i > -1;
 			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i );
-				long data = signatures.getLong( v.subVector( 0, f ) );
+				Hashes.jenkins( v, f, a, b, c, triple );
+				final long data = signatures.getLongByTriple( triple );
 				
 				if ( data == -1 ) {
 					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
@@ -651,7 +653,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 						r = f;
 					}
 					else {
-						long h = Hashes.jenkins( v, g, a, b, c );
+						final long h = Hashes.jenkins( v, g, a, b, c );
 						
 						if ( ASSERTS ) assert h == Hashes.jenkins( v.subVector( 0, g ), seed );
 
@@ -673,9 +675,10 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	public long getLong( final Object o ) {
 		final BitVector bv = (BitVector)o;
+		final long state[][] = Hashes.preprocessJenkins( bv, seed );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bv, seed, triple );
-		return 0;// TODO getLongByBitVectorAndTriple( bv, triple );
+		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
+		return getLongByBitVectorAndTriple( bv, triple, state );
 	}
 
 	public long getLongByBitVectorAndTriple( final BitVector v, final long[] triple, final long[][] state ) {
