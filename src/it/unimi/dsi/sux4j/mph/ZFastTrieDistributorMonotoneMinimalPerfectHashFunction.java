@@ -279,10 +279,11 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
+		long state[][] = Hashes.preprocessJenkins( bv, seed );
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( bv, seed, triple );
 
-		final long bucket = distributor.getLongByBitVectorAndTriple( bv, triple );
+		final long bucket = distributor.getLongByBitVectorAndTriple( bv, triple, state );
 		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
 		if ( signatureMask != 0 ) return result < 0 || result >= size || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.

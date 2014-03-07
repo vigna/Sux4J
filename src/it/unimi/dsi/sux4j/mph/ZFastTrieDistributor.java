@@ -612,11 +612,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		
 	}
 
-	
 	private long getNodeStringLength( BitVector v ) {
+		return getNodeStringLength( v, Hashes.preprocessJenkins( v, seed ) );
+	}
+	
+	private long getNodeStringLength( BitVector v, final long[][] state ) {
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
 		
-		long state[][] = Hashes.preprocessJenkins( v, seed );
 		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
 		
 		final long corr = Hashes.jenkins( v, v.length(), a, b, c );
@@ -673,14 +675,14 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		final BitVector bv = (BitVector)o;
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( bv, seed, triple );
-		return getLongByBitVectorAndTriple( bv, triple );
+		return 0;// TODO getLongByBitVectorAndTriple( bv, triple );
 	}
 
-	public long getLongByBitVectorAndTriple( final BitVector v, final long[] triple ) {
+	public long getLongByBitVectorAndTriple( final BitVector v, final long[] triple, final long[][] state ) {
 		if ( noDelimiters ) return 0;
 		final int b = (int)behaviour.getLongByTriple( triple );
 		if ( emptyTrie ) return b;
-		final long length = getNodeStringLength( v );
+		final long length = getNodeStringLength( v, state );
 		if ( DDDEBUG ) System.err.println( "getNodeStringLength( v )=" + length );
 		final BitVector key = v.subVector( 0, length ).copy();
 		if ( length >= v.length() ) return -1;
