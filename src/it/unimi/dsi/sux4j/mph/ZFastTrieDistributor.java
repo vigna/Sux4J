@@ -51,9 +51,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** A distributor based on a z-fast trie.
- *
- */
+/** A distributor based on a z-fast trie. */
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
@@ -414,12 +412,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	}
 	
 
-	/** Creates a partial compacted trie using given elements, bucket size, transformation strategy, and temporary directory.
+	/** Creates a distributor based on a z-fast trie.
 	 * 
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
+	 * @param chunkedHashStore a store containing the keys already transformed into bit vectors.
 	 */
 	public ZFastTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ChunkedHashStore<BitVector> chunkedHashStore ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
@@ -669,11 +668,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ") => " + l );
 		return l;
 	}
-	
+
 	public long getLong( final Object o ) {
+		final BitVector bv = (BitVector)o;
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( bv, seed, triple );
+		return getLongByBitVectorAndTriple( bv, triple );
+	}
+
+	public long getLongByBitVectorAndTriple( final BitVector v, final long[] triple ) {
 		if ( noDelimiters ) return 0;
-		final BitVector v = (BitVector)o;
-		final int b = (int)behaviour.getLong( o );
+		final int b = (int)behaviour.getLongByTriple( triple );
 		if ( emptyTrie ) return b;
 		final long length = getNodeStringLength( v );
 		if ( DDDEBUG ) System.err.println( "getNodeStringLength( v )=" + length );

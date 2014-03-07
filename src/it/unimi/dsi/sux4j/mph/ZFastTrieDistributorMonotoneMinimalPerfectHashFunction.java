@@ -27,10 +27,12 @@ import static java.lang.Math.log;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -39,11 +41,13 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandom;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
@@ -58,6 +62,7 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
@@ -79,37 +84,102 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	private final ZFastTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final MWHCFunction<BitVector> offset;
+	/** The seed returned by the {@link ChunkedHashStore}. */
+	private long seed; 
+	/** The mask to compare signatures, or zero for no signatures. */
+	protected final long signatureMask;
+	/** The signatures. */
+	protected final LongBigList signatures;
 	
-	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( size == 0 ) return defRetValue;
-		final BitVector bv = transform.toBitVector( (T)o ).fast();
-		final long bucket = distributor.getLong( bv );
-		return ( bucket << log2BucketSize ) + offset.getLong( bv );
+	/** A builder class for {@link ZFastTrieDistributorMonotoneMinimalPerfectHashFunction}. */
+	public static class Builder<T> {
+		protected Iterable<? extends T> keys;
+		protected TransformationStrategy<? super T> transform;
+		protected long numKeys = -1;
+		protected int signatureWidth;
+		protected File tempDir;
+		/** Whether {@link #build()} has already been called. */
+		protected boolean built;
+		
+		/** Specifies the keys to hash and their number.
+		 * 
+		 * @param keys the keys to hash.
+		 * @return this builder.
+		 */
+		public Builder<T> keys( final Iterable<? extends T> keys ) {
+			this.keys = keys;
+			return this;
+		}
+		
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
+		 * 
+		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
+		 * @return this builder.
+		 */
+		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+			this.transform = transform;
+			return this;
+		}
+		
+		/** Specifies that the resulting {@link LcpMonotoneMinimalPerfectHashFunction} should be signed using a given number of bits per key.
+		 * 
+		 * @param signatureWidth a signature width, or 0 for no signature.
+		 * @return this builder.
+		 */
+		public Builder<T> signed( final int signatureWidth ) {
+			this.signatureWidth = signatureWidth;
+			return this;
+		}
+		
+		/** Specifies a temporary directory for the {@link ChunkedHashStore}
+		 * 
+		 * @param tempDir a temporary directory for the {@link ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @return this builder.
+		 */
+		public Builder<T> tempDir( final File tempDir ) {
+			this.tempDir = tempDir;
+			return this;
+		}
+		
+		/** Builds a monotone minimal perfect hash function based on a z-fast trie distributor.
+		 * 
+		 * @return a {@link ZFastTrieDistributorMonotoneMinimalPerfectHashFunction} instance with the specified parameters.
+		 * @throws IllegalStateException if called more than once.
+		 */
+		public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> build() throws IOException {
+			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			built = true;
+			return new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T>( keys, transform, -1, signatureWidth, tempDir );
+		}
 	}
 
+
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements and transformation strategy. 
+	 * keys and transformation strategy. 
 	 * 
-	 * @param elements the elements among which the trie must be able to rank.
-	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
+	 * @param keys the keys among which the trie must be able to rank.
+	 * @param transform a transformation strategy that must turn the keys into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( elements, transform, -1 );
+	@Deprecated
+	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
+		this( keys, transform, -1, 0, null );
 	}
 	
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements, transformation strategy and bucket size. 
+	 * keys, transformation strategy and bucket size. 
 	 * 
 	 * <p>This constructor is mainly for debugging and testing purposes.
 	 * 
-	 * @param elements the elements among which the trie must be able to rank.
-	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
+	 * @param keys the keys among which the trie must be able to rank.
+	 * @param transform a transformation strategy that must turn the keys into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @param log2BucketSize the logarithm of the bucket size.
+	 * @param log2BucketSize the logarithm of the bucket size, or -1 for the default value.
+	 * @param signatureWidth a signature width, or 0 for no signature.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
 	 */
-	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final int log2BucketSize ) throws IOException {
+	protected ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int log2BucketSize, final int signatureWidth, final File tempDir ) throws IOException {
 
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -117,9 +187,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		long maxLength = 0;
 		long totalLength = 0;
 		Random r = new XorShift1024StarRandom();
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), tempDir );
 		chunkedHashStore.reset( r.nextLong() );
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( keys, transform );
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
@@ -141,6 +211,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			this.log2BucketSize = -1;
 			distributor = null;
 			offset = null;
+			signatureMask = 0;
+			signatures = null;
 			chunkedHashStore.close();
 			return;
 		}
@@ -157,7 +229,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction.Builder<BitVector>().transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offset = new MWHCFunction.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
@@ -167,9 +239,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			}
 		}, this.log2BucketSize ).indirect().build();
 		//System.err.println( "*********" + chunkedHashStore.seed() );
-		
-		chunkedHashStore.close();
-		
+
+		seed = chunkedHashStore.seed();
 		double logU = averageLength * log( 2 );
 		LOGGER.info( "Forecast bit cost per element: "
 				+ 1.0 / forecastBucketSize
@@ -179,6 +250,40 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
+		if ( signatureWidth != 0 ) {
+			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( size );
+			pl.expectedUpdates = size;
+			pl.itemsName = "signatures";
+			pl.start( "Signing..." );
+			for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+				final Iterator<long[]> chunkIterator = chunk.iterator();
+				for( int i = chunk.size(); i-- != 0; ) { 
+					final long[] quadruple = chunkIterator.next();
+					signatures.set( quadruple[ 3 ], signatureMask & quadruple[ 0 ] );
+					pl.lightUpdate();
+				}
+			}
+			pl.done();
+		}
+		else {
+			signatureMask = 0;
+			signatures = null;
+		}
+
+		chunkedHashStore.close();
+		
+	}
+	
+	@SuppressWarnings("unchecked")
+	public long getLong( final Object o ) {
+		if ( size == 0 ) return defRetValue;
+		final BitVector bv = transform.toBitVector( (T)o ).fast();
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( bv, seed, triple );
+
+		final long bucket = distributor.getLong( bv );
+		return ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
 	}
 
 	public long size64() {
@@ -195,6 +300,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
@@ -211,6 +317,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final int log2BucketSize = jsapResult.getInt( "log2bucket" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
@@ -234,7 +341,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize ), functionName );
+		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize, 0, tempDir ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

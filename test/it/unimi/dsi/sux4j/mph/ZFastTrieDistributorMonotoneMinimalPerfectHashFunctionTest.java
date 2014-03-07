@@ -24,7 +24,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		String[] s = {};
 		for ( int b = -1; b < 3; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-					TransformationStrategies.prefixFreeIso(), b );
+					TransformationStrategies.prefixFreeIso(), b, 0, null );
 			assertEquals( "Bucket size: " + ( 1 << b ), 0, mph.size64() );
 			mph.numBits();
 		}
@@ -35,7 +35,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		String[] s = { "a" };
 		for ( int b = -1; b < 3; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-					TransformationStrategies.prefixFreeIso(), b );
+					TransformationStrategies.prefixFreeIso(), b, 0, null );
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
@@ -47,7 +47,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		String[] s = { "a", "b" };
 		for ( int b = -1; b < 3; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-					TransformationStrategies.prefixFreeIso(), b );
+					TransformationStrategies.prefixFreeIso(), b, 0, null );
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
@@ -60,7 +60,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		String[] s = { "a", "b", "c", "d", "e", "f", "g" };
 		for ( int b = 1; b < 2; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-					TransformationStrategies.prefixFreeIso(), b );
+					TransformationStrategies.prefixFreeIso(), b, 0, null );
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
 			mph.numBits();
@@ -72,7 +72,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		String[] s = { "-", "0", "1", "4", "5", "a", "b", "c", "d", "e", "f", "g", "}" };
 		for ( int b = -1; b < 5; b++ ) {
 			ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-					TransformationStrategies.prefixFreeIso(), b );
+					TransformationStrategies.prefixFreeIso(), b, 0, null );
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
 		}
@@ -90,7 +90,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 					s[ v[ i ] = i ] = binary( i );
 
 				ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-						TransformationStrategies.prefixFreeIso(), b );
+						TransformationStrategies.prefixFreeIso(), b, 0, null );
 				mph.numBits();
 
 				for ( int i = s.length; i-- != 0; )
@@ -108,7 +108,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 					assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
 
 
-				mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b );
+				mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b, 0, null );
 				mph.numBits();
 
 				for ( int i = s.length; i-- != 0; )
