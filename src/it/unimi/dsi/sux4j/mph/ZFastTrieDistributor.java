@@ -678,17 +678,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		final long state[][] = Hashes.preprocessJenkins( bv, seed );
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
-		return getLongByBitVectorAndTriple( bv, triple, state );
+		return getLongByBitVectorTripleAndState( bv, triple, state );
 	}
 
-	public long getLongByBitVectorAndTriple( final BitVector v, final long[] triple, final long[][] state ) {
+	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[][] state ) {
 		if ( noDelimiters ) return 0;
 		final int b = (int)behaviour.getLongByTriple( triple );
 		if ( emptyTrie ) return b;
 		final long length = getNodeStringLength( v, state );
 		if ( DDDEBUG ) System.err.println( "getNodeStringLength( v )=" + length );
-		final BitVector key = v.subVector( 0, length ).copy();
 		if ( length >= v.length() ) return -1;
+		final BitVector key = v.subVector( 0, length ).copy();
 		final boolean bit = v.getBoolean( length );
 		
 		if ( b == LEFT ) {
