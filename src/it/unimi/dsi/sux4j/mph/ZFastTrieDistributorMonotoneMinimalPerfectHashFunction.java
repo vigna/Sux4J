@@ -71,7 +71,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
@@ -283,7 +283,10 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		Hashes.jenkins( bv, seed, triple );
 
 		final long bucket = distributor.getLong( bv );
-		return ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
+		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
+		if ( signatureMask != 0 ) return result < 0 || result >= size || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		// Out-of-set strings can generate bizarre 3-hyperedges.
+		return result < 0 || result >= size ? defRetValue : result;
 	}
 
 	public long size64() {
@@ -304,6 +307,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "log2bucket", JSAP.INTEGER_PARSER, "-1", JSAP.NOT_REQUIRED, 'b', "log2bucket", "The base 2 logarithm of the bucket size (mainly for testing)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
@@ -322,6 +326,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
+		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -341,7 +346,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize, 0, tempDir ), functionName );
+		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize, signatureWidth, tempDir ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

@@ -78,48 +78,51 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		}
 	}
 
+	private void check( String[] s, int d, ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph, int signatureWidth ) {
+		for ( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
+
+		// Exercise code for negative results
+		if ( signatureWidth == 0 ) for ( int i = d; i-- != 0; ) mph.getLong( binary( i + d ) );
+		else for ( int i = d; i-- != 0; ) assertEquals( -1, mph.getLong( binary( i + d ) ) );
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 
 		for ( int b = -1; b < 6; b++ ) {
 			for ( int d = 100; d < 10000; d *= 10 ) {
-				String[] s = new String[ d ];
-				int[] v = new int[ s.length ];
-				for ( int i = s.length; i-- != 0; )
-					s[ v[ i ] = i ] = binary( i );
+				for ( int signatureWidth: new int[] { 0, 32, 64 } ) {
+					System.err.println( "Size: " + d + " Bucket: " + b + " Signature width: " + signatureWidth );
+					String[] s = new String[ d ];
+					int[] v = new int[ s.length ];
+					for ( int i = s.length; i-- != 0; )
+						s[ v[ i ] = i ] = binary( i );
 
-				ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
-						TransformationStrategies.prefixFreeIso(), b, 0, null );
-				mph.numBits();
+					ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b, signatureWidth, null );
+					mph.numBits();
 
-				for ( int i = s.length; i-- != 0; )
-					assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
+					check( s, d, mph, signatureWidth );
 
-				// Exercise code for negative results
-				for ( int i = 1000; i-- != 0; )
-					mph.getLong( binary( i * i + d ) );
+					File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+					temp.deleteOnExit();
+					BinIO.storeObject( mph, temp );
+					mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 
-				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
-				temp.deleteOnExit();
-				BinIO.storeObject( mph, temp );
-				mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-				for ( int i = s.length; i-- != 0; )
-					assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
+					check( s, d, mph, signatureWidth );
 
+					mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b, signatureWidth, null );
+					mph.numBits();
 
-				mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ), b, 0, null );
-				mph.numBits();
+					check( s, d, mph, signatureWidth );
 
-				for ( int i = s.length; i-- != 0; )
-					assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
+					temp = File.createTempFile( getClass().getSimpleName(), "test" );
+					temp.deleteOnExit();
+					BinIO.storeObject( mph, temp );
+					mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
 
-				temp = File.createTempFile( getClass().getSimpleName(), "test" );
-				temp.deleteOnExit();
-				BinIO.storeObject( mph, temp );
-				mph = (ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>)BinIO.loadObject( temp );
-				for ( int i = s.length; i-- != 0; )
-					assertEquals( "Bucket size: " + ( 1 << b ), i, mph.getLong( s[ i ] ) );
+					check( s, d, mph, signatureWidth );
+				}
 			}
 		}
 	}
