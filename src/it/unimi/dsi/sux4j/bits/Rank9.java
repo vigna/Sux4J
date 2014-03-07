@@ -39,11 +39,11 @@ public class Rank9 extends AbstractRank implements Rank {
 	private static final long serialVersionUID = 1L;
 
 	protected transient long[] bits;
-	final protected BitVector bitVector;
-	final protected long[] count;
-	final protected int numWords;
-	final protected long numOnes;
-	final protected long lastOne;
+	protected final BitVector bitVector;
+	protected final long[] count;
+	protected final int numWords;
+	protected final long numOnes;
+	protected final long lastOne;
 	
 	public Rank9( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );

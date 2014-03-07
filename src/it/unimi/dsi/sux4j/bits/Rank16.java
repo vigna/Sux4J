@@ -40,12 +40,12 @@ public class Rank16 extends AbstractRank implements Rank {
 	private static final int BLOCK_LENGTH = 1024;
 	
 	protected transient long[] bits;
-	final protected long[] superCount;
-	final protected short[] count;
-	final protected int numWords;
-	final protected long numOnes;
-	final protected long lastOne;
-	final protected BitVector bitVector;
+	protected final long[] superCount;
+	protected final short[] count;
+	protected final int numWords;
+	protected final long numOnes;
+	protected final long lastOne;
+	protected final BitVector bitVector;
 	
 	public Rank16( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );

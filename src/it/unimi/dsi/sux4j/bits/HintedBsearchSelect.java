@@ -43,14 +43,14 @@ public class HintedBsearchSelect implements Select {
 	private static final long ONES_STEP_9 = 1L << 0 | 1L << 9 | 1L << 18 | 1L << 27 | 1L << 36 | 1L << 45 | 1L << 54;
 	private static final long MSBS_STEP_9 = 0x100L * ONES_STEP_9;
 
-	final private int[] inventory;
-	final private int onesPerInventory;
-	final private int log2OnesPerInventory;
+	private final int[] inventory;
+	private final int onesPerInventory;
+	private final int log2OnesPerInventory;
 	private final long numOnes;
 	private final int numWords;
 	private transient long[] bits;
 	private final long[] count;
-	final private Rank9 rank9;
+	private final Rank9 rank9;
 
 	public HintedBsearchSelect( final Rank9 rank9 ) {
 		this.rank9 = rank9;
