@@ -221,7 +221,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
 		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
 		 * 
-		 * @return the position in the table where the specified handle can be found, or a position containing <code>null</code>.
+		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
 		 */
 		protected int findPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
@@ -244,7 +244,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
 		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
 		 * 
-		 * @return the position in the table where the specified handle can be found, or a position containing <code>null</code>.
+		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
 		 */
 		protected int findExactPos( final BitVector v, final long handleLength, final long s ) {
 			int pos = hash( s );
@@ -480,7 +480,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param exact whether the search should be exact; if false, and the given handle does not
 		 * appear in the table, it is possible that an unpredictable internal node is returned.
 		 * 
-		 * @return the node with given handle, or <code>null</code> if there is no such node (if
+		 * @return the node with given handle, or {@code null} if there is no such node (if
 		 * <code>exact</code> is false, a false positive might be returned).
 		 */
 		public InternalNode<U> get( final BitVector v, final long handleLength, final long s, final boolean exact ) {
@@ -501,7 +501,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param exact whether the search should be exact; if false, and the given handle does not
 		 * appear in the table, it is possible that an unpredictable internal node is returned.
 		 * 
-		 * @return the node with given handle, or <code>null</code> if there is no such node (if
+		 * @return the node with given handle, or {@code null} if there is no such node (if
 		 * <code>exact</code> is false, a false positive might be returned).
 		 * 
 		 * @see #get(BitVector, long, long, boolean)
@@ -663,7 +663,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected Leaf<U> next;
 		/** The key associated to this leaf. */
 		protected U key;
-		/** The internal node that refers to the key of this leaf, if any. It will be <code>null</code> for exactly one leaf. */
+		/** The internal node that refers to the key of this leaf, if any. It will be {@code null} for exactly one leaf. */
 		protected InternalNode<U> reference;
 
 		public BitVector handle( TransformationStrategy<? super U> transform ) {
@@ -1310,8 +1310,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * 
 	 * @param v a bit vector.
 	 * @param state the hash state of <code>v</code> precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
-	 * @param stack if not <code>null</code>, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
-	 * @return the parent of the exit node of <code>v</code>, or <code>null</code> if the exit node is the root.
+	 * @param stack if not {@code null}, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
+	 * @return the parent of the exit node of <code>v</code>, or {@code null} if the exit node is the root.
 	 */
 	public ParexData<T> getParentExitNode( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack ) {
 		if ( DDEBUG ) System.err.println( "getParentExitNode(" + v + ")" );

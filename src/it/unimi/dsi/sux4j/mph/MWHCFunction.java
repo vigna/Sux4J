@@ -44,7 +44,7 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,10 +53,9 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,6 +214,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		/** Specifies a chunked hash store containing the keys.
 		 * 
+		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks if you
+		 * do not specify {@linkplain #values(LongIterable,int) values} or if you use the {@linkplain #indirect() indirect} feature, values otherwise. 
+		 * 
 		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
@@ -307,7 +309,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	protected final LongBigList data;
 	/** Optionally, a {@link #rank} structure built on this bit array is used to mark positions containing non-zero value; indexing in {@link #data} is
-	 * made by ranking if this field is non-<code>null</code>. */
+	 * made by ranking if this field is non-{@code null}. */
 	protected final LongArrayBitVector marker;
 	/** The ranking structure on {@link #marker}. */
 	protected final Rank16 rank;
@@ -323,7 +325,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or <code>null</code>. 
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or {@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -335,8 +337,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or <code>null</code>. 
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a (not necessarily checked) chunked hash store containing the keys, or {@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -359,7 +361,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -373,13 +375,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * to {@link #MWHCFunction(Iterable, TransformationStrategy, ChunkedHashStore, LongIterable, int)}, as the
 	 * semantics has changed (see the {@linkplain MWHCFunction class documentation}).
 	 * 
-	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
-	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -389,14 +391,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
-	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their value, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -408,7 +410,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
 	 * @deprecated Please use the new {@linkplain Builder builder}.
@@ -422,10 +424,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -448,13 +450,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	/** Creates a new function for the given keys using a chunked hash store containing ordinal positions.
 	 * 
-	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -464,14 +466,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	/** Creates a new function for the given keys using a chunked hash store containing ordinal positions.
 	 * 
-	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -495,15 +497,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	/** Creates a new function for the given keys and values.
 	 * 
-	 * @param keys the keys in the domain of the function, or <code>null</code>.
+	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
-	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
+	 * or values, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
@@ -519,7 +522,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final Random r = new XorShift1024StarRandom();
+		final RandomGenerator r = new XorShift1024StarRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
@@ -700,20 +703,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		if ( signatureWidth > 0 ) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
-			pl.expectedUpdates = n;
-			pl.itemsName = "signatures";
-			pl.start( "Signing..." );
-			for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-				Iterator<long[]> iterator3 = chunk.iterator();
-				for( int i = chunk.size(); i-- != 0; ) { 
-					final long[] triple = iterator3.next();
-					final int[] e = new int[ 3 ];
-					signatures.set( getLongByTripleNoCheck( triple, e ), signatureMask & triple[ 0 ] );
-					pl.lightUpdate();
-				}
-			}
-			pl.done();
+			signatures = chunkedHashStore.signatures( signatureWidth, pl );
 		}
 		else if ( signatureWidth < 0 ) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
@@ -774,25 +764,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
 		if ( signatureMask == 0 ) return result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if ( signatures != null ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
-	
-	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
-	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
-	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
-		return rank == null ?
-				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
-				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
-				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
-				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
-	}
-	
-
 	
 	/** Returns the number of keys in the function domain.
 	 *

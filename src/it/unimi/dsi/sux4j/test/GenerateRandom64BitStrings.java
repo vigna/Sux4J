@@ -2,15 +2,15 @@ package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigInteger;
-import java.util.Random;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +38,7 @@ public class GenerateRandom64BitStrings {
 		final int n = jsapResult.getInt( "n" );
 		final String output = jsapResult.getString( "output" );
 		
-		Random r = new XorShift1024StarRandom();
+		RandomGenerator r = new XorShift1024StarRandomGenerator();
 	
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.expectedUpdates = n;

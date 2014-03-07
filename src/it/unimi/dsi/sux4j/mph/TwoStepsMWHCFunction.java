@@ -38,7 +38,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,10 +46,10 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.collections.Predicate;
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +73,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
  * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
  * values, which are stored in a separate function.
+ * 
+ * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
+ * will be set on the {@link ChunkedHashStore} used to store the keys. If you are {@linkplain Builder#store(ChunkedHashStore) passing a store},
+ * you will have to reset it to its previous state.
  * 
  * @author Sebastiano Vigna
  * @since 1.0.2
@@ -126,6 +130,9 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		/** Specifies a chunked hash store containing the keys associated with their rank.
 		 * 
+		 * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
+		 * will be set on the specified {@link ChunkedHashStore}. You will have to reset it to its previous state.
+		 * 
 		 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
@@ -168,11 +175,11 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	protected final long n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	protected final TransformationStrategy<? super T> transform;
-	/** The first function, or <code>null</code>. The special output value {@link #escape} denotes that {@link #secondFunction} 
+	/** The first function, or {@code null}. The special output value {@link #escape} denotes that {@link #secondFunction} 
 	 * should be queried instead. */
 	protected final MWHCFunction<T> firstFunction;
 	/** The second function. All queries for which {@link #firstFunction} returns
-	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is <code>null</code>) will be rerouted here. */
+	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is {@code null}) will be rerouted here. */
 	protected final MWHCFunction<T> secondFunction;	
 	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final long[] remap;
@@ -189,7 +196,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each key.
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
@@ -202,10 +209,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each key.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -217,18 +224,18 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each key.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
 	protected TwoStepsMWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final Random random = new XorShift1024StarRandom();
+		final RandomGenerator random = new XorShift1024StarRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;

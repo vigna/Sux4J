@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.mph;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.util.XorShift1024StarRandom;

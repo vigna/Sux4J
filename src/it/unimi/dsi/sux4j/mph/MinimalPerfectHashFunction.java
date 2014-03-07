@@ -35,7 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,9 +45,9 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -269,7 +269,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * 
 	 * @param keys the keys to hash.
 	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the chunked hash store files, or <code>null</code> for the current directory.
+	 * @param tempDir a temporary directory for the chunked hash store files, or {@code null} for the current directory.
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -292,10 +292,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -306,11 +306,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
@@ -321,12 +321,12 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param keys the keys to hash, or <code>null</code>.
+	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a signature width, or 0 for no signature.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or <code>null</code>; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
 	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
@@ -334,7 +334,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final Random r = new XorShift1024StarRandom();
+		final RandomGenerator r = new XorShift1024StarRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
@@ -567,7 +567,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
-		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}

@@ -27,7 +27,6 @@ import static java.lang.Math.log;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
@@ -39,7 +38,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,10 +46,9 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +101,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 		
-		/** Specifies the keys to hash and their number.
+		/** Specifies the keys to hash.
 		 * 
 		 * @param keys the keys to hash.
 		 * @return this builder.
@@ -156,7 +154,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	}
 
 
-	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
+	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
 	 * keys and transformation strategy. 
 	 * 
 	 * @param keys the keys among which the trie must be able to rank.
@@ -169,17 +167,15 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		this( keys, transform, -1, 0, null );
 	}
 	
-	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
+	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
 	 * keys, transformation strategy and bucket size. 
-	 * 
-	 * <p>This constructor is mainly for debugging and testing purposes.
 	 * 
 	 * @param keys the keys among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the keys into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 * @param log2BucketSize the logarithm of the bucket size, or -1 for the default value.
 	 * @param signatureWidth a signature width, or 0 for no signature.
-	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 */
 	protected ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int log2BucketSize, final int signatureWidth, final File tempDir ) throws IOException {
 
@@ -188,7 +184,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 		long maxLength = 0;
 		long totalLength = 0;
-		Random r = new XorShift1024StarRandom();
+		RandomGenerator r = new XorShift1024StarRandomGenerator();
 		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), tempDir );
 		chunkedHashStore.reset( r.nextLong() );
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( keys, transform );
@@ -254,19 +250,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		
 		if ( signatureWidth != 0 ) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( size );
-			pl.expectedUpdates = size;
-			pl.itemsName = "signatures";
-			pl.start( "Signing..." );
-			for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-				final Iterator<long[]> chunkIterator = chunk.iterator();
-				for( int i = chunk.size(); i-- != 0; ) { 
-					final long[] quadruple = chunkIterator.next();
-					signatures.set( quadruple[ 3 ], signatureMask & quadruple[ 0 ] );
-					pl.lightUpdate();
-				}
-			}
-			pl.done();
+			signatures = chunkedHashStore.signatures( signatureWidth, pl );
 		}
 		else {
 			signatureMask = 0;
@@ -287,7 +271,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 		final long bucket = distributor.getLongByBitVectorTripleAndState( bv, triple, state );
 		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
-		if ( signatureMask != 0 ) return result < 0 || result >= size || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if ( signatureMask != 0 ) return result < 0 || result >= size || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= size ? defRetValue : result;
 	}

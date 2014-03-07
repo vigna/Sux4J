@@ -91,7 +91,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 			public Node left;
 			/** Right child. */
 			public Node right;
-			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
+			/** The path compacted in this node ({@code null} if there is no compaction at this node). */
 			public final LongArrayBitVector path;
 			/** The length of the minimum disambiguating prefix on the left. */
 			public int prefixLeft;

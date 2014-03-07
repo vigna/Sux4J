@@ -106,7 +106,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir a directory for the temporary files created during construction 
-	 * by the {@link HollowTrieDistributor}, or <code>null</code> for the default temporary directory. 
+	 * by the {@link HollowTrieDistributor}, or {@code null} for the default temporary directory. 
 	 */
 	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
 

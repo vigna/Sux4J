@@ -36,16 +36,16 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +107,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		long maxLength = 0;
 		long totalLength = 0;
 		BitVector bv;
-		final Random random = new XorShift1024StarRandom();
+		final RandomGenerator random = new XorShift1024StarRandomGenerator();
 		ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;

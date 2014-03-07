@@ -11,13 +11,14 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Random;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.junit.Test;
 
 public class ZFastTrieTest {
@@ -350,7 +351,7 @@ public class ZFastTrieTest {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		ZFastTrie<String> zft;
 		File temp;
-		Random random = new XorShift1024StarRandom( 1 );
+		RandomGenerator random = new XorShift1024StarRandomGenerator( 1 );
 
 		for ( int d = 10; d < 10000; d *= 10 ) {
 			String[] s = new String[ d ];

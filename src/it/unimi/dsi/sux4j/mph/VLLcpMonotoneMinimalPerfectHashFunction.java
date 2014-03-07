@@ -39,7 +39,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.XorShift1024StarRandom;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -47,9 +47,9 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +120,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		this.transform = transform;
-		final Random r = new XorShift1024StarRandom();
+		final RandomGenerator r = new XorShift1024StarRandomGenerator();
 
 		if ( numElements == -1 ) {
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();

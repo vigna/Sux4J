@@ -32,24 +32,24 @@ import java.io.Serializable;
  *  serialising separately a rank and a select structure might result in storing the underlying bit
  *  vector twice. This class provide a simple solution by allowing one-shot serialisation of
  *  all structures related to a bit vector. As a commodity, it provides also delegate methods, albeit
- *  the suggested usage is deserialisation and extraction of non-<code>null</code> structures.  
+ *  the suggested usage is deserialisation and extraction of non-{@code null} structures.  
  *  
  */
 public class RankSelect implements Rank, Select, SelectZero, Serializable {
 
 	private static final long serialVersionUID = 1L;
-	/** A rank structure, or <code>null</code>. */
+	/** A rank structure, or {@code null}. */
 	public final Rank rank;
-	/** A select structure, or <code>null</code>. */
+	/** A select structure, or {@code null}. */
 	public final Select select;
-	/** A zero-select structure, or <code>null</code>. */
+	/** A zero-select structure, or {@code null}. */
 	public final SelectZero selectZero;
 
 	/** Creates a new rank/select container using the given structures.
 	 * 
-	 * @param rank a rank structure, or <code>null</code>. 
-	 * @param select a select structure, or <code>null</code>. 
-	 * @param selectZero a zero-select structure, or <code>null</code>.
+	 * @param rank a rank structure, or {@code null}. 
+	 * @param select a select structure, or {@code null}. 
+	 * @param selectZero a zero-select structure, or {@code null}.
 	 */
 	public RankSelect( final Rank rank, final Select select, final SelectZero selectZero ) {
 		this.rank = rank;
@@ -59,8 +59,8 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 	
 	/** Creates a new rank/select container without zero selection using the given structures.
 	 * 
-	 * @param rank a rank structure, or <code>null</code>. 
-	 * @param select a select structure, or <code>null</code>. 
+	 * @param rank a rank structure, or {@code null}. 
+	 * @param select a select structure, or {@code null}. 
 	 */
 	public RankSelect( final Rank rank, final Select select ) {
 		this( rank, select, null );

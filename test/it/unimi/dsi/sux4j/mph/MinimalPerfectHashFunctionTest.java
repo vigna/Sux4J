@@ -1,12 +1,12 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder;
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,6 +1,6 @@
 package it.unimi.dsi.sux4j.bits;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.LongArrayBitVector;
 
 import org.junit.Test;

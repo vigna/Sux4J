@@ -115,7 +115,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			private Node left;
 			/** Right child. */
 			private Node right;
-			/** The path compacted in this node (<code>null</code> if there is no compaction at this node). */
+			/** The path compacted in this node ({@code null} if there is no compaction at this node). */
 			private final LongArrayBitVector path;
 
 			/** Creates a node. 
@@ -516,7 +516,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
 
 			LOGGER.info( "Creating leaf ranker..." );
-			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector>( Arrays.asList( rankerArray ), rankerArray.length, TransformationStrategies.prefixFree() );
+			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<BitVector>().keys( Arrays.asList( rankerArray ) ).transform( TransformationStrategies.prefixFree() ).build();
 			rankerArray = null;
 
 			LOGGER.info( "Computing length/signature map..." );
