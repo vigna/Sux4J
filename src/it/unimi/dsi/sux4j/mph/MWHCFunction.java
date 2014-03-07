@@ -152,9 +152,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		protected int signatureWidth;
 		protected File tempDir;
 		protected ChunkedHashStore<T> chunkedHashStore;
-		private LongIterable values;
-		private int outputWidth = -1;
-		private boolean indirect;
+		protected LongIterable values;
+		protected int outputWidth = -1;
+		protected boolean indirect;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
@@ -501,6 +501,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is <code>null</code>.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ordinal position, or <code>null</code>; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
@@ -691,6 +692,12 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		offlineData.close();
 		
+		LOGGER.info( "Completed." );
+		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
+				HypergraphSorter.GAMMA * this.width :
+					HypergraphSorter.GAMMA + this.width + 0.126 ) );
+		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+
 		if ( signatureWidth > 0 ) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
 			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
@@ -717,13 +724,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			signatures = null;
 		}
 
-		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
-		
-		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
-				HypergraphSorter.GAMMA * this.width :
-					HypergraphSorter.GAMMA + this.width + 0.126 ) );
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();		
 	}
 
 	@SuppressWarnings("unchecked")

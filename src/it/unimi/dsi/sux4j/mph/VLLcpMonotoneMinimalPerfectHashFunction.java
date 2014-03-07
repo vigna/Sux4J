@@ -76,23 +76,23 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	private static final boolean DEBUG = false;
 	
 	/** The number of elements. */
-	final protected long n;
+	protected final long n;
 	/** The size of a bucket. */
-	final protected int bucketSize;
+	protected final int bucketSize;
 	/** {@link Fast#ceilLog2(int)} of {@link #bucketSize}. */
-	final protected int log2BucketSize;
+	protected final int log2BucketSize;
 	/** The mask for {@link #log2BucketSize} bits. */
-	final protected int bucketSizeMask;
+	protected final int bucketSizeMask;
 	/** A function mapping each element to a distinct index. */
-	final protected MinimalPerfectHashFunction<BitVector> mph;
+	protected final MinimalPerfectHashFunction<BitVector> mph;
 	/** A list, indexed by {@link #mph}, containing the offset of each element inside its bucket. */
-	final protected LongBigList offsets;
+	protected final LongBigList offsets;
 	/** A list, indexed by {@link #mph}, containing for each element the length of the longest common prefix of its bucket. */
-	final protected EliasFanoLongBigList lcpLengths;
+	protected final EliasFanoLongBigList lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
-	final protected MWHCFunction<BitVector> lcp2Bucket;
+	protected final MWHCFunction<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
-	final protected TransformationStrategy<? super T> transform;
+	protected final TransformationStrategy<? super T> transform;
 	/** The seed to be used when converting keys to triples. */
 	private long seed;
 	

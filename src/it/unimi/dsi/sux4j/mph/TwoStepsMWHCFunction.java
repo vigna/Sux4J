@@ -21,32 +21,55 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandom;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.Random;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.collections.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** A read-only function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
+
+/** A function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
  * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
  * 
- * <p>The constructor of this class performs a pre-scan of the values to be assigned. If possible, it finds the best possible
+ * <p>To create an instance, we perform a pre-scan of the values to be assigned. If possible, we finds the best possible
  * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
  * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
  * values, which are stored in a separate function.
@@ -56,52 +79,151 @@ import org.slf4j.LoggerFactory;
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
     private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;
+
+	/** A builder class for {@link TwoStepsMWHCFunction}. */
+	public static class Builder<T> {
+		protected Iterable<? extends T> keys;
+		protected TransformationStrategy<? super T> transform;
+		protected File tempDir;
+		protected ChunkedHashStore<T> chunkedHashStore;
+		protected LongBigList values;
+		/** Whether {@link #build()} has already been called. */
+		protected boolean built;
+
+		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		 * 
+		 * @param keys the keys of the function.
+		 * @return this builder.
+		 */
+		public Builder<T> keys( final Iterable<? extends T> keys ) {
+			this.keys = keys;
+			return this;
+		}
+		
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		 * 
+		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		 * @return this builder.
+		 */
+		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+			this.transform = transform;
+			return this;
+		}
+		
+		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		 * 
+		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @return this builder.
+		 */
+		public Builder<T> tempDir( final File tempDir ) {
+			this.tempDir = tempDir;
+			return this;
+		}
+		
+		/** Specifies a chunked hash store containing the keys associated with their rank.
+		 * 
+		 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
+		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * @return this builder.
+		 */
+		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+			this.chunkedHashStore = chunkedHashStore;
+			return this;
+		}
+		
+		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the function will
+		 * be the minimum width needed to represent all values.
+		 * 
+		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
+		 * @return this builder.
+		 */
+		public Builder<T> values(  final LongBigList values ) {
+			this.values = values;
+			return this;
+		}
+		
+		/** Builds a new function.
+		 * 
+		 * @return an {@link MWHCFunction} instance with the specified parameters.
+		 * @throws IllegalStateException if called more than once.
+		 */
+		public TwoStepsMWHCFunction<T> build() throws IOException {
+			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			built = true;
+			if ( transform == null ) {
+				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			}
+			return new TwoStepsMWHCFunction<T>( keys, transform, values, tempDir, chunkedHashStore);
+		}
+	}
+
     
-	/** The number of elements. */
-	final protected long n;
+	/** The number of keys. */
+	protected final long n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
-	final protected TransformationStrategy<? super T> transform;
+	protected final TransformationStrategy<? super T> transform;
 	/** The first function, or <code>null</code>. The special output value {@link #escape} denotes that {@link #secondFunction} 
 	 * should be queried instead. */
-	final protected MWHCFunction<T> firstFunction;
+	protected final MWHCFunction<T> firstFunction;
 	/** The second function. All queries for which {@link #firstFunction} returns
 	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is <code>null</code>) will be rerouted here. */
-	final protected MWHCFunction<T> secondFunction;	
+	protected final MWHCFunction<T> secondFunction;	
 	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
-	final protected long[] remap;
+	protected final long[] remap;
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final int escape;
-	private long seed;
-	/** The mean of the rank distribution. */
-	public final double rankMean;
+	/** The seed to be used when converting keys to triples. */
+	protected long seed;
 	/** The width of the output of this function, in bits. */
-	public final int width;
+	protected final int width;
+	/** The mean of the rank distribution. */
+	protected final double rankMean;
 
-	/** Creates a new two-step function for the given elements and values.
+	/** Creates a new two-step function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
-	 * assigned value will the the ordinal number of each element.
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each key.
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
-
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values ) throws IOException {
-		this( elements, transform, values, null );
+	@Deprecated
+	public TwoStepsMWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values ) throws IOException {
+		this( keys, transform, values, null );
 	}
 		
-	/** Creates a new two-step function for the given elements and values.
+	/** Creates a new two-step function for the given keys and values.
 	 * 
-	 * @param elements the elements in the domain of the function.
-	 * @param transform a transformation strategy for the elements.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>elements</code>; if <code>null</code>, the
-	 * assigned value will the the ordinal number of each element.
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each key.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
+	@Deprecated
+	public TwoStepsMWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+		this( keys, transform, values, null, chunkedHashStore );
+	}
 
-	public TwoStepsMWHCFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final LongBigList values, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	/** Creates a new two-step function for the given keys and values.
+	 * 
+	 * @param keys the keys in the domain of the function.
+	 * @param transform a transformation strategy for the keys.
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if <code>null</code>, the
+	 * assigned value will the the ordinal number of each key.
+	 * @param tempDir a temporary directory for the store files, or <code>null</code> for the standard temporary directory.
+	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or <code>null</code>; the store
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-<code>null</code>. 
+	 */
+	protected TwoStepsMWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
@@ -109,10 +231,12 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		final Random random = new XorShift1024StarRandom();
 		pl.itemsName = "keys";
 
-		if ( chunkedHashStore == null ) {
+		final boolean givenChunkedHashStore = chunkedHashStore != null;
+		if ( ! givenChunkedHashStore ) {
+			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
 			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
 			chunkedHashStore.reset( random.nextLong() );
-			chunkedHashStore.addAll( elements.iterator() );
+			chunkedHashStore.addAll( keys.iterator() );
 		}
 		n = chunkedHashStore.size();
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -142,17 +266,17 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		LOGGER.debug( "Generating two-steps MWHC function with " + w + " output bits..." );
 
 		// Sort keys by reverse frequency
-		final long[] keys = counts.keySet().toLongArray( new long[ m ] );
-		LongArrays.quickSort( keys, 0, keys.length, new AbstractLongComparator() {
+		final long[] keysArray = counts.keySet().toLongArray( new long[ m ] );
+		LongArrays.quickSort( keysArray, 0, keysArray.length, new AbstractLongComparator() {
 			public int compare( final long a, final long b ) {
 				return Long.signum( counts.get( b ) - counts.get( a ) );
 			}
 		});
 
 		long mean = 0;
-		for( int i = 0; i < keys.length; i++ ) mean += i * counts.get( keys[ i ] );
+		for( int i = 0; i < keysArray.length; i++ ) mean += i * counts.get( keysArray[ i ] );
 		rankMean = (double)mean / n;
-		
+
 		// Analyze data and choose a threshold
 		long post = n, bestCost = Long.MAX_VALUE;
 		int pos = 0, best = -1;
@@ -171,9 +295,9 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 				bestCost = cost;
 			}
 
-			/* We add to pre and subtract from post the counts of elements from position (1<<r)-1 to position (1<<r+1)-1. */
+			/* We add to pre and subtract from post the counts of keys from position (1<<r)-1 to position (1<<r+1)-1. */
 			for( int j = 0; j < ( 1 << r ) && pos < m; j++ ) {
-				final long c = counts.get( keys[ pos++ ] ); 
+				final long c = counts.get( keysArray[ pos++ ] ); 
 				post -= c;
 			}	
 		}
@@ -188,26 +312,24 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		LOGGER.debug( "Best threshold: " + best );
 		escape = ( 1 << best ) - 1;
-		System.arraycopy( keys, 0, remap = new long[ escape ], 0, remap.length );
+		System.arraycopy( keysArray, 0, remap = new long[ escape ], 0, remap.length );
 		final Long2LongOpenHashMap map = new Long2LongOpenHashMap();
 		map.defaultReturnValue( -1 );
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new MWHCFunction.Builder<T>().keys( elements ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+			firstFunction = new MWHCFunction.Builder<T>().keys( keys ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 				public long getLong( long index ) {
 					long value = map.get( values.getLong( index ) );
-					if ( value != -1 ) return value;
-					return escape;
+					return value == -1 ? escape : value;
 				}
 
 				public long size64() {
 					return n;
 				}
-
 			}, best ).indirect().build();
 
-			LOGGER.debug( "Actual bit cost per element of first function: " + (double)firstFunction.numBits() / n );
+			LOGGER.debug( "Actual bit cost per key of first function: " + (double)firstFunction.numBits() / n );
 		}
 		else firstFunction = null;
 
@@ -217,14 +339,16 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 		});
 		
-		secondFunction = new MWHCFunction.Builder<T>().keys( elements ).transform( transform ).store( chunkedHashStore ).values( values, w ).indirect().build();
-		
-		this.seed = chunkedHashStore.seed();
-		
-		LOGGER.debug( "Actual bit cost per element of second function: " + (double)secondFunction.numBits() / n );
+		secondFunction = new MWHCFunction.Builder<T>().store( chunkedHashStore ).values( values, w ).indirect().build();
 
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		this.seed = chunkedHashStore.seed();
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
+		
+		LOGGER.debug( "Actual bit cost per key of second function: " + (double)secondFunction.numBits() / n );
+
+		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
 		LOGGER.info( "Completed." );
+
 	}
 
 
@@ -265,7 +389,9 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.
 	 * 
 	 * @param function the function to be copied.
+	 * @deprecated Unused.
 	 */
+	@Deprecated
 	protected TwoStepsMWHCFunction( final TwoStepsMWHCFunction<T> function ) {
 		this.n = function.n;
 		this.width = function.width;
@@ -275,5 +401,50 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		this.secondFunction = function.secondFunction;
 		this.transform = function.transform.copy();
 		this.escape = function.escape;
+	}
+
+	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+
+		final SimpleJSAP jsap = new SimpleJSAP( TwoStepsMWHCFunction.class.getName(), "Builds a two-steps MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+				new Parameter[] {
+			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+		});
+
+		JSAPResult jsapResult = jsap.parse( arg );
+		if ( jsap.messagePrinted() ) return;
+
+		final String functionName = jsapResult.getString( "function" );
+		final String stringFile = jsapResult.getString( "stringFile" );
+		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
+		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final boolean iso = jsapResult.getBoolean( "iso" );
+		final boolean utf32 = jsapResult.getBoolean( "utf32" );
+
+		final Collection<MutableString> collection;
+		if ( "-".equals( stringFile ) ) {
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
+			pl.displayLocalSpeed = true;
+			pl.displayFreeMemory = true;
+			pl.start( "Loading strings..." );
+			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+			pl.done();
+		}
+		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		final TransformationStrategy<CharSequence> transformationStrategy = iso
+				? TransformationStrategies.iso() 
+				: utf32 
+					? TransformationStrategies.utf32()
+					: TransformationStrategies.utf16();
+
+		BinIO.storeObject( new TwoStepsMWHCFunction<CharSequence>( collection, transformationStrategy, LongBigArrayBigList.wrap( BinIO.loadLongsBig( jsapResult.getString( "values" ) ) ), tempDir, null ), functionName );
+		LOGGER.info( "Completed." );
 	}
 }

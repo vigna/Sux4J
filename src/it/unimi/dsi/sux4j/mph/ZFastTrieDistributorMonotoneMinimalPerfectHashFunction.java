@@ -133,9 +133,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			return this;
 		}
 		
-		/** Specifies a temporary directory for the {@link ChunkedHashStore}
+		/** Specifies a temporary directory for the {@link ChunkedHashStore}.
 		 * 
-		 * @param tempDir a temporary directory for the {@link ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir( final File tempDir ) {

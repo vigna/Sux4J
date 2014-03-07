@@ -73,8 +73,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
  * Similarly to an {@link MWHCFunction}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
- * 
- * 
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
@@ -160,9 +158,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return this;
 		}
 		
-		/** Specifies a temporary directory for the {@link ChunkedHashStore}
+		/** Specifies a temporary directory for the {@link ChunkedHashStore}.
 		 * 
-		 * @param tempDir a temporary directory for the {@link ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir( final File tempDir ) {
@@ -406,9 +404,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return defRetValue;
 		final long result = ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + ( value & bucketSizeMask );
-		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if ( signatureMask != 0 ) return result < 0 || result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		return result < n ? result : defRetValue;
+		return result < 0 || result >= n ? defRetValue : result;
 	}
 
 	public long size64() {
