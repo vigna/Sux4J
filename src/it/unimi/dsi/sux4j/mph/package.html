@@ -76,17 +76,15 @@ results by concatenating the <em>reversed</em> 16-bit representation of each cha
 words, they will produce false positives; in the few cases in which it is possible to detect a negative, you will get the default return
 value. </p>
 
-<p>If you are interested in getting a more precise behaviour (e.g., you are migrating from the deprecated <code>SignedMinimalPerfectHash</code>
-class that was distributed with <a href="http://mg4j.dsi.unimi.it/">MG4J</a>), you can <em>sign</em> a function, that is, you can record
-a signature for each key and use it to filter false positives. A signing class for character sequences is provided 
-by the <a href="http://dsiutils.dsi.unimi.it/">DSI utilities</a> class
-<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/ShiftAddXorSignedStringMap.html">ShiftAddXorSignedStringMap</a>. By
-creating a function using one of the implementation provided with Sux4J and signing it using the above class, you can obtain the same functionality of
-the old signed classes, but you can choose the size of the signature, whether to require monotonicity, and also the space/time tradeoff
-of your function. Alternatively, by signing with 
+<p>If you are interested in getting a more precise behaviour, you can <em>sign</em> a function, that is, you can record
+a signature for each key and use it to filter false positives. Several classes provide built-in signing (look at the methods of their builder).
+
+<p>There are also external signing classes for character sequences provided 
+by the <a href="http://dsiutils.dsi.unimi.it/">DSI utilities</a> which actually implement the interface
+<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/StringMap.html">StringMap</a>, such as 
+<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/ShiftAddXorSignedStringMap.html">ShiftAddXorSignedStringMap</a>;
 <a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/LiterallySignedStringMap.html">LiterallySignedStringMap</a>
-you will get a two-way function (i.e., a full 
-<a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/StringMap.html">StringMap</a> implementation).
+will provide a full <a href="http://dsiutils.dsi.unimi.it/docs/it/unimi/dsi/util/StringMap.html">StringMap</a> implementation.
  
 </body>
 </html>
