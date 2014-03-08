@@ -80,30 +80,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
  * writes a serialised function mapping each element of the list to its position, or to a given list of values.
  *
- * <h2>Building a function</h2>
- * 
- * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
- * To exploit the various possibilities, you must understand some details of the construction.
- * 
- * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
- * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
- * the store will associate with each hash the corresponding value. 
- * 
- * <p>However, if you further require an {@link Builder#indirect() indirect}
- * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
- * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
- * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
- * Storing values in the {@link ChunkedHashStore}
- * is extremely scalable because the values must just be a {@link LongIterable} that
- * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
- * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
- * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
- * 
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
- * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
- * Note that it is your responsibility to pass a correct store.
- * 
  * <h3>Signing</h3>
  * 
  * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an {@link MWHCFunction}.
@@ -118,6 +94,30 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * that occupied by signatures: this is one of the fastest and most compact way of storing a static dictionary.
  * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
  *  
+ * <h2>Building a function</h2>
+ * 
+ * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
+ * To exploit the various possibilities, you must understand some details of the construction.
+ * 
+ * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
+ * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
+ * the store will associate with each hash the corresponding value. 
+ * 
+ * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
+ * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
+ * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
+ * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
+ * Storing values in the {@link ChunkedHashStore}
+ * is extremely scalable because the values must just be a {@link LongIterable} that
+ * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
+ * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
+ * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
+ * 
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
+ * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
+ * Note that it is your responsibility to pass a correct store.
+ * 
  * <h2>Implementation Details</h2>
  * 
  * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges

@@ -7,5 +7,5 @@
 - Support enclose() in JacobsonBalancedParentheses
 - Support UTF-32 in all main() methods.
 - Reference correctly the XOR trick
-- More classes with builders and signatures.
 - Verify that .fast() is actually useful.
+- Decide for "rank" or "ordinal position".
