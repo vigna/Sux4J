@@ -18,6 +18,9 @@
   all multiple constructors will be eliminated in favour of Guava-style static
   nested Builder classes.
 
+- Major speed improvements in
+  ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.
+
 3.0.11
 
 - Now we use XorShift1024StarRandom everywhere.
