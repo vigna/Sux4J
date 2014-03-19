@@ -297,9 +297,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 				chunkedHashStore.add( curr );
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength( prev );
-				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
-				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted @" + ( b * bucketSize + i ) + "(" + curr + " < " + prev + ")" );
+				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct@" + ( b * bucketSize + i ) + " (\"" + curr + "\" = \"" + prev + "\")" );
+				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free@" + ( b * bucketSize + i ) + " (\"" + curr + "\" is a prefix or a suffix of \"" + prev + "\")" );
+				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted @" + ( b * bucketSize + i ) + " (\"" + curr + "\" < \"" + prev + "\")" );
 				
 				currLcp = Math.min( prefix, currLcp );
 				prev.replace( curr );
