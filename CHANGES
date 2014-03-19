@@ -1,4 +1,11 @@
-3.1
+3.1.1
+
+- New thin adapter SignedObject2LongFunctionStringMap to adapt the new
+  Sux4J self-signing functions to the StringMap (big) interface. The
+  adapter implements also a constructor based on an Iterable that
+  can be used directly with MG4J's IndexBuilder.
+
+3.1.0
 
 - MinimalPerfectHashFunction, MWHCFunction,
   LcpMonotoneMinimalPerfectHashFunction,
