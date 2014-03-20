@@ -245,9 +245,64 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 		}
 	}
 
-	public long getLong( long index ) {
+	public long getLong( final long index ) {
 		final long from = borders.getLong( index ), to = borders.getLong( index + 1 );
 		return ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - offset;
+	}
+
+	/** Extracts a number of consecutive entries into a given array fragment.
+	 * 
+	 * @param index the index of the first entry returned.
+	 * @param dest the destination array; it will be filled with {@code length} consecutive entries starting at position {@code offset}.
+	 * @param offset the first position written in {@code dest}.
+	 * @param length the number of elements written in {@code dest} starting at {@code offset}.
+	 * @return {@code dest}
+	 */
+	public long[] get( long index, final long dest[], final int offset, final int length ) {
+		long from = borders.getLong( index++ ), to;
+		final long[] b = bits.bits();
+		int curr = (int)( from / Long.SIZE );
+		long buffer = b[ curr ];
+		final int bitPosition = (int)( from % Long.SIZE );
+		buffer >>>= bitPosition;
+		int filled = Long.SIZE - bitPosition;
+
+		for( int i = 0; i < length; i++ ) { 
+			to = borders.getLong( index++ );
+			//dest[ i ] = ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - this.offset;
+			final int width = (int)( to - from );
+			if ( width <= filled ) {
+				long result = buffer & ( 1L << width ) - 1;
+				filled -= width;
+				buffer >>>= width;
+				dest[ offset + i ] = ( ( 1L << ( to - from ) ) | result ) - this.offset;
+			}
+			else {
+				long result = buffer;
+				buffer = b[ ++curr ];
+
+				final int remainder = width - filled;
+				// Note that this WON'T WORK if remainder == Long.SIZE, but that's not going to happen.
+				result |= ( buffer & ( 1L << remainder ) - 1 ) << filled;
+				buffer >>>= remainder;
+				filled = Long.SIZE - remainder;
+				dest[ offset + i ] = ( ( 1L << ( to - from ) ) | result ) - this.offset;
+			}
+
+			from = to;
+		}
+		
+		return dest;
+	}
+
+	/** Extracts a number of consecutive entries into a given array.
+	 * 
+	 * @param index the index of the first entry returned.
+	 * @param dest the destination array; it will be filled with consecutive entries.
+	 * @return {@code dest}
+	 */
+	public long[] get( final long index, final long dest[] ) {
+		return get( index, dest, 0, dest.length );
 	}
 
 	public long size64() {

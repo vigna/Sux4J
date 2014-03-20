@@ -5,6 +5,9 @@
   adapter implements also a constructor based on an Iterable that
   can be used directly with MG4J's IndexBuilder.
 
+- New bulk get() methods for EliasFanoLongBigList. They are an order of
+  magnitude faster than picking consecutive elements using getLong().
+
 3.1.0
 
 - MinimalPerfectHashFunction, MWHCFunction,
