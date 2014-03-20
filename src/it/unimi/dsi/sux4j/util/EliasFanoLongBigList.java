@@ -260,35 +260,10 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 */
 	public long[] get( long index, final long dest[], final int offset, final int length ) {
 		long from = borders.getLong( index++ ), to;
-/*		final long[] b = bits.bits();
-		int curr = (int)( from / Long.SIZE );
-		long buffer = b[ curr ];
-		final int bitPosition = (int)( from % Long.SIZE );
-		buffer >>>= bitPosition;
-		int filled = Long.SIZE - bitPosition;
-*/
+
 		for( int i = 0; i < length; i++ ) { 
 			to = borders.getLong( index++ );
 			dest[ offset + i ] = ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - this.offset;
-		/*	final int width = (int)( to - from );
-			if ( width <= filled ) {
-				long result = buffer & ( 1L << width ) - 1;
-				filled -= width;
-				buffer >>>= width;
-				dest[ offset + i ] = ( ( 1L << ( to - from ) ) | result ) - this.offset;
-			}
-			else {
-				long result = buffer;
-				buffer = b[ ++curr ];
-
-				final int remainder = width - filled;
-				// Note that this WON'T WORK if remainder == Long.SIZE, but that's not going to happen.
-				result |= ( buffer & ( 1L << remainder ) - 1 ) << filled;
-				buffer >>>= remainder;
-				filled = Long.SIZE - remainder;
-				dest[ offset + i ] = ( ( 1L << ( to - from ) ) | result ) - this.offset;
-			}
-*/
 			from = to;
 		}
 		
