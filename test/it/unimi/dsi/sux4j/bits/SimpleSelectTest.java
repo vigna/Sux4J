@@ -248,4 +248,20 @@ public class SimpleSelectTest extends RankSelectTestCase {
 				assertEquals( i, r.select( i ) );
 		}
 	}
+
+	@Test
+	public void testBulk() {
+		final XorShift1024StarRandom random = new XorShift1024StarRandom();
+		final long[] s = new long[ 100000 ];
+		for( int i = s.length; i-- != 0; ) s[ i ] = random.nextLong() & 0xF0F0F0F088884444L;
+		final SimpleSelect ef = new SimpleSelect( s, s.length * Long.SIZE );
+
+		for( int i = 0; i < 1000; i++ ) {
+			final int from = random.nextInt( s.length - 100 );
+			final int to = from + random.nextInt( 100 );
+			final int offset = random.nextInt( 10 );
+			final long[] dest = ef.select( from, new long[ to - from + offset + random.nextInt( 10 ) ], offset, to - from );
+			for( int j = from; j < to; j++ ) assertEquals( "From: " + from + " to: " + to + " j: " + j, ef.select( j ), dest[ offset + j - from ] );
+		}
+	}
 }

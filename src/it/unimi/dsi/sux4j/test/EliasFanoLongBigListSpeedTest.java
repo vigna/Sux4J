@@ -50,7 +50,7 @@ public class EliasFanoLongBigListSpeedTest {
 			time = - System.nanoTime();
 			for( int i = 0; i < numPos; i++ ) eliasFanoMonotoneLongBigList.getLong( position[ i ] );
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + time / (double)numPos + " ns/get" );
+			System.err.println( time / 1E9 + "s, " + time / (double)numPos + " ns/element" );
 		}
 
 		final long[] dest = new long[ bulk ];
@@ -59,7 +59,7 @@ public class EliasFanoLongBigListSpeedTest {
 			time = - System.nanoTime();
 			for( int i = 0; i < numPos; i++ ) eliasFanoMonotoneLongBigList.get( position[ i ], dest );
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + time / (double)( numPos * bulk ) + " ns/get" );
+			System.err.println( time / 1E9 + "s, " + time / (double)( numPos * bulk ) + " ns/element" );
 		}
 	}
 }

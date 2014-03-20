@@ -49,6 +49,9 @@ import java.util.Iterator;
  * or through an {@linkplain Iterator iterator}, but in the latter case the user must also provide a (not necessarily strict) lower bound (0 by default)
  * on the returned values. The compression is particularly high if the distribution of the values of the list is skewed towards the smallest values.
  * 
+ * <p>An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible
+ * to extract several consecutive entries at high speed.
+ *
  * <h2>Implementation details</h2>
  * 
  * <p>Instances of this class store values by offsetting them so that they are strictly positive. Then,
@@ -257,12 +260,15 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param offset the first position written in {@code dest}.
 	 * @param length the number of elements written in {@code dest} starting at {@code offset}.
 	 * @return {@code dest}
+	 * @see #get(long, long[])
 	 */
 	public long[] get( long index, final long dest[], final int offset, final int length ) {
 		long from = borders.getLong( index++ ), to;
-
+		// We use the destination array to cache borders.
+		borders.get( index, dest, offset, length );
+		
 		for( int i = 0; i < length; i++ ) { 
-			to = borders.getLong( index++ );
+			to = dest[ offset + i ];
 			dest[ offset + i ] = ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - this.offset;
 			from = to;
 		}
@@ -275,6 +281,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param index the index of the first entry returned.
 	 * @param dest the destination array; it will be filled with consecutive entries.
 	 * @return {@code dest}
+	 * @see #get(long, long[], int, int)
 	 */
 	public long[] get( final long index, final long dest[] ) {
 		return get( index, dest, 0, dest.length );

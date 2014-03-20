@@ -1,7 +1,7 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -23,6 +23,7 @@ public class EliasFanoMonotoneBigListSpeedTest {
 					new UnflaggedOption( "numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements." ),
 					new UnflaggedOption( "density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density." ),
 					new FlaggedOption( "numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test" ),
+					new FlaggedOption( "bulk", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 'b', "bulk", "The number of positions to read with the bulk method" ),
 		});
 		
 		JSAPResult jsapResult = jsap.parse( arg );
@@ -31,6 +32,7 @@ public class EliasFanoMonotoneBigListSpeedTest {
 		final int numElements = jsapResult.getInt( "numElements" );
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
+		final int bulk = jsapResult.getInt( "bulk" );
 
 		RandomGenerator random = new XorShift1024StarRandomGenerator( 42 );
 		final IntArrayList list = new IntArrayList( numElements );
@@ -38,16 +40,26 @@ public class EliasFanoMonotoneBigListSpeedTest {
 		
 		final int[] position = new int[ numPos ];
 		
-		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % numElements;
+		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % ( numElements - bulk );
 		final int[] elements = list.elements();
 		for( int i = 1; i < list.size(); i++ ) elements[ i ] += elements[ i - 1 ];
-		EliasFanoMonotoneLongBigListTables eliasFanoMonotoneLongBigList = new EliasFanoMonotoneLongBigListTables( list );
+		EliasFanoMonotoneLongBigList eliasFanoMonotoneLongBigList = new EliasFanoMonotoneLongBigList( list );
 		long time;
+		System.err.println( "getLong():" );
 		for( int k = 10; k-- != 0; ) {
-			time = - System.currentTimeMillis();
+			time = - System.nanoTime();
 			for( int i = 0; i < numPos; i++ ) eliasFanoMonotoneLongBigList.getLong( position[ i ] );
-			time += System.currentTimeMillis();
-			System.err.println( time / 1000.0 + "s, " + ( time * 1E6 ) / numPos + " ns/get" );
+			time += System.nanoTime();
+			System.err.println( time / 1E9 + "s, " + time / (double)numPos + " ns/element" );
+		}
+
+		final long[] dest = new long[ bulk ];
+		System.err.println( "get():" );
+		for( int k = 10; k-- != 0; ) {
+			time = - System.nanoTime();
+			for( int i = 0; i < numPos; i++ ) eliasFanoMonotoneLongBigList.get( position[ i ], dest );
+			time += System.nanoTime();
+			System.err.println( time / 1E9 + "s, " + time / (double)( numPos * bulk ) + " ns/element" );
 		}
 	}
 }

@@ -2,8 +2,10 @@ package it.unimi.dsi.sux4j.util;
 
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.Util;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
+import it.unimi.dsi.util.XorShift1024StarRandom;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import org.junit.Test;
@@ -67,5 +69,27 @@ public class EliasFanoMonotoneLongBigListTest {
 			l.add( c );
 		}
 		assertEquals( l, new EliasFanoMonotoneLongBigList( l ) );
+	}
+
+	@Test
+	public void testBulk() {
+		final XorShift1024StarRandom random = new XorShift1024StarRandom();
+		final long[] s = new long[ 100000 ];
+		for( int i = 1; i < s.length; i++ ) s[ i ] = s[ i - 1 ] + random.nextInt( 100 );
+		final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( s ) );
+		for( int i = 0; i < 1000; i++ ) {
+			final int from = random.nextInt( s.length - 100 );
+			final int to = from + random.nextInt( 100 );
+			final long[] dest = ef.get( from, new long[ to - from ] );
+			for( int j = from; j < to; j++ ) assertEquals( s[ j ], dest[ j - from ] );
+		}
+
+		for( int i = 0; i < 1000; i++ ) {
+			final int from = random.nextInt( s.length - 100 );
+			final int to = from + random.nextInt( 100 );
+			final int offset = random.nextInt( 10 );
+			final long[] dest = ef.get( from, new long[ to - from + offset + random.nextInt( 10 ) ], offset, to - from );
+			for( int j = from; j < to; j++ ) assertEquals( "From: " + from + " to: " + to + " j: " + j, s[ j ], dest[ offset + j - from ] );
+		}
 	}
 }

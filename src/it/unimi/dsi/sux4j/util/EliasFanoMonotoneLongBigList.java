@@ -45,6 +45,9 @@ import java.io.Serializable;
  * provides such an iterator. In the first case, you must also provide in advance the number of elements that will be returned and an upper bound to their
  * values (see below), and at the end of the construction the iterator will be exhausted. 
  *  
+ * <p>An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible
+ * to extract several consecutive entries at high speed.
+ *
  * <h2>Implementation details</h2>
  * 
  * <p>Given a (nondecreasing) monotone sequence 
@@ -69,7 +72,9 @@ import java.io.Serializable;
  * by selecting the <var>i</var>-th bit of the resulting bit array and subtracting <var>i</var> (note that this will
  * work because the upper bits are nondecreasing).
  * 
- * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array.
+ * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array, and
+ * exploits {@link SimpleSelect#select(long, long[], int, int)} to implement
+ * {@link #get(long, long[], int, int)}.
  */
 
 public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
@@ -271,6 +276,45 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final int totalOffset = startBit + l;
 		final long result = lowerBits[ startWord ] >>> startBit;
 		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+	}
+
+
+	/** Extracts a number of consecutive entries into a given array fragment.
+	 * 
+	 * @param index the index of the first entry returned.
+	 * @param dest the destination array; it will be filled with {@code length} consecutive entries starting at position {@code offset}.
+	 * @param offset the first position written in {@code dest}.
+	 * @param length the number of elements written in {@code dest} starting at {@code offset}.
+	 * @return {@code dest}
+	 * @see #get(long, long[])
+	 */
+	public long[] get( long index, final long dest[], final int offset, final int length ) {
+		selectUpper.select( index, dest, offset, length );
+		if ( l == 0 ) for( int i = 0; i < length; ) dest[ offset + i ] -= index++;
+		else {
+			long position = index * l;
+			for( int i = 0; i < length; i++ ) {
+				final int startWord = (int)( position / Long.SIZE );
+				final int startBit = (int)( position % Long.SIZE );
+				final int totalOffset = startBit + l;
+				final long result = lowerBits[ startWord ] >>> startBit;
+				dest[ offset + i ] = dest[ offset + i ] - index - i << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+				position += l;
+			}
+		}
+		
+		return dest;
+	}
+
+	/** Extracts a number of consecutive entries into a given array.
+	 * 
+	 * @param index the index of the first entry returned.
+	 * @param dest the destination array; it will be filled with consecutive entries.
+	 * @return {@code dest}
+	 * @see #get(long, long[], int, int)
+	 */
+	public long[] get( final long index, final long dest[] ) {
+		return get( index, dest, 0, dest.length );
 	}
 
 	public long size64() {

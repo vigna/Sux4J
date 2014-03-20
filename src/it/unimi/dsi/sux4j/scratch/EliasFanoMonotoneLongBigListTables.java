@@ -42,34 +42,6 @@ import java.io.Serializable;
 
 /** An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies a number of bits bounded by two plus the logarithm of the average gap.
  * 
- * <p>Instances of this class represent in a highly compacted form a nondecreasing sequence of natural numbers. Instances
- * are built by providing either an iterator returning the (nondecreasing) sequence, or an {@linkplain Iterable iterable object} that
- * provides such an iterator. In the first case, you must also provide in advance the number of elements that will be returned and an upper bound to their
- * values (see below), and at the end of the construction the iterator will be exhausted. 
- *  
- * <h2>Implementation details</h2>
- * 
- * <p>Given a (nondecreasing) monotone sequence 
- * <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub>
- * of natural numbers smaller than <var>u</var>,
- * the Elias&ndash;Fano representation makes it possible to store it using
- * at most 2 + log(<var>u</var>/<var>n</var>) bits per element, which is very close
- * to the information-theoretical lower bound &#x2248; log <i>e</i> + log(<var>u</var>/<var>n</var>). A typical example
- * is a list of pointer into records of a large file: instead of using, for each pointer, a number of bit sufficient to express the length of
- * the file, the Elias&ndash;Fano representation makes it possible to use, for each pointer, a number of bits roughly equal to
- * the logarithm of the average length of a record. The representation was introduced in Peter Elias, 
- * &ldquo;Efficient storage and retrieval by content and address of static files&rdquo;, <i>J. Assoc. Comput. Mach.</i>, 21(2):246&minus;260, 1974,
- * and also independently by Robert Fano, &ldquo;On the number of bits required to implement an associative memory&rdquo;,
- *  Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge, Mass., n.d., 1971. 
- * 
- * <p>The elements of the sequence are recorded by storing separately 
- * the lower <var>s</var> = &lfloor;log(<var>u</var>/<var>n</var>)&rfloor; bits and the remaining upper bits.
- * The lower bits are stored contiguously, whereas the upper bits are stored in an array
- * of <var>n</var> + <var>x</var><sub><var>n</var> &minus; 1</sub> / 2<sup><var>s</var></sup> bits by setting,
- * for each 0 &le; <var>i</var> &lt; <var>n</var>,
- * the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> + <var>i</var>; the value can then be recovered
- * by selecting the <var>i</var>-th bit of the resulting bit array and subtracting <var>i</var> (note that this will
- * work because the upper bits are nondecreasing).
  * <p>This implementation uses tables recording the position of one each 2<sup>{@value #LOG_2_QUANTUM}</sup>
  * ones and zeroes.
  */
