@@ -290,7 +290,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 */
 	public long[] get( long index, final long dest[], final int offset, final int length ) {
 		selectUpper.select( index, dest, offset, length );
-		if ( l == 0 ) for( int i = 0; i < length; ) dest[ offset + i ] -= index++;
+		if ( l == 0 ) for( int i = 0; i < length; i++ ) dest[ offset + i ] -= index++;
 		else {
 			long position = index * l;
 			for( int i = 0; i < length; i++ ) {
@@ -298,7 +298,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 				final int startBit = (int)( position % Long.SIZE );
 				final int totalOffset = startBit + l;
 				final long result = lowerBits[ startWord ] >>> startBit;
-				dest[ offset + i ] = dest[ offset + i ] - index - i << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+				dest[ offset + i ] = dest[ offset + i ] - index++ << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
 				position += l;
 			}
 		}
