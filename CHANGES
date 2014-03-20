@@ -6,9 +6,9 @@
   can be used directly with MG4J's IndexBuilder.
 
 - New bulk get() methods for EliasFanoLongBigList,
-  EliasFanoMonotoneLongBigList and SimpleSelect. They are built one upon
-  each other and they are an order of magnitude faster than picking
-  consecutive elements using getLong().
+  EliasFanoMonotoneLongBigList and select() for SimpleSelect. They are
+  built one upon each other and they are an order of magnitude faster than
+  picking consecutive elements using getLong()/select().
 
 3.1.0
 
