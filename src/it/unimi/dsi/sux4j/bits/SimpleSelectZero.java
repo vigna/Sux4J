@@ -25,6 +25,7 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -33,7 +34,12 @@ import java.io.ObjectInputStream;
  *  
  * <p>This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
  * under the same conditions, provide very fast selects. For very unevenly distributed arrays
- * the space occupancy will grow significantly, and access time might vary wildly. */
+ * the space occupancy will grow significantly, and access time might vary wildly. 
+ * 
+ * <p>An additional {@linkplain #selectZero(long, long[], int, int) bulk method} makes it possible
+ * to select several consecutive bits at high speed, if the array is reasonably uniform. This is
+ * the typical case when this structure is backing an {@link EliasFanoMonotoneLongBigList}.
+ */
 
 public class SimpleSelectZero implements SelectZero {
 	private static final boolean ASSERTS = true;
@@ -265,6 +271,44 @@ public class SimpleSelectZero implements SelectZero {
         final int byteRank = (int)( residual - ( ( ( byteSums << 8 ) >>> byteOffset ) & 0xFF ) );
 
         return wordIndex * 64L + byteOffset + Fast.selectInByte[ (int)( word >>> byteOffset & 0xFF ) | byteRank << 8 ];		
+	}
+	
+	/** Performs a bulk select of consecutive ranks into a given array fragment.
+	 * 
+	 * @param rank the first rank to select.
+	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive bits starting at position {@code offset}.
+	 * @param offset the first bit position written in {@code dest}.
+	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
+	 * @return {@code dest}
+	 * @see #selectZero(long, long[])
+	 */
+	public long[] selectZero( long rank, long[] dest, final int offset, final int length ) {
+		if ( length == 0 ) return dest;
+		long s = selectZero( rank );
+		dest[ offset ] = s;
+		int curr = (int)( s / Long.SIZE );
+
+		long window = ~bits[ curr ] & -1L << s;
+		window &= window - 1;
+		
+		for( int i = 1; i < length; i++ ) {
+			while( window == 0 ) window = ~bits[ ++curr ];
+			dest[ offset + i ] = curr * Long.SIZE + Long.numberOfTrailingZeros( window );
+			window &= window - 1;
+		}
+		
+		return dest;
+	}
+
+	/** Performs a bulk select of consecutive ranks into a given array.
+	 * 
+	 * @param rank the first rank to select.
+	 * @param dest the destination array; it will be filled with position of consecutive bits.
+	 * @return {@code dest}
+	 * @see #selectZero(long, long[], int, int)
+	 */
+	public long[] selectZero( long rank, long[] dest ) {
+		return selectZero( rank, dest, 0, dest.length );
 	}
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {

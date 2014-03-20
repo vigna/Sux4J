@@ -74,22 +74,24 @@ public class EliasFanoMonotoneLongBigListTest {
 	@Test
 	public void testBulk() {
 		final XorShift1024StarRandom random = new XorShift1024StarRandom();
-		final long[] s = new long[ 100000 ];
-		for( int i = 1; i < s.length; i++ ) s[ i ] = s[ i - 1 ] + random.nextInt( 100 );
-		final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( s ) );
-		for( int i = 0; i < 1000; i++ ) {
-			final int from = random.nextInt( s.length - 100 );
-			final int to = from + random.nextInt( 100 );
-			final long[] dest = ef.get( from, new long[ to - from ] );
-			for( int j = from; j < to; j++ ) assertEquals( s[ j ], dest[ j - from ] );
-		}
+		for( int base: new int[] { 0, 1, 10 } ) {
+			final long[] s = new long[ 100000 ];
+			for( int i = 1; i < s.length; i++ ) s[ i ] = s[ i - 1 ] + random.nextInt( 100 ) + base;
+			final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( s ) );
+			for( int i = 0; i < 1000; i++ ) {
+				final int from = random.nextInt( s.length - 100 );
+				final int to = from + random.nextInt( 100 );
+				final long[] dest = ef.get( from, new long[ to - from ] );
+				for( int j = from; j < to; j++ ) assertEquals( s[ j ], dest[ j - from ] );
+			}
 
-		for( int i = 0; i < 1000; i++ ) {
-			final int from = random.nextInt( s.length - 100 );
-			final int to = from + random.nextInt( 100 );
-			final int offset = random.nextInt( 10 );
-			final long[] dest = ef.get( from, new long[ to - from + offset + random.nextInt( 10 ) ], offset, to - from );
-			for( int j = from; j < to; j++ ) assertEquals( "From: " + from + " to: " + to + " j: " + j, s[ j ], dest[ offset + j - from ] );
+			for( int i = 0; i < 1000; i++ ) {
+				final int from = random.nextInt( s.length - 100 );
+				final int to = from + random.nextInt( 100 );
+				final int offset = random.nextInt( 10 );
+				final long[] dest = ef.get( from, new long[ to - from + offset + random.nextInt( 10 ) ], offset, to - from );
+				for( int j = from; j < to; j++ ) assertEquals( "From: " + from + " to: " + to + " j: " + j, s[ j ], dest[ offset + j - from ] );
+			}
 		}
 	}
 }

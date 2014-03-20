@@ -14,11 +14,11 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
 
-public class EliasFanoMonotoneBigListSpeedTest {
+public class EliasFanoMonotoneLongBigListSpeedTest {
 
 	public static void main( final String[] arg ) throws JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( EliasFanoMonotoneBigListSpeedTest.class.getName(), "Tests the speed of rank/select implementations.",
+		final SimpleJSAP jsap = new SimpleJSAP( EliasFanoMonotoneLongBigListSpeedTest.class.getName(), "Tests the speed Elias-Fano monotone lists.",
 				new Parameter[] {
 					new UnflaggedOption( "numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements." ),
 					new UnflaggedOption( "density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density." ),
