@@ -24,10 +24,11 @@ package it.unimi.dsi.sux4j.util;
 import it.unimi.dsi.big.util.ShiftAddXorSignedStringMap;
 import it.unimi.dsi.big.util.StringMap;
 import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
+import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectBigList;
-import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.TwoStepsLcpMonotoneMinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.mph.ZFastTrieDistributorMonotoneMinimalPerfectHashFunction;
 
@@ -43,11 +44,11 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 /** A string map based on a signed function. 
  * 
- * <p>This class is a very thin wrapper around a signed {@linkplain AbstractHashFunction hash function}. Starting with version 3.1,
+ * <p>This class is a very thin wrapper around a signed {@linkplain Object2LongFunction function} on {@linkplain CharSequence character sequences}. Starting with version 3.1,
  * most succinct function implementations can be signed directly, without the help of a wrapper class such as {@link ShiftAddXorSignedStringMap}.
  * The new signature system is much faster and uses a higher-quality hash.
  * 
- * <p>Nonetheless, since all functions in Sux4J are generic (they can hash any object) we need a thin adapter (this class) that exposes
+ * <p>Nonetheless, since all functions in Sux4J are generic (they can map any object) we need a thin adapter (this class) that exposes
  * a generic function as a {@linkplain StringMap string map} (e.g., for usage in <a href="http://mg4j.di.unimi.it/">MG4J</a>).
  * 
  * <p>This adapter does not (of course) implement {@link #list()}.
@@ -56,17 +57,17 @@ import com.martiansoftware.jsap.UnflaggedOption;
  * @since 3.1.1
  */
 
-public class SignedHashFunctionStringMap extends AbstractObject2LongFunction<CharSequence> implements StringMap<CharSequence>, Serializable {
+public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSequence> implements StringMap<CharSequence>, Serializable {
 	private static final long serialVersionUID = 0L;
 
 	/** The underlying function. */
-	protected final AbstractHashFunction<? extends CharSequence> function;
+	protected final Object2LongFunction<? extends CharSequence> function;
 	
-	/** Creates a new string map by wrapping a specified signed hash function.
+	/** Creates a new string map by wrapping a specified signed function.
 	 * 
-	 * @param function a signed hash function.
+	 * @param function a signed function.
 	 */
-	public SignedHashFunctionStringMap( final AbstractHashFunction<? extends CharSequence> function ) {
+	public SignedFunctionStringMap( final Object2LongFunction<? extends CharSequence> function ) {
 		this.function = function;
 	}
 
@@ -74,7 +75,7 @@ public class SignedHashFunctionStringMap extends AbstractObject2LongFunction<Cha
 	 * 
 	 * @param keys the keys used to populate the string map.
 	 */
-	public SignedHashFunctionStringMap( final Iterable<? extends CharSequence> keys ) throws IOException {
+	public SignedFunctionStringMap( final Iterable<? extends CharSequence> keys ) throws IOException {
 		this.function = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<CharSequence>().keys( keys ).transform( TransformationStrategies.prefixFreeUtf16() ).build();
 	}
 
@@ -100,7 +101,8 @@ public class SignedHashFunctionStringMap extends AbstractObject2LongFunction<Cha
 
 	@Override
 	public long size64() {
-		return function.size64();
+		// A bit of a kluge.
+		return function instanceof Size64 ? ((Size64)function).size64() : function.size();
 	}
 
 	public ObjectBigList<CharSequence> list() {
@@ -109,7 +111,7 @@ public class SignedHashFunctionStringMap extends AbstractObject2LongFunction<Cha
 
 	@SuppressWarnings("unchecked")
 	public static void main( final String[] arg ) throws IOException, JSAPException, ClassNotFoundException {
-		final SimpleJSAP jsap = new SimpleJSAP( SignedHashFunctionStringMap.class.getName(), "Saves a string map wrapping a signed hash function on character sequences.",
+		final SimpleJSAP jsap = new SimpleJSAP( SignedFunctionStringMap.class.getName(), "Saves a string map wrapping a signed function on character sequences.",
 				new Parameter[] {
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of a signed function defined on character sequences." ),
 			new UnflaggedOption( "map", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of the resulting string map." ),
@@ -120,6 +122,6 @@ public class SignedHashFunctionStringMap extends AbstractObject2LongFunction<Cha
 
 		final String functionName = jsapResult.getString( "function" );
 		final String mapName = jsapResult.getString( "map" );
-		BinIO.storeObject( new SignedHashFunctionStringMap( (AbstractHashFunction<? extends CharSequence>)BinIO.loadObject( functionName ) ), mapName );
+		BinIO.storeObject( new SignedFunctionStringMap( (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName ) ), mapName );
 	}
 }

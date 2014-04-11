@@ -1,3 +1,9 @@
+3.1.2
+
+- Revised adapter (now renamed SignedFunctionStringMap) to accept
+  generic Object2Long<? extends CharSequence> functions, discovering
+  dynamically whether they implement Size64.
+  
 3.1.1
 
 - New thin adapter SignedObject2LongFunctionStringMap to adapt the new
