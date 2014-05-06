@@ -95,7 +95,10 @@ import org.slf4j.LoggerFactory;
  * <p>Since the list of edges incident to a node is
  * accessed during the peeling process only when the node has degree one, we can actually
  * store in a single integer the XOR of the indices of all edges incident to the node. This approach
- * significantly simplifies the code and reduces memory usage.
+ * significantly simplifies the code and reduces memory usage. It is described in detail
+ * in &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BBOCOPRH">Cache-oblivious peeling of random hypergraphs</a>&rdquo;, by
+ * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data 
+ * Compression Conference 2014</i>, 2014.
  * 
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
  * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node

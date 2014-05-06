@@ -502,7 +502,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
-	 * @param width the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
+	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
 	 * or values, or {@code null}; the store
@@ -510,11 +510,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
-	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int width, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect ) throws IOException {
+	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect ) throws IOException {
 		this.transform = transform;
 
 		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
-		if ( signatureWidth != 0 && width != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
+		if ( signatureWidth != 0 && dataWidth != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
 		
 		// If we have no keys, values must be a random-access list of longs.
 		final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
@@ -557,7 +557,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		seed = new long[ numChunks ];
 		offset = new long[ numChunks + 1 ];
 		
-		this.width = signatureWidth < 0 ? -signatureWidth : width == -1 ? Fast.ceilLog2( n ) : width;
+		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
@@ -862,7 +862,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if ( jsapResult.userSpecified( "values" ) ) {
 			final String values = jsapResult.getString( "values" );
 			int dataWidth = 0;
-			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( signatureWidth, Fast.length( i.nextLong() ) );
+			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
 
 			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false ), functionName );
 		}
