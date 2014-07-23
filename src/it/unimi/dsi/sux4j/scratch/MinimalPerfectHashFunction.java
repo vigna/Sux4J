@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.scratch;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -20,14 +20,15 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
@@ -35,6 +36,9 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
+import it.unimi.dsi.sux4j.mph.Hashes;
+import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -43,10 +47,12 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.primes.Primes;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,7 +134,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	public static final long serialVersionUID = 4L;
 
@@ -138,6 +144,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
+		protected int lambda = 4;
 		protected ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
@@ -149,6 +156,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 */
 		public Builder<T> keys( final Iterable<? extends T> keys ) {
 			this.keys = keys;
+			return this;
+		}
+		
+		/** Specifies the average size of a bucket.
+		 * 
+		 * @param lambda the average size of a bucket.
+		 * @return this builder.
+		 */
+		public Builder<T> lambda( final int lambda ) {
+			this.lambda = lambda;
 			return this;
 		}
 		
@@ -206,7 +223,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new MinimalPerfectHashFunction<T>( keys, transform, signatureWidth, tempDir, chunkedHashStore );
+			return new MinimalPerfectHashFunction<T>( keys, transform, lambda, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
@@ -232,7 +249,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final long[] offset;
 
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
-	protected final LongBigList values;
+	protected final int[][] c0, c1;
 
 	/** The bit vector underlying {@link #values}. */
 	protected final LongArrayBitVector bitVector;
@@ -255,80 +272,15 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, transform, null, null );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the chunked hash store files, or {@code null} for the current directory.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
-		this( keys, transform, tempDir, null );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for keys provided by a {@link ChunkedHashStore}.
-	 * 
-	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a checked chunked hash store containing the keys. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public MinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( null, transform, null, chunkedHashStore );
-	}
-	
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
 	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( keys, transform, null, chunkedHashStore );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash, or {@code null}.
-	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( keys, transform, 0, tempDir, chunkedHashStore );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash, or {@code null}.
-	 * @param transform a transformation strategy for the keys.
+	 * @param lambda the average bucket size
 	 * @param signatureWidth a signature width, or 0 for no signature.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -351,13 +303,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.debug( "Number of chunks: " + numChunks );
+		c0 = new int[ numChunks ][ 256 ];
+		c1 = new int[ numChunks ][ 256 ];
+		
+		LOGGER.info( "Number of chunks: " + numChunks );
+		LOGGER.info( "Average chunk size: " + (double)n / numChunks );
 
 		seed = new long[ numChunks ];
 		offset = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
-		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
+		//( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
 		array = bitVector.bits();
 
 		int duplicates = 0;
@@ -365,51 +321,104 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		for ( ;; ) {
 			LOGGER.debug( "Generating minimal perfect hash function..." );
 
-			long seed = 0;
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
 
 			try {
 				int q = 0;
+				@SuppressWarnings("unchecked")
+
+				final ArrayList<long[]>[] bucket = new ArrayList[ 256 ];
+				for( int i = bucket.length; i-- != 0; ) bucket[ i ] = new ArrayList<long[]>();
+				int chunkNumber = 0;
+				
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size(), false );
-					do {
-						seed = r.nextLong();
-					} while ( !sorter.generateAndSort( chunk.iterator(), seed ) );
+					final int p = Primes.nextPrime( (int)Math.ceil( chunk.size() / 0.99 ) + 1 );
+					
+					tryChunk: for(;;) {
+						for( ArrayList<long[]> b : bucket ) b.clear();
 
-					this.seed[ q ] = seed;
-					offset[ q + 1 ] = offset[ q ] + sorter.numVertices;
+						/* We treat a chunk as a single hash function. The number of bins is thus
+						 * the first prime larger than the chunk size divided by the load factor. */
+						final boolean used[] = new boolean[ p ];
+						/* At each try, the allocation to keys to bucket is randomized differently. */
+						final long seed = r.nextLong();
+						System.err.println( "Number of keys: " + chunk.size()  + " Number of bins: " + p + " seed: " + seed );
+						/* We distribute the keys in this chunks in the buckets. */
+						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
+							final long[] triple = iterator.next();
+							final long[] h = new long[ 3 ];
+							Hashes.jenkins( triple, seed, h );
+							bucket[ (int)( h[ 0 ] & 0xFF ) ].add( h );
+						}
 
-					/* We assign values. */
-					int top = chunk.size(), k, v = 0;
-					final int[] stack = sorter.stack;
-					final int[] vertex1 = sorter.vertex1;
-					final int[] vertex2 = sorter.vertex2;
-					final long off = offset[ q ];
+						final int[] perm = Util.identity( bucket.length );
+						IntArrays.quickSort( perm, new AbstractIntComparator() {
+							@Override
+							public int compare( int a0, int a1 ) {
+								return Integer.compare( bucket[ a1 ].size(), bucket[ a0 ].size() );
+							}
+						} );
 
-					while ( top > 0 ) {
-						v = stack[ --top ];
-						k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 ); 
-						if ( ASSERTS ) assert k >= 0 && k < 3 : Integer.toString( k );
-						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
-						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
-						final long value = ( k - s + 9 ) % 3;
-						if ( ASSERTS ) assert values.getLong( off + v ) == 0;
-						values.set( off + v, value == 0 ? 3 : value );
+						for( int k: perm ) {
+							final ArrayList<long[]> b = bucket[ k ];
+							final ArrayList<long[]> done = new ArrayList<long[]>();
+
+							//System.err.println( "Bucket size: " + b.size() );
+							int c0 = 0, c1 = 0;
+							main: for( c0 = 0; c0 < p; c0++ )
+								for( c1 = 0; c1 < p; c1++ ) {
+									//System.err.println( "Testing " + c0 + ", " + c1 );
+
+									boolean completed = true;
+									done.clear();
+									for( long[] triple: b ) {
+										assert k == ( triple[ 0 ] & 0xFF );
+										int pos = (int)( ( triple[ 1 ] + c1 * triple[ 2 ] + c0 >>> 1 ) % p );
+										//System.err.println( "Testing pos " + pos + " for " + Arrays.toString( e  ));
+										if ( used[ pos ] ) {
+											completed = false;
+											break;
+										}
+										else {
+											used[ pos ] = true;
+											done.add( triple );
+										}
+									}
+
+									if ( completed ) break main;
+
+									for( long[] triple: done ) used[ (int)( ( triple[ 1 ] + c1 * triple[ 2 ] + c0 >>> 1 ) % p ) ] = false;
+								}
+
+							if ( c0 != p ) {
+								this.c0[ chunkNumber ][ k ] = c0;
+								this.c1[ chunkNumber ][ k ] = c1;
+								this.seed[ chunkNumber ] = seed;
+							} 
+							else continue tryChunk;
+						}
+						
+						break;
 					}
 
-					q++;
-					pl.update();
-
+					System.err.println("DONE!");
+					
 					if ( ASSERTS ) {
 						final IntOpenHashSet pos = new IntOpenHashSet();
-						final int[] e = new int[ 3 ];
-						for ( long[] triple : chunk ) {
-							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, sorter.partSize, e );
-							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
+						final long h[] = new long[ 3 ];
+						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
+							final long[] triple = iterator.next();
+							Hashes.jenkins( triple, seed[ chunkNumber ], h );
+							//System.err.println( Arrays.toString(  e  ) );
+							assert pos.add( (int)( ( h[ 1 ] + c1[ chunkNumber ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunkNumber ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p ) );
 						}
 					}
+
+					offset[ chunkNumber + 1 ] = offset[ chunkNumber ] + p;
+					chunkNumber++;
+					pl.update();
 				}
 
 				pl.done();
@@ -426,36 +435,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		globalSeed = chunkedHashStore.seed();
 
-		if ( n > 0 ) {
-			long m = values.size64();
-			count = new long[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
-			long c = 0;
-
-			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
-			for ( int i = 0; i < numWords; i++ ) {
-				if ( ( i & ( BITS_PER_BLOCK / Long.SIZE - 1 ) ) == 0 ) count[ i / ( BITS_PER_BLOCK / Long.SIZE ) ] = c;
-				c += countNonzeroPairs( array[ i ] );
-			}
-
-			if ( ASSERTS ) {
-				int k = 0;
-				for ( long i = 0; i < m; i++ ) {
-					assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i );
-					if ( values.getLong( i ) != 0 ) k++;
-					assert k <= n;
-				}
-
-				final Iterator<? extends T> iterator = keys.iterator();
-				for ( long i = 0; i < n; i++ )
-					assert getLong( iterator.next() ) < n;
-			}
-		}
-		else count = LongArrays.EMPTY_ARRAY;
-
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
+//		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
 		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
-
 
 		if ( signatureWidth != 0 ) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
@@ -467,8 +449,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				Iterator<long[]> iterator = chunk.iterator();
 				for( int i = chunk.size(); i-- != 0; ) { 
 					final long[] triple = iterator.next();
-					final int[] e = new int[ 3 ];
-					signatures.set( getLongByTripleNoCheck( triple, e ), signatureMask & triple[ 0 ] );
+					signatures.set( getLongByTripleNoCheck( triple ), signatureMask & triple[ 0 ] );
 					pl.lightUpdate();
 				}
 			}
@@ -480,6 +461,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		}
 
 		if ( !givenChunkedHashStore ) chunkedHashStore.close();
+		
+		count = null; // ALERT temp
 	}
 
 	/**
@@ -488,7 +471,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * (long)Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
+		return seed.length * Long.SIZE + offset.length * Long.SIZE + ( c0.length + c1.length ) * 256 * Integer.SIZE;
 	}
 
 	/**
@@ -506,7 +489,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.bitVector = mph.bitVector;
 		this.globalSeed = mph.globalSeed;
 		this.chunkShift = mph.chunkShift;
-		this.values = mph.values;
+		this.c0 = mph.c0;
+		this.c1 = mph.c1;
+		//this.values = mph.values;
 		this.array = mph.array;
 		this.count = mph.count;
 		this.transform = mph.transform.copy();
@@ -514,71 +499,39 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.signatures = mph.signatures;
 	}
 
-	/**
-	 * Counts the number of nonzero pairs of bits in a long.
-	 * 
-	 * @param x a long.
-	 * @return the number of nonzero bit pairs in <code>x</code>.
-	 */
-	public static int countNonzeroPairs( final long x ) {
-		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
-	}
-
-	private long rank( long x ) {
-		x *= 2;
-		final int word = (int)( x / Long.SIZE );
-		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
-		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
-		while ( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
-
-		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
-	}
-
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
+		final long[] triple = new long[ 3 ];
+		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, triple );
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
+		Hashes.jenkins( triple, seed[ chunk ], h );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+		
+		int pos = (int)( ( h[ 1 ] + c1[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p );
+		
+		final long result = chunkOffset + pos;
+		return result;
+	/*
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		return result < n ? result : defRetValue;
-	}
-
-	/** Low-level access to the output of this minimal perfect hash function.
-	 *
-	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method 
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
-	 *
-	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
-	 * @return the output of the function.
-	 */
-	public long getLongByTriple( final long[] triple ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
-		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
-		return result < n ? result : defRetValue;
+		return result < n ? result : defRetValue;*/
 	}
 
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
-	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
+	private long getLongByTripleNoCheck( final long[] triple ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+		final long[] h = new long[ 3 ];
+		Hashes.jenkins( triple, seed[ chunk ], h );
 		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		return rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+		
+		int pos = (int)( ( h[ 1 ] + c1[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p );
+		
+		return chunkOffset + pos;
 	}
 
 	public long size64() {
@@ -631,7 +584,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, 4, jsapResult.getFile( "tempDir"), null ), functionName );
 		LOGGER.info( "Saved." );
 	}
 }
