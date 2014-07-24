@@ -32,7 +32,7 @@ public class MinimalPerfectHashFunctionTest {
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
 
-		for ( int size : new int[] { 100, 1000, 10000, 100000, 1000000 } ) {
+		for ( int size : new int[] { 100, 1000, 10000, 100000, 1000000, 10000000 } ) {
 			for( int signatureWidth: new int[] { 0 } ) {
 				System.err.println( "Size: " + size );
 				String[] s = new String[ size ];
