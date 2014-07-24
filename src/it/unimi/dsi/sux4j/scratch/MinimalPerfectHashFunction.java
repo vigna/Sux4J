@@ -149,7 +149,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
-		protected int lambda = 4;
+		protected int lambda = 8;
 		protected ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
