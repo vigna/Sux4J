@@ -350,7 +350,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							final long[] triple = iterator.next();
 							final long[] h = new long[ 3 ];
 							Hashes.jenkins( triple, seed, h );
-							bucket[ (int)( h[ 0 ] & 0xFF ) ].add( h );
+							h[ 0 ] &= 0xFF;
+							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
+							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
+
+							// All elements in a bucket must have either different h[ 1 ] or different h[ 2 ]
+							for( long[] t: bucket[ (int)h[ 0 ] ] ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
+								LOGGER.info( "Duplicate index" );
+								continue tryChunk;
+							}
+							bucket[ (int)h[ 0 ] ].add( h );
 						}
 
 						final int[] perm = Util.identity( bucket.length );
@@ -364,7 +373,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						for( int k: perm ) {
 							final ArrayList<long[]> b = bucket[ k ];
 							final ArrayList<long[]> done = new ArrayList<long[]>();
-
+							
 							//System.err.println( "Bucket size: " + b.size() );
 							int c0 = 0, c1 = 0;
 							main: for( c0 = 0; c0 < p; c0++ )
@@ -373,9 +382,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 									boolean completed = true;
 									done.clear();
-									for( long[] triple: b ) {
-										assert k == ( triple[ 0 ] & 0xFF );
-										int pos = (int)( ( triple[ 1 ] + c1 * triple[ 2 ] + c0 >>> 1 ) % p );
+									for( long[] h: b ) {
+										assert k == h[ 0 ];
+										
+										int pos = (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p );
 										//System.err.println( "Testing pos " + pos + " for " + Arrays.toString( e  ));
 										if ( used[ pos ] ) {
 											completed = false;
@@ -383,13 +393,13 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 										}
 										else {
 											used[ pos ] = true;
-											done.add( triple );
+											done.add( h );
 										}
 									}
 
 									if ( completed ) break main;
 
-									for( long[] triple: done ) used[ (int)( ( triple[ 1 ] + c1 * triple[ 2 ] + c0 >>> 1 ) % p ) ] = false;
+									for( long[] h: done ) used[ (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p ) ] = false;
 								}
 
 							if ( c0 != p ) {
@@ -411,8 +421,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
 							Hashes.jenkins( triple, seed[ chunkNumber ], h );
+							h[ 0 ] &= 0xFF;
+							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
+							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 							//System.err.println( Arrays.toString(  e  ) );
-							assert pos.add( (int)( ( h[ 1 ] + c1[ chunkNumber ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunkNumber ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p ) );
+							assert pos.add( (int)( ( h[ 1 ] + c0[ chunkNumber ][ (int)( h[ 0 ] ) ] * h[ 2 ] + c1[ chunkNumber ][ (int)( h[ 0 ] ) ] ) % p ) );
 						}
 					}
 
@@ -506,11 +519,14 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+		Hashes.jenkins( triple, seed[ chunk ], h );
+		h[ 0 ] &= 0xFF;
+		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
+		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		int pos = (int)( ( h[ 1 ] + c1[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p );
+		int pos = (int)( ( h[ 1 ] + c0[ chunk ][ (int)( h[ 0 ] ) ] * h[ 2 ] + c1[ chunk ][ (int)( h[ 0 ] ) ] ) % p );
 		
 		final long result = chunkOffset + pos;
 		return result;
@@ -529,7 +545,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 		
-		int pos = (int)( ( h[ 1 ] + c1[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c0[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] >>> 1 ) % p );
+		int pos = (int)( ( h[ 1 ] + c0[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] * h[ 2 ] + c1[ chunk ][ (int)( h[ 0 ] & 0xFF ) ] ) % p );
 		
 		return chunkOffset + pos;
 	}
