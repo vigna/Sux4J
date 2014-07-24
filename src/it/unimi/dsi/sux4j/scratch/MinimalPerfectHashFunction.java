@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
@@ -392,20 +393,23 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						} );
 
 						for( int i = 0; i < perm.length; ) {
-							final IntArrayList bucketsToDo = new IntArrayList();
+							final LinkedList<Integer> bucketsToDo = new LinkedList<Integer>();
 							final int size = bucket[ perm[ i ] ].size();
+							//System.err.println( "Bucket size: " + size );
 							int j;
-							for( j = i; j < perm.length && bucket[ perm[ j ] ].size() == size; j++ ) bucketsToDo.add( perm[ j ] );
+							// Gather indices of all buckets with the same size
+							for( j = i; j < perm.length && bucket[ perm[ j ] ].size() == size; j++ ) bucketsToDo.add( Integer.valueOf( perm[ j ] ) );
 
-							//System.err.println( "Bucket size: " + b.size() );
-							for( int c1 = 0; c1 < p && ! bucketsToDo.isEmpty(); c1++ )
-								for( int c0 = 0; c0 < p && ! bucketsToDo.isEmpty(); c0++ )  {
+							// Examine for each pair (c0,c1) the buckets still to do
+							ext: for( int c1 = 0; c1 < p; c1++ )
+								for( int c0 = 0; c0 < p; c0++ )  {
 									//System.err.println( "Testing " + c0 + ", " + c1 + " (to do: " + bucketsToDo.size() + ")" );
-									for( IntIterator iterator = bucketsToDo.iterator(); iterator.hasNext(); ) {
-										final int k = iterator.nextInt();
+									for( Iterator<Integer> iterator = bucketsToDo.iterator(); iterator.hasNext(); ) {
+										final int k = iterator.next().intValue();
 										final ArrayList<long[]> b = bucket[ k ];
 										boolean completed = true;
-										final ArrayList<long[]> done = new ArrayList<long[]>();
+										final IntArrayList done = new IntArrayList();
+										// Try to see whether the necessary entries are not used
 										for( long[] h: b ) {
 											//assert k == h[ 0 ];
 
@@ -417,17 +421,19 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 											}
 											else {
 												used[ pos ] = true;
-												done.add( h );
+												done.add( pos );
 											}
 										}
 
 										if ( completed ) {
+											// All positions were free
 											this.c0[ chunkNumber ][ k ] = c0;
 											this.c1[ chunkNumber ][ k ] = c1;
 											iterator.remove();
 										}
-										else for( long[] h: done ) used[ (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p ) ] = false;
+										else for( int d: done ) used[ d ] = false;
 									}
+									if ( bucketsToDo.isEmpty() ) break ext;
 								}
 							if ( ! bucketsToDo.isEmpty() ) continue tryChunk;
 							
