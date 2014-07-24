@@ -1,10 +1,8 @@
 package it.unimi.dsi.sux4j.scratch;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.sux4j.scratch.MinimalPerfectHashFunction.Builder;
 
 import java.io.IOException;
@@ -39,11 +37,7 @@ public class MinimalPerfectHashFunctionTest {
 				for ( int i = s.length; i-- != 0; )	s[ i ] = Integer.toString( i );
 
 				MinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
-				
-				final LongOpenHashSet found = new LongOpenHashSet();
-				for( String t: s ) {
-					assertTrue( found.add( mph.getLong( t ) ) );
-				}
+				check( size, s, mph, signatureWidth );
 			}
 		}
 	}

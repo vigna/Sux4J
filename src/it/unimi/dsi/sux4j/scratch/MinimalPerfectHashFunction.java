@@ -26,18 +26,21 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
+import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.fastutil.longs.LongIterable;
-import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.Hashes;
@@ -52,6 +55,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -149,7 +153,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
-		protected int lambda = 8;
+		protected int lambda = 5;
 		protected ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
@@ -236,7 +240,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	public static final int BITS_PER_BLOCK = 1024;
 
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 10;
+	public final static int LOG2_CHUNK_SIZE = 16;
 
 	/** The number of keys. */
 	protected final long n;
@@ -257,7 +261,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final long[] numBuckets;
 
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
-	protected final int[][] c0, c1;
+	protected transient int[][] c0, c1;
 
 	/** The bit vector underlying {@link #values}. */
 	protected final LongArrayBitVector bitVector;
@@ -276,7 +280,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	
 	/** The signatures. */
 	protected final LongBigList signatures;
-	protected final EliasFanoLongBigList coefficients; 
+	protected final EliasFanoLongBigList coefficients;
+	protected final SparseRank rank; 
 
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
@@ -327,19 +332,24 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		array = bitVector.bits();
 
 		int duplicates = 0;
-
+		final LongArrayList holes = new LongArrayList();
+		
 		for ( ;; ) {
 			LOGGER.debug( "Generating minimal perfect hash function..." );
 
+			holes.clear();
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
-
+			
 			try {
 				int chunkNumber = 0;
 				
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-					final int p = Primes.nextPrime( (int)( chunk.size() + 1 ) );
+					/* We treat a chunk as a single hash function. The number of bins is thus
+					 * the first prime larger than the chunk size divided by the load factor. */
+					final int p = Primes.nextPrime( chunk.size() );
+					final boolean used[] = new boolean[ p ];
 	
 					final int numBuckets = ( chunk.size() + lambda - 1 ) / lambda;
 					this.numBuckets[ chunkNumber + 1 ] = this.numBuckets[ chunkNumber ] + numBuckets;
@@ -351,10 +361,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					
 					tryChunk: for(;;) {
 						for( ArrayList<long[]> b : bucket ) b.clear();
-
-						/* We treat a chunk as a single hash function. The number of bins is thus
-						 * the first prime larger than the chunk size divided by the load factor. */
-						final boolean used[] = new boolean[ p ];
+						Arrays.fill( used,  false );
+						
 						/* At each try, the allocation to keys to bucket is randomized differently. */
 						final long seed = r.nextLong();
 						// System.err.println( "Number of keys: " + chunk.size()  + " Number of bins: " + p + " seed: " + seed );
@@ -369,7 +377,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 							// All elements in a bucket must have either different h[ 1 ] or different h[ 2 ]
 							for( long[] t: bucket[ (int)h[ 0 ] ] ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
-								LOGGER.info( "Duplicate index" );
+								LOGGER.info( "Duplicate index" + Arrays.toString( t ) );
 								continue tryChunk;
 							}
 							bucket[ (int)h[ 0 ] ].add( h );
@@ -383,51 +391,47 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							}
 						} );
 
-						int c = -1;
-						for( int k: perm ) {
-							c++;
-							final ArrayList<long[]> b = bucket[ k ];
-							final ArrayList<long[]> done = new ArrayList<long[]>();
-							
+						for( int i = 0; i < perm.length; i++ ) {
+							final IntArrayList bucketsToDo = new IntArrayList();
+							final int size = bucket[ perm[ i ] ].size();
+							int j;
+							for( j = i; j < perm.length && bucket[ perm[ j ] ].size() == size; j++ ) bucketsToDo.add( perm[ j ] );
+
 							//System.err.println( "Bucket size: " + b.size() );
-							int c0 = 0, c1 = 0;
-							main: for( c0 = 0; c0 < p; c0++ )
-								for( c1 = 0; c1 < p; c1++ ) {
+							for( int c1 = 0; c1 < p; c1++ )
+								for( int c0 = 0; c0 < p; c0++ ) 
 									//System.err.println( "Testing " + c0 + ", " + c1 );
+									for( IntIterator iterator = bucketsToDo.iterator(); iterator.hasNext(); ) {
+										final int k = iterator.nextInt();
+										final ArrayList<long[]> b = bucket[ k ];
+										boolean completed = true;
+										final ArrayList<long[]> done = new ArrayList<long[]>();
+										for( long[] h: b ) {
+											//assert k == h[ 0 ];
 
-									boolean completed = true;
-									done.clear();
-									for( long[] h: b ) {
-										assert k == h[ 0 ];
-										
-										int pos = (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p );
-										//System.err.println( "Testing pos " + pos + " for " + Arrays.toString( e  ));
-										if ( used[ pos ] ) {
-											completed = false;
-											break;
+											int pos = (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p );
+											//System.err.println( "Testing pos " + pos + " for " + Arrays.toString( e  ));
+											if ( used[ pos ] ) {
+												completed = false;
+												break;
+											}
+											else {
+												used[ pos ] = true;
+												done.add( h );
+											}
 										}
-										else {
-											used[ pos ] = true;
-											done.add( h );
+
+										if ( completed ) {
+											this.c0[ chunkNumber ][ k ] = c0;
+											this.c1[ chunkNumber ][ k ] = c1;
+											iterator.remove();
 										}
+										else for( long[] h: done ) used[ (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p ) ] = false;
 									}
-
-									if ( completed ) break main;
-
-									for( long[] h: done ) used[ (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p ) ] = false;
-								}
-
-							if ( c0 != p ) {
-								this.c0[ chunkNumber ][ k ] = c0;
-								this.c1[ chunkNumber ][ k ] = c1;
-								this.seed[ chunkNumber ] = seed;
-							} 
-							else {
-								// System.err.println( "Failed fixing bucket " + c + " (size " + b.size() + ") of " + perm.length + " in chunk " + chunkNumber );
-								continue tryChunk;
+							if ( bucketsToDo.isEmpty() ) this.seed[ chunkNumber ] = seed;
+							else // System.err.println( "Failed fixing bucket " + c + " (size " + b.size() + ") of " + perm.length + " in chunk " + chunkNumber );
+							continue tryChunk;
 							}
-						}
-						
 						break;
 					}
 
@@ -446,6 +450,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							assert pos.add( (int)( ( h[ 1 ] + c0[ chunkNumber ][ (int)( h[ 0 ] ) ] * h[ 2 ] + c1[ chunkNumber ][ (int)( h[ 0 ] ) ] ) % p ) );
 						}
 					}
+					
+					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset[ chunkNumber ] + i );
 
 					offset[ chunkNumber + 1 ] = offset[ chunkNumber ] + p;
 					chunkNumber++;
@@ -463,6 +469,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				chunkedHashStore.addAll( keys.iterator() );
 			}
 		}
+
+		rank = new SparseRank( offset[ offset.length - 1 ], holes.size(), holes.iterator() );
 
 		globalSeed = chunkedHashStore.seed();
 
@@ -485,7 +493,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				return result;
 			}
 		}, 0 );
-	
+		
 		if ( ASSERTS ) {
 			long p = 0;
 			for( int i = 0; i < c0.length; i++ )
@@ -532,7 +540,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return seed.length * Long.SIZE + offset.length * Long.SIZE + coefficients.numBits() + numBuckets.length * Long.SIZE;
+		return seed.length * Long.SIZE + offset.length * Long.SIZE + coefficients.numBits() + numBuckets.length * Long.SIZE + rank.numBits();
 	}
 
 	/**
@@ -551,9 +559,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.globalSeed = mph.globalSeed;
 		this.coefficients = mph.coefficients;
 		this.chunkShift = mph.chunkShift;
-		this.c0 = mph.c0;
-		this.c1 = mph.c1;
-		//this.values = mph.values;
+		this.rank = mph.rank;
 		this.numBuckets = mph.numBuckets;
 		this.array = mph.array;
 		this.count = mph.count;
@@ -586,7 +592,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		int pos = (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		
 		final long result = chunkOffset + pos;
-		return result;
+		return result - rank.rank( result );
 	/*
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
@@ -663,7 +669,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, 4, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, 5, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
 		LOGGER.info( "Saved." );
 	}
 }
