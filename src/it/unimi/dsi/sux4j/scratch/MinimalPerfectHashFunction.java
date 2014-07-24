@@ -391,16 +391,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							}
 						} );
 
-						for( int i = 0; i < perm.length; i++ ) {
+						for( int i = 0; i < perm.length; ) {
 							final IntArrayList bucketsToDo = new IntArrayList();
 							final int size = bucket[ perm[ i ] ].size();
 							int j;
 							for( j = i; j < perm.length && bucket[ perm[ j ] ].size() == size; j++ ) bucketsToDo.add( perm[ j ] );
 
 							//System.err.println( "Bucket size: " + b.size() );
-							for( int c1 = 0; c1 < p; c1++ )
-								for( int c0 = 0; c0 < p; c0++ ) 
-									//System.err.println( "Testing " + c0 + ", " + c1 );
+							for( int c1 = 0; c1 < p && ! bucketsToDo.isEmpty(); c1++ )
+								for( int c0 = 0; c0 < p && ! bucketsToDo.isEmpty(); c0++ )  {
+									//System.err.println( "Testing " + c0 + ", " + c1 + " (to do: " + bucketsToDo.size() + ")" );
 									for( IntIterator iterator = bucketsToDo.iterator(); iterator.hasNext(); ) {
 										final int k = iterator.nextInt();
 										final ArrayList<long[]> b = bucket[ k ];
@@ -428,10 +428,12 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 										}
 										else for( long[] h: done ) used[ (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p ) ] = false;
 									}
-							if ( bucketsToDo.isEmpty() ) this.seed[ chunkNumber ] = seed;
-							else // System.err.println( "Failed fixing bucket " + c + " (size " + b.size() + ") of " + perm.length + " in chunk " + chunkNumber );
-							continue tryChunk;
-							}
+								}
+							if ( ! bucketsToDo.isEmpty() ) continue tryChunk;
+							
+							this.seed[ chunkNumber ] = seed;							
+							i = j;
+						}
 						break;
 					}
 
