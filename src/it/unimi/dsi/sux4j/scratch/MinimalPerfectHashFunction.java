@@ -26,10 +26,8 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
@@ -55,10 +53,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -66,7 +62,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.lang.mutable.MutableLong;
@@ -119,35 +114,15 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <h3>How it Works</h3>
  * 
- * <p>The technique used is very similar (but developed independently) to that described by Fabiano
- * C. Botelho, Rasmus Pagh and Nivio Ziviani in &ldquo;Simple and Efficient Minimal Perfect Hashing
- * Functions&rdquo;, <i>Algorithms and data structures: 10th international workshop, WADS 2007</i>,
- * number 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping
- * technique described therein was actually first proposed by Bernard Chazelle, Joe Kilian, Ronitt
- * Rubinfeld and Ayellet Tal in &ldquo;The Bloomier Filter: an Efficient Data Structure for Static
- * Support Lookup Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the
- * steps to implement a mutable table.
- * 
- * <p>The basic ingredient is the Majewski-Wormald-Havas-Czech
- * {@linkplain HypergraphSorter 3-hypergraph technique}. After generating a random 3-hypergraph, we
- * {@linkplain HypergraphSorter sort} its 3-hyperedges to that a distinguished vertex in each
- * 3-hyperedge, the <em>hinge</em>, never appeared before. We then assign to each vertex a
- * two-bit number in such a way that for each 3-hyperedge the sum of the values associated to its
- * vertices modulo 3 gives the index of the hash function generating the hinge. As as a result we
- * obtain a perfect hash of the original set (one just has to compute the three hash functions,
- * collect the three two-bit values, add them modulo 3 and take the corresponding hash function
- * value).
- * 
- * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value
- * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
- * output value for some key. The final value of the minimal perfect hash function is the number
- * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
- * number, we use a simple table-free ranking scheme, recording the number of nonzero pairs each
- * {@link #BITS_PER_BLOCK} bits and using {@link Long#bitCount(long)} to 
- * {@linkplain #countNonzeroPairs(long) count the number of nonzero pairs of bits in a word}.
+ * <p>The technique used is described by Djamal Belazzougui, Fabiano C. Botelho and Martin Dietzfelbinger
+ * in &ldquo;Hash, displace and compress&rdquo;, <i>Algorithms - ESA 2009</i>, LNCS 5757, pages 682&minus;693, 2009.
+ * However, with respect to the algorithm described in the paper, this implementation 
+ * is much more scalable, as it uses a {@link ChunkedHashStore}
+ * to split the generation of large key sets into generation of smaller functions for each chunk (of size
+ * approximately 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
  * 
  * @author Sebastiano Vigna
- * @since 0.1
+ * @since 3.1.2
  */
 
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
@@ -272,13 +247,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	
+	/** The displacement coefficients. */
+	protected final EliasFanoLongBigList coefficients;
+	
+	/** The sparse ranking structure containing the unused entries. */ 
+	protected final SparseRank rank; 
+
 	/** The mask to compare signatures, or zero for no signatures. */
 	protected final long signatureMask;
 	
 	/** The signatures. */
 	protected final LongBigList signatures;
-	protected final EliasFanoLongBigList coefficients;
-	protected final SparseRank rank; 
 
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
@@ -324,7 +303,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
 		
-		final OfflineIterable<MutableLong, MutableLong> offlineIterable = 
+		@SuppressWarnings("resource")
+		final OfflineIterable<MutableLong, MutableLong> coefficients = 
 				new OfflineIterable<MutableLong, MutableLong>( new Serializer<MutableLong, MutableLong>() {
 
 					@Override
@@ -353,7 +333,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			LOGGER.debug( "Generating minimal perfect hash function..." );
 
 			holes.clear();
-			offlineIterable.clear();
+			coefficients.clear();
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
@@ -387,16 +367,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							final long[] triple = iterator.next();
 							final long[] h = new long[ 3 ];
 							Hashes.jenkins( triple, seed, h );
-							h[ 0 ] = ( h[ 0 ] >>> 1 ) % numBuckets;
+							final ArrayList<long[]> b = bucket[ (int)( ( h[ 0 ] >>> 1 ) % numBuckets ) ];
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 
 							// All elements in a bucket must have either different h[ 1 ] or different h[ 2 ]
-							for( long[] t: bucket[ (int)h[ 0 ] ] ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
+							for( long[] t: b ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
 								LOGGER.info( "Duplicate index" + Arrays.toString( t ) );
 								continue tryChunk;
 							}
-							bucket[ (int)h[ 0 ] ].add( h );
+							b.add( h );
 						}
 
 						final int[] perm = Util.identity( bucket.length );
@@ -477,7 +457,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					final MutableLong l = new MutableLong();
 					for( int i = 0; i < numBuckets; i++ ) {
 						l.setValue( cc0[ i ] + cc1[ i ] * p );
-						offlineIterable.add( l );
+						coefficients.add( l );
 					}
 					
 					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset[ chunkNumber ] + i );
@@ -503,8 +483,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		globalSeed = chunkedHashStore.seed();
 
-		coefficients = new EliasFanoLongBigList( new AbstractLongIterator() {
-			final OfflineIterator<MutableLong, MutableLong> iterator = offlineIterable.iterator();
+		this.coefficients = new EliasFanoLongBigList( new AbstractLongIterator() {
+			final OfflineIterator<MutableLong, MutableLong> iterator = coefficients.iterator();
 			
 			@Override
 			public boolean hasNext() {
@@ -516,8 +496,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			}
 		}, 0 );
 		
+		coefficients.close();
+
 		LOGGER.info( "Completed." );
-//		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
 		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
 
 		if ( signatureWidth != 0 ) {
@@ -543,7 +524,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		}
 
 		if ( !givenChunkedHashStore ) chunkedHashStore.close();
-		offlineIterable.close();
 	}
 
 	/**
