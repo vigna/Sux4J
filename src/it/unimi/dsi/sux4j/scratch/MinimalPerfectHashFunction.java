@@ -310,7 +310,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					@Override
 					public void write( final MutableLong a, final DataOutput dos ) throws IOException {
 						long x = a.longValue();
-						while ((x & ~0x7FL) != 0) {
+						while ( ( x & ~0x7FL ) != 0 ) {
 							dos.writeByte( (int)( x | 0x80 ) );
 							x >>>= 7;
 						}
@@ -321,9 +321,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					public void read( final DataInput dis, final MutableLong x ) throws IOException {
 						byte b = dis.readByte();
 						long t = b & 0x7F;
-						for (int shift = 7; (b & 0x80) != 0; shift += 7) {
+						for ( int shift = 7; ( b & 0x80 ) != 0; shift += 7 ) {
 							b = dis.readByte();
-							t |= (b & 0x7FL) << shift;
+							t |= ( b & 0x7FL ) << shift;
 						}
 						x.setValue( t );
 					}
