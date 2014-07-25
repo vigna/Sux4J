@@ -36,7 +36,7 @@ public class MinimalPerfectHashFunctionTest {
 
 		for ( int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000, 10000, 100000 } ) {
 			for( int signatureWidth: new int[] { 0, 32, 64 } ) {
-				System.err.println( "Size: " + size );
+				System.err.println( "Size: " + size  + " w: " + signatureWidth );
 				String[] s = new String[ size ];
 				for ( int i = s.length; i-- != 0; )
 					s[ i ] = Integer.toString( i );

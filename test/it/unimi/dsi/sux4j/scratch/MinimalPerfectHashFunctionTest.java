@@ -3,8 +3,11 @@ package it.unimi.dsi.sux4j.scratch;
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.scratch.MinimalPerfectHashFunction.Builder;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -30,15 +33,33 @@ public class MinimalPerfectHashFunctionTest {
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
 
-		for ( int size : new int[] { 100, 1000, 10000, 100000, 1000000, 10000000 } ) {
-			for( int signatureWidth: new int[] { 0 } ) {
-				System.err.println( "Size: " + size );
+		for ( int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000, 10000, 100000 } ) {
+			for( int signatureWidth: new int[] { 0, 32, 64 } ) {
+				System.err.println( "Size: " + size  + " w: " + signatureWidth );
 				String[] s = new String[ size ];
-				for ( int i = s.length; i-- != 0; )	s[ i ] = Integer.toString( i );
+				for ( int i = s.length; i-- != 0; )
+					s[ i ] = Integer.toString( i );
 
 				MinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
+						
+				check( size, s, mph, signatureWidth );
+
+				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
+				temp.deleteOnExit();
+				BinIO.storeObject( mph, temp );
+				mph = (MinimalPerfectHashFunction<CharSequence>)BinIO.loadObject( temp );
+
+				check( size, s, mph, signatureWidth );
+
+				// From store
+				ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<CharSequence>( TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null );
+				chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
+				chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
+				mph = new MinimalPerfectHashFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+
 				check( size, s, mph, signatureWidth );
 			}
 		}
 	}
+
 }

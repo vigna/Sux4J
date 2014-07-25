@@ -38,6 +38,9 @@ import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
+import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
+import it.unimi.dsi.io.OfflineIterable.Serializer;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
@@ -48,10 +51,14 @@ import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -62,6 +69,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.math3.primes.Primes;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
@@ -261,18 +269,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The number of buckets of each chunk, stored cumulatively. */
 	protected final long[] numBuckets;
 
-	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
-	protected transient int[][] c0, c1;
-
-	/** The bit vector underlying {@link #values}. */
-	protected final LongArrayBitVector bitVector;
-
-	/** The bit array supporting {@link #values}. */
-	protected transient long[] array;
-
-	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
-	protected final long count[];
-
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	
@@ -318,9 +314,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
 		final int numChunks = 1 << log2NumChunks;
 
-		c0 = new int[ numChunks ][];
-		c1 = new int[ numChunks ][];
-		
 		LOGGER.info( "Number of chunks: " + numChunks );
 		LOGGER.info( "Average chunk size: " + (double)n / numChunks );
 
@@ -328,17 +321,39 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		offset = new long[ numChunks + 1 ];
 		numBuckets = new long[ numChunks + 1 ];
 		
-		bitVector = LongArrayBitVector.getInstance();
-		//( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
-		array = bitVector.bits();
-
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
+		
+		final OfflineIterable<MutableLong, MutableLong> offlineIterable = 
+				new OfflineIterable<MutableLong, MutableLong>( new Serializer<MutableLong, MutableLong>() {
+
+					@Override
+					public void write( final MutableLong a, final DataOutput dos ) throws IOException {
+						long x = a.longValue();
+						while ((x & ~0x7FL) != 0) {
+							dos.writeByte( (int)( x | 0x80 ) );
+							x >>>= 7;
+						}
+						dos.writeByte( (int)x );
+					}
+
+					@Override
+					public void read( final DataInput dis, final MutableLong x ) throws IOException {
+						byte b = dis.readByte();
+						long t = b & 0x7F;
+						for (int shift = 7; (b & 0x80) != 0; shift += 7) {
+							b = dis.readByte();
+							t |= (b & 0x7FL) << shift;
+						}
+						x.setValue( t );
+					}
+				}, new MutableLong() );
 		
 		for ( ;; ) {
 			LOGGER.debug( "Generating minimal perfect hash function..." );
 
 			holes.clear();
+			offlineIterable.clear();
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
@@ -354,8 +369,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	
 					final int numBuckets = ( chunk.size() + lambda - 1 ) / lambda;
 					this.numBuckets[ chunkNumber + 1 ] = this.numBuckets[ chunkNumber ] + numBuckets;
-					c0[ chunkNumber ] = new int[ numBuckets ];
-					c1[ chunkNumber ] = new int[ numBuckets ];
+					final int[] cc0 = new int[ numBuckets ];
+					final int[] cc1 = new int[ numBuckets ];
 					@SuppressWarnings("unchecked")
 					final ArrayList<long[]>[] bucket = new ArrayList[ numBuckets ];
 					for( int i = bucket.length; i-- != 0; ) bucket[ i ] = new ArrayList<long[]>();
@@ -427,8 +442,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 										if ( completed ) {
 											// All positions were free
-											this.c0[ chunkNumber ][ k ] = c0;
-											this.c1[ chunkNumber ][ k ] = c1;
+											cc0[ k ] = c0;
+											cc1[ k ] = c1;
 											iterator.remove();
 										}
 										else for( int d: done ) used[ d ] = false;
@@ -455,8 +470,14 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 							//System.err.println( Arrays.toString(  e  ) );
-							assert pos.add( (int)( ( h[ 1 ] + c0[ chunkNumber ][ (int)( h[ 0 ] ) ] * h[ 2 ] + c1[ chunkNumber ][ (int)( h[ 0 ] ) ] ) % p ) );
+							assert pos.add( (int)( ( h[ 1 ] + cc0[ (int)( h[ 0 ] ) ] * h[ 2 ] + cc1[ (int)( h[ 0 ] ) ] ) % p ) );
 						}
+					}
+					
+					final MutableLong l = new MutableLong();
+					for( int i = 0; i < numBuckets; i++ ) {
+						l.setValue( cc0[ i ] + cc1[ i ] * p );
+						offlineIterable.add( l );
 					}
 					
 					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset[ chunkNumber ] + i );
@@ -483,35 +504,18 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		globalSeed = chunkedHashStore.seed();
 
 		coefficients = new EliasFanoLongBigList( new AbstractLongIterator() {
-			int chunkIndex, arrayIndex;
+			final OfflineIterator<MutableLong, MutableLong> iterator = offlineIterable.iterator();
+			
 			@Override
 			public boolean hasNext() {
-				if ( arrayIndex == 0 ) while( chunkIndex < numChunks && c0[ chunkIndex ].length == 0 ) chunkIndex++;
-				return chunkIndex < numChunks; 
+				return iterator.hasNext();
 			}
-
+			
 			public long nextLong() {
-				if ( ! hasNext() ) throw new NoSuchElementException();
-				final long result = c0[ chunkIndex ][ arrayIndex ] + c1[ chunkIndex ][ arrayIndex ] * ( offset[ chunkIndex + 1 ] - offset[ chunkIndex ] );
-				if ( ++arrayIndex == c0[ chunkIndex ].length ) {
-					chunkIndex++;
-					arrayIndex = 0;
-				}
-
-				return result;
+				return iterator.next().longValue();
 			}
 		}, 0 );
 		
-		if ( ASSERTS ) {
-			long p = 0;
-			for( int i = 0; i < c0.length; i++ )
-				for( int j = 0; j < c0[ i ].length; j++ ) {
-					assert c0[ i ][ j ] == coefficients.getLong( p ) % ( offset[ i + 1 ] - offset[ i ] );
-					assert c1[ i ][ j ] == coefficients.getLong( p ) / ( offset[ i + 1 ] - offset[ i ] );
-					p++;
-				}
-		}
-
 		LOGGER.info( "Completed." );
 //		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
 		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
@@ -526,7 +530,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				Iterator<long[]> iterator = chunk.iterator();
 				for( int i = chunk.size(); i-- != 0; ) { 
 					final long[] triple = iterator.next();
-					signatures.set( getLongByTripleNoCheck( triple ), signatureMask & triple[ 0 ] );
+					long t = getLongByTripleNoCheck( triple );
+					signatures.set( t, signatureMask & triple[ 0 ] );
 					pl.lightUpdate();
 				}
 			}
@@ -538,8 +543,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		}
 
 		if ( !givenChunkedHashStore ) chunkedHashStore.close();
-		
-		count = null; // ALERT temp
+		offlineIterable.close();
 	}
 
 	/**
@@ -551,80 +555,46 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return seed.length * Long.SIZE + offset.length * Long.SIZE + coefficients.numBits() + numBuckets.length * Long.SIZE + rank.numBits();
 	}
 
-	/**
-	 * Creates a new minimal perfect hash by copying a given one; non-transient fields are (shallow)
-	 * copied.
-	 * 
-	 * @param mph the perfect hash to be copied.
-	 * @deprecated Unused.
-	 */
-	@Deprecated
-	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
-		this.n = mph.n;
-		this.seed = mph.seed;
-		this.offset = mph.offset;
-		this.bitVector = mph.bitVector;
-		this.globalSeed = mph.globalSeed;
-		this.coefficients = mph.coefficients;
-		this.chunkShift = mph.chunkShift;
-		this.rank = mph.rank;
-		this.numBuckets = mph.numBuckets;
-		this.array = mph.array;
-		this.count = mph.count;
-		this.transform = mph.transform.copy();
-		this.signatureMask = mph.signatureMask;
-		this.signatures = mph.signatures;
-	}
-
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long[] h = new long[ 3 ];
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+
+		final long[] h = new long[ 3 ];
 		Hashes.jenkins( triple, seed[ chunk ], h );
-		h[ 0 ] = ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long c = coefficients.getLong( numBuckets[ chunk ] + h[ 0 ] );
+		final long c = coefficients.getLong( numBuckets[ chunk ] + ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] ) );
 		
-		assert c0[ chunk ][ (int)h[ 0 ] ] == c % p : c0[ chunk ][ (int)h[ 0 ] ] + " != " + c / p; 
-		assert c1[ chunk ][ (int)h[ 0 ] ] == c / p : c1[ chunk ][ (int)h[ 0 ] ] + " != " + c % p; 
+		long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
+		result -= rank.rank( result );
 
-		//int pos = (int)( ( h[ 1 ] + c0[ chunk ][ (int)h[ 0 ] ] * h[ 2 ] + c1[ chunk ][ (int)h[ 0 ] ] % p ) % p );
-
-		int pos = (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
-		
-		final long result = chunkOffset + pos;
-		return result - rank.rank( result );
-	/*
-		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		return result < n ? result : defRetValue;*/
+		return result < n ? result : defRetValue;
 	}
 
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 		
-		h[ 0 ] = ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] );
+		final long[] h = new long[ 3 ];
+		Hashes.jenkins( triple, seed[ chunk ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long c = coefficients.getLong( numBuckets[ chunk ] + h[ 0 ] );
+		final long c = coefficients.getLong( numBuckets[ chunk ] + ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] ) );
 
-		int pos = (int)( ( h[ 1 ] + ( c / p ) * h[ 2 ] + c % p ) % p );
-		
-		return chunkOffset + pos;
+		final long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
+		return result - rank.rank( result );
 	}
 
 	public long size64() {
@@ -633,7 +603,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		array = bitVector.bits();
 	}
 
 
