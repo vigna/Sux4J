@@ -138,6 +138,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		protected int signatureWidth;
 		protected File tempDir;
 		protected int lambda = 5;
+		protected double loadFactor = 1;
 		protected ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
@@ -159,6 +160,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 */
 		public Builder<T> lambda( final int lambda ) {
 			this.lambda = lambda;
+			return this;
+		}
+		
+		/** Specifies the load factor.
+		 * 
+		 * @param loadFactor the load factor.
+		 * @return this builder.
+		 */
+		public Builder<T> loadFactor( final int loadFactor ) {
+			this.loadFactor = loadFactor;
 			return this;
 		}
 		
@@ -216,7 +227,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new MinimalPerfectHashFunction<T>( keys, transform, lambda, signatureWidth, tempDir, chunkedHashStore );
+			return new MinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
@@ -264,13 +275,14 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * 
 	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param lambda the average bucket size
+	 * @param lambda the average bucket size.
+	 * @param loadFactor the load factor.
 	 * @param signatureWidth a signature width, or 0 for no signature.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -344,7 +356,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
 					/* We treat a chunk as a single hash function. The number of bins is thus
 					 * the first prime larger than the chunk size divided by the load factor. */
-					final int p = Primes.nextPrime( chunk.size() );
+					final int p = Primes.nextPrime( (int)Math.ceil( chunk.size() / loadFactor ) + 1 );
 					final boolean used[] = new boolean[ p ];
 	
 					final int numBuckets = ( chunk.size() + lambda - 1 ) / lambda;
@@ -593,6 +605,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 				new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+				new FlaggedOption( "lambda", JSAP.INTEGER_PARSER, "5", JSAP.NOT_REQUIRED, 'l', "lambda", "The average size of a bucket of the first-level hash function." ),
+				new FlaggedOption( "loadFactor", JSAP.DOUBLE_PARSER, "1", JSAP.NOT_REQUIRED, 'f', "load-factor", "The load factor." ),
 				new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
 				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
@@ -609,6 +623,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
+		final int lambda = jsapResult.getInt( "lambda" ); 
+		final double loadFactor = jsapResult.getDouble( "loadFactor" ); 
 
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
@@ -626,7 +642,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, 5, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
 		LOGGER.info( "Saved." );
 	}
 }
