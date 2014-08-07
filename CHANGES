@@ -3,6 +3,9 @@
 - New Rank11 and Rank12 implementations with new space/speed tradeoffs.
   Taken from Simon Gog and Mathias Petri's paper.
 
+- New ranking structure for MinimalPerfectHashFunction based on Rank11,
+  which made it necessary to bump the serialVersionUID.
+
 3.1.2
 
 - Revised adapter (now renamed SignedFunctionStringMap) to accept
