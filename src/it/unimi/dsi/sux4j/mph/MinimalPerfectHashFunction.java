@@ -35,6 +35,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.scratch.Rank11Original;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -81,7 +82,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
  * o(<var>n</var>) bits per key, plus the bits for the random hashes (which are usually
  * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 0.625%, bringing the actual occupied space to around 2.68 bits per key.
+ * occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
@@ -127,10 +128,23 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+	public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 
-	public static final long serialVersionUID = 4L;
+	/** The length of a superblock. */
+	private static final int WORDS_PER_SUPERBLOCK = 32;
+
+	/**
+	 * Counts the number of nonzero pairs of bits in a long.
+	 * 
+	 * @param x a long.
+	 * @return the number of nonzero bit pairs in <code>x</code>.
+	 */
+
+	public static int countNonzeroPairs( final long x ) {
+		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
+	}
 
 	/** A builder class for {@link MinimalPerfectHashFunction}. */
 	public static class Builder<T> {
@@ -240,9 +254,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The bit array supporting {@link #values}. */
 	protected transient long[] array;
 
-	/** The number of nonzero bit pairs up to a given block of {@link #BITS_PER_BLOCK} bits. */
-	protected final long count[];
-
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	
@@ -250,8 +261,35 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final long signatureMask;
 	
 	/** The signatures. */
-	protected final LongBigList signatures; 
+	protected final LongBigList signatures;
 
+	/** The array of counts for blocks and superblocks. */
+	protected final long[] count;
+
+	/** This method implements a two-level ranking scheme. It is essentially a 
+	 * {@link Rank11Original} in which {@link Long#bitCount(long)} has been replaced
+	 * by {@link #countNonzeroPairs(long)}.
+	 * 
+	 * @param pos the position to rank in the 2-bit value array.
+	 * @return the number of hinges before the specified position.
+	 */
+	private long rank( long pos ) {
+		pos *= 2;
+		assert pos >= 0;
+		assert pos <= bitVector.length();
+
+		int word = (int)( pos / Long.SIZE );
+		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
+		final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 ) - 1;
+
+		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
+				countNonzeroPairs( array[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
+
+		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += countNonzeroPairs( array[ --word ] );
+		return result;
+	}
+
+	
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
@@ -391,11 +429,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					while ( top > 0 ) {
 						v = stack[ --top ];
 						k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 ); 
-						if ( ASSERTS ) assert k >= 0 && k < 3 : Integer.toString( k );
+						assert k >= 0 && k < 3 : Integer.toString( k );
 						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
 						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
 						final long value = ( k - s + 9 ) % 3;
-						if ( ASSERTS ) assert values.getLong( off + v ) == 0;
+						assert values.getLong( off + v ) == 0;
 						values.set( off + v, value == 0 ? 3 : value );
 					}
 
@@ -428,15 +466,28 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		if ( n > 0 ) {
 			long m = values.size64();
-			count = new long[ (int)( ( 2L * m + BITS_PER_BLOCK - 1 ) / BITS_PER_BLOCK ) ];
+
+			final long length = bitVector.length();
+			
+			final int numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
+
+			final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
+			// Init rank/select structure
+			count = new long[ numCounts + 1 ];
+
 			long c = 0;
+			int pos = 0;
+			for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
+				count[ pos ] = c;
 
-			final int numWords = (int)( ( 2L * m + Long.SIZE - 1 ) / Long.SIZE );
-			for ( int i = 0; i < numWords; i++ ) {
-				if ( ( i & ( BITS_PER_BLOCK / Long.SIZE - 1 ) ) == 0 ) count[ i / ( BITS_PER_BLOCK / Long.SIZE ) ] = c;
-				c += countNonzeroPairs( array[ i ] );
+				for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
+					if ( j != 0 && j % 6 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( j / 6 - 1 );
+					if ( i + j < numWords ) c += countNonzeroPairs( array[ i + j ] );
+				}
 			}
-
+			
+			count[ numCounts ] = c;
+			
 			if ( ASSERTS ) {
 				int k = 0;
 				for ( long i = 0; i < m; i++ ) {
@@ -445,9 +496,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					assert k <= n;
 				}
 
-				final Iterator<? extends T> iterator = keys.iterator();
-				for ( long i = 0; i < n; i++ )
-					assert getLong( iterator.next() ) < n;
+				if ( keys != null ) {
+					final Iterator<? extends T> iterator = keys.iterator();
+					for ( long i = 0; i < n; i++ )
+						assert getLong( iterator.next() ) < n;
+				}
 			}
 		}
 		else count = LongArrays.EMPTY_ARRAY;
@@ -488,7 +541,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * (long)Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
+		return values.size64() * 2 + count.length * Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
 	}
 
 	/**
@@ -514,25 +567,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		this.signatures = mph.signatures;
 	}
 
-	/**
-	 * Counts the number of nonzero pairs of bits in a long.
-	 * 
-	 * @param x a long.
-	 * @return the number of nonzero bit pairs in <code>x</code>.
-	 */
-	public static int countNonzeroPairs( final long x ) {
-		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
-	}
-
-	private long rank( long x ) {
-		x *= 2;
-		final int word = (int)( x / Long.SIZE );
-		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
-		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
-		while ( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
-
-		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
-	}
+//
+//	private long rank( long x ) {
+//		x *= 2;
+//		final int word = (int)( x / Long.SIZE );
+//		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
+//		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
+//		while ( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
+//
+//		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
+//	}
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {

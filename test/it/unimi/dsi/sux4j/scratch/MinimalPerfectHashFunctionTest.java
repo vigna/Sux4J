@@ -33,7 +33,7 @@ public class MinimalPerfectHashFunctionTest {
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
 
-		for ( int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000, 10000, 100000 } ) {
+		for ( int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000, 10000, 100000, 1000000 } ) {
 			for( int signatureWidth: new int[] { 0, 32, 64 } ) {
 				System.err.println( "Size: " + size  + " w: " + signatureWidth );
 				String[] s = new String[ size ];
@@ -56,6 +56,7 @@ public class MinimalPerfectHashFunctionTest {
 				chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
 				chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
 				mph = new MinimalPerfectHashFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+				chunkedHashStore.close();
 
 				check( size, s, mph, signatureWidth );
 			}

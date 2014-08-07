@@ -27,14 +27,16 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A <code>rank9</code> implementation. 
+/** A <code>rank12</code> implementation. 
  * 
- * <p><code>rank9</code> is a ranking structure using 25% additional space and providing exceptionally fast ranking. 
+ * <p><code>rank12</code> is a ranking structure using 3.125% additional space and providing fast ranking.
+ * It is the natural loosening of {@link Rank11} in which the words for superblock are doubled.
  */
 
-public class Rank9 extends AbstractRank implements Rank {
+public class Rank12 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 1L;
+	private static final int WORDS_PER_SUPERBLOCK = 64;
 
 	protected transient long[] bits;
 	protected final BitVector bitVector;
@@ -43,32 +45,31 @@ public class Rank9 extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 	
-	public Rank9( long[] bits, long length ) {
+	public Rank12( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 
-	public Rank9( final BitVector bitVector ) {
+	public Rank12( final BitVector bitVector ) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 		
 		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 
-		final int numCounts = (int)( ( length + 8 * Long.SIZE - 1 ) / ( 8 * Long.SIZE ) ) * 2;
+		final int numCounts = (int)( ( length + WORDS_PER_SUPERBLOCK * Long.SIZE - 1 ) / ( WORDS_PER_SUPERBLOCK * Long.SIZE ) ) * 2;
 		// Init rank/select structure
 		count = new long[ numCounts + 1 ];
 
 		long c = 0, l = -1;
 		int pos = 0;
-		for( int i = 0; i < numWords; i += 8, pos += 2 ) {
+		for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
 			count[ pos ] = c;
-			c += Long.bitCount( bits[ i ] );
-			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
-			for( int j = 1;  j < 8; j++ ) {
-				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
+
+			for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
+				if ( j != 0 && j % 12 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( ( j - 1 ) / 12 );
 				if ( i + j < numWords ) {
-					c += Long.bitCount( bits[ i + j ] );
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
+					c += Long.bitCount( bits[ i + j ] );
 				}
 			}
 		}
@@ -85,11 +86,14 @@ public class Rank9 extends AbstractRank implements Rank {
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
-		final int word = (int)( pos / 64 );
-		final int block = word / 4 & ~1;
-		final int offset = word % 8 - 1;
-        
-		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
+		int word = (int)( pos / Long.SIZE );
+		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
+        final int offset = word % WORDS_PER_SUPERBLOCK / 12 - 1;
+		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
+				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
+		
+		for ( int todo = ( word % WORDS_PER_SUPERBLOCK ) % 12; todo-- != 0; ) result += Long.bitCount( bits[ --word ] );
+        return result;
 	}
 
 	public long numBits() {

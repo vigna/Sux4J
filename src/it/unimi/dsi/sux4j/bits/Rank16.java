@@ -31,7 +31,7 @@ import java.io.ObjectInputStream;
 
 /** A <code>rank16</code> implementation. 
  * 
- * <p><code>rank16</code> is a ranking structure using just 12.6% additional space
+ * <p><code>rank16</code> is a ranking structure using just 18.75% additional space
  * and providing fast ranking. It is the natural ranking structure for 128-bit processors. */
 
 public class Rank16 extends AbstractRank implements Rank {

@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2014 Sebastiano Vigna 
+ * Copyright (C) 2014 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,14 +27,22 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-/** A <code>rank9</code> implementation. 
+/** A <code>rank11</code> implementation. 
  * 
- * <p><code>rank9</code> is a ranking structure using 25% additional space and providing exceptionally fast ranking. 
+ * <p><code>rank11</code> is a ranking structure using 6.25% additional space and providing very fast ranking.
+ * It was proposed by Simon Gog and Matthias Petri in &ldquo;Optimized succinct data structures for massive data&rdquo;,
+ * <i>Softw. Pract. Exper.</i>, 2014. The only difference between this implementation and their
+ * <code>rank_support_v5</code> is that counts for blocks are stored as in {@link Rank9} (that is, in opposite order).
+ * 
+ * <p>Note that to achieve such a low overhead, {@link #rank(long)} contains a loop. As
+ * a consequence, the implementation of this method is significantly 
+ * slower than that of {@link Rank9} or {@link Rank16}, which don't do any looping.
  */
 
-public class Rank9 extends AbstractRank implements Rank {
+public class Rank11 extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 1L;
+	private static final int WORDS_PER_SUPERBLOCK = 32;
 
 	protected transient long[] bits;
 	protected final BitVector bitVector;
@@ -43,32 +51,31 @@ public class Rank9 extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 	
-	public Rank9( long[] bits, long length ) {
+	public Rank11( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 
-	public Rank9( final BitVector bitVector ) {
+	public Rank11( final BitVector bitVector ) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 		
 		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 
-		final int numCounts = (int)( ( length + 8 * Long.SIZE - 1 ) / ( 8 * Long.SIZE ) ) * 2;
+		final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
 		// Init rank/select structure
 		count = new long[ numCounts + 1 ];
 
 		long c = 0, l = -1;
 		int pos = 0;
-		for( int i = 0; i < numWords; i += 8, pos += 2 ) {
+		for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
 			count[ pos ] = c;
-			c += Long.bitCount( bits[ i ] );
-			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
-			for( int j = 1;  j < 8; j++ ) {
-				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
+
+			for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
+				if ( j != 0 && j % 6 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( j / 6 - 1 );
 				if ( i + j < numWords ) {
-					c += Long.bitCount( bits[ i + j ] );
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
+					c += Long.bitCount( bits[ i + j ] );
 				}
 			}
 		}
@@ -85,11 +92,15 @@ public class Rank9 extends AbstractRank implements Rank {
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
-		final int word = (int)( pos / 64 );
-		final int block = word / 4 & ~1;
-		final int offset = word % 8 - 1;
-        
-		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
+		int word = (int)( pos / Long.SIZE );
+		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
+        final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 ) - 1;
+
+        long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
+				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
+		
+		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += Long.bitCount( bits[ --word ] );
+        return result;
 	}
 
 	public long numBits() {

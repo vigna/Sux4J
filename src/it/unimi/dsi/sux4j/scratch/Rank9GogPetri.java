@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.bits;
+package it.unimi.dsi.sux4j.scratch;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -23,6 +23,8 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.AbstractRank;
+import it.unimi.dsi.sux4j.bits.Rank;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,7 +34,7 @@ import java.io.ObjectInputStream;
  * <p><code>rank9</code> is a ranking structure using 25% additional space and providing exceptionally fast ranking. 
  */
 
-public class Rank9 extends AbstractRank implements Rank {
+public class Rank9GogPetri extends AbstractRank implements Rank {
 	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 1L;
 
@@ -43,11 +45,11 @@ public class Rank9 extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 	
-	public Rank9( long[] bits, long length ) {
+	public Rank9GogPetri( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
 
-	public Rank9( final BitVector bitVector ) {
+	public Rank9GogPetri( final BitVector bitVector ) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
@@ -65,7 +67,7 @@ public class Rank9 extends AbstractRank implements Rank {
 			c += Long.bitCount( bits[ i ] );
 			if ( bits[ i ] != 0 ) l = i * 64L + Fast.mostSignificantBit( bits[ i ] );
 			for( int j = 1;  j < 8; j++ ) {
-				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 9 * ( j - 1 );
+				count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x1FFL ) << 63 - 9 * j;
 				if ( i + j < numWords ) {
 					c += Long.bitCount( bits[ i + j ] );
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
@@ -87,9 +89,9 @@ public class Rank9 extends AbstractRank implements Rank {
 		
 		final int word = (int)( pos / 64 );
 		final int block = word / 4 & ~1;
-		final int offset = word % 8 - 1;
+		final int offset = word % 8;
         
-		return count[ block ] + ( count[ block + 1 ] >>> ( offset + ( offset >>> 32 - 4 & 0x8 ) ) * 9 & 0x1FF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
+		return count[ block ] + ( count[ block + 1 ] >>> ( 63 - offset * 9 ) & 0x1FF ) + Long.bitCount( bits[ word ] & ( ( 1L << pos % 64 ) - 1 ) );
 	}
 
 	public long numBits() {

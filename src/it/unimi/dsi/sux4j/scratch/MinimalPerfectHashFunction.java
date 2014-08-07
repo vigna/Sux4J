@@ -45,7 +45,6 @@ import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
 import it.unimi.dsi.sux4j.mph.Hashes;
-import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -82,7 +81,7 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /**
- * A minimal perfect hash function.
+ * A minimal perfect hash function implemented using the &ldquo;hash, displace and compress&rdquo; technique.
  * 
  * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
  * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
@@ -97,10 +96,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * containing the keys (associated with any value); however, if the store is rebuilt because of a
  * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
- * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
- * o(<var>n</var>) bits per key, plus the bits for the random hashes (which are usually
- * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 0.625%, bringing the actual occupied space to around 2.68 bits per key.
+ * <P>The memory requirements for the algorithm we use are &#8776;2 bits per key. Thus, this class
+ * uses less memory than a {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}. Nonetheless,
+ * its construction time is an order of magnitude larger. Query time is only slightly slower.
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal

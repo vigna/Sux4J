@@ -57,6 +57,7 @@ public class MinimalPerfectHashFunctionTest {
 				chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
 				chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
 				mph = new MinimalPerfectHashFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+				chunkedHashStore.close();
 
 				check( size, s, mph, signatureWidth );
 			}
