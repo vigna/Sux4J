@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.scratch;
+package it.unimi.dsi.sux4j.mph;
 
 /*		 
  * Sux4J: Succinct data structures for Java
@@ -43,8 +43,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.mph.AbstractHashFunction;
-import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -123,13 +121,13 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 3.1.2
  */
 
-public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
+public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+	private static final Logger LOGGER = LoggerFactory.getLogger( HashDisplaceCompressMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = true;
 
 	public static final long serialVersionUID = 4L;
 
-	/** A builder class for {@link MinimalPerfectHashFunction}. */
+	/** A builder class for {@link HashDisplaceCompressMinimalPerfectHashFunction}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
@@ -181,7 +179,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			return this;
 		}
 		
-		/** Specifies that the resulting {@link MinimalPerfectHashFunction} should be signed using a given number of bits per key.
+		/** Specifies that the resulting {@link HashDisplaceCompressMinimalPerfectHashFunction} should be signed using a given number of bits per key.
 		 * 
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
@@ -215,17 +213,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		
 		/** Builds a minimal perfect hash function.
 		 * 
-		 * @return a {@link MinimalPerfectHashFunction} instance with the specified parameters.
+		 * @return a {@link HashDisplaceCompressMinimalPerfectHashFunction} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
-		public MinimalPerfectHashFunction<T> build() throws IOException {
+		public HashDisplaceCompressMinimalPerfectHashFunction<T> build() throws IOException {
 			if ( built ) throw new IllegalStateException( "This builder has been already used" );
 			built = true;
 			if ( transform == null ) {
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new MinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
+			return new HashDisplaceCompressMinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
@@ -280,7 +278,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected HashDisplaceCompressMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -598,7 +596,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
+		final SimpleJSAP jsap = new SimpleJSAP( HashDisplaceCompressMinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
 				new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
@@ -640,7 +638,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						? TransformationStrategies.utf32()
 						: TransformationStrategies.utf16();
 
-		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		BinIO.storeObject( new HashDisplaceCompressMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
 		LOGGER.info( "Saved." );
 	}
 }

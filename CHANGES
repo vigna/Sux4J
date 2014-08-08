@@ -6,6 +6,13 @@
 - New ranking structure for MinimalPerfectHashFunction based on Rank11,
   which made it necessary to bump the serialVersionUID.
 
+- New HashDisplaceCompressMinimalPerfectHashFunction class implementing a
+  new technique by Belazzougui, Botelho and Dietzfelbinger, providing
+  minimal perfect hashing at 2.05 bits per key. Construction time is an
+  order of magnitude larger than MinimalPerfectHashFunction, and queries
+  are ~50% slower, so we will keep the other implementation as a reference
+  for the time being.
+
 3.1.2
 
 - Revised adapter (now renamed SignedFunctionStringMap) to accept

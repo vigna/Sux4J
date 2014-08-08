@@ -1,11 +1,11 @@
-package it.unimi.dsi.sux4j.scratch;
+package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.scratch.MinimalPerfectHashFunction.Builder;
+import it.unimi.dsi.sux4j.mph.HashDisplaceCompressMinimalPerfectHashFunction.Builder;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,9 +13,9 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
-public class MinimalPerfectHashFunctionTest {
+public class HashDisplaceCompressMinimalPerfectHashFunctionTest {
 
-	private void check( int size, String[] s, MinimalPerfectHashFunction<CharSequence> mph, int w ) {
+	private void check( int size, String[] s, HashDisplaceCompressMinimalPerfectHashFunction<CharSequence> mph, int w ) {
 		final int[] check = new int[ s.length ];
 		IntArrays.fill( check, -1 );
 		for ( int i = s.length; i-- != 0; ) {
@@ -40,14 +40,14 @@ public class MinimalPerfectHashFunctionTest {
 				for ( int i = s.length; i-- != 0; )
 					s[ i ] = Integer.toString( i );
 
-				MinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
+				HashDisplaceCompressMinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
 						
 				check( size, s, mph, signatureWidth );
 
 				File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 				temp.deleteOnExit();
 				BinIO.storeObject( mph, temp );
-				mph = (MinimalPerfectHashFunction<CharSequence>)BinIO.loadObject( temp );
+				mph = (HashDisplaceCompressMinimalPerfectHashFunction<CharSequence>)BinIO.loadObject( temp );
 
 				check( size, s, mph, signatureWidth );
 
@@ -55,7 +55,7 @@ public class MinimalPerfectHashFunctionTest {
 				ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<CharSequence>( TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null );
 				chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
 				chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
-				mph = new MinimalPerfectHashFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+				mph = new HashDisplaceCompressMinimalPerfectHashFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
 				chunkedHashStore.close();
 
 				check( size, s, mph, signatureWidth );
