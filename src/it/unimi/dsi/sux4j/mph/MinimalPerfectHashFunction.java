@@ -34,8 +34,8 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.Rank11;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.scratch.Rank11Original;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -268,7 +268,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	protected final long[] count;
 
 	/** This method implements a two-level ranking scheme. It is essentially a 
-	 * {@link Rank11Original} in which {@link Long#bitCount(long)} has been replaced
+	 * {@link Rank11} in which {@link Long#bitCount(long)} has been replaced
 	 * by {@link #countNonzeroPairs(long)}.
 	 * 
 	 * @param pos the position to rank in the 2-bit value array.
