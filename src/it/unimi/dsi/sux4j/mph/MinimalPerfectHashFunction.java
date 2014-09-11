@@ -68,10 +68,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
  * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each keys in the list. For keys out of the list, the
+ * return a distinct number for each key in the list. For keys out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that a
- * key was not in the original list, and in that case -1 will be returned; this behaviour
- * can be made standard by <em>signing</em> the function (see below). The class can then be
+ * key was not in the original list, and in that case -1 will be returned;
+ * by <em>signing</em> the function (see below), you can guarantee with a prescribed probability
+ * that -1 will be returned on keys not in the original list. The class can then be
  * saved by serialisation and reused later. 
  * 
  * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time

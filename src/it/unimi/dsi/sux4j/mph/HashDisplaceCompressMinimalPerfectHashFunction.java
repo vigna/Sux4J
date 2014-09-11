@@ -67,6 +67,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableBiMap.Builder;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -83,10 +84,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
  * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each keys in the list. For keys out of the list, the
+ * return a distinct number for each key in the list. For keys out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that a
- * key was not in the original list, and in that case -1 will be returned; this behaviour
- * can be made standard by <em>signing</em> the function (see below). The class can then be
+ * key was not in the original list, and in that case -1 will be returned;
+ * by <em>signing</em> the function (see below), you can guarantee with a prescribed probability
+ * that -1 will be returned on keys not in the original list. The class can then be
  * saved by serialisation and reused later. 
  * 
  * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
@@ -96,7 +98,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <P>The memory requirements for the algorithm we use are &#8776;2 bits per key. Thus, this class
  * uses less memory than a {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}. Nonetheless,
- * its construction time is an order of magnitude larger. Query time is only slightly slower.
+ * its construction time is an order of magnitude larger. Query time is only slightly slower. Different
+ * tradeoffs between construction time, query time and space can be obtained by tweaking the
+ * {@linkplain Builder#loadFactor(int) load factor} and the parameter {@linkplain Builder#lambda(int) &lambda;} (see the
+ * paper below for their exact meaning). 
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
@@ -118,7 +123,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * approximately 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
  * 
  * @author Sebastiano Vigna
- * @since 3.1.2
+ * @since 3.2.0
  */
 
 public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {

@@ -105,8 +105,14 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 		return function instanceof Size64 ? ((Size64)function).size64() : function.size();
 	}
 
+	@Override
 	public ObjectBigList<CharSequence> list() {
 		return null;
+	}
+	
+	@Override
+	public String toString() {
+		return function.toString();
 	}
 
 	@SuppressWarnings("unchecked")
