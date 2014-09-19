@@ -1,3 +1,7 @@
+3.2.1
+
+- Fixed dependencies.
+
 3.2.0
 
 - New Rank11 and Rank12 implementations with new space/speed tradeoffs.

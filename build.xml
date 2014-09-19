@@ -23,7 +23,9 @@
 	<target name="ivy-pom" description="Creates POM">
 		<ivy:resolve/>
 		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
-		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml"/>
+		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml">
+			<dependency group="ch.qos.logback" artifact="logback-classic.jar" optional="true"/>
+		</ivy:makepom>
 	</target>
 	
 	<path id="compile.classpath">
