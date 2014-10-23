@@ -56,10 +56,10 @@ public class GenerateRandom64BitStrings {
 		
 		BigInteger a[];
 		
-		for( int i = 0; i < n; i++ ) {
+		for( long i = 0; i < n; i++ ) {
 			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
 			t = l; 
-			if ( l.compareTo( limit ) >= 0 ) throw new AssertionError( Integer.toString( i ) );
+			if ( l.compareTo( limit ) >= 0 ) throw new AssertionError( Long.toString( i ) );
 			s.length( 0 );
 			for( int j = 8; j-- != 0; ) {
 				a = t.divideAndRemainder( divisor );
