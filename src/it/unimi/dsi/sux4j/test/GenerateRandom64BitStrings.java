@@ -12,6 +12,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
@@ -26,6 +27,7 @@ public class GenerateRandom64BitStrings {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates a list of sorted 64-bit random strings using only characters in the ISO-8859-1 printable range [32..256).",
 				new Parameter[] {
+					new FlaggedOption( "repeat", JSAP.INTSIZE_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'r', "repeat", "Repeat each byte this number of times" ),
 					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
@@ -34,6 +36,7 @@ public class GenerateRandom64BitStrings {
 		if ( jsap.messagePrinted() ) return;
 		
 		final long n = jsapResult.getLong( "n" );
+		final int repeat = jsapResult.getInt( "repeat" );
 		final String output = jsapResult.getString( "output" );
 		
 		RandomGenerator r = new XorShift1024StarRandomGenerator();
@@ -67,7 +70,9 @@ public class GenerateRandom64BitStrings {
 				t = a[ 0 ];
 			}
 
-			for( int j = 0; j < 8; j++ ) fbs.write( b[ j ] );
+			for( int j = 0; j < 8; j++ ) 
+				for( int k = repeat; k-- != 0; ) 
+					fbs.write( b[ j ] );
 			fbs.write( 10 );
 			pl.lightUpdate();
 		}
