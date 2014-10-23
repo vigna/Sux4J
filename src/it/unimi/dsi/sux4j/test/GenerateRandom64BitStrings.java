@@ -28,14 +28,14 @@ public class GenerateRandom64BitStrings {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates 64-bit random strings",
 				new Parameter[] {
-					new UnflaggedOption( "n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
+					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
 		
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 		
-		final int n = jsapResult.getInt( "n" );
+		final long n = jsapResult.getLong( "n" );
 		final String output = jsapResult.getString( "output" );
 		
 		RandomGenerator r = new XorShift1024StarRandomGenerator();
