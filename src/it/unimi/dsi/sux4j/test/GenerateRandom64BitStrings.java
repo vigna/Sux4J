@@ -1,14 +1,11 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.math.BigInteger;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -70,7 +67,7 @@ public class GenerateRandom64BitStrings {
 				t = a[ 0 ];
 			}
 
-			for( int j = 0; j < 8 ; j++ ) fbs.write( b[ j ] );
+			for( int j = 0; j < 8; j++ ) fbs.write( b[ j ] );
 			fbs.write( 10 );
 			pl.lightUpdate();
 		}

@@ -1,5 +1,6 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
@@ -49,26 +50,27 @@ public class GenerateRandom32BitStrings {
 		
 		LOGGER.info( "Increment: " + incr );
 		
-		MutableString s = new MutableString();
-		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
-		
+		@SuppressWarnings("resource")
+		final FastBufferedOutputStream fbs = new FastBufferedOutputStream( new FileOutputStream( output ) );
+		int[] b = new int[ 4 ];
+
 		for( int i = 0; i < n; i++ ) {
 			t = ( l += ( r.nextInt( incr ) + 1 ) );
 			if ( l >= limit ) throw new AssertionError( Integer.toString( i ) );
-			s.length( 0 );
 			for( int j = 4; j-- != 0; ) {
-				s.append( (char)( t % 224 + 32 ) );
+				b[ j ] = (int)( t % 224 + 32 );
 				t = Math.floor( t / 224 );
 			}
 			
-			s.reverse().println( pw );
-			
+			for( int j = 0; j < 4; j++ ) fbs.write( b[ j ] );
+			fbs.write( 10 );
+
 			pl.lightUpdate();
 		}
 		
 		
 		pl.done();
-		pw.close();
+		fbs.close();
 		
 		LOGGER.info( "Last/limit: " + ( l / limit ) );
 	}
