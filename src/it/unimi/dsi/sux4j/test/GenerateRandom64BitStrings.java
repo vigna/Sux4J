@@ -1,5 +1,6 @@
 package it.unimi.dsi.sux4j.test;
 
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
@@ -48,32 +49,35 @@ public class GenerateRandom64BitStrings {
 		BigInteger limit = BigInteger.valueOf( 224 ).pow( 8 );
 		long incr = (long)Math.floor( 1.99 * ( limit.divide( BigInteger.valueOf( n ) ).longValue() ) ) - 1;
 		
-		final MutableString s = new MutableString();
-		final PrintWriter pw = new PrintWriter( new OutputStreamWriter( new FileOutputStream( output ), "ISO-8859-1" ) );
+		@SuppressWarnings("resource")
+		final FastBufferedOutputStream fbs = new FastBufferedOutputStream( new FileOutputStream( output ) );
 		final BigInteger divisor = BigInteger.valueOf( 224 );
 		
 		LOGGER.info( "Increment: " + incr );
 		
 		BigInteger a[];
+		int[] b = new int[ 8 ];
 		
 		for( long i = 0; i < n; i++ ) {
 			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
 			t = l; 
 			if ( l.compareTo( limit ) >= 0 ) throw new AssertionError( Long.toString( i ) );
-			s.length( 0 );
 			for( int j = 8; j-- != 0; ) {
 				a = t.divideAndRemainder( divisor );
-				s.append( (char)( a[ 1 ].longValue() + 32 ) );
+				b[ j ] = a[ 1 ].intValue() + 32;
+				assert b[ j ] < 256;
+				assert b[ j ] >= 32;
 				t = a[ 0 ];
 			}
-			
-			s.reverse().println( pw );
+
+			for( int j = 0; j < 8 ; j++ ) fbs.write( b[ j ] );
+			fbs.write( 10 );
 			pl.lightUpdate();
 		}
 		
 		
 		pl.done();
-		pw.close();
+		fbs.close();
 		
 		LOGGER.info( "Last/limit: " + ( l.doubleValue() / limit.doubleValue() ) );
 	}
