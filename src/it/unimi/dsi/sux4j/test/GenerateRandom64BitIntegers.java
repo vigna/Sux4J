@@ -44,7 +44,6 @@ public class GenerateRandom64BitIntegers {
 		
 		BigInteger l = BigInteger.ZERO;
 		final BigInteger limit = BigInteger.valueOf( 256 ).pow( 8 );
-		final BigInteger offset = BigInteger.valueOf( Long.MIN_VALUE );
 		long incr = (long)Math.floor( 1.99 * ( limit.divide( BigInteger.valueOf( n ) ).longValue() ) ) - 1;
 		
 		@SuppressWarnings("resource")
@@ -56,10 +55,8 @@ public class GenerateRandom64BitIntegers {
 			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
 			if ( l.compareTo( limit ) > 0 ) throw new AssertionError( Long.toString( i ) );
 			
-			assert l.add( offset ).compareTo( BigInteger.valueOf( Long.MAX_VALUE ) ) <= 0 : l.add( offset );
-			assert l.add( offset ).compareTo( BigInteger.valueOf( Long.MIN_VALUE ) ) >= 0 : l.add( offset );
-			dos.writeLong( l.add( offset ).longValue() );
-
+			assert l.compareTo( limit ) < 0 : l;
+			dos.writeLong( l.longValue() );
 			pl.lightUpdate();
 		}
 		
