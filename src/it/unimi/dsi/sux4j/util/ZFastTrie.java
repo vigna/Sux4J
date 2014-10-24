@@ -1426,6 +1426,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		int pos;
 		long checkMask = -1L << Fast.ceilLog2( b - a );
 		
+		if ( a == -1 ) {
+			top = (InternalNode<T>)root;
+			if ( stack != null ) stack.push( top );
+			a = top.extentLength;
+		}
+		
 		while( b - a > 0 ) {
 			if ( ASSERTS ) assert checkMask != 0;
 			if ( DDDEBUG ) System.err.println( "(" + a + ".." + b + "] (check mask: " + Long.toBinaryString( checkMask ) );
