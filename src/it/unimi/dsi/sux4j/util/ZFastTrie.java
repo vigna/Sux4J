@@ -1269,7 +1269,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 		
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, null, false, -1, length );
+		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, null, false, -1, length - 1 );
 
 		// This will contain the exit node if parexOrExitNode contains the correct parex node.
 		Node<T> candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
@@ -1287,7 +1287,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( parexOrExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( parexOrExitNode, lcpLength );
 
 		// Otherwise, something went horribly wrong. We restart in exact mode.
-		parexOrExitNode = fatBinarySearch( v, state, null, true, -1, length );
+		parexOrExitNode = fatBinarySearch( v, state, null, true, -1, length - 1 );
 		candidateExitNode = parexOrExitNode.extent( transform ).isProperPrefix( v ) ?
 			parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left : parexOrExitNode;
 		
@@ -1320,7 +1320,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, stack, false, -1, length );
+		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, stack, false, -1, length - 1 );
 		
 		// This will contain the exit node if parexOrExitNode contains the correct parex node.
 		Node<T> candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
@@ -1359,7 +1359,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			
 		// The search failed. This even is so rare that we can afford to handle it inefficiently.
 		stack.clear();
-		parexOrExitNode = fatBinarySearch( v, state, stack, true, -1, length );
+		parexOrExitNode = fatBinarySearch( v, state, stack, true, -1, length - 1 );
 		candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
 		lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( transform ) );
 		
