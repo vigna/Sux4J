@@ -27,8 +27,8 @@ public class GenerateRandom64BitStrings {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates a list of sorted 64-bit random strings using only characters in the ISO-8859-1 printable range [32..256).",
 				new Parameter[] {
-					new FlaggedOption( "repeat", JSAP.INTSIZE_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'r', "repeat", "Repeat each byte this number of times" ),
-					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
+					new FlaggedOption( "repeat", JSAP.INTSIZE_PARSER, "1", JSAP.NOT_REQUIRED, 'r', "repeat", "Repeat each byte this number of times" ),
+					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings (too small values might cause overflow)." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
 		

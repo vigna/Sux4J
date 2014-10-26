@@ -12,6 +12,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
@@ -26,7 +27,8 @@ public class GenerateRandom64BitIntegers {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitIntegers.class.getName(), "Generates a list of sorted 64-bit random integers in DataOutput format.",
 				new Parameter[] {
-					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
+					new FlaggedOption( "gap", JSAP.INTSIZE_PARSER, "1", JSAP.NOT_REQUIRED, 'g', "gap", "Impose a minimum gap." ),
+					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of integers (too small values might cause overflow)." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
 		
@@ -34,6 +36,7 @@ public class GenerateRandom64BitIntegers {
 		if ( jsap.messagePrinted() ) return;
 		
 		final long n = jsapResult.getLong( "n" );
+		final int gap = jsapResult.getInt( "gap" );
 		final String output = jsapResult.getString( "output" );
 		
 		RandomGenerator r = new XorShift1024StarRandomGenerator();
@@ -52,10 +55,8 @@ public class GenerateRandom64BitIntegers {
 		LOGGER.info( "Increment: " + incr );
 		
 		for( long i = 0; i < n; i++ ) {
-			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
+			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + gap ) );
 			if ( l.compareTo( limit ) > 0 ) throw new AssertionError( Long.toString( i ) );
-			
-			assert l.compareTo( limit ) < 0 : l;
 			dos.writeLong( l.longValue() );
 			pl.lightUpdate();
 		}

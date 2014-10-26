@@ -28,7 +28,7 @@ public class GenerateRandom32BitStrings {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom32BitStrings.class.getName(), "Generates a list of sorted 32-bit random strings using only characters in the ISO-8859-1 printable range [32..256).",
 				new Parameter[] {
-					new UnflaggedOption( "n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings." ),
+					new UnflaggedOption( "n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings (too small values might cause overflow)." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
 		
