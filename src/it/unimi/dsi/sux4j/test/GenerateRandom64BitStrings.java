@@ -28,6 +28,7 @@ public class GenerateRandom64BitStrings {
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom64BitStrings.class.getName(), "Generates a list of sorted 64-bit random strings using only characters in the ISO-8859-1 printable range [32..256).",
 				new Parameter[] {
 					new FlaggedOption( "repeat", JSAP.INTSIZE_PARSER, "1", JSAP.NOT_REQUIRED, 'r', "repeat", "Repeat each byte this number of times" ),
+					new FlaggedOption( "gap", JSAP.INTSIZE_PARSER, "1", JSAP.NOT_REQUIRED, 'g', "gap", "Impose a minimum gap." ),
 					new UnflaggedOption( "n", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings (too small values might cause overflow)." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
@@ -37,6 +38,7 @@ public class GenerateRandom64BitStrings {
 		
 		final long n = jsapResult.getLong( "n" );
 		final int repeat = jsapResult.getInt( "repeat" );
+		final int gap = jsapResult.getInt( "gap" );
 		final String output = jsapResult.getString( "output" );
 		
 		RandomGenerator r = new XorShift1024StarRandomGenerator();
@@ -59,7 +61,7 @@ public class GenerateRandom64BitStrings {
 		int[] b = new int[ 8 ];
 		
 		for( long i = 0; i < n; i++ ) {
-			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + 1 ) );
+			l = l.add( BigInteger.valueOf( ( r.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % incr + gap ) );
 			t = l; 
 			if ( l.compareTo( limit ) >= 0 ) throw new AssertionError( Long.toString( i ) );
 			for( int j = 8; j-- != 0; ) {

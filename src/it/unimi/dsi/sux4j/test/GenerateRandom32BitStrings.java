@@ -14,6 +14,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
 import com.martiansoftware.jsap.JSAPResult;
@@ -28,6 +29,7 @@ public class GenerateRandom32BitStrings {
 
 		final SimpleJSAP jsap = new SimpleJSAP( GenerateRandom32BitStrings.class.getName(), "Generates a list of sorted 32-bit random strings using only characters in the ISO-8859-1 printable range [32..256).",
 				new Parameter[] {
+					new FlaggedOption( "gap", JSAP.INTSIZE_PARSER, "1", JSAP.NOT_REQUIRED, 'g', "gap", "Impose a minimum gap." ),
 					new UnflaggedOption( "n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings (too small values might cause overflow)." ),
 					new UnflaggedOption( "output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file." )
 		});
@@ -37,6 +39,7 @@ public class GenerateRandom32BitStrings {
 		
 		final int n = jsapResult.getInt( "n" );
 		final String output = jsapResult.getString( "output" );
+		final int gap = jsapResult.getInt( "gap" );
 		
 		RandomGenerator r = new XorShift1024StarRandomGenerator();
 	
@@ -55,7 +58,7 @@ public class GenerateRandom32BitStrings {
 		int[] b = new int[ 4 ];
 
 		for( int i = 0; i < n; i++ ) {
-			t = ( l += ( r.nextInt( incr ) + 1 ) );
+			t = ( l += ( r.nextInt( incr ) + gap ) );
 			if ( l >= limit ) throw new AssertionError( Integer.toString( i ) );
 			for( int j = 4; j-- != 0; ) {
 				b[ j ] = (int)( t % 224 + 32 );
