@@ -522,8 +522,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	/** A node of the trie. */
 	protected abstract static class Node<U> {
-		/** The length of the extent of the parent node, or -1 for the root. */
-		protected long parentExtentLength;
+		/** The length of the name of the node. */
+		protected long nameLength;
 
 		public boolean isLeaf() {
 			return this instanceof Leaf;
@@ -533,12 +533,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return this instanceof InternalNode;
 		}
 
-		public long nameLength() {
-			return parentExtentLength + 1;
-		}
-
 		public long handleLength( TransformationStrategy<? super U> transform ) {
-			return twoFattest( parentExtentLength, extentLength( transform ) );
+			return twoFattest( nameLength - 1, extentLength( transform ) );
 		}
 
 		public abstract BitVector key( TransformationStrategy<? super U> transform );
@@ -570,7 +566,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @return true if the string exits at this node.
 		 */
 		public boolean isExitNodeOf( final long length, final long lcpLength, TransformationStrategy<? super U> transform  ) {
-			return ( parentExtentLength < lcpLength ) && ( lcpLength < extentLength( transform ) || lcpLength == length );
+			return ( nameLength <= lcpLength ) && ( lcpLength < extentLength( transform ) || lcpLength == length );
 		}
 
 		
@@ -594,7 +590,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return ( isLeaf() ? "[" : "(" ) + Integer.toHexString( hashCode() & 0xFFFF ) + 
 				( key( transform ) == null ? "" : 
 					" " + ( extentLength > 16 ? key( transform ).subVector( 0, 8 ) + "..." + key(  transform ).subVector( extentLength - 8, extentLength ): key( transform ).subVector( 0, extentLength ) ) ) +
-					" (" + parentExtentLength + ".." + extentLength + "], " + ( isInternal() ? ((InternalNode<U>)this).handleLength() + "->" + ((InternalNode<U>)this).jumpLength() : "" ) +
+					" [" + nameLength + ".." + extentLength + "], " + ( isInternal() ? ((InternalNode<U>)this).handleLength() + "->" + ((InternalNode<U>)this).jumpLength() : "" ) +
 				( isLeaf() ? "]" : ")" );
 		}
 	}
@@ -616,7 +612,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		protected Leaf<U> reference;
 
 		public long handleLength() {
-			return twoFattest( parentExtentLength, extentLength );
+			return twoFattest( nameLength - 1, extentLength );
 		}
 
 		public long jumpLength() {
@@ -634,7 +630,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public boolean intercepts( final long h ) {
-			return h > parentExtentLength && h <= extentLength;
+			return h >= nameLength && h <= extentLength;
 		}
 
 		public BitVector extent( TransformationStrategy<? super U> transform ) {
@@ -679,7 +675,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 		
 		public boolean intercepts( final long h ) {
-			return h > parentExtentLength;
+			return h >= nameLength;					
 		}
 
 		public BitVector extent( final TransformationStrategy<? super U> transform ) {
@@ -770,7 +766,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 	
 	private void assertTrie() {
-		assert root == null || root.parentExtentLength == -1 : root.parentExtentLength + " != " + -1; 
+		assert root == null || root.nameLength == 0 : root.nameLength + " != " + 0; 
 		/* Shortest key */
 		LongArrayBitVector root = null;
 		/* Keeps track of which nodes in map are reachable using the handle-2-node 
@@ -807,7 +803,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				}
 			}
 
-			final int numNodes = visit( handle2Node.get( root, true ), null, -1, 0, nodes, leaves, references );
+			final int numNodes = visit( handle2Node.get( root, true ), null, 0, 0, nodes, leaves, references );
 			assert numNodes == 2 * size - 1 : numNodes + " != " + ( 2 * size - 1 );
 			assert leaves.size() == size;
 			int c = 0;
@@ -823,17 +819,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert nodes.isEmpty();
 	}
 	
-	private int visit( final Node<T> n, final Node<T> parent, final long parentExtentLength, final int depth, ObjectOpenHashSet<Node<T>> nodes, ObjectOpenHashSet<Leaf<T>> leaves, ObjectOpenHashSet<T> references ) {
+	private int visit( final Node<T> n, final Node<T> parent, final long nameLength, final int depth, ObjectOpenHashSet<Node<T>> nodes, ObjectOpenHashSet<Leaf<T>> leaves, ObjectOpenHashSet<T> references ) {
 		if ( n == null ) return 0;
 		if ( DEBUG ) {
 			for( int i = depth; i-- != 0; ) System.err.print( '\t' );
-			System.err.println( "Node " + n + " (parent extent length: " + parentExtentLength + ")" + ( n.isInternal() ? " Jump left: " + ((InternalNode<T>)n).jumpLeft + " Jump right: " + ((InternalNode<T>)n).jumpRight : "" ) );
+			System.err.println( "Node " + n + " (name length: " + nameLength + ")" + ( n.isInternal() ? " Jump left: " + ((InternalNode<T>)n).jumpLeft + " Jump right: " + ((InternalNode<T>)n).jumpRight : "" ) );
 		}
 
 		assert parent == null || parent.extent( transform ).equals( n.extent( transform ).subVector( 0, ((InternalNode<T>)parent).extentLength ) );
-		assert n == root || parentExtentLength < n.extentLength( transform );
-		assert n != root || parentExtentLength <= n.extentLength( transform );
-		assert n.parentExtentLength == parentExtentLength : n.parentExtentLength + " != " + parentExtentLength + " " + n;
+		assert nameLength <= n.extentLength( transform );
+		assert n.nameLength == nameLength : n.nameLength + " != " + nameLength + " " + n;
 		
 		if ( n.isInternal() ) {
 			assert references.add( ((InternalNode<T>)n).reference.key );
@@ -849,7 +844,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			Node<T> jumpRight = ((InternalNode<T>)n).right;
 			while( jumpRight.isInternal() && jumpLength > ((InternalNode<T>)jumpRight).extentLength ) jumpRight = ((InternalNode<T>)jumpRight).right;
 			assert jumpRight == ((InternalNode<T>)n).jumpRight : jumpRight + " != " + ((InternalNode<T>)n).jumpRight + " (node: " + n + ")";
-			return 1 + visit( ((InternalNode<T>)n).left, n, ((InternalNode<T>)n).extentLength, depth + 1, nodes, leaves, references ) + visit( ((InternalNode<T>)n).right, n, n.extentLength( transform ), depth + 1, nodes, leaves, references );
+			return 1 + visit( ((InternalNode<T>)n).left, n, ((InternalNode<T>)n).extentLength + 1, depth + 1, nodes, leaves, references ) + visit( ((InternalNode<T>)n).right, n, n.extentLength( transform ) + 1, depth + 1, nodes, leaves, references );
 		}
 		else {
 			assert leaves.add( (Leaf<T>)n );
@@ -869,10 +864,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		Node<U> jump;
 
 		for( jump = node.left; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength; ) jump = ((InternalNode<U>)jump).jumpLeft;
-		if ( ASSERTS ) assert jump.intercepts( jumpLength ) : jumpLength + " not in " + "(" + jump.parentExtentLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
+		if ( ASSERTS ) assert jump.intercepts( jumpLength ) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpLeft = jump;
 		for( jump = node.right; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength; ) jump = ((InternalNode<U>)jump).jumpRight;
-		if ( ASSERTS ) assert jump.intercepts( jumpLength ) : jumpLength + " not in " + "(" + jump.parentExtentLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
+		if ( ASSERTS ) assert jump.intercepts( jumpLength ) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpRight = jump;
 	}
 
@@ -886,7 +881,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 */
 	private static <U> void fixRightJumpsAfterInsertion( final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack ) {
 		if ( DEBUG ) System.err.println( "fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
-		final long lcp = leaf.parentExtentLength;
+		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
 
@@ -896,14 +891,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpLeft != exitNode ) break;
-				if ( jumpLength <= lcp ) toBeFixed.jumpLeft = internal;
+				if ( jumpLength < leafNameLength ) toBeFixed.jumpLeft = internal;
 			}
 		}
 		else {
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.top();
 				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpRight != exitNode || jumpLength > lcp ) break;
+				if ( toBeFixed.jumpRight != exitNode || jumpLength >= leafNameLength ) break;
 				toBeFixed.jumpRight = internal;
 				stack.pop();
 			}
@@ -928,7 +923,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 */
 	private static <U> void fixLeftJumpsAfterInsertion( final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack ) {
 		if ( DEBUG ) System.err.println( "fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack ); 
-		final long lcp = leaf.parentExtentLength;
+		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
 		
@@ -938,7 +933,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				toBeFixed = stack.pop();
 				jumpLength = toBeFixed.jumpLength();
 				if ( toBeFixed.jumpRight != exitNode ) break;
-				if ( jumpLength <= lcp ) toBeFixed.jumpRight = internal;
+				if ( jumpLength < leafNameLength ) toBeFixed.jumpRight = internal;
 			}
 		}
 		else {
@@ -946,7 +941,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while( ! stack.isEmpty() ) {
 				toBeFixed = stack.top();
 				jumpLength = toBeFixed.jumpLength();
-				if ( toBeFixed.jumpLeft != exitNode || jumpLength > lcp ) break;
+				if ( toBeFixed.jumpLeft != exitNode || jumpLength >= leafNameLength ) break;
 				toBeFixed.jumpLeft = internal;
 				stack.pop();
 			}
@@ -1052,7 +1047,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( size == 0 ) {
 			final Leaf<T> leaf = new Leaf<T>();
 			leaf.key = k;
-			leaf.parentExtentLength = -1;
+			leaf.nameLength = 0;
 			leaf.reference = null;
 			addAfter( head, leaf );
 			root = leaf;
@@ -1094,11 +1089,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final boolean exitNodeIsInternal = exitNode.isInternal();
 		
 		leaf.key = k;
-		leaf.parentExtentLength = lcp;
+		leaf.nameLength = lcp + 1;
 		leaf.reference = internal;
 		
 		internal.reference = leaf;
-		internal.parentExtentLength = exitNode.parentExtentLength;
+		internal.nameLength = exitNode.nameLength;
 		internal.extentLength = lcp;
 
 		if ( exitDirection ) {
@@ -1125,12 +1120,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		if ( cutLow && exitNodeIsInternal ) {
 			handle2Node.replaceExisting( (InternalNode<T>)exitNode, internal, Hashes.murmur( v, exitNodeHandleLength, state ) & SIGNATURE_MASK );
-			exitNode.parentExtentLength = lcp;
+			exitNode.nameLength = lcp + 1;
 			handle2Node.addNew( (InternalNode<T>)exitNode, Hashes.murmur( exitNode.key( transform ), exitNode.handleLength( transform ), state, lcp ) & SIGNATURE_MASK );
 			setJumps( (InternalNode<T>)exitNode );
 		}
 		else {
-			exitNode.parentExtentLength = lcp;
+			exitNode.nameLength = lcp + 1;
 			handle2Node.addNew( internal, Hashes.murmur( v, internal.handleLength(), state ) & SIGNATURE_MASK );
 		}
 
@@ -1227,12 +1222,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		if ( cutLow && otherNodeIsInternal ) {
 			handle2Node.removeExisting( (InternalNode<T>)otherNode, Hashes.murmur( otherNode.key( transform ), otherNodeHandleLength, state, parentExitNode.extentLength ) & SIGNATURE_MASK );
-			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
+			otherNode.nameLength = parentExitNode.nameLength;
 			handle2Node.replaceExisting( parentExitNode, (InternalNode<T>)otherNode, Hashes.murmur( v, parentExitNodehandleLength, state ) & SIGNATURE_MASK );
 			setJumps( (InternalNode<T>)otherNode );
 		}
 		else {
-			otherNode.parentExtentLength = parentExitNode.parentExtentLength;
+			otherNode.nameLength = parentExitNode.nameLength;
 			handle2Node.removeExisting( parentExitNode, Hashes.murmur( v, parentExitNodehandleLength, state ) & SIGNATURE_MASK );
 		}
 	
@@ -1269,7 +1264,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 		
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, null, false, -1, length - 1 );
+		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, null, false, -1, length );
 
 		// This will contain the exit node if parexOrExitNode contains the correct parex node.
 		Node<T> candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
@@ -1287,7 +1282,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if ( parexOrExitNode.isExitNodeOf( length, lcpLength, transform ) ) return new ExitData<T>( parexOrExitNode, lcpLength );
 
 		// Otherwise, something went horribly wrong. We restart in exact mode.
-		parexOrExitNode = fatBinarySearch( v, state, null, true, -1, length - 1 );
+		parexOrExitNode = fatBinarySearch( v, state, null, true, -1, length );
 		candidateExitNode = parexOrExitNode.extent( transform ).isProperPrefix( v ) ?
 			parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left : parexOrExitNode;
 		
@@ -1320,7 +1315,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, stack, false, -1, length - 1 );
+		InternalNode<T> parexOrExitNode = fatBinarySearch( v, state, stack, false, -1, length );
 		
 		// This will contain the exit node if parexOrExitNode contains the correct parex node.
 		Node<T> candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
@@ -1347,19 +1342,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			final long startingPoint = stack.top().extentLength;
 			// We're lucky: the second element on the stack is the parex node.
-			if ( startingPoint == parexOrExitNode.parentExtentLength ) return new ParexData<T>( stack.top(), parexOrExitNode, lcpLength );
+			if ( startingPoint == parexOrExitNode.nameLength - 1 ) return new ParexData<T>( stack.top(), parexOrExitNode, lcpLength ); // TODO check -1
 			final int stackSize = stack.size();
 			// Unless there are mistakes, this is really the parex node.
-			final InternalNode<T> parexNode = fatBinarySearch( v, state, stack, false, startingPoint, parexOrExitNode.parentExtentLength );
+			final InternalNode<T> parexNode = fatBinarySearch( v, state, stack, false, startingPoint, parexOrExitNode.nameLength );
 			if ( parexNode.left == parexOrExitNode || parexNode.right == parexOrExitNode ) return new ParexData<T>( parexNode, parexOrExitNode, lcpLength );
 			// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 			stack.size( stackSize );
-			return new ParexData<T>( fatBinarySearch( v, state, stack, true, startingPoint, parexOrExitNode.parentExtentLength ), parexOrExitNode, lcpLength );
+			return new ParexData<T>( fatBinarySearch( v, state, stack, true, startingPoint, parexOrExitNode.nameLength ), parexOrExitNode, lcpLength );
 		}
 			
 		// The search failed. This even is so rare that we can afford to handle it inefficiently.
 		stack.clear();
-		parexOrExitNode = fatBinarySearch( v, state, stack, true, -1, length - 1 );
+		parexOrExitNode = fatBinarySearch( v, state, stack, true, -1, length );
 		candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean( parexOrExitNode.extentLength ) ? parexOrExitNode.right : parexOrExitNode.left;
 		lcpLength = v.longestCommonPrefixLength( candidateExitNode.extent( transform ) );
 		
@@ -1374,9 +1369,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		final long startingPoint = stack.top().extentLength;
 		// We're lucky: the second element on the stack is the parex node.
-		if ( startingPoint == parexOrExitNode.parentExtentLength ) return new ParexData<T>( stack.top(), parexOrExitNode, lcpLength );
+		if ( startingPoint == parexOrExitNode.nameLength - 1 ) return new ParexData<T>( stack.top(), parexOrExitNode, lcpLength );
 		// The fat binary search will certainly return the parex node.
-		return new ParexData<T>( fatBinarySearch( v, state, stack, true, startingPoint, parexOrExitNode.parentExtentLength ), parexOrExitNode, lcpLength );
+		return new ParexData<T>( fatBinarySearch( v, state, stack, true, startingPoint, parexOrExitNode.nameLength ), parexOrExitNode, lcpLength );  // TODO check -1
 		
 	}
 
@@ -1385,7 +1380,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert parexData.parexNode != null || parexData.exitNode == root;
 		assert parexData.parexNode == null || parexData.parexNode.left == parexData.exitNode || parexData.parexNode.right == parexData.exitNode;
 		for( InternalNode<T> node : stack ) {
-			assert v.equals( node.extent( transform ), Math.max( 0, node.parentExtentLength ), node.extentLength );
+			assert v.equals( node.extent( transform ), Math.max( 0, node.nameLength - 1 ), node.extentLength );
 		}
 	}
 
@@ -1404,21 +1399,23 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long startingPoint = stack.top().extentLength;
 		// We're lucky: the second element on the stack is the grandparent of the exit node.
-		if ( startingPoint == parentExitNode.parentExtentLength ) return stack.top();
+		if ( startingPoint == parentExitNode.nameLength - 1 ) return stack.top();  // TODO check -1
 
 		final int stackSize = stack.size();
 		// Unless there are mistakes, this is really the grandparent of the exit node.
-		final InternalNode<T> grandParentExitNode = fatBinarySearch( v, state, stack, false, startingPoint, parentExitNode.parentExtentLength );
+		final InternalNode<T> grandParentExitNode = fatBinarySearch( v, state, stack, false, startingPoint, parentExitNode.nameLength );  // TODO check -1
 		if ( grandParentExitNode.left == parentExitNode || grandParentExitNode.right == parentExitNode ) return grandParentExitNode;
 		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 		stack.size( stackSize );
-		return fatBinarySearch( v, state, stack, true, startingPoint, parentExitNode.parentExtentLength );
+		return fatBinarySearch( v, state, stack, true, startingPoint, parentExitNode.nameLength );  // TODO check -1
 	}
 
 
 	private InternalNode<T> fatBinarySearch( final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, final boolean exact, long a, long b ) {
-		if ( DDDEBUG ) System.err.println( "fatBinarySearch(" + v + ", " + stack  + ", " + exact + ", (" + a + ".." + b +"])" );
-
+		if ( DDDEBUG ) System.err.println( "fatBinarySearch(" + v + ", " + stack  + ", " + exact + ", (" + a + ".." + b +"))" );
+		
+		b--;
+		
 		if ( ASSERTS ) assert a < b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
@@ -1434,7 +1431,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		
 		while( b - a > 0 ) {
 			if ( ASSERTS ) assert checkMask != 0;
-			if ( DDDEBUG ) System.err.println( "(" + a + ".." + b + "] (check mask: " + Long.toBinaryString( checkMask ) );
+			if ( DDDEBUG ) System.err.println( "(" + a + ".." + ( b + 1 ) + ")" );
 
 			final long f = b & checkMask;
 			if ( ( a & checkMask ) != f ) {
@@ -1459,7 +1456,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			checkMask >>= 1;
 		}
 
-		if ( DDDEBUG ) System.err.println( "Final interval: (" + a + ".." + b + "]; top: " + top + "; stack: " + stack );
+		if ( DDDEBUG ) System.err.println( "Final interval: (" + a + ".." + ( b + 1 ) + "); top: " + top + "; stack: " + stack );
 /*		if ( a == 0 && ((InternalNode<T>)root).extentLength == 0 ) {
 			top = (InternalNode<T>)root;
 			if ( stack != null ) stack.push( top );
@@ -1589,7 +1586,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		s.writeBoolean( node.isInternal() );
 		if ( node.isInternal() ) {
 			final InternalNode<U> internalNode = (InternalNode<U>)node;
-			s.writeLong( internalNode.extentLength - internalNode.parentExtentLength );
+			s.writeLong( internalNode.extentLength - internalNode.nameLength );
 			writeNode( internalNode.left, transform, s );
 			writeNode( internalNode.right, transform, s );
 		}
@@ -1600,7 +1597,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		s.defaultReadObject();
 		initHeadTail();
 		handle2Node = new Handle2NodeMap<T>( size, transform );
-		if ( size > 0 ) root = readNode( s, 0, -1, handle2Node, new ObjectArrayList<Leaf<T>>(), new ObjectArrayList<InternalNode<T>>(), new IntArrayList(), new IntArrayList(), new BooleanArrayList() );
+		if ( size > 0 ) root = readNode( s, 0, 0, handle2Node, new ObjectArrayList<Leaf<T>>(), new ObjectArrayList<InternalNode<T>>(), new IntArrayList(), new IntArrayList(), new BooleanArrayList() );
 		if ( ASSERTS ) assertTrie();
 	}
 
@@ -1618,13 +1615,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the subtree rooted at the next node in the stream.
 	 */
 	@SuppressWarnings("unchecked")
-	private Node<T> readNode( final ObjectInputStream s, final int depth, final long parentExtentLength, final Handle2NodeMap<T> map, final ObjectArrayList<Leaf<T>> leafStack, final ObjectArrayList<InternalNode<T>> jumpStack, final IntArrayList depthStack, final IntArrayList segmentStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
+	private Node<T> readNode( final ObjectInputStream s, final int depth, final long nameLength, final Handle2NodeMap<T> map, final ObjectArrayList<Leaf<T>> leafStack, final ObjectArrayList<InternalNode<T>> jumpStack, final IntArrayList depthStack, final IntArrayList segmentStack, final BooleanArrayList dirStack ) throws IOException, ClassNotFoundException {
 		final boolean isInternal = s.readBoolean();
 		// The two following variables are identical when non-null.
 		final InternalNode<T> internalNode = isInternal ? new InternalNode<T>() : null;
 		final Node<T> node = isInternal ? internalNode : new Leaf<T>();
-		node.parentExtentLength = parentExtentLength;
-		if ( isInternal ) internalNode.extentLength = parentExtentLength + s.readLong();
+		node.nameLength = nameLength;
+		if ( isInternal ) internalNode.extentLength = nameLength + s.readLong();
 
 		if ( ! dirStack.isEmpty() ) {
 			/* We cannot fix the jumps of nodes that are more than this number of levels up in the tree. */
@@ -1639,7 +1636,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				/* To be fixable, a node must be within the depth limit, and we must intercept its jump length (note that
 				 * we cannot use .intercept() as the state of node is not yet consistent). If a node cannot be fixed, no
 				 * node higher in the stack can. */
-				if ( depth - d <= maxDepthDelta && jumpLength > parentExtentLength && ( ! isInternal || jumpLength <= internalNode.extentLength ) ) {
+				if ( depth - d <= maxDepthDelta && jumpLength >= nameLength && ( ! isInternal || jumpLength <= internalNode.extentLength ) ) {
 					//if ( DDEBUG ) System.err.println( "Setting " + ( dir ? "right" : "left" ) + " jump pointer of " + anc + " to " + node );
 					if ( dir ) anc.jumpRight = node; 
 					else anc.jumpLeft = node;
@@ -1660,7 +1657,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			depthStack.push( depth );
 			
 			if ( DEBUG ) System.err.println( "Recursing into left node... " );
-			internalNode.left = readNode( s, depth + 1, internalNode.extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
+			internalNode.left = readNode( s, depth + 1, internalNode.extentLength + 1, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			int top = segmentStack.popInt();
 			if ( top != 1 ) segmentStack.push( top - 1 );
@@ -1675,7 +1672,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			depthStack.push( depth );
 			
 			if ( DEBUG ) System.err.println( "Recursing into right node... " );
-			internalNode.right = readNode( s, depth + 1, internalNode.extentLength, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
+			internalNode.right = readNode( s, depth + 1, internalNode.extentLength + 1, map, leafStack, jumpStack, depthStack, segmentStack, dirStack );
 			
 			top = segmentStack.popInt();
 			if ( top != 1 ) segmentStack.push( top - 1 );
