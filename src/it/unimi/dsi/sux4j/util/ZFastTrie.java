@@ -1421,14 +1421,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = stack == null || stack.isEmpty() ? null : stack.top();
 		int pos;
-		long checkMask = -1L << Fast.ceilLog2( b - a );
 		
 		if ( a == -1 ) {
+			// ALERT: this should return NULL in certain cases
 			top = (InternalNode<T>)root;
 			if ( stack != null ) stack.push( top );
 			a = top.extentLength;
 		}
-		
+
+		long checkMask = -1L << Fast.ceilLog2( b - a );
+
 		while( b - a > 0 ) {
 			if ( ASSERTS ) assert checkMask != 0;
 			if ( DDDEBUG ) System.err.println( "(" + a + ".." + ( b + 1 ) + ")" );

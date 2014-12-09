@@ -13,7 +13,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long> f = new TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long>( p, TransformationStrategies.fixedLong() );
+		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long> f = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).build();
 				
 		long j = 0;
 		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {

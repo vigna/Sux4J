@@ -2,7 +2,6 @@ package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
@@ -60,7 +59,7 @@ public class HypergraphFunctionTest {
 		MWHCFunction<String> function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
 
 		int[] check = new int[ s.length ];
-		IntArrays.fill( check, -1 );
+		Arrays.fill( check, -1 );
 		for ( int i = s.length; i-- != 0; )
 			assertEquals( i, function.getLong( s[ i ] ) );
 

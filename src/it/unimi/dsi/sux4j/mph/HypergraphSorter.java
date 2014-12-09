@@ -23,8 +23,8 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
@@ -103,7 +103,7 @@ import org.slf4j.LoggerFactory;
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
  * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node
  * two additional values that contain a XOR of the other two nodes of each edge incident on the node. This
- * approach simplifies considerably the code as every 3-hyperedge is presented to us as a distinguished vertex (the
+ * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
  * hinge) plus two additional vertices.
  * 
  * <h3>Rounds and Logging</h3>
@@ -261,10 +261,10 @@ public class HypergraphSorter<T> {
 	
 	private final void cleanUpIfNecessary() {
 		if ( ! neverUsed ) { 
-			IntArrays.fill( d, 0 );
-			IntArrays.fill( vertex1, 0 );
-			IntArrays.fill( vertex2, 0 );
-			if ( computeEdges ) IntArrays.fill( edge, 0 );
+			Arrays.fill( d, 0 );
+			Arrays.fill( vertex1, 0 );
+			Arrays.fill( vertex2, 0 );
+			if ( computeEdges ) Arrays.fill( edge, 0 );
 		}
 		neverUsed = false;
 	}

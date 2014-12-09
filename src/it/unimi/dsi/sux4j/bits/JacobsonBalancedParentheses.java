@@ -22,7 +22,6 @@ package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction;
@@ -513,7 +512,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		}
 
 		if ( findClose ) {
-			ByteArrays.fill( residual, (byte)0 );
+			Arrays.fill( residual, (byte)0 );
 
 			openingPioneers = new LongArrayList();
 			openingPioneerMatches = new LongArrayList();

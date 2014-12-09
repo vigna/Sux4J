@@ -6,4 +6,4 @@
 - Comment all classes!
 - Support enclose() in JacobsonBalancedParentheses
 - Support UTF-32 in all main() methods.
-- Reference correctly the XOR trick
+- Experiment with a SimpleSelect like SDArray, in which the budget per subinventory is variable with the length of the block.
