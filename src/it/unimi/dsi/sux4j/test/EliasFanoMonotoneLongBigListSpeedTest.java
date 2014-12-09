@@ -1,6 +1,7 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -41,9 +42,10 @@ public class EliasFanoMonotoneLongBigListSpeedTest {
 		final int[] position = new int[ numPos ];
 		
 		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % ( numElements - bulk );
-		final int[] elements = list.elements();
-		for( int i = 1; i < list.size(); i++ ) elements[ i ] += elements[ i - 1 ];
-		EliasFanoMonotoneLongBigList eliasFanoMonotoneLongBigList = new EliasFanoMonotoneLongBigList( list );
+		final long[] elements = new long[ list.size() ];
+		elements[ 0 ] = list.getInt( 0 );
+		for( int i = 1; i < list.size(); i++ ) elements[ i ] = list.getInt( i ) + elements[ i - 1 ];
+		EliasFanoMonotoneLongBigList eliasFanoMonotoneLongBigList = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( elements ) );
 		long time;
 		System.err.println( "getLong():" );
 		for( int k = 10; k-- != 0; ) {

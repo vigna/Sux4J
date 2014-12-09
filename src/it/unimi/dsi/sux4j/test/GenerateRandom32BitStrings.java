@@ -1,14 +1,11 @@
 package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;

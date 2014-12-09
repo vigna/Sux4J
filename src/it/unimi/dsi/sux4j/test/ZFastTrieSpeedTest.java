@@ -59,7 +59,6 @@ public class ZFastTrieSpeedTest {
 		@SuppressWarnings("rawtypes")
 		final ZFastTrie zFastTrie = (ZFastTrie)BinIO.loadObject( trieName );
 		
-		@SuppressWarnings("resource")
 		final InputStream inputStream = "-".equals( stringFile ) ? System.in : new FileInputStream( stringFile );
 
 		final LineIterator lineIterator = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( inputStream ) : inputStream, encoding ) ) );
