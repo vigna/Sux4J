@@ -86,7 +86,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
- * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
+ * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  * 
  * <h3>Signing</h3>

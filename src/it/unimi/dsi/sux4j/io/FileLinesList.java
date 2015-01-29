@@ -58,7 +58,7 @@ import java.util.RandomAccess;
  * is {@link java.io.Closeable}, and should be closed after usage.
  * 
  * <p>Note that {@link #toString()} will return a single string containing all
- * file lines separated by the string associated to the system property <samp>line.separator</samp>.
+ * file lines separated by the string associated to the system property <code>line.separator</code>.
  * 
  * <p><strong>Warning</strong>: this class is not synchronised. Separate iterators use separate input
  * streams, and can be accessed concurrently, but all calls to {@link #get(int)} refer to the

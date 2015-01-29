@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * The computation of the last value can be {@linkplain #HypergraphSorter(int, boolean) disabled} if you do not need it.
  * 
  * <p>The public fields {@link #numEdges} and {@link #numVertices} expose information about the generated
- * 3-hypergraph. For <var>m</var> edges, the number of vertices will be &lceil {@linkplain #GAMMA &gamma;}<var>m</var> &rceil; + 1, rounded up 
+ * 3-hypergraph. For <var>m</var> edges, the number of vertices will be &lceil; {@linkplain #GAMMA &gamma;}<var>m</var> &rceil; + 1, rounded up 
  * to the nearest multiple of 3, unless <var>m</var> is zero, in which case the number of vertices will be zero, too.
  * Note that index of the hash function that generated a particular vertex of a 3-hyperedge can be recovered
  * dividing by {@link #partSize}, which is exactly {@link #numVertices}/3. 

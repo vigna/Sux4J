@@ -103,7 +103,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * paper below for their exact meaning). 
  * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
- * <samp>gzip</samp>'d) sequence of newline-separated strings, and writes a serialised minimal
+ * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  * 
  * <h3>Signing</h3>

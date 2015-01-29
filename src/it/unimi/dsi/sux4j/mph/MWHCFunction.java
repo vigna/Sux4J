@@ -77,7 +77,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero). 
  * 
  * <P>As a commodity, this class provides a main method that reads from
- * standard input a (possibly <samp>gzip</samp>'d) sequence of newline-separated strings, and
+ * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
  * writes a serialised function mapping each element of the list to its position, or to a given list of values.
  *
  * <h3>Signing</h3>

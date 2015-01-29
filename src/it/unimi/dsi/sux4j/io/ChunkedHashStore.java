@@ -126,7 +126,7 @@ import org.slf4j.LoggerFactory;
  * <pre>
  * final long[] h = new long[ 3 ];
  * Hashes.jenkins( transform.toBitVector( key ), seed, h );
- * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
+ * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] &gt;&gt;&gt; chunkShift );
  * </pre>
  * where <code>seed</code> is the store seed, and <code>chunkShift</code> 
  * is the return value of {@link #log2Chunks(int)} and should be stored by the caller. Note
