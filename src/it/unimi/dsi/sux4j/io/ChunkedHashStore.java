@@ -708,7 +708,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 					it.unimi.dsi.fastutil.Arrays.quickSort( 0, chunkSize, new AbstractIntComparator() {
 						public int compare( final int x, final int y ) {
-							return Long.signum( buffer0[ x ] - buffer0[ y ] );
+							int t = Long.signum( buffer0[ x ] - buffer0[ y ] );
+							if ( t != 0 ) return t;
+							t = Long.signum( buffer1[ x ] - buffer1[ y ] );
+							if ( t != 0 ) return t;
+							return Long.signum( buffer2[ x ] - buffer2[ y ] );
 						}
 					},
 					new Swapper() {
