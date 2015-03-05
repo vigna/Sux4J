@@ -46,12 +46,8 @@ public class SimpleSelectZero implements SelectZero {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final long ONES_STEP_8 = 0x0101010101010101L;
-	private static final long ONES_STEP_4 = 0x1111111111111111L;
-
 	private static final int MAX_ONES_PER_INVENTORY = 8192;
 	private static final int MAX_LOG2_LONGWORDS_PER_SUBINVENTORY = 3;
-	private static final long MSBS_STEP_8 = 0x80L * ONES_STEP_8;
 
 	/** The maximum size of span to qualify for a subinventory made of 16-bit offsets. */
 	private static final int MAX_SPAN = ( 1 << 16 );
@@ -258,19 +254,8 @@ public class SimpleSelectZero implements SelectZero {
 			word = ~bits[ ++wordIndex ];
 			residual -= bitCount;
 		} 
-		// Phase 1: sums by byte
-		long byteSums = word - ( ( word & 0xa * ONES_STEP_4 ) >>> 1 );
-		byteSums = ( byteSums & 3 * ONES_STEP_4 ) + ( ( byteSums >>> 2 ) & 3 * ONES_STEP_4 );
-		byteSums = ( byteSums + ( byteSums >>> 4 ) ) & 0x0f * ONES_STEP_8;
-		byteSums *= ONES_STEP_8;
 
-        // Phase 2: compare each byte sum with rank to obtain the relevant byte
-        final long residualPlusOneStep8 = ( residual + 1 ) * ONES_STEP_8;
-        final long byteOffset = Long.numberOfTrailingZeros( ( ( ( byteSums | MSBS_STEP_8 ) - residualPlusOneStep8 ) & MSBS_STEP_8 ) >>> 7 );
-
-        final int byteRank = (int)( residual - ( ( ( byteSums << 8 ) >>> byteOffset ) & 0xFF ) );
-
-        return wordIndex * 64L + byteOffset + Fast.selectInByte[ (int)( word >>> byteOffset & 0xFF ) | byteRank << 8 ];		
+		return wordIndex * 64L + Fast.select( word, residual );		
 	}
 	
 	/** Performs a bulk select of consecutive ranks into a given array fragment.

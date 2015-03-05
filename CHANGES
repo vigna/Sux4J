@@ -1,3 +1,8 @@
+3.2.2
+
+- Improved speed for selection in a word thanks to an idea of Giuseppe
+  Ottaviano. Now we refer to the DSI utility implementation.
+
 3.2.1
 
 - Fixed dependencies.
