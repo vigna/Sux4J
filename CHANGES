@@ -1,7 +1,8 @@
 3.2.2
 
 - Improved speed for selection in a word thanks to an idea of Giuseppe
-  Ottaviano. Now we refer to the DSI utility implementation.
+  Ottaviano. Now we refer to the implementation found in the DSI
+  utilities (it.unimi.dsi.bits.Fast.select()).
 
 3.2.1
 
