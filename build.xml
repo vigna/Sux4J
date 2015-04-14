@@ -161,7 +161,6 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					stylesheetfile="${src}/stylesheet.css"
 					source="1.6" 
 					windowtitle="Sux4J ${version}"
 					classpathref="compile.classpath">
