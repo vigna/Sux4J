@@ -8,7 +8,11 @@ if (( count == 0 )); then
 elif (( count > 1 )); then
 	echo "WARNING: several $JAR jar files ($(\ls -m $JAR-*.jar))"
 else
-	export CLASSPATH=$(ls -1 $sourcedir/$JAR-*.jar | tail -n 1):$CLASSPATH
-fi
+	if echo $CLASSPATH | grep -q slf4j; then
+		deps=$(\ls -1 $sourcedir/jars/runtime/*.jar | grep -v slf4j | paste -d: -s)
+	else
+		deps=$(\ls -1 $sourcedir/jars/runtime/*.jar | paste -d: -s)
+	fi
 
-export CLASSPATH=$CLASSPATH:$(\ls -1 $sourcedir/jars/runtime/*.jar | paste -d: -s)
+	export CLASSPATH=$(ls -1 $sourcedir/$JAR-*.jar | tail -n 1):$deps:$CLASSPATH
+fi
