@@ -23,6 +23,9 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -408,6 +411,84 @@ public class HypergraphSorter<T> {
 				if ( --d[ vertex2[ v ] ] == 1 ) visitStack.add( vertex2[ v ] );				
 			}
 		}
+	}
+	
+	/** Directs the edges of a 3-hypergraph.
+	 * 
+	 * @param d the degree array.
+	 * @param vertex0 the first vertex of each edge.
+	 * @param vertex1 the second vertex of each edge.
+	 * @param vertex2 the third vertex of each edge.
+	 * @param hinges the vector where hinges will be stored.
+	 * @param offset the first hyperedge to be directed in the edge arrays.
+	 * @return true if direction was successful.
+	 */
+	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int offset ) {
+		IntLinkedOpenHashSet v = new IntLinkedOpenHashSet();
+		IntOpenHashSet e = new IntOpenHashSet();
+		IntOpenHashSet[] edgeList = new IntOpenHashSet[ d.length ];
+		for( int i = edgeList.length; i-- != 0; ) edgeList[ i ] = new IntOpenHashSet();
+		boolean[] set = new boolean[ d.length ];
+
+		for ( int i = offset; i < hinges.length; i++ ) {
+			e.add( i );			
+			edgeList[ vertex0[ i ] ].add( i );
+			edgeList[ vertex1[ i ] ].add( i );
+			edgeList[ vertex2[ i ] ].add( i );
+		}
+
+		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) v.add( i );
+
+		int[] weight = new int[ hinges.length - offset ];
+		Arrays.fill( weight, 3 );
+		double[] priority = new double[ v.lastInt() + 1 ];
+
+		for ( int t = offset; t < hinges.length; t++ ) {
+			for ( IntIterator i = v.iterator(); i.hasNext(); ) {
+				final int node = i.nextInt();
+				priority[ node ] = 0;
+
+				if ( set[ node ] ) priority[ node ] = 2;
+				else if ( d[ node ] == 1 ) priority[ node ] = 0;
+				else {
+					for ( IntIterator j = edgeList[ node ].iterator(); j.hasNext(); ) {
+						final int edge = j.nextInt();
+						priority[ node ] += 1.0 / weight[ edge - offset ];
+					}
+				}
+			}
+			int smallestNode = Integer.MAX_VALUE;
+			double smallestValue = Double.MAX_VALUE;
+			for ( IntIterator i = v.iterator(); i.hasNext(); ) {
+				final int node = i.nextInt();
+				if ( smallestValue > priority[ node ] ) {
+					smallestNode = node;
+					smallestValue = priority[ node ];
+				}
+
+			}
+			if ( priority[ smallestNode ] > 1 ) return false;
+			else {
+				int smallestEdge = -1;
+				for( IntIterator i = edgeList[ smallestNode ].iterator(); i.hasNext(); ) {
+					final int edge = i.nextInt();
+					if ( smallestEdge == -1 || weight[ edge - offset ] < weight[ smallestEdge - offset ] ) smallestEdge = edge;
+					weight[ edge ]--;
+				}
+
+				hinges[ smallestEdge ] = smallestNode;
+				e.remove( smallestEdge );
+				if ( set[ smallestNode ] == true ) return false;
+				set[ smallestNode ] = true;
+				edgeList[ vertex0[ smallestEdge ] ].remove( smallestEdge );
+				edgeList[ vertex1[ smallestEdge ] ].remove( smallestEdge );
+				edgeList[ vertex2[ smallestEdge ] ].remove( smallestEdge );
+				if ( --d[ vertex0[ smallestEdge ] ] == 0 ) v.remove( vertex0[ smallestEdge ] );
+				if ( --d[ vertex1[ smallestEdge ] ] == 0 ) v.remove( vertex1[ smallestEdge ] );
+				if ( --d[ vertex2[ smallestEdge ] ] == 0 ) v.remove( vertex2[ smallestEdge ] );
+			}
+		}
+		return true;
 	}
 }
 
