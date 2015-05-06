@@ -424,24 +424,24 @@ public class HypergraphSorter<T> {
 	 * @return true if direction was successful.
 	 */
 	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int offset ) {
-		IntLinkedOpenHashSet v = new IntLinkedOpenHashSet();
-		IntOpenHashSet e = new IntOpenHashSet();
-		IntOpenHashSet[] edgeList = new IntOpenHashSet[ d.length ];
-		for( int i = edgeList.length; i-- != 0; ) edgeList[ i ] = new IntOpenHashSet();
-		boolean[] set = new boolean[ d.length ];
+		final IntLinkedOpenHashSet v = new IntLinkedOpenHashSet();
+		final IntOpenHashSet e = new IntOpenHashSet();
+		final IntOpenHashSet[] edges = new IntOpenHashSet[ d.length ];
+		for( int i = edges.length; i-- != 0; ) edges[ i ] = new IntOpenHashSet();
+		final boolean[] set = new boolean[ d.length ];
 
 		for ( int i = offset; i < hinges.length; i++ ) {
 			e.add( i );			
-			edgeList[ vertex0[ i ] ].add( i );
-			edgeList[ vertex1[ i ] ].add( i );
-			edgeList[ vertex2[ i ] ].add( i );
+			edges[ vertex0[ i ] ].add( i );
+			edges[ vertex1[ i ] ].add( i );
+			edges[ vertex2[ i ] ].add( i );
 		}
 
 		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) v.add( i );
 
-		int[] weight = new int[ hinges.length - offset ];
+		final int[] weight = new int[ hinges.length - offset ];
 		Arrays.fill( weight, 3 );
-		double[] priority = new double[ v.lastInt() + 1 ];
+		final double[] priority = new double[ v.lastInt() + 1 ];
 
 		for ( int t = offset; t < hinges.length; t++ ) {
 			for ( IntIterator i = v.iterator(); i.hasNext(); ) {
@@ -451,7 +451,7 @@ public class HypergraphSorter<T> {
 				if ( set[ node ] ) priority[ node ] = 2;
 				else if ( d[ node ] == 1 ) priority[ node ] = 0;
 				else {
-					for ( IntIterator j = edgeList[ node ].iterator(); j.hasNext(); ) {
+					for ( IntIterator j = edges[ node ].iterator(); j.hasNext(); ) {
 						final int edge = j.nextInt();
 						priority[ node ] += 1.0 / weight[ edge - offset ];
 					}
@@ -470,7 +470,7 @@ public class HypergraphSorter<T> {
 			if ( priority[ smallestNode ] > 1 ) return false;
 			else {
 				int smallestEdge = -1;
-				for( IntIterator i = edgeList[ smallestNode ].iterator(); i.hasNext(); ) {
+				for( IntIterator i = edges[ smallestNode ].iterator(); i.hasNext(); ) {
 					final int edge = i.nextInt();
 					if ( smallestEdge == -1 || weight[ edge - offset ] < weight[ smallestEdge - offset ] ) smallestEdge = edge;
 					weight[ edge ]--;
@@ -480,9 +480,9 @@ public class HypergraphSorter<T> {
 				e.remove( smallestEdge );
 				if ( set[ smallestNode ] == true ) return false;
 				set[ smallestNode ] = true;
-				edgeList[ vertex0[ smallestEdge ] ].remove( smallestEdge );
-				edgeList[ vertex1[ smallestEdge ] ].remove( smallestEdge );
-				edgeList[ vertex2[ smallestEdge ] ].remove( smallestEdge );
+				edges[ vertex0[ smallestEdge ] ].remove( smallestEdge );
+				edges[ vertex1[ smallestEdge ] ].remove( smallestEdge );
+				edges[ vertex2[ smallestEdge ] ].remove( smallestEdge );
 				if ( --d[ vertex0[ smallestEdge ] ] == 0 ) v.remove( vertex0[ smallestEdge ] );
 				if ( --d[ vertex1[ smallestEdge ] ] == 0 ) v.remove( vertex1[ smallestEdge ] );
 				if ( --d[ vertex2[ smallestEdge ] ] == 0 ) v.remove( vertex2[ smallestEdge ] );
