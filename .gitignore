@@ -1,0 +1,7 @@
+.classpath
+.project
+coverage/
+dist/
+reports/
+bin/
+build/
