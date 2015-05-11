@@ -26,7 +26,7 @@ import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.doubles.DoubleHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.sux4j.mph.Modulo3SystemList.Modulo3Equation;
+import it.unimi.dsi.sux4j.mph.Modulo3System.Modulo3Equation;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -357,7 +357,7 @@ public class HypergraphSolver<T> {
 				IntOpenHashSet hingeSet = new IntOpenHashSet( IntArrayList.wrap( hinges ).subList( top, hinges.length ), Hash.FAST_LOAD_FACTOR );
 				assert hinges.length - top == hingeSet.size() : ( hinges.length - top ) + " != " + hingeSet.size(); 
 
-				Modulo3SystemList system = new Modulo3SystemList();
+				Modulo3System system = new Modulo3System();
 				for ( int i = top; i < hinges.length; i++ ) {
 					final int v0 = hinges[ i ];
 					final int v1 = vertex1[ i ];
