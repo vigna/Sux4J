@@ -396,7 +396,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		offset = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
-		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
+		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)( Math.ceil( n * HypergraphSolver.GAMMA ) + 1 ) + 4 * numChunks ) );
 		array = bitVector.bits();
 
 		int duplicates = 0;
@@ -412,32 +412,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			try {
 				int q = 0;
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size(), false );
+					final HypergraphSolver<BitVector> solver = new HypergraphSolver<BitVector>( chunk.size(), false );
 					do {
 						seed = r.nextLong();
-					} while ( !sorter.generateAndSort( chunk.iterator(), seed ) );
+					} while ( !solver.generateAndSolve( chunk, seed ) );
 
 					this.seed[ q ] = seed;
-					offset[ q + 1 ] = offset[ q ] + sorter.numVertices;
-
-					/* We assign values. */
-					int top = chunk.size(), k, v = 0;
-					final int[] stack = sorter.stack;
-					final int[] vertex1 = sorter.vertex1;
-					final int[] vertex2 = sorter.vertex2;
+					offset[ q + 1 ] = offset[ q ] + solver.numVertices;
+					final int[] solution = solver.solution;
 					final long off = offset[ q ];
-
-					while ( top > 0 ) {
-						v = stack[ --top ];
-						k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 ); 
-						assert k >= 0 && k < 3 : Integer.toString( k );
-						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
-						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
-						final long value = ( k - s + 9 ) % 3;
-						assert values.getLong( off + v ) == 0;
-						values.set( off + v, value == 0 ? 3 : value );
-					}
-
+					for( int i = 0; i < solution.length; i++ ) values.set( i + off, solution[ i ] );
+					
 					q++;
 					pl.update();
 
@@ -445,7 +430,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						final IntOpenHashSet pos = new IntOpenHashSet();
 						final int[] e = new int[ 3 ];
 						for ( long[] triple : chunk ) {
-							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, sorter.partSize, e );
+							HypergraphSorter.tripleToEdge( triple, seed, solver.numVertices, solver.partSize, e );
 							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
 						}
 					}
