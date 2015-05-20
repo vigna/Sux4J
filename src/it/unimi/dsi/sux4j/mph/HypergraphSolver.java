@@ -357,7 +357,7 @@ public class HypergraphSolver<T> {
 				IntOpenHashSet hingeSet = new IntOpenHashSet( IntArrayList.wrap( hinges ).subList( top, hinges.length ), Hash.FAST_LOAD_FACTOR );
 				assert hinges.length - top == hingeSet.size() : ( hinges.length - top ) + " != " + hingeSet.size(); 
 
-				Modulo3System system = new Modulo3System();
+				Modulo3System system = new Modulo3System( numVertices );
 				for ( int i = top; i < hinges.length; i++ ) {
 					final int v0 = hinges[ i ];
 					final int v1 = vertex1[ i ];
@@ -367,12 +367,11 @@ public class HypergraphSolver<T> {
 					assert k != 1 || vertex1[ i ] == hinges[ i ];
 					assert k != 2 || vertex2[ i ] == hinges[ i ];
 					
-					Modulo3Equation.Builder builder = new Modulo3Equation.Builder( k );
-					if ( hingeSet.contains( stack[ i ] ) ) builder.add( stack[ i ], 1 );
-					if ( hingeSet.contains( vertex1[ i ] ) ) builder.add( vertex1[ i ], 1 );
-					if ( hingeSet.contains( vertex2[ i ] ) ) builder.add( vertex2[ i ], 1 );
+					Modulo3Equation equation = new Modulo3Equation( k, numVertices );
+					if ( hingeSet.contains( stack[ i ] ) ) equation.add( stack[ i ], 1 );
+					if ( hingeSet.contains( vertex1[ i ] ) ) equation.add( vertex1[ i ], 1 );
+					if ( hingeSet.contains( vertex2[ i ] ) ) equation.add( vertex2[ i ], 1 );
 
-					Modulo3Equation equation = builder.build();
 					if ( equation.isUnsolvable() ) {
 						System.err.println("-");
 						return false;

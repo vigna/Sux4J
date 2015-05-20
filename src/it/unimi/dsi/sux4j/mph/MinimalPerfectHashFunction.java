@@ -229,7 +229,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	public static final int BITS_PER_BLOCK = 1024;
 
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 10;
+	public final static int LOG2_CHUNK_SIZE = 9;
 
 	/** The number of keys. */
 	protected final long n;

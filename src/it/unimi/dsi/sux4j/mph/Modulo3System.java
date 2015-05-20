@@ -2,179 +2,196 @@ package it.unimi.dsi.sux4j.mph;
 
 
 import it.unimi.dsi.Util;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.Swapper;
-import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-
-import org.apache.commons.lang.ArrayUtils;
 
 public class Modulo3System {
 	private final static boolean DEBUG = false;
 	
 	/** A modulo-3 equation. */
 	public static class Modulo3Equation {
-
-		public static final class Builder {
-			private final int c;
-			private final IntArrayList variables;
-			private final IntArrayList coefficients;
-			
-			public Builder( final int c, final int capacity ) {
-				this.c = c;
-				this.variables = new IntArrayList( capacity );
-				this.coefficients = new IntArrayList( capacity );
-			}
-			
-			public Builder( final int c ) {
-				this( c, 16 );
-			}
-			
-			public Builder add( final int index, final int value ) {
-				variables.add( index );
-				coefficients.add( value );
-				return this;
-			}
-			
-			public Builder add( final int index ) {
-				variables.add( index );
-				coefficients.add( 1 );
-				return this;
-			}
-			
-			public Modulo3Equation build() {
-				final int variable[] = variables.elements();
-				final int coefficient[] = coefficients.elements();
-				final int length = variables.size();
-				if ( length > 1 ) {
-					int i;
-					for( i = length; i-- != 1; ) if ( variable[ i ] < variable[ i - 1 ] ) break;
-					if ( i != 0 ) {
-						it.unimi.dsi.fastutil.Arrays.quickSort( 0, length, new AbstractIntComparator() {
-							@Override
-							public int compare( int k1, int k2 ) {
-								return Integer.compare( variable[ k1 ], variable[ k2 ] );
-							}
-						}, new Swapper() {
-							@Override
-							public void swap( int a, int b ) {
-								final int v = variable[ a ];
-								final int c = coefficient[ a ];
-								variable[ a ] = variable[ b ];
-								coefficient[ a ] = coefficient[ b ];
-								variable[ b ] = v;
-								coefficient[ b ] = c;
-							}
-						} );
-					}
-				}
-				return new Modulo3Equation( c, variables, coefficients );
-			}
-		}
-		
 		/** The constant term. */
-		public final int c;
-		public final int[] variable;
-		public final int[] coefficient;
+		protected int c;
+		protected final LongArrayBitVector bv;
+		private final LongBigList list;
+		protected int coeff;
 
 		/** Creates a new equation.
 		 * 
 		 * @param c the constant term.
-		 * @param variables the variables (sorted).
-		 * @param coefficients the coefficients (parallel to {@code variable}).
 		 */
-		protected Modulo3Equation( final int c, final IntArrayList variables, final IntArrayList coefficients ){
+		public Modulo3Equation( final int c, final int numVar ){
 			this.c = c;
-			variable = variables.toIntArray();
-			coefficient = coefficients.toIntArray();
+			this.bv = LongArrayBitVector.ofLength( numVar * 2 );
+			this.list = bv.asLongBigList( 2 );
 		}
 		
 		protected Modulo3Equation( final Modulo3Equation equation ){
 			this.c = equation.c;
-			variable = equation.variable.clone();
-			coefficient = equation.coefficient.clone();
+			this.bv = equation.bv.copy();
+			this.list = this.bv.asLongBigList( 2 );
+		}
+		
+		public Modulo3Equation add( final int index, final int value ) {
+			list.set( index, value );
+			return this;
+		}
+		
+		public Modulo3Equation add( final int index ) {
+			list.set( index, 1 );
+			return this;
+		}
+		
+		public int[] variables() {
+			IntArrayList variables = new IntArrayList();
+			for( int var = -1; ( var = nextVar( var + 1 ) ) != Integer.MAX_VALUE; )	variables.add( var );
+			return variables.toIntArray();
+		}
+
+		public int[] coefficients() {
+			IntArrayList coefficients = new IntArrayList();
+			for( int var = -1; ( var = nextVar( var + 1 ) ) != Integer.MAX_VALUE; )	coefficients.add( coeff );
+			return coefficients.toIntArray();
 		}
 		
 		public Modulo3Equation eliminate( final Modulo3Equation equation, final int var ) {
-			final int i = ArrayUtils.indexOf( this.variable, var );
-			final int j = ArrayUtils.indexOf( equation.variable, var );
-
-			final int mul = coefficient[ i ] == equation.coefficient[ j ] ? 1 : 2;
-			final Modulo3Equation result = sub( equation, mul );
+			final int mul = this.list.get( var ) == equation.list.get( var ) ? 1 : 2;
+			sub( equation, mul );
+			return this;
 
 			//System.err.println( this + " - " + mul + " * " + equation + "  =>  " + result );
-			assert result.sub( equation, 3 - mul ).equals( this ) : result.sub( equation, 3 - mul ) + " != " + this;
-			return result;
+			//assert result.sub( equation, 3 - mul ).equals( this ) : result.sub( equation, 3 - mul ) + " != " + this;
 		}
 
+		protected final static long addMod3( final long x, final long y ) {
+	        // mask the high bit of each pair set iff the result of the
+	        // sum in that position is >= 3
+	        // check if x is 2 and y is nonzero ...
+	        long mask = x & (y | (y << 1));
+	        // ... or x is 1 and y is 2
+	        mask |= (x << 1) & y;
+	        // clear the low bits
+	        mask &= 0x5555555555555555L << 1;
+	        // and turn 2s into 3s
+	        mask |= mask >> 1;
+	        return (x + y) - mask;
+	    }
+
+		protected final static long subMod3( final long x, long y ) {
+	        // Change of sign
+	        y = ( y & 0x5555555555555555L ) << 1 | ( y & 0xAAAAAAAAAAAAAAAAL ) >> 1;
+	        // mask the high bit of each pair set iff the result of the
+	        // sum in that position is >= 3
+	        // check if x is 2 and y is nonzero ...
+			long mask = x & ( y | (y << 1) );
+	        // ... or x is 1 and y is 2
+	        mask |= (x << 1) & y;
+	        // clear the low bits
+	        mask &= 0x5555555555555555L << 1;
+	        // and turn 2s into 3s
+	        mask |= mask >> 1;
+	        return (x + y) - mask;
+	    }
+
+		private final static void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
+			final long[] bx = x.bits(), by = y.bits();
+			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) bx[ i ] = addMod3( bx[ i ], by[ i ] ); 
+		}
+		
+		private final static void subMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
+			final long[] bx = x.bits(), by = y.bits();
+			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) bx[ i ] = subMod3( bx[ i ], by[ i ] ); 
+		}
+		
 		/** Subtract from this equation another equation multiplied by a provided constant.
 		 * 
 		 * @param equation the subtrahend.
 		 * @param mul a multiplier that will be applied to the subtrahend.
 		 */
 		
-		public Modulo3Equation sub( final Modulo3Equation equation, final int mul ) {
+		public void sub( final Modulo3Equation equation, final int mul ) {
 			// Explicit multiplication tables to avoid modulo operators.
-			final int[] timeMinusMul = { 0, 3 - mul,  mul };
-			final int[] timesMul = { 0, mul, 3 - mul };
-			
-			Builder builder = new Modulo3Equation.Builder( ( c + timeMinusMul[ equation.c ] ) % 3, variable.length + equation.variable.length );
-
-			int i = 0, j = 0;
-			int a = i < this.variable.length ? this.variable[ i ] : Integer.MAX_VALUE;
-			int b = j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
-
-			while( a != Integer.MAX_VALUE || b != Integer.MAX_VALUE ) {
-				if ( a < b ) {
-					builder.add( a, this.coefficient[ i ] );
-					a = ++i < this.variable.length ? this.variable[ i ] : Integer.MAX_VALUE;
-				}
-				else if ( a > b ) {
-					builder.add( b, timeMinusMul[ equation.coefficient[ j ] ] );
-					b = ++j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
-				}
-				else {
-					if ( this.coefficient[ i ] != timesMul[ equation.coefficient[ j ] ] ) builder.add( a, 3 - this.coefficient[ i ] );
-					a = ++i < this.variable.length ? this.variable[ i ] : Integer.MAX_VALUE;
-					b = ++j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
-				}
+			if ( mul == 1 ) {
+				c = ( c + 2 * equation.c ) % 3;
+				subMod3( bv, equation.bv );
 			}
-
-			for ( ; i < this.variable.length; i++ ) builder.add( this.variable[ i ], this.coefficient[ i ] );
-			for ( ; j < equation.variable.length; j++ ) builder.add( equation.variable[ j ], equation.coefficient[ j ] );
-			
-			return builder.build();
+			else {
+				c = ( c + equation.c ) % 3;
+				addMod3( bv, equation.bv );
+			}
+		}
+		
+		public int firstVar() {
+			final int numWords = (int)( ( bv.length() + 63 ) / 64 );
+			final long[] bits = bv.bits();
+			for( int i = 0; i < numWords; i++ ) if ( bits[ i ] != 0 ) return Fast.select( bits[ i ], 0 ) / 2 + 32 * i;
+			throw new IllegalArgumentException();
 		}
 
+		public int nextVar( final int i ) {
+			final long[] bits = bv.bits();
+			int word = ( i * 2 ) / 64;
+			if ( word >= bits.length ) return Integer.MAX_VALUE;
+			long w = bits[ word ] & ( -1L << ( i % 32 ) * 2 );
+			while( w == 0 ) {
+				if ( ++word * 64 >= bv.length() ) return Integer.MAX_VALUE;
+				w = bits[ word ];
+			}
+			
+			final int select = Fast.select( w, 0 );
+			final int nextVar = word * 32 + select / 2;
+			
+			coeff = (int)( w >> ( select & ~1 ) & 3 );
+			
+			return nextVar;
+		}
+		
+		public int numVars() {
+			return (int)bv.count();
+		}
+
+		public boolean noCoefficients() {
+			final long[] bits = bv.bits();
+			for( int i = (int)( ( bv.length() + 63 ) / 64 ); i-- != 0; ) if ( bits[ i ] != 0 ) return false;
+			return true;
+		}
+		
 		public boolean isUnsolvable() {
-			return variable.length == 0 && c != 0;
+			return noCoefficients() && c != 0;
 		}
 
 		public boolean isIdentity() {
-			return variable.length == 0 && c == 0;
+			return noCoefficients() && c == 0;
 		}
 		
 		@Override
 		public boolean equals( Object o ) {
 			if ( ! ( o instanceof Modulo3Equation ) ) return false;
 			final Modulo3Equation equation = (Modulo3Equation)o;
-			return c == equation.c && Arrays.equals( variable, equation.variable );
+			return c == equation.c && bv.equals( equation.bv );
 		}
 
 		public String toString() {
 			StringBuilder b = new StringBuilder();
-			for( int i = 0; i < variable.length; i++ ) {
-				if ( i != 0 ) b.append( " + " );
-				b.append( coefficient[ i ] == 1 ? "x" : "2x" ).append( '_' ).append( variable[ i ] );
+			boolean someNonZero = false;
+			for( int i = 0; i < list.size(); i++ ) {
+				if ( list.getLong( i ) != 0 ) {
+					if ( someNonZero ) b.append( " + " );
+					someNonZero = true;
+					b.append( list.getLong( i ) == 1 ? "x" : "2x" ).append( '_' ).append( i );
+				}
 	 		}
-			if ( variable.length == 0 ) b.append( '0' );
+			if ( ! someNonZero ) b.append( '0' );
 			return b.append( " = " ).append( c ).toString();
 		}
 		
@@ -184,10 +201,11 @@ public class Modulo3System {
 	}
 
 	private final ArrayList<Modulo3Equation> equations;
-	private int numVar;
+	private final int numVar;
 
-	public Modulo3System() {
+	public Modulo3System( final int numVar ) {
 		equations = new ArrayList<Modulo3Equation>();
+		this.numVar = numVar;
 	}
 
 	protected Modulo3System( ArrayList<Modulo3Equation> system, final int numVar ) {
@@ -209,27 +227,27 @@ public class Modulo3System {
 	}
 
 	public void add( Modulo3Equation equation ) {
+		if ( equation.list.size() != numVar ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size() + ") does not match the number of variables of the system (" + numVar + ")" );
 		equations.add( equation );
-		for( int i = 0; i < equation.variable.length; i++ ) numVar = Math.max( numVar, equation.variable[ equation.variable.length - 1 ] + 1 );
 	}
 
 	public boolean echelonForm() {
 		main: for ( int i = 0; i < equations.size() - 1; i++ ) {
-			assert equations.get( i ).variable.length > 0;
+			assert ! equations.get( i ).noCoefficients();
 			
 			for ( int j = i + 1; j < equations.size(); j++ ) {
 				// Note that because of exchanges we cannot extract the first assignment
 				if ( equations.get( j ).isIdentity() ) continue;
-				assert equations.get( i ).variable.length > 0;
-				assert equations.get( j ).variable.length > 0;
+				assert ! equations.get( i ).noCoefficients();
+				assert ! equations.get( j ).noCoefficients();
 
-				if( equations.get( i ).variable[ 0 ] == equations.get( j ).variable[ 0 ] ) {
-					equations.set( i, equations.get( i ).eliminate( equations.get( j ), equations.get( i ).variable[ 0 ] ) );
+				if( equations.get( i ).firstVar() == equations.get( j ).firstVar() ) {
+					equations.get( i ).eliminate( equations.get( j ), equations.get( i ).firstVar() );
 					if ( equations.get( i ).isUnsolvable() ) return false;
 					if ( equations.get( i ).isIdentity() ) continue main;
 				}
 
-				if ( ( equations.get( i ).variable[ 0 ] > equations.get( j ).variable[ 0 ] ) ) Collections.swap( equations, i, j );
+				if ( ( equations.get( i ).firstVar() > equations.get( j ).firstVar() ) ) Collections.swap( equations, i, j );
 			}
 		}
 		return true;
@@ -255,9 +273,10 @@ public class Modulo3System {
 
 		for( int i = 0; i < numEquations; i++ ) { 
 			// Initially, all variables are light.
-			priority[ i ] = equations.get( i ).variable.length;
-			for( int j = 0; j < equations.get( i ).variable.length; j++ ) {  
-				final int var = equations.get( i ).variable[ j ];
+			final int n = equations.get( i ).numVars();
+			priority[ i ] = n;
+			for( int j = 0, var = -1; j < n; j++ ) {  
+				var = equations.get( i ).nextVar( var + 1 );
 				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntOpenHashSet( 8, Hash.FAST_LOAD_FACTOR );
 				weight[ var ]--;
 				varEquation[ var ].add( i );
@@ -286,8 +305,9 @@ public class Modulo3System {
 				// This equation must be necessarily solved by standard Gaussian elimination.
 				dense.add( firstEquation );
 				// We remove references to this equations, as we have no longer to update its priority.
-				for( int i = firstEquation.variable.length; i-- != 0; ) {
-					final int var = firstEquation.variable[ i ];
+				for( int var = -1;; ) {
+					var = firstEquation.nextVar( var + 1 );
+					if ( var == Integer.MAX_VALUE ) break;
 					varEquation[ var ].remove( first );
 					if ( ! isHeavy[ var ] ) {
 						weight[ var ]++;
@@ -299,8 +319,9 @@ public class Modulo3System {
 				equationQueue.dequeue();
 				// This is solved (in terms of the heavy variables). Let's find the light variable.
 				int pivot = -1;
-				for( int i = firstEquation.variable.length; i-- != 0; ) {
-					final int var = firstEquation.variable[ i ];
+				for( int var = -1;; ) {
+					var = firstEquation.nextVar( var + 1 );
+					if ( var == Integer.MAX_VALUE ) break;
 					// We remove references to this equations, as we have no longer to update its priority.
 					varEquation[ var ].remove( first );
 					if ( ! isHeavy[ var ] ) {
@@ -321,14 +342,13 @@ public class Modulo3System {
 					assert equationIndex != first;
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
-					final Modulo3Equation equation = equations.get( equationIndex );
+					final Modulo3Equation equation = equations.get( equationIndex ).copy();
 					if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equation + " with " );
-					Modulo3Equation result = equation.eliminate( firstEquation, pivot );
+					Modulo3Equation result = equations.get( equationIndex ).eliminate( firstEquation, pivot );
 					// We now update information about variables.
 					
-					int i = 0, j = 0;
-					int a = i < result.variable.length ? result.variable[ i ] : Integer.MAX_VALUE;
-					int b = j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
+					int a = result.nextVar( 0 );
+					int b = equation.nextVar( 0 );
 
 					while( a != Integer.MAX_VALUE || b != Integer.MAX_VALUE ) {
 						if ( a < b ) {
@@ -338,7 +358,7 @@ public class Modulo3System {
 								weight[ a ]--;
 								variableQueue.changed( a );
 							}
-							a = ++i < result.variable.length ? result.variable[ i ] : Integer.MAX_VALUE;
+							a = result.nextVar( a + 1 );
 						}
 						else if ( b < a ) {
 							if ( b != pivot ) { // We don't care, and we cannot update varEquation[ pivot ] while iterating.
@@ -349,11 +369,11 @@ public class Modulo3System {
 									variableQueue.changed( b );
 								}
 							}
-							b = ++j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
+							b = equation.nextVar( b + 1 );
 						}
 						else {
-							a = ++i < result.variable.length ? result.variable[ i ] : Integer.MAX_VALUE;
-							b = ++j < equation.variable.length ? equation.variable[ j ] : Integer.MAX_VALUE;
+							a = result.nextVar( a + 1 );
+							b = equation.nextVar( b + 1 );
 						}
 					}
 					
@@ -400,9 +420,11 @@ public class Modulo3System {
 
 			int c = equation.c;
 			
-			for( int j = equation.variable.length; j-- != 0; ) {
-				if ( equation.variable[ j ] == pivot ) pivotCoefficient = equation.coefficient[ j ];
-				else c = ( 6 + c - ( equation.coefficient[ j ] * solution[ equation.variable[ j ] ] ) ) % 3;
+			for( int var = -1;; ) {
+				var = equation.nextVar( var + 1 );
+				if ( var == Integer.MAX_VALUE ) break;
+				if ( var == pivot ) pivotCoefficient = equation.coeff;
+				else c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
 			}
 
 			assert pivotCoefficient != -1;
@@ -423,15 +445,16 @@ public class Modulo3System {
 			if ( equation.isIdentity() ) continue;
 
 			int c = equation.c;
-			for( int j = equation.variable.length; j-- != 0; ) {
-				if ( j == 0 ) {
-					// First variable
-					assert solution[ equation.variable[ j ] ] == 0;
-					if ( c == 0 ) solution[ equation.variable[ j ] ] = 0;
-					else solution[ equation.variable[ j ] ] = equation.coefficient[ j ] == c ? 1 : 2;
-				}
-				else c = ( 6 + c - ( equation.coefficient[ j ] * solution[ equation.variable[ j ] ] ) ) % 3;
-			}
+			// First variable
+			int firstVar = equation.nextVar( 0 );
+			int firstCoeff = equation.coeff;
+
+			for( int var = firstVar; ( var = equation.nextVar( var + 1 ) ) != Integer.MAX_VALUE; ) 
+				c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
+
+			assert solution[ firstVar ] == 0 : firstVar;
+			if ( c == 0 ) solution[ firstVar ] = 0;
+			else solution[ firstVar ] = firstCoeff == c ? 1 : 2;
 		}
 		
 		return true;
@@ -444,11 +467,10 @@ public class Modulo3System {
 	public boolean check( final int solution[] ) {
 		for( Modulo3Equation equation: equations ) {
 			int sum = 0;
-			for( int i = 0; i < equation.variable.length; i++ ) {
-				sum = ( sum + solution[ equation.variable[ i ] ] * equation.coefficient[ i ] ) % 3;
-			}
+			for( int var = -1;( var = equation.nextVar( var + 1 ) ) != Integer.MAX_VALUE; ) 
+				sum = ( sum + solution[ var ] * equation.coeff ) % 3;
 			if ( equation.c != sum ) {
-				System.err.println( equation + " " + Arrays.toString( solution ));
+				System.err.println( equation + " " + Arrays.toString( solution ) );
 				return false;
 			}
 		}
