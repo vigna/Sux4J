@@ -89,7 +89,7 @@ public class Modulo3System {
 
 		protected final static long subMod3( final long x, long y ) {
 	        // Change of sign
-	        y = ( y & 0x5555555555555555L ) << 1 | ( y & 0xAAAAAAAAAAAAAAAAL ) >> 1;
+	        y = ( y & 0x5555555555555555L ) << 1 | ( y & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
 	        // mask the high bit of each pair set iff the result of the
 	        // sum in that position is >= 3
 	        // check if x is 2 and y is nonzero ...
@@ -156,10 +156,6 @@ public class Modulo3System {
 			return nextVar;
 		}
 		
-		public int numVars() {
-			return (int)bv.count();
-		}
-
 		public boolean noCoefficients() {
 			final long[] bits = bv.bits();
 			for( int i = (int)( ( bv.length() + 63 ) / 64 ); i-- != 0; ) if ( bits[ i ] != 0 ) return false;
@@ -237,17 +233,23 @@ public class Modulo3System {
 			
 			for ( int j = i + 1; j < equations.size(); j++ ) {
 				// Note that because of exchanges we cannot extract the first assignment
-				if ( equations.get( j ).isIdentity() ) continue;
-				assert ! equations.get( i ).noCoefficients();
-				assert ! equations.get( j ).noCoefficients();
+				Modulo3Equation eqJ = equations.get( j );
+				if ( eqJ.isIdentity() ) continue;
+				Modulo3Equation eqI = equations.get( i );
 
-				if( equations.get( i ).firstVar() == equations.get( j ).firstVar() ) {
-					equations.get( i ).eliminate( equations.get( j ), equations.get( i ).firstVar() );
-					if ( equations.get( i ).isUnsolvable() ) return false;
-					if ( equations.get( i ).isIdentity() ) continue main;
+				assert ! eqI.noCoefficients();
+				assert ! eqJ.noCoefficients();
+
+				final int firstVar = eqI.firstVar();
+
+				if( firstVar == eqJ.firstVar() ) {
+					eqI.eliminate( eqJ, firstVar );
+					if ( eqI.isUnsolvable() ) return false;
+					if ( eqI.isIdentity() ) continue main;
+					assert firstVar != eqI.firstVar() : firstVar + " = " + eqI.firstVar();
 				}
 
-				if ( ( equations.get( i ).firstVar() > equations.get( j ).firstVar() ) ) Collections.swap( equations, i, j );
+				if ( eqI.firstVar() > eqJ.firstVar() ) Collections.swap( equations, i, j );
 			}
 		}
 		return true;
@@ -271,15 +273,14 @@ public class Modulo3System {
 		// The priority of each equation still in the queue (the number of light variables).
 		final int[] priority = new int[ numEquations ];
 
-		for( int i = 0; i < numEquations; i++ ) { 
+		for( int i = 0; i < numEquations; i++ ) {
+			final Modulo3Equation equation = equations.get( i );
 			// Initially, all variables are light.
-			final int n = equations.get( i ).numVars();
-			priority[ i ] = n;
-			for( int j = 0, var = -1; j < n; j++ ) {  
-				var = equations.get( i ).nextVar( var + 1 );
+			for( int var = -1; ( var = equation.nextVar( var + 1 ) ) != Integer.MAX_VALUE; ) {  
 				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntOpenHashSet( 8, Hash.FAST_LOAD_FACTOR );
 				weight[ var ]--;
 				varEquation[ var ].add( i );
+				priority[ i ]++;
 			}
 		}
 
@@ -319,9 +320,7 @@ public class Modulo3System {
 				equationQueue.dequeue();
 				// This is solved (in terms of the heavy variables). Let's find the light variable.
 				int pivot = -1;
-				for( int var = -1;; ) {
-					var = firstEquation.nextVar( var + 1 );
-					if ( var == Integer.MAX_VALUE ) break;
+				for( int var = -1; ( var = firstEquation.nextVar( var + 1 ) ) != Integer.MAX_VALUE; ) {
 					// We remove references to this equations, as we have no longer to update its priority.
 					varEquation[ var ].remove( first );
 					if ( ! isHeavy[ var ] ) {
@@ -446,8 +445,8 @@ public class Modulo3System {
 
 			int c = equation.c;
 			// First variable
-			int firstVar = equation.nextVar( 0 );
-			int firstCoeff = equation.coeff;
+			final int firstVar = equation.nextVar( 0 );
+			final int firstCoeff = equation.coeff;
 
 			for( int var = firstVar; ( var = equation.nextVar( var + 1 ) ) != Integer.MAX_VALUE; ) 
 				c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
