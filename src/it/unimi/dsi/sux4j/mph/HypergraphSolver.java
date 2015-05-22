@@ -350,9 +350,7 @@ public class HypergraphSolver<T> {
 				}
 
 				final int[] hinges = new int[ stack.length ];
-				if ( ! directHyperedges( d, stack, vertex1, vertex2, hinges, top ) ) {
-					System.err.print("*");return false;
-				}
+				if ( ! directHyperedges( d, stack, vertex1, vertex2, hinges, top ) ) return false;
 				// This set contains the hinges of the 2-core
 				IntOpenHashSet hingeSet = new IntOpenHashSet( IntArrayList.wrap( hinges ).subList( top, hinges.length ), Hash.FAST_LOAD_FACTOR );
 				assert hinges.length - top == hingeSet.size() : ( hinges.length - top ) + " != " + hingeSet.size(); 
