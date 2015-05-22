@@ -201,12 +201,10 @@ public class Modulo3System {
 			return c == equation.c && bv.equals( equation.bv );
 		}
 
-		public long[] normalized() {
+		public void normalized( final long[] result ) {
 			final long[] bits = bv.bits();
-			final long[] result = new long[ bits.length ];
 			// Drop coefficients
 			for( int i = bits.length; i-- != 0; ) result[ i ] = ( bits[ i ] & 0x5555555555555555L ) | ( bits[ i ] & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
-			return result;
 		}
 		
 		public String toString() {
@@ -296,6 +294,7 @@ public class Modulo3System {
 		}
 			
 		final int numEquations = equations.size();
+		if ( numEquations == 0 ) return true;
 		/* The weight of each variable, that is, the opposite of number of equations still 
 		 * in the queue in which the variable appears. We use negative weights to have
 		 * variables of weight of maximum modulus at the top of the queue. */
@@ -325,7 +324,11 @@ public class Modulo3System {
 		ArrayList<Modulo3Equation> dense = new ArrayList<Modulo3Equation>();
 		ArrayList<Modulo3Equation> solved = new ArrayList<Modulo3Equation>();
 		IntArrayList pivots = new IntArrayList();
-		
+
+		final long[] oldNormalized = new long[ equations.get( 0 ).bv.bits().length ]; 
+		final long[] newNormalized = new long[ oldNormalized.length ];
+		final long[] common = new long[ oldNormalized.length ];
+
 		while( ! equationQueue.isEmpty() ) {
 			final int first = equationQueue.first(); // Index of the equation of minimum weight
 			Modulo3Equation firstEquation = equations.get( first );
@@ -373,52 +376,61 @@ public class Modulo3System {
 					equationQueue.changed( equationIndex );
 					final Modulo3Equation equation = equations.get( equationIndex ).copy();
 					if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equation + " with " );
-					Modulo3Equation result = equations.get( equationIndex ).eliminate( firstEquation, pivot );
+					final Modulo3Equation result = equations.get( equationIndex ).eliminate( firstEquation, pivot );
 					// We now update information about variables.
 					if ( DEBUG ) System.err.println( result );
 					
-					int a = result.firstVar();
-					int b = equation.firstVar();
+					equation.normalized( oldNormalized );
+					result.normalized( newNormalized );
 
-					final long[] equationNormalized = equation.normalized();
-					final long[] resultNormalized = result.normalized();
+					for( int i = oldNormalized.length; i-- != 0; ) {
+						common[ i ] = oldNormalized[ i ] & newNormalized[ i ];
+						oldNormalized[ i ] ^= common[ i ];
+						newNormalized[ i ] ^= common[ i ];
+					}
+					// Sentinel
+					newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
+					oldNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
 
-					final long[] common = new long[ equationNormalized.length ];
-					for( int i = equationNormalized.length; i-- != 0; ) {
-						common[ i ] = equationNormalized[ i ] & resultNormalized[ i ];
-						equationNormalized[ i ] ^= common[ i ];
-						resultNormalized[ i ] ^= common[ i ];
-					}				
-					
-					while( a != Integer.MAX_VALUE || b != Integer.MAX_VALUE ) {
-						if ( a < b ) {
-							assert a != pivot;
-							varEquation[ a ].add( equationIndex );
-							if ( ! isHeavy[ a ] ) {
-								weight[ a ]--;
-								variableQueue.changed( a );
+					long word;
+					int wordIndex;
+
+					// Delete old variables that disappeared
+					word = oldNormalized[ wordIndex = 0 ];
+					for(;;) {
+						while( word == 0 ) word = oldNormalized[ ++wordIndex ];
+
+						final int lsb = Long.numberOfTrailingZeros( word );
+						final int nextVar = wordIndex * 32 + lsb / 2;
+						if ( nextVar >= numVars ) break;
+						word &= word - 1;
+
+						if ( nextVar != pivot ) { // We don't care, and we cannot update varEquation[ pivot ] while iterating.
+							varEquation[ nextVar ].remove( equationIndex );
+							if ( ! isHeavy[ nextVar ] ) {
+								weight[ nextVar ]++;
+								variableQueue.changed( nextVar );
 							}
-							a = result.nextVar();
-						}
-						else if ( b < a ) {
-							if ( b != pivot ) { // We don't care, and we cannot update varEquation[ pivot ] while iterating.
-								// System.err.println( "Removing equation " + equationIndex + " from the list of variable " + b );
-								varEquation[ b ].remove( equationIndex );
-								if ( ! isHeavy[ b ] ) {
-									weight[ b ]++;
-									variableQueue.changed( b );
-								}
-							}
-							b = equation.nextVar();
-						}
-						else {
-							a = result.nextVar();
-							b = equation.nextVar();
 						}
 					}
-					
-					equations.set( equationIndex, result );
-					if ( DEBUG ) System.err.println( result );
+
+					// Add new variables
+					word = newNormalized[ wordIndex = 0 ];
+					for(;;) {
+						while( word == 0 ) word = newNormalized[ ++wordIndex ];
+
+						final int lsb = Long.numberOfTrailingZeros( word );
+						final int nextVar = wordIndex * 32 + lsb / 2;
+						if ( nextVar >= numVars ) break;
+						word &= word - 1;
+
+						assert nextVar != pivot;
+						varEquation[ nextVar ].add( equationIndex );
+						if ( ! isHeavy[ nextVar ] ) {
+							weight[ nextVar ]--;
+							variableQueue.changed( nextVar );
+						}
+					}
 				}
 			}
 			else {
