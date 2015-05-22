@@ -135,7 +135,7 @@ public class Modulo3SystemTest {
 	@Test
 	public void testRandom2() {
 		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
-		for( int size: new int[] { 10, 100, 1000 } ) {
+		for( int size: new int[] { 10, 100, 1000, 10000 } ) {
 			Modulo3System system = new Modulo3System( size );
 
 			IntOpenHashSet edge[] = new IntOpenHashSet[ size ];

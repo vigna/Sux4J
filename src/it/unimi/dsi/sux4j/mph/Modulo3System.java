@@ -337,24 +337,17 @@ public class Modulo3System {
 				equationQueue.dequeue();
 				if ( firstEquation.isUnsolvable() ) return false;
 				if ( firstEquation.isIdentity() ) continue;
-				// This equation must be necessarily solved by standard Gaussian elimination.
+				/* This equation must be necessarily solved by standard Gaussian elimination. No updated
+				 * is needed, as all its variables are heavy. */
 				dense.add( firstEquation );
-				// We remove references to this equations, as we have no longer to update its priority.
-				for( int var = firstEquation.firstVar(); var != Integer.MAX_VALUE; var = firstEquation.nextVar() ) {
-					varEquation[ var ].remove( first );
-					if ( ! isHeavy[ var ] ) {
-						weight[ var ]++;
-						variableQueue.changed( var );
-					}
-				}
 			}
 			else if ( priority[ first ] == 1 ) {
 				equationQueue.dequeue();
-				// This is solved (in terms of the heavy variables). Let's find the light variable.
+				/* This is solved (in terms of the heavy variables). Let's find the pivot, that is, 
+				 * the only light variable. Note that we do not need to update varEquation[] of any variable, as they
+				 * are all either heavy (the non-pivot), or appearing only in this equation (the pivot). */
 				int pivot = -1;
 				for( int var = firstEquation.firstVar(); var != Integer.MAX_VALUE; var = firstEquation.nextVar() ) {
-					// We remove references to this equations, as we have no longer to update its priority.
-					varEquation[ var ].remove( first );
 					if ( ! isHeavy[ var ] ) {
 						assert pivot == -1 : pivot;
 						pivot = var;
@@ -367,10 +360,10 @@ public class Modulo3System {
 				solved.add( firstEquation );
 				variableQueue.remove( pivot ); // Pivots cannot become heavy
 
+				varEquation[ pivot ].remove( first );
 				// Now we need to eliminate the variable from all other equations containing it.
 				for( IntIterator iterator = varEquation[ pivot ].iterator(); iterator.hasNext(); ) {
 					final int equationIndex = iterator.nextInt();
-					assert equationIndex != first;
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
 					final Modulo3Equation equation = equations.get( equationIndex ).copy();
@@ -390,6 +383,8 @@ public class Modulo3System {
 					// Sentinel
 					newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
 					oldNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
+					// Eliminate pivot to avoid testing (we don't care anymore to update its queues).
+					oldNormalized[ pivot / 32 ] ^= 1L << ( pivot % 32 ) * 2;
 
 					long word;
 					int wordIndex;
@@ -404,12 +399,10 @@ public class Modulo3System {
 						if ( nextVar >= numVars ) break;
 						word &= word - 1;
 
-						if ( nextVar != pivot ) { // We don't care, and we cannot update varEquation[ pivot ] while iterating.
+						if ( ! isHeavy[ nextVar ] ) {
 							varEquation[ nextVar ].remove( equationIndex );
-							if ( ! isHeavy[ nextVar ] ) {
-								weight[ nextVar ]++;
-								variableQueue.changed( nextVar );
-							}
+							weight[ nextVar ]++;
+							variableQueue.changed( nextVar );
 						}
 					}
 
@@ -424,8 +417,8 @@ public class Modulo3System {
 						word &= word - 1;
 
 						assert nextVar != pivot;
-						varEquation[ nextVar ].add( equationIndex );
 						if ( ! isHeavy[ nextVar ] ) {
+							varEquation[ nextVar ].add( equationIndex );
 							weight[ nextVar ]--;
 							variableQueue.changed( nextVar );
 						}
