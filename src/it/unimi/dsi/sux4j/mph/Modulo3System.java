@@ -2,7 +2,6 @@ package it.unimi.dsi.sux4j.mph;
 
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -22,6 +21,7 @@ public class Modulo3System {
 	public static class Modulo3Equation {
 		/** The constant term. */
 		protected int c;
+		private final int numVars;
 		protected final LongArrayBitVector bv;
 		private final LongBigList list;
 		protected int coeff;
@@ -34,9 +34,10 @@ public class Modulo3System {
 		 * 
 		 * @param c the constant term.
 		 */
-		public Modulo3Equation( final int c, final int numVar ){
+		public Modulo3Equation( final int c, final int numVars ){
 			this.c = c;
-			this.bv = LongArrayBitVector.ofLength( numVar * 2 );
+			this.bv = LongArrayBitVector.ofLength( numVars * 2 + 1 ); // + 1 for the sentinel.
+			bv.set( ( this.numVars = numVars ) * 2 ); // The sentinel
 			this.list = bv.asLongBigList( 2 );
 			this.firstVar = Integer.MAX_VALUE;
 		}
@@ -44,6 +45,7 @@ public class Modulo3System {
 		protected Modulo3Equation( final Modulo3Equation equation ){
 			this.c = equation.c;
 			this.bv = equation.bv.copy();
+			this.numVars = equation.numVars;
 			this.list = this.bv.asLongBigList( 2 );
 			this.firstVar = equation.firstVar;
 			this.firstCoeff = equation.firstCoeff;
@@ -114,16 +116,20 @@ public class Modulo3System {
 	    }
 
 		private void setFirstVar() {
-			final int numWords = (int)( ( bv.length() + 63 ) / 64 );
 			final long[] bits = bv.bits();
-			for( int i = 0; i < numWords; i++ ) 
+			for( int i = 0;; i++ )
 				if ( bits[ i ] != 0 ) {
 					final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
-					firstVar = lsb + 32 * i;
+					final int candidateFirstVar = lsb + 32 * i;
+					if ( candidateFirstVar >= numVars ) {
+						// Sentinel
+						firstVar = Integer.MAX_VALUE;
+						return;
+					}
+					firstVar = candidateFirstVar;
 					firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
 					return;
 				}
-			firstVar = Integer.MAX_VALUE;
 		}
 
 		private final void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
@@ -152,6 +158,7 @@ public class Modulo3System {
 				c = ( c + equation.c ) % 3;
 				addMod3( bv, equation.bv );
 			}
+			bv.set( numVars * 2 ); // Be sure that the sentinel is still there
 			setFirstVar();
 		}
 		
@@ -169,15 +176,16 @@ public class Modulo3System {
 			final long[] bits = bv.bits();
 
 			while( word == 0 ) {
-				if ( ++wordIndex * 64 >= bv.length() ) return Integer.MAX_VALUE;
-				word = bits[ wordIndex ];
+				//if ( ++wordIndex * 64 >= bv.length() ) return Integer.MAX_VALUE;
+				word = bits[ ++wordIndex ];
 			}
 			
 			final int lsb = Long.numberOfTrailingZeros( word );
 			final int nextVar = wordIndex * 32 + lsb / 2;
+			if ( nextVar >= numVars ) return Integer.MAX_VALUE;
 			
 			coeff = (int)( word >> ( lsb & ~1 ) & 3 );
-			word &= word -1;
+			word &= word - 1;
 			
 			return nextVar;
 		}
@@ -217,22 +225,22 @@ public class Modulo3System {
 	}
 
 	private final ArrayList<Modulo3Equation> equations;
-	private final int numVar;
+	private final int numVars;
 
 	public Modulo3System( final int numVar ) {
 		equations = new ArrayList<Modulo3Equation>();
-		this.numVar = numVar;
+		this.numVars = numVar;
 	}
 
 	protected Modulo3System( ArrayList<Modulo3Equation> system, final int numVar ) {
 		this.equations = system;
-		this.numVar = numVar;
+		this.numVars = numVar;
 	}
 	
 	public Modulo3System copy() {
 		ArrayList<Modulo3Equation> list = new ArrayList<Modulo3System.Modulo3Equation>( equations.size() );
 		for( Modulo3Equation equation: equations ) list.add( equation.copy() );
-		return new Modulo3System( list, numVar );
+		return new Modulo3System( list, numVars );
 	}
 
 	@Override
@@ -243,7 +251,7 @@ public class Modulo3System {
 	}
 
 	public void add( Modulo3Equation equation ) {
-		if ( equation.list.size() != numVar ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size() + ") does not match the number of variables of the system (" + numVar + ")" );
+		if ( equation.numVars != numVars ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size() + ") does not match the number of variables of the system (" + numVars + ")" );
 		equations.add( equation );
 	}
 
@@ -287,9 +295,9 @@ public class Modulo3System {
 		/* The weight of each variable, that is, the opposite of number of equations still 
 		 * in the queue in which the variable appears. We use negative weights to have
 		 * variables of weight of maximum modulus at the top of the queue. */
-		final int weight[] = new int[ numVar ];
+		final int weight[] = new int[ numVars ];
 		// For each variable, the equations still in the queue containing it.
-		final IntOpenHashSet[] varEquation = new IntOpenHashSet[ numVar ];
+		final IntOpenHashSet[] varEquation = new IntOpenHashSet[ numVars ];
 		// The priority of each equation still in the queue (the number of light variables).
 		final int[] priority = new int[ numEquations ];
 
@@ -304,8 +312,8 @@ public class Modulo3System {
 			}
 		}
 
-		final boolean[] isHeavy = new boolean[ numVar ];		
-		IntHeapIndirectPriorityQueue variableQueue = new IntHeapIndirectPriorityQueue( weight, Util.identity( numVar ) );
+		final boolean[] isHeavy = new boolean[ numVars ];
+		IntHeapIndirectPriorityQueue variableQueue = new IntHeapIndirectPriorityQueue( weight, Util.identity( numVars ) );
 		
 		// The equations that are neither dense, nor solved.
 		IntHeapIndirectPriorityQueue equationQueue = new IntHeapIndirectPriorityQueue( priority, Util.identity( numEquations ) );
@@ -420,13 +428,13 @@ public class Modulo3System {
 		if ( DEBUG ) {
 			int numHeavy = 0;
 			for( boolean b: isHeavy ) if ( b ) numHeavy++;
-			System.err.println( "Heavy variables: " + numHeavy + " (" + Util.format( numHeavy * 100 / numVar ) + "%)" );
+			System.err.println( "Heavy variables: " + numHeavy + " (" + Util.format( numHeavy * 100 / numVars ) + "%)" );
 			System.err.println( "Dense equations: " + dense );
 			System.err.println( "Solved equations: " + solved );
 			System.err.println( "Pivots: " + pivots );
 		}
 
-		Modulo3System denseSystem = new Modulo3System( dense, numVar );
+		Modulo3System denseSystem = new Modulo3System( dense, numVars );
 		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVar >= denseSystem.numVar
 
 		if ( DEBUG ) System.err.println( "Solution (dense): " + Arrays.toString( solution ) );
