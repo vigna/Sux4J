@@ -362,7 +362,8 @@ public class Modulo3System {
 
 				varEquation[ pivot ].remove( first );
 				// Now we need to eliminate the variable from all other equations containing it.
-				for( IntIterator iterator = varEquation[ pivot ].iterator(); iterator.hasNext(); ) {
+				final IntIterator iterator = varEquation[ pivot ].iterator();
+				for( int i = varEquation[ pivot ].size(); i-- != 0; ) {
 					final int equationIndex = iterator.nextInt();
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
@@ -375,10 +376,10 @@ public class Modulo3System {
 					equation.normalized( oldNormalized );
 					result.normalized( newNormalized );
 
-					for( int i = oldNormalized.length; i-- != 0; ) {
-						final long t = oldNormalized[ i ] & newNormalized[ i ];
-						oldNormalized[ i ] ^= t;
-						newNormalized[ i ] ^= t;
+					for( int j = oldNormalized.length; j-- != 0; ) {
+						final long t = oldNormalized[ j ] & newNormalized[ j ];
+						oldNormalized[ j ] ^= t;
+						newNormalized[ j ] ^= t;
 					}
 					// Sentinel
 					newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
@@ -389,7 +390,7 @@ public class Modulo3System {
 					long word;
 					int wordIndex;
 
-					// Delete old variables that disappeared
+					// Delete old light variables that disappeared (but not the pivot)
 					word = oldNormalized[ wordIndex = 0 ];
 					for(;;) {
 						while( word == 0 ) word = oldNormalized[ ++wordIndex ];
@@ -399,6 +400,7 @@ public class Modulo3System {
 						if ( nextVar >= numVars ) break;
 						word &= word - 1;
 
+						assert nextVar != pivot;
 						if ( ! isHeavy[ nextVar ] ) {
 							varEquation[ nextVar ].remove( equationIndex );
 							weight[ nextVar ]++;
@@ -406,7 +408,7 @@ public class Modulo3System {
 						}
 					}
 
-					// Add new variables
+					// Add new light variables
 					word = newNormalized[ wordIndex = 0 ];
 					for(;;) {
 						while( word == 0 ) word = newNormalized[ ++wordIndex ];
@@ -434,7 +436,8 @@ public class Modulo3System {
 					for( boolean b: isHeavy ) if ( b ) numHeavy++;
 					System.err.println( "Making variable " + var + " of weight " + ( - weight[ var ] ) + " heavy (" + numHeavy + " heavy variables, " + equationQueue.size() + " equations to go)" );
 				}
-				for( IntIterator iterator = varEquation[ var ].iterator(); iterator.hasNext(); ) {
+				final IntIterator iterator = varEquation[ var ].iterator();
+				for( int i = varEquation[ var ].size(); i-- != 0; ) {
 					final int equationIndex = iterator.nextInt();
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
