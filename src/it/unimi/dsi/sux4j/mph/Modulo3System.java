@@ -201,6 +201,14 @@ public class Modulo3System {
 			return c == equation.c && bv.equals( equation.bv );
 		}
 
+		public long[] normalized() {
+			final long[] bits = bv.bits();
+			final long[] result = new long[ bits.length ];
+			// Drop coefficients
+			for( int i = bits.length; i-- != 0; ) result[ i ] = ( bits[ i ] & 0x5555555555555555L ) | ( bits[ i ] & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
+			return result;
+		}
+		
 		public String toString() {
 			StringBuilder b = new StringBuilder();
 			boolean someNonZero = false;
@@ -372,6 +380,16 @@ public class Modulo3System {
 					int a = result.firstVar();
 					int b = equation.firstVar();
 
+					final long[] equationNormalized = equation.normalized();
+					final long[] resultNormalized = result.normalized();
+
+					final long[] common = new long[ equationNormalized.length ];
+					for( int i = equationNormalized.length; i-- != 0; ) {
+						common[ i ] = equationNormalized[ i ] & resultNormalized[ i ];
+						equationNormalized[ i ] ^= common[ i ];
+						resultNormalized[ i ] ^= common[ i ];
+					}				
+					
 					while( a != Integer.MAX_VALUE || b != Integer.MAX_VALUE ) {
 						if ( a < b ) {
 							assert a != pivot;
