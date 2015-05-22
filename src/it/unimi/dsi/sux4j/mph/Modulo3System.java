@@ -117,19 +117,18 @@ public class Modulo3System {
 
 		private void setFirstVar() {
 			final long[] bits = bv.bits();
-			for( int i = 0;; i++ )
-				if ( bits[ i ] != 0 ) {
-					final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
-					final int candidateFirstVar = lsb + 32 * i;
-					if ( candidateFirstVar >= numVars ) {
-						// Sentinel
-						firstVar = Integer.MAX_VALUE;
-						return;
-					}
-					firstVar = candidateFirstVar;
-					firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
-					return;
-				}
+			int i = -1;
+			while( bits[ ++i ] == 0 );
+			final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
+			final int candidateFirstVar = lsb + 32 * i;
+			if ( candidateFirstVar >= numVars ) {
+				// Sentinel
+				firstVar = Integer.MAX_VALUE;
+				return;
+			}
+			firstVar = candidateFirstVar;
+			firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
+			return;
 		}
 
 		private final void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
@@ -175,10 +174,7 @@ public class Modulo3System {
 		public int nextVar() {
 			final long[] bits = bv.bits();
 
-			while( word == 0 ) {
-				//if ( ++wordIndex * 64 >= bv.length() ) return Integer.MAX_VALUE;
-				word = bits[ ++wordIndex ];
-			}
+			while( word == 0 ) word = bits[ ++wordIndex ];
 			
 			final int lsb = Long.numberOfTrailingZeros( word );
 			final int nextVar = wordIndex * 32 + lsb / 2;
