@@ -23,6 +23,7 @@ public class Modulo3System {
 		protected int c;
 		private final int numVars;
 		protected final LongArrayBitVector bv;
+		protected final long[] bits;
 		private final LongBigList list;
 		protected int coeff;
 		private int firstVar;
@@ -38,6 +39,7 @@ public class Modulo3System {
 			this.c = c;
 			this.bv = LongArrayBitVector.ofLength( numVars * 2 + 1 ); // + 1 for the sentinel.
 			bv.set( ( this.numVars = numVars ) * 2 ); // The sentinel
+			this.bits = bv.bits();
 			this.list = bv.asLongBigList( 2 );
 			this.firstVar = Integer.MAX_VALUE;
 		}
@@ -45,6 +47,7 @@ public class Modulo3System {
 		protected Modulo3Equation( final Modulo3Equation equation ){
 			this.c = equation.c;
 			this.bv = equation.bv.copy();
+			this.bits = bv.bits();
 			this.numVars = equation.numVars;
 			this.list = this.bv.asLongBigList( 2 );
 			this.firstVar = equation.firstVar;
@@ -116,7 +119,6 @@ public class Modulo3System {
 	    }
 
 		private void setFirstVar() {
-			final long[] bits = bv.bits();
 			int i = -1;
 			while( bits[ ++i ] == 0 );
 			final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
@@ -165,15 +167,13 @@ public class Modulo3System {
 			if ( firstVar == Integer.MAX_VALUE ) return Integer.MAX_VALUE;
 			coeff = firstCoeff;
 			wordIndex = firstVar / 32;
-			word = bv.bits()[ wordIndex ];
+			word = bits[ wordIndex ];
 			assert firstVar == wordIndex * 32 + Long.numberOfTrailingZeros( word ) / 2;
 			word &= word - 1; 
 			return firstVar;
 		}
 
 		public int nextVar() {
-			final long[] bits = bv.bits();
-
 			while( word == 0 ) word = bits[ ++wordIndex ];
 			
 			final int lsb = Long.numberOfTrailingZeros( word );
@@ -202,7 +202,7 @@ public class Modulo3System {
 		}
 
 		public void normalized( final long[] result ) {
-			final long[] bits = bv.bits();
+			final long[] bits = this.bits;
 			// Drop coefficients
 			for( int i = bits.length; i-- != 0; ) result[ i ] = ( bits[ i ] & 0x5555555555555555L ) | ( bits[ i ] & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
 		}
@@ -325,9 +325,8 @@ public class Modulo3System {
 		ArrayList<Modulo3Equation> solved = new ArrayList<Modulo3Equation>();
 		IntArrayList pivots = new IntArrayList();
 
-		final long[] oldNormalized = new long[ equations.get( 0 ).bv.bits().length ]; 
+		final long[] oldNormalized = new long[ equations.get( 0 ).bits.length ]; 
 		final long[] newNormalized = new long[ oldNormalized.length ];
-		final long[] common = new long[ oldNormalized.length ];
 
 		while( ! equationQueue.isEmpty() ) {
 			final int first = equationQueue.first(); // Index of the equation of minimum weight
@@ -384,9 +383,9 @@ public class Modulo3System {
 					result.normalized( newNormalized );
 
 					for( int i = oldNormalized.length; i-- != 0; ) {
-						common[ i ] = oldNormalized[ i ] & newNormalized[ i ];
-						oldNormalized[ i ] ^= common[ i ];
-						newNormalized[ i ] ^= common[ i ];
+						final long t = oldNormalized[ i ] & newNormalized[ i ];
+						oldNormalized[ i ] ^= t;
+						newNormalized[ i ] ^= t;
 					}
 					// Sentinel
 					newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
