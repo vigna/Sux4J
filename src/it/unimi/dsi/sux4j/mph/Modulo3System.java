@@ -480,7 +480,7 @@ public class Modulo3System {
 
 		// All variables in a stack returning heavier variables first.
 		final IntArrayList variables = IntArrayList.wrap( Util.identity( numVars ) );
-		IntArrays.radixSortIndirect( variables.elements(), weight, false );
+		IntArrays.quickSortIndirect( variables.elements(), weight );
 		
 		// The equations that are neither dense, nor solved, and have weight <= 1.
 		IntArrayList equationList = new IntArrayList();
