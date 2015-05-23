@@ -1,6 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
  * Copyright (C) 2008-2015 Sebastiano Vigna 
@@ -22,10 +22,8 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.doubles.DoubleHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.sux4j.mph.Modulo3System.Modulo3Equation;
 
 import java.util.Arrays;
@@ -352,8 +350,8 @@ public class HypergraphSolver<T> {
 				final int[] hinges = new int[ stack.length ];
 				if ( ! directHyperedges( d, stack, vertex1, vertex2, hinges, top ) ) return false;
 				// This set contains the hinges of the 2-core
-				IntOpenHashSet hingeSet = new IntOpenHashSet( IntArrayList.wrap( hinges ).subList( top, hinges.length ), Hash.FAST_LOAD_FACTOR );
-				assert hinges.length - top == hingeSet.size() : ( hinges.length - top ) + " != " + hingeSet.size(); 
+				final boolean[] hingeSet = new boolean[ hinges.length ];
+				for( int i = top; i < hinges.length; i++ ) hingeSet[ hinges[ i ] ] = true;
 
 				Modulo3System system = new Modulo3System( numVertices );
 				for ( int i = top; i < hinges.length; i++ ) {
@@ -366,14 +364,11 @@ public class HypergraphSolver<T> {
 					assert k != 2 || vertex2[ i ] == hinges[ i ];
 					
 					Modulo3Equation equation = new Modulo3Equation( k, numVertices );
-					if ( hingeSet.contains( stack[ i ] ) ) equation.add( stack[ i ], 1 );
-					if ( hingeSet.contains( vertex1[ i ] ) ) equation.add( vertex1[ i ], 1 );
-					if ( hingeSet.contains( vertex2[ i ] ) ) equation.add( vertex2[ i ], 1 );
+					if ( hingeSet[ stack[ i ] ] ) equation.add( stack[ i ], 1 );
+					if ( hingeSet[ vertex1[ i ] ] ) equation.add( vertex1[ i ], 1 );
+					if ( hingeSet[ vertex2[ i ] ] ) equation.add( vertex2[ i ], 1 );
 
-					if ( equation.isUnsolvable() ) {
-						System.err.println("-");
-						return false;
-					}
+					if ( equation.isUnsolvable() ) return false;
 					if ( ! equation.isIdentity() ) system.add( equation );
 				}
 
