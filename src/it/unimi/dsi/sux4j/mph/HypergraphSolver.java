@@ -350,7 +350,7 @@ public class HypergraphSolver<T> {
 				final int[] hinges = new int[ stack.length ];
 				if ( ! directHyperedges( d, stack, vertex1, vertex2, hinges, top ) ) return false;
 				// This set contains the hinges of the 2-core
-				final boolean[] hingeSet = new boolean[ hinges.length ];
+				final boolean[] hingeSet = new boolean[ numVertices ];
 				for( int i = top; i < hinges.length; i++ ) hingeSet[ hinges[ i ] ] = true;
 
 				Modulo3System system = new Modulo3System( numVertices );
