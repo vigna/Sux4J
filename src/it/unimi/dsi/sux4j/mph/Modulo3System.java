@@ -23,7 +23,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.util.ArrayList;
@@ -479,17 +478,19 @@ public class Modulo3System {
 		}
 
 		// All variables in a stack returning heavier variables first.
-		final int[] t = Util.identity( numVars );
-		final int[] count = new int[ numEquations + 1 ];
-		for( int i = t.length; i-- != 0; ) count[ weight[ t[ i ] ] ]++;
-		for( int i = 1; i < count.length; i++ ) count[ i ] += count[ i - 1 ];		
-		final int[] u = new int[ t.length ];
-		for( int i = t.length; i-- != 0; ) u[ --count[ weight[ t[ i ] ] ] ] = t[ i ];
-
-		final IntArrayList variables = IntArrayList.wrap( u );
+		final IntArrayList variables;
+		{
+			final int[] t = Util.identity( numVars );
+			final int[] u = new int[ t.length ];
+			final int[] count = new int[ numEquations + 1 ]; // CountSort
+			for( int i = t.length; i-- != 0; ) count[ weight[ t[ i ] ] ]++;
+			for( int i = 1; i < count.length; i++ ) count[ i ] += count[ i - 1 ];
+			for( int i = t.length; i-- != 0; ) u[ --count[ weight[ t[ i ] ] ] ] = t[ i ];
+			variables = IntArrayList.wrap( u );
+		}
 		
 		// The equations that are neither dense, nor solved, and have weight <= 1.
-		IntArrayList equationList = new IntArrayList();
+		final IntArrayList equationList = new IntArrayList();
 		for( int i = priority.length; i-- != 0; ) if ( priority[ i ] <= 1 ) equationList.add( i );
 		// The equations that are part of the dense system (entirely made of heavy variables).
 		ArrayList<Modulo3Equation> dense = new ArrayList<Modulo3Equation>();
