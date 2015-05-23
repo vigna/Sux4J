@@ -479,8 +479,14 @@ public class Modulo3System {
 		}
 
 		// All variables in a stack returning heavier variables first.
-		final IntArrayList variables = IntArrayList.wrap( Util.identity( numVars ) );
-		IntArrays.quickSortIndirect( variables.elements(), weight );
+		final int[] t = Util.identity( numVars );
+		final int[] count = new int[ numEquations + 1 ];
+		for( int i = t.length; i-- != 0; ) count[ weight[ t[ i ] ] ]++;
+		for( int i = 1; i < count.length; i++ ) count[ i ] += count[ i - 1 ];		
+		final int[] u = new int[ t.length ];
+		for( int i = t.length; i-- != 0; ) u[ --count[ weight[ t[ i ] ] ] ] = t[ i ];
+
+		final IntArrayList variables = IntArrayList.wrap( u );
 		
 		// The equations that are neither dense, nor solved, and have weight <= 1.
 		IntArrayList equationList = new IntArrayList();
