@@ -3,11 +3,8 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntHeapIndirectPriorityQueue;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.util.ArrayList;
@@ -264,7 +261,6 @@ public class Modulo3System {
 			for ( int j = i + 1; j < equations.size(); j++ ) {
 				// Note that because of exchanges we cannot extract the first assignment
 				Modulo3Equation eqJ = equations.get( j );
-				if ( eqJ.isIdentity() ) continue;
 				Modulo3Equation eqI = equations.get( i );
 
 				assert eqI.firstVar != Integer.MAX_VALUE;
@@ -300,7 +296,7 @@ public class Modulo3System {
 		 * variables of weight of maximum modulus at the top of the queue. */
 		final int weight[] = new int[ numVars ];
 		// For each variable, the equations still in the queue containing it.
-		final IntOpenHashSet[] varEquation = new IntOpenHashSet[ numVars ];
+		final IntArrayList[] varEquation = new IntArrayList[ numVars ];
 		// The priority of each equation still in the queue (the number of light variables).
 		final int[] priority = new int[ numEquations ];
 
@@ -308,7 +304,7 @@ public class Modulo3System {
 			final Modulo3Equation equation = equations.get( i );
 			// Initially, all variables are light.
 			for( int var = equation.firstVar(); var != Integer.MAX_VALUE; var = equation.nextVar() ) {  
-				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntOpenHashSet( 8, Hash.FAST_LOAD_FACTOR );
+				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntArrayList( 8 );
 				weight[ var ]--;
 				varEquation[ var ].add( i );
 				priority[ i ]++;
@@ -325,9 +321,8 @@ public class Modulo3System {
 		ArrayList<Modulo3Equation> solved = new ArrayList<Modulo3Equation>();
 		IntArrayList pivots = new IntArrayList();
 
-		final long[] oldNormalized = new long[ equations.get( 0 ).bits.length ]; 
-		final long[] newNormalized = new long[ oldNormalized.length ];
-		final long[] lightNormalized = new long[ oldNormalized.length ];
+		final long[] normalized = new long[ equations.get( 0 ).bits.length ]; 
+		final long[] lightNormalized = new long[ normalized.length ];
 		Arrays.fill( lightNormalized, -1L );
 
 		while( ! equationQueue.isEmpty() ) {
@@ -348,90 +343,29 @@ public class Modulo3System {
 				/* This is solved (in terms of the heavy variables). Let's find the pivot, that is, 
 				 * the only light variable. Note that we do not need to update varEquation[] of any variable, as they
 				 * are all either heavy (the non-pivot), or appearing only in this equation (the pivot). */
-				int pivot = -1;
-				for( int var = firstEquation.firstVar(); var != Integer.MAX_VALUE; var = firstEquation.nextVar() ) {
-					if ( ! isHeavy[ var ] ) {
-						assert pivot == -1 : pivot;
-						pivot = var;
-					}
-				}
-				assert pivot != -1;
+				firstEquation.normalized( normalized );
+				for( int i = normalized.length; i-- != 0; ) normalized[ i ] &= lightNormalized[ i ];
+				int wordIndex = 0;
+				while( ( normalized[ wordIndex ] & lightNormalized[ wordIndex ] ) == 0 ) wordIndex++;
+				final int pivot = wordIndex * 32 + Long.numberOfTrailingZeros( normalized[ wordIndex ] & lightNormalized[ wordIndex ] ) / 2; 
+
 				// Record the light variable and the equation for computing it later.
 				if ( DEBUG ) System.err.println( "Adding to solved variables x_" + pivot + " by equation " + firstEquation );
 				pivots.add( pivot );
 				solved.add( firstEquation );
 				variableQueue.remove( pivot ); // Pivots cannot become heavy
 
-				varEquation[ pivot ].remove( first );
 				// Now we need to eliminate the variable from all other equations containing it.
-				for( IntIterator iterator = varEquation[ pivot ].iterator(); iterator.hasNext(); ) {
-					final int equationIndex = iterator.nextInt();
+				final int[] elements = varEquation[ pivot ].elements();
+				for( int i = varEquation[ pivot ].size(); i-- != 0; ) {
+					final int equationIndex = elements[ i ];
+					if ( equationIndex == first ) continue;
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
-					final Modulo3Equation equation = equations.get( equationIndex ).copy();
+					final Modulo3Equation equation = equations.get( equationIndex );
 					if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equation + " with " );
-					final Modulo3Equation result = equations.get( equationIndex ).eliminate( firstEquation, pivot );
-					// We now update information about variables.
-					if ( DEBUG ) System.err.println( result );
-					
-					equation.normalized( oldNormalized );
-					result.normalized( newNormalized );
-					// Eliminate pivot to avoid testing (we don't care anymore to update its queues).
-					oldNormalized[ pivot / 32 ] ^= 1L << ( pivot % 32 ) * 2;
-
-					boolean someOld = false, someNew = false;
-
-					for( int i = oldNormalized.length; i-- != 0; ) {
-						final long t = oldNormalized[ i ] & newNormalized[ i ];
-						someOld |= ( oldNormalized[ i ] = ( oldNormalized[ i ] ^ t ) & lightNormalized[ i ] ) != 0;
-						someNew |= ( newNormalized[ i ] = ( newNormalized[ i ] ^ t ) & lightNormalized[ i ] ) != 0;
-					}
-
-					if ( someOld ) { // Delete old light variables that disappeared (but not the pivot)
-						// Sentinel
-						oldNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
-						assert equation.firstVar != Integer.MAX_VALUE;
-						int wordIndex = equation.firstVar / 32;
-						long word = oldNormalized[ wordIndex ];
-						for(;;) {
-							while( word == 0 ) word = oldNormalized[ ++wordIndex ];
-
-							final int lsb = Long.numberOfTrailingZeros( word );
-							final int nextVar = wordIndex * 32 + lsb / 2;
-							if ( nextVar >= numVars ) break;
-							word &= word - 1;
-							
-							System.err.println( "nextVar = " + nextVar);
-
-							assert nextVar != pivot;
-							assert ! isHeavy[ nextVar ];
-							varEquation[ nextVar ].remove( equationIndex );
-							weight[ nextVar ]++;
-							variableQueue.changed( nextVar );
-						}
-					}
-
-					if ( someNew ) { // Add new light variables
-						// Sentinel
-						newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
-						assert result.firstVar != Integer.MAX_VALUE;
-						int wordIndex = result.firstVar / 32;
-						long word = newNormalized[ wordIndex ];
-						for(;;) {
-							while( word == 0 ) word = newNormalized[ ++wordIndex ];
-
-							final int lsb = Long.numberOfTrailingZeros( word );
-							final int nextVar = wordIndex * 32 + lsb / 2;
-							if ( nextVar >= numVars ) break;
-							word &= word - 1;
-
-							assert nextVar != pivot;
-							assert ! isHeavy[ nextVar ];
-							varEquation[ nextVar ].add( equationIndex );
-							weight[ nextVar ]--;
-							variableQueue.changed( nextVar );
-						}
-					}
+					equation.eliminate( firstEquation, pivot );
+					if ( DEBUG ) System.err.println( equation );
 				}
 			}
 			else {
@@ -444,8 +378,9 @@ public class Modulo3System {
 					for( boolean b: isHeavy ) if ( b ) numHeavy++;
 					System.err.println( "Making variable " + var + " of weight " + ( - weight[ var ] ) + " heavy (" + numHeavy + " heavy variables, " + equationQueue.size() + " equations to go)" );
 				}
-				for( IntIterator iterator = varEquation[ var ].iterator(); iterator.hasNext(); ) {
-					final int equationIndex = iterator.nextInt();
+				final int[] elements = varEquation[ var ].elements();
+				for( int i = varEquation[ var ].size(); i-- != 0; ) {
+					final int equationIndex = elements[ i ];
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
 				}
@@ -467,21 +402,26 @@ public class Modulo3System {
 
 		if ( DEBUG ) System.err.println( "Solution (dense): " + Arrays.toString( solution ) );
 
+		final int inv[][] = new int[][] { {}, { 0, 2, 1 }, { 0, 1, 2 } }; 
+
 		for ( int i = solved.size(); i-- != 0; ) {
 			final Modulo3Equation equation = solved.get( i );
 			final int pivot = pivots.getInt( i );
-			int pivotCoefficient = -1;
+			assert solution[ pivot ] == 0;
+
+			final int pivotCoefficient = (int)equation.list.getLong( pivot );
 
 			int c = equation.c;
 			
 			for( int var = equation.firstVar(); var != Integer.MAX_VALUE; var = equation.nextVar() ) {
-				if ( var == pivot ) pivotCoefficient = equation.coeff;
-				else c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
+				c = c + inv[ equation.coeff ][ solution[ var ] ];
+				assert c >= 0;
 			}
 
+			c %= 3;
+
 			assert pivotCoefficient != -1;
-			if ( c == 0 ) solution[ pivot ] = 0;
-			else solution[ pivot ] = pivotCoefficient == c ? 1 : 2;
+			solution[ pivot ] = c == 0 ? 0 : pivotCoefficient == c ? 1 : 2;
 		}
 
 		if ( DEBUG ) System.err.println( "Solution (all): " + Arrays.toString( solution ) );

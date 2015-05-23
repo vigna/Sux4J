@@ -127,6 +127,7 @@ public class Modulo3SystemTest {
 			final int[] solution = new int[ size ];
 			assertTrue( system.copy().gaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
+			Arrays.fill( solution, 0 );
 			assertTrue( system.copy().structuredGaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
 		}
