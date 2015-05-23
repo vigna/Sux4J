@@ -136,18 +136,18 @@ public class Modulo3System {
 
 		private final void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
 			final long[] bx = x.bits(), by = y.bits();
-			boolean isNotEmpty = false;
+			long isNotEmpty = 0;
 			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
-				isNotEmpty |= ( bx[ i ] = addMod3( bx[ i ], by[ i ] ) ) != 0;
-			isEmpty = ! isNotEmpty;
+				isNotEmpty |= ( bx[ i ] = addMod3( bx[ i ], by[ i ] ) );
+			isEmpty = isNotEmpty == 0;
 		}
 		
 		private final void subMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
 			final long[] bx = x.bits(), by = y.bits();
-			boolean isNotEmpty = false;
+			long isNotEmpty = 0;
 			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
-				isNotEmpty |= ( bx[ i ] = subMod3( bx[ i ], by[ i ] ) ) != 0;
-			isEmpty = ! isNotEmpty;
+				isNotEmpty |= ( bx[ i ] = subMod3( bx[ i ], by[ i ] ) ); 
+			isEmpty = isNotEmpty == 0;
 		}
 		
 		/** Subtract from this equation another equation multiplied by a provided constant.
