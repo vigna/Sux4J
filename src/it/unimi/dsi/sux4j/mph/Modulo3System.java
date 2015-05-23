@@ -153,11 +153,11 @@ public class Modulo3System {
 			// Explicit multiplication tables to avoid modulo operators.
 			if ( mul == 1 ) {
 				c = ( c + 2 * equation.c ) % 3;
-				subMod3( bitVector, equation.bitVector );
+				subMod3( equation.bits );
 			}
 			else {
 				c = ( c + equation.c ) % 3;
-				addMod3( bitVector, equation.bitVector );
+				addMod3( equation.bits );
 			}
 		}
 
@@ -203,29 +203,27 @@ public class Modulo3System {
 	        return (x + y) - mask;
 	    }
 
-		/** Adds two bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
+		/** Adds to the left side of this equation a bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
 		 * 
-		 * @param x a bit vector made of modulo-3 2-bit fields (the result will be stored here).
-		 * @param y a bit vectorm ade of modulo-3 2-bit fields.
+		 * @param y a bit vector made of modulo-3 2-bit fields.
 		 */
-		private final void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
-			final long[] bx = x.bits(), by = y.bits();
+		private final void addMod3( final long[] y ) {
+			final long[] x = this.bits;
 			long isNotEmpty = 0;
-			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
-				isNotEmpty |= ( bx[ i ] = addMod3( bx[ i ], by[ i ] ) );
+			for( int i = x.length; i-- != 0; ) 
+				isNotEmpty |= ( x[ i ] = addMod3( x[ i ], y[ i ] ) );
 			isEmpty = isNotEmpty == 0;
 		}
 		
-		/** Subtracts two bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
+		/** Subtracts from the left side of this equation a bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
 		 * 
-		 * @param x a bit vector made of modulo-3 2-bit fields (the result will be stored here).
-		 * @param y a bit vectorm ade of modulo-3 2-bit fields.
+		 * @param y a bit vector made of modulo-3 2-bit fields.
 		 */
-		private final void subMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
-			final long[] bx = x.bits(), by = y.bits();
+		private final void subMod3( final long[] y ) {
+			final long[] x = this.bits;
 			long isNotEmpty = 0;
-			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
-				isNotEmpty |= ( bx[ i ] = subMod3( bx[ i ], by[ i ] ) ); 
+			for( int i = x.length; i-- != 0; ) 
+				isNotEmpty |= ( x[ i ] = subMod3( x[ i ], y[ i ] ) ); 
 			isEmpty = isNotEmpty == 0;
 		}
 		
