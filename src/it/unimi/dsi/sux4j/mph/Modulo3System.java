@@ -27,6 +27,8 @@ public class Modulo3System {
 		private int firstCoeff;
 		private int wordIndex;
 		private long word;
+		public IntArrayList initialVars;
+		private boolean isEmpty;
 
 		/** Creates a new equation.
 		 * 
@@ -34,29 +36,35 @@ public class Modulo3System {
 		 */
 		public Modulo3Equation( final int c, final int numVars ){
 			this.c = c;
-			this.bv = LongArrayBitVector.ofLength( numVars * 2 + 1 ); // + 1 for the sentinel.
-			bv.set( ( this.numVars = numVars ) * 2 ); // The sentinel
+			this.bv = LongArrayBitVector.ofLength( numVars * 2 );
+			this.numVars = numVars;
 			this.bits = bv.bits();
 			this.list = bv.asLongBigList( 2 );
 			this.firstVar = Integer.MAX_VALUE;
+			this.initialVars = new IntArrayList();
+			this.isEmpty = true;
 		}
 		
 		protected Modulo3Equation( final Modulo3Equation equation ){
 			this.c = equation.c;
 			this.bv = equation.bv.copy();
-			this.bits = bv.bits();
+			this.bits = this.bv.bits();
 			this.numVars = equation.numVars;
 			this.list = this.bv.asLongBigList( 2 );
 			this.firstVar = equation.firstVar;
 			this.firstCoeff = equation.firstCoeff;
+			this.initialVars = equation.initialVars;
+			this.isEmpty = equation.isEmpty;
 		}
 		
 		public Modulo3Equation add( final int index, final int value ) {
-			list.set( index, value );
+			if ( list.set( index, value ) != 0 ) throw new IllegalArgumentException();
+			initialVars.add( index );
 			if ( index < firstVar ) {
 				firstVar = index;
 				firstCoeff = value;
 			}
+			isEmpty = false;
 			return this;
 		}
 		
@@ -115,29 +123,31 @@ public class Modulo3System {
 	        return (x + y) - mask;
 	    }
 
-		private void setFirstVar() {
-			int i = -1;
-			while( bits[ ++i ] == 0 );
-			final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
-			final int candidateFirstVar = lsb + 32 * i;
-			if ( candidateFirstVar >= numVars ) {
-				// Sentinel
-				firstVar = Integer.MAX_VALUE;
-				return;
+		public void setFirstVar() {
+			if ( isEmpty ) firstVar = Integer.MAX_VALUE;
+			else {
+				int i = -1;
+				while( bits[ ++i ] == 0 );
+				final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
+				firstVar = lsb + 32 * i;
+				firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
 			}
-			firstVar = candidateFirstVar;
-			firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
-			return;
 		}
 
 		private final void addMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
 			final long[] bx = x.bits(), by = y.bits();
-			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) bx[ i ] = addMod3( bx[ i ], by[ i ] );
+			boolean isNotEmpty = false;
+			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
+				isNotEmpty |= ( bx[ i ] = addMod3( bx[ i ], by[ i ] ) ) != 0;
+			isEmpty = ! isNotEmpty;
 		}
 		
 		private final void subMod3( final LongArrayBitVector x, final LongArrayBitVector y ) {
 			final long[] bx = x.bits(), by = y.bits();
-			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) bx[ i ] = subMod3( bx[ i ], by[ i ] );
+			boolean isNotEmpty = false;
+			for( int i = (int)( ( x.length() + 63 ) / 64 ); i-- != 0; ) 
+				isNotEmpty |= ( bx[ i ] = subMod3( bx[ i ], by[ i ] ) ) != 0;
+			isEmpty = ! isNotEmpty;
 		}
 		
 		/** Subtract from this equation another equation multiplied by a provided constant.
@@ -156,11 +166,10 @@ public class Modulo3System {
 				c = ( c + equation.c ) % 3;
 				addMod3( bv, equation.bv );
 			}
-			bv.set( numVars * 2 ); // Be sure that the sentinel is still there
-			setFirstVar();
 		}
 		
 		public int firstVar() {
+			setFirstVar();
 			if ( firstVar == Integer.MAX_VALUE ) return Integer.MAX_VALUE;
 			coeff = firstCoeff;
 			wordIndex = firstVar / 32;
@@ -171,11 +180,11 @@ public class Modulo3System {
 		}
 
 		public int nextVar() {
-			while( word == 0 ) word = bits[ ++wordIndex ];
-			
+			while( word == 0 && ++wordIndex < bits.length ) word = bits[ wordIndex ];
+			if ( wordIndex == bits.length ) return Integer.MAX_VALUE;
+
 			final int lsb = Long.numberOfTrailingZeros( word );
 			final int nextVar = wordIndex * 32 + lsb / 2;
-			if ( nextVar >= numVars ) return Integer.MAX_VALUE;
 			
 			coeff = (int)( word >> ( lsb & ~1 ) & 3 );
 			word &= word - 1;
@@ -184,11 +193,11 @@ public class Modulo3System {
 		}
 		
 		public boolean isUnsolvable() {
-			return firstVar == Integer.MAX_VALUE && c != 0;
+			return isEmpty && c != 0;
 		}
 
 		public boolean isIdentity() {
-			return firstVar == Integer.MAX_VALUE && c == 0;
+			return isEmpty && c == 0;
 		}
 		
 		@Override
@@ -272,7 +281,7 @@ public class Modulo3System {
 					eqI.eliminate( eqJ, firstVar );
 					if ( eqI.isUnsolvable() ) return false;
 					if ( eqI.isIdentity() ) continue main;
-					assert firstVar != eqI.firstVar : firstVar + " = " + eqI.firstVar;
+					eqI.setFirstVar();
 				}
 
 				if ( eqI.firstVar > eqJ.firstVar ) Collections.swap( equations, i, j );
@@ -314,7 +323,9 @@ public class Modulo3System {
 		for( int i = 0; i < numEquations; i++ ) {
 			final Modulo3Equation equation = equations.get( i );
 			// Initially, all variables are light.
-			for( int var = equation.firstVar(); var != Integer.MAX_VALUE; var = equation.nextVar() ) {  
+			final int[] elements = equation.initialVars.elements();
+			for( int j = equation.initialVars.size(); j-- != 0; ) {
+				final int var = elements[ j ];
 				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntArrayList( 8 );
 				weight[ var ]--;
 				varEquation[ var ].add( i );
@@ -458,7 +469,10 @@ public class Modulo3System {
 
 	public boolean gaussianElimination( final LongArrayBitVector solution ) {
 		assert solution.length() == numVars * 2;
+		for ( Modulo3Equation equation: equations ) equation.setFirstVar();
+		
 		if ( ! echelonForm() ) return false;
+
 		final long[] solutionBits = solution.bits();
 		final LongBigList solutionList = solution.asLongBigList( 2 );
 
@@ -466,10 +480,7 @@ public class Modulo3System {
 			final Modulo3Equation equation = equations.get( i );
 			if ( equation.isIdentity() ) continue;
 
-			// First variable
-			final int firstVar = equation.firstVar();
-			final int firstCoeff = equation.coeff;
-			assert solutionList.getLong( firstVar ) == 0 : firstVar;
+			assert solutionList.getLong( equation.firstVar ) == 0 : equation.firstVar;
 
 			int sum = 0;
 
@@ -486,7 +497,7 @@ public class Modulo3System {
 			sum = ( equation.c - sum ) % 3;
 			if ( sum < 0 ) sum += 3;
 
-			solutionList.set( firstVar,  sum == 0 ? 0 : firstCoeff == sum ? 1 : 2 );
+			solutionList.set( equation.firstVar,  sum == 0 ? 0 : equation.firstCoeff == sum ? 1 : 2 );
 		}
 		
 		return true;
