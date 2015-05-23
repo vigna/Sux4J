@@ -69,7 +69,7 @@ public class Modulo3SystemTest {
 	public void testOne() {
 		Modulo3System system = new Modulo3System( 2 );
 		system.add( new Modulo3Equation( 2, 2 ).add( 0, 1 ) );
-		final int[] solution = new int[ 1 ];
+		final int[] solution = new int[ 2 ];
 		assertTrue( system.copy().gaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 		Arrays.fill( solution, 0 );

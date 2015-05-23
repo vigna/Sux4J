@@ -282,6 +282,17 @@ public class Modulo3System {
 	}
 
 	public boolean structuredGaussianElimination( final int[] solution ) {
+		assert solution.length == numVars;
+		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
+		if ( ! structuredGaussianElimination( solutions ) ) return false;
+		final LongBigList list = solutions.asLongBigList( 2 );
+		for( int i = solution.length; i-- != 0; ) solution[ i ] = (int)list.getLong( i );
+		return true;
+	}
+
+	public boolean structuredGaussianElimination( final LongArrayBitVector solution ) {
+		assert solution.length() == numVars * 2;
+
 		if ( DEBUG ) {
 			System.err.println();
 			System.err.println( "====================" );
@@ -400,53 +411,82 @@ public class Modulo3System {
 		Modulo3System denseSystem = new Modulo3System( dense, numVars );
 		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
 
-		if ( DEBUG ) System.err.println( "Solution (dense): " + Arrays.toString( solution ) );
+		final long[] solutionBits = solution.bits();
+		final LongBigList solutionList = solution.asLongBigList( 2 );
 
-		final int inv[][] = new int[][] { {}, { 0, 2, 1 }, { 0, 1, 2 } }; 
+		if ( DEBUG ) System.err.println( "Solution (dense): " + solutionList );
 
 		for ( int i = solved.size(); i-- != 0; ) {
 			final Modulo3Equation equation = solved.get( i );
 			final int pivot = pivots.getInt( i );
-			assert solution[ pivot ] == 0;
+			assert solutionList.getLong( pivot ) == 0 : pivot;
 
 			final int pivotCoefficient = (int)equation.list.getLong( pivot );
 
-			int c = equation.c;
+			int sum = 0;
 			
-			for( int var = equation.firstVar(); var != Integer.MAX_VALUE; var = equation.nextVar() ) {
-				c = c + inv[ equation.coeff ][ solution[ var ] ];
-				assert c >= 0;
+			final long[] bits = equation.bits;
+			for( int j = solutionBits.length; j-- != 0; ) {
+				final long high = bits[ j ] & 0xAAAAAAAAAAAAAAAAL;
+				final long low = bits[ j ] & 0x5555555555555555L;
+				final long highShift = high >>> 1; // Make every 10 into a 11 and zero everything else
+				long t = ( solutionBits[ j ] ^ ( high | highShift ) ) & ( bits[ j ] | highShift | low << 1 ); // Exchange ones with twos, and make 00 into 11
+
+				sum += Long.bitCount( t & 0xAAAAAAAAAAAAAAAAL ) * 2 + Long.bitCount( t & 0x5555555555555555L );
 			}
 
-			c %= 3;
+			sum = ( equation.c - sum ) % 3;
+			if ( sum < 0 ) sum += 3;
 
 			assert pivotCoefficient != -1;
-			solution[ pivot ] = c == 0 ? 0 : pivotCoefficient == c ? 1 : 2;
+			solutionList.set( pivot,  sum == 0 ? 0 : pivotCoefficient == sum ? 1 : 2 );
 		}
 
-		if ( DEBUG ) System.err.println( "Solution (all): " + Arrays.toString( solution ) );
+		if ( DEBUG ) System.err.println( "Solution (all): " + solutionList );
 
 		return true;
 	}
 
-
 	public boolean gaussianElimination( final int[] solution ) {
+		assert solution.length == numVars;
+		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
+		if ( ! gaussianElimination( solutions ) ) return false;
+		final LongBigList list = solutions.asLongBigList( 2 );
+		for( int i = solution.length; i-- != 0; ) solution[ i ] = (int)list.getLong( i );
+		return true;
+	}
+
+	public boolean gaussianElimination( final LongArrayBitVector solution ) {
+		assert solution.length() == numVars * 2;
 		if ( ! echelonForm() ) return false;
+		final long[] solutionBits = solution.bits();
+		final LongBigList solutionList = solution.asLongBigList( 2 );
+
 		for ( int i = equations.size(); i-- != 0; ) {
 			final Modulo3Equation equation = equations.get( i );
 			if ( equation.isIdentity() ) continue;
 
-			int c = equation.c;
 			// First variable
 			final int firstVar = equation.firstVar();
 			final int firstCoeff = equation.coeff;
+			assert solutionList.getLong( firstVar ) == 0 : firstVar;
 
-			for( int var = firstVar; ( var = equation.nextVar() ) != Integer.MAX_VALUE; ) 
-				c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
+			int sum = 0;
 
-			assert solution[ firstVar ] == 0 : firstVar;
-			if ( c == 0 ) solution[ firstVar ] = 0;
-			else solution[ firstVar ] = firstCoeff == c ? 1 : 2;
+			final long[] bits = equation.bits;
+			for( int j = solutionBits.length; j-- != 0; ) {
+				final long high = bits[ j ] & 0xAAAAAAAAAAAAAAAAL;
+				final long low = bits[ j ] & 0x5555555555555555L;
+				final long highShift = high >>> 1; // Make every 10 into a 11 and zero everything else
+				long t = ( solutionBits[ j ] ^ ( high | highShift ) ) & ( bits[ j ] | highShift | low << 1 ); // Exchange ones with twos, and make 00 into 11
+
+				sum += Long.bitCount( t & 0xAAAAAAAAAAAAAAAAL ) * 2 + Long.bitCount( t & 0x5555555555555555L );
+			}
+
+			sum = ( equation.c - sum ) % 3;
+			if ( sum < 0 ) sum += 3;
+
+			solutionList.set( firstVar,  sum == 0 ? 0 : firstCoeff == sum ? 1 : 2 );
 		}
 		
 		return true;
