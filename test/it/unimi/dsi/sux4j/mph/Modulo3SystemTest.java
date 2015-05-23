@@ -59,7 +59,7 @@ public class Modulo3SystemTest {
 	public void testEliminate() {
 		Modulo3Equation equation0 = new Modulo3Equation( 2, 11 ).add( 0, 1 ).add( 2, 2 ).add( 1, 1 );
 		Modulo3Equation equation1 = new Modulo3Equation( 2, 11 ).add( 0, 1 ).add( 3, 1 ).add( 1, 2 );
-		Modulo3Equation reduced = equation0.eliminate( equation1, equation0.firstVar() );
+		Modulo3Equation reduced = equation0.eliminate( 0, equation1 );
 		assertArrayEquals( new int[] { 1, 2, 3 }, reduced.variables() );
 		assertArrayEquals( new int[] { 2, 2, 2 }, reduced.coefficients() );
 	}
