@@ -340,7 +340,7 @@ public class HypergraphSolver<T> {
 				for ( Iterator<long[]> iterator = iterable.iterator(); iterator.hasNext(); ) {
 					final long[] triple = iterator.next();
 					HypergraphSorter.tripleToEdge( triple, seed, numVertices, partSize, e );
-					if ( d[ e[ 0 ] ] > 0 & d[ e[ 1 ] ] > 0 & d[ e[ 2 ] ] > 0 ) {
+					if ( d[ e[ 0 ] ] > 0 && d[ e[ 1 ] ] > 0 && d[ e[ 2 ] ] > 0 ) {
 						assert d[ e[ 0 ] ] > 1 & d[ e[ 1 ] ] > 1 & d[ e[ 2 ] ] > 1;
 						stack[ p ] = e[ 0 ];
 						vertex1[ p ] = e[ 1 ];
