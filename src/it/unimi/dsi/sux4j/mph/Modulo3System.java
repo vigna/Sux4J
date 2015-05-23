@@ -327,6 +327,8 @@ public class Modulo3System {
 
 		final long[] oldNormalized = new long[ equations.get( 0 ).bits.length ]; 
 		final long[] newNormalized = new long[ oldNormalized.length ];
+		final long[] lightNormalized = new long[ oldNormalized.length ];
+		Arrays.fill( lightNormalized, -1L );
 
 		while( ! equationQueue.isEmpty() ) {
 			final int first = equationQueue.first(); // Index of the equation of minimum weight
@@ -362,8 +364,7 @@ public class Modulo3System {
 
 				varEquation[ pivot ].remove( first );
 				// Now we need to eliminate the variable from all other equations containing it.
-				final IntIterator iterator = varEquation[ pivot ].iterator();
-				for( int i = varEquation[ pivot ].size(); i-- != 0; ) {
+				for( IntIterator iterator = varEquation[ pivot ].iterator(); iterator.hasNext(); ) {
 					final int equationIndex = iterator.nextInt();
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
@@ -375,51 +376,57 @@ public class Modulo3System {
 					
 					equation.normalized( oldNormalized );
 					result.normalized( newNormalized );
-
-					for( int j = oldNormalized.length; j-- != 0; ) {
-						final long t = oldNormalized[ j ] & newNormalized[ j ];
-						oldNormalized[ j ] ^= t;
-						newNormalized[ j ] ^= t;
-					}
-					// Sentinel
-					newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
-					oldNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
 					// Eliminate pivot to avoid testing (we don't care anymore to update its queues).
 					oldNormalized[ pivot / 32 ] ^= 1L << ( pivot % 32 ) * 2;
 
-					long word;
-					int wordIndex;
+					boolean someOld = false, someNew = false;
 
-					// Delete old light variables that disappeared (but not the pivot)
-					word = oldNormalized[ wordIndex = 0 ];
-					for(;;) {
-						while( word == 0 ) word = oldNormalized[ ++wordIndex ];
+					for( int i = oldNormalized.length; i-- != 0; ) {
+						final long t = oldNormalized[ i ] & newNormalized[ i ];
+						someOld |= ( oldNormalized[ i ] = ( oldNormalized[ i ] ^ t ) & lightNormalized[ i ] ) != 0;
+						someNew |= ( newNormalized[ i ] = ( newNormalized[ i ] ^ t ) & lightNormalized[ i ] ) != 0;
+					}
 
-						final int lsb = Long.numberOfTrailingZeros( word );
-						final int nextVar = wordIndex * 32 + lsb / 2;
-						if ( nextVar >= numVars ) break;
-						word &= word - 1;
+					if ( someOld ) { // Delete old light variables that disappeared (but not the pivot)
+						// Sentinel
+						oldNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
+						assert equation.firstVar != Integer.MAX_VALUE;
+						int wordIndex = equation.firstVar / 32;
+						long word = oldNormalized[ wordIndex ];
+						for(;;) {
+							while( word == 0 ) word = oldNormalized[ ++wordIndex ];
 
-						assert nextVar != pivot;
-						if ( ! isHeavy[ nextVar ] ) {
+							final int lsb = Long.numberOfTrailingZeros( word );
+							final int nextVar = wordIndex * 32 + lsb / 2;
+							if ( nextVar >= numVars ) break;
+							word &= word - 1;
+							
+							System.err.println( "nextVar = " + nextVar);
+
+							assert nextVar != pivot;
+							assert ! isHeavy[ nextVar ];
 							varEquation[ nextVar ].remove( equationIndex );
 							weight[ nextVar ]++;
 							variableQueue.changed( nextVar );
 						}
 					}
 
-					// Add new light variables
-					word = newNormalized[ wordIndex = 0 ];
-					for(;;) {
-						while( word == 0 ) word = newNormalized[ ++wordIndex ];
+					if ( someNew ) { // Add new light variables
+						// Sentinel
+						newNormalized[ numVars / 32 ] |= 1L << ( numVars % 32 ) * 2;
+						assert result.firstVar != Integer.MAX_VALUE;
+						int wordIndex = result.firstVar / 32;
+						long word = newNormalized[ wordIndex ];
+						for(;;) {
+							while( word == 0 ) word = newNormalized[ ++wordIndex ];
 
-						final int lsb = Long.numberOfTrailingZeros( word );
-						final int nextVar = wordIndex * 32 + lsb / 2;
-						if ( nextVar >= numVars ) break;
-						word &= word - 1;
+							final int lsb = Long.numberOfTrailingZeros( word );
+							final int nextVar = wordIndex * 32 + lsb / 2;
+							if ( nextVar >= numVars ) break;
+							word &= word - 1;
 
-						assert nextVar != pivot;
-						if ( ! isHeavy[ nextVar ] ) {
+							assert nextVar != pivot;
+							assert ! isHeavy[ nextVar ];
 							varEquation[ nextVar ].add( equationIndex );
 							weight[ nextVar ]--;
 							variableQueue.changed( nextVar );
@@ -431,13 +438,13 @@ public class Modulo3System {
 				// Make another variable heavy
 				final int var = variableQueue.dequeue();
 				isHeavy[ var ] = true;
+				lightNormalized[ var / 32 ] ^= 1L << ( var % 32 ) * 2;
 				if ( DEBUG ) {
 					int numHeavy = 0;
 					for( boolean b: isHeavy ) if ( b ) numHeavy++;
 					System.err.println( "Making variable " + var + " of weight " + ( - weight[ var ] ) + " heavy (" + numHeavy + " heavy variables, " + equationQueue.size() + " equations to go)" );
 				}
-				final IntIterator iterator = varEquation[ var ].iterator();
-				for( int i = varEquation[ var ].size(); i-- != 0; ) {
+				for( IntIterator iterator = varEquation[ var ].iterator(); iterator.hasNext(); ) {
 					final int equationIndex = iterator.nextInt();
 					priority[ equationIndex ]--;
 					equationQueue.changed( equationIndex );
@@ -456,7 +463,7 @@ public class Modulo3System {
 		}
 
 		Modulo3System denseSystem = new Modulo3System( dense, numVars );
-		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVar >= denseSystem.numVar
+		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
 
 		if ( DEBUG ) System.err.println( "Solution (dense): " + Arrays.toString( solution ) );
 
@@ -468,7 +475,6 @@ public class Modulo3System {
 			int c = equation.c;
 			
 			for( int var = equation.firstVar(); var != Integer.MAX_VALUE; var = equation.nextVar() ) {
-				if ( var == Integer.MAX_VALUE ) break;
 				if ( var == pivot ) pivotCoefficient = equation.coeff;
 				else c = ( 6 + c - ( equation.coeff * solution[ var ] ) ) % 3;
 			}
