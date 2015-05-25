@@ -418,12 +418,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					} while ( !solver.generateAndSolve( chunk, seed ) );
 
 					this.seed[ q ] = seed;
-					offset[ q + 1 ] = offset[ q ] + solver.numVertices;
-					final int[] solution = solver.solution;
 					final long off = offset[ q ];
+					final long[] solution = solver.solution;
 					for( int i = 0; i < solution.length; i++ ) values.set( i + off, solution[ i ] );
+					offset[ ++q ] = off + solver.numVertices;
 					
-					q++;
 					pl.update();
 
 					if ( ASSERTS ) {
@@ -431,7 +430,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						final int[] e = new int[ 3 ];
 						for ( long[] triple : chunk ) {
 							HypergraphSorter.tripleToEdge( triple, seed, solver.numVertices, solver.partSize, e );
-							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
+							
+							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] ) :
+								"<" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + ">: " + e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ];
 						}
 					}
 				}

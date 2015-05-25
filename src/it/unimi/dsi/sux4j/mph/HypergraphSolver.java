@@ -24,6 +24,8 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.doubles.DoubleHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.sux4j.mph.Modulo2System.Modulo2Equation;
 import it.unimi.dsi.sux4j.mph.Modulo3System.Modulo3Equation;
 
 import java.util.Arrays;
@@ -154,7 +156,7 @@ public class HypergraphSolver<T> {
 	/** The edge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
 	public final int[] stack;
 	/** The vector of solutions. */
-	public int[] solution;
+	public long[] solution;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
 	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
@@ -165,6 +167,7 @@ public class HypergraphSolver<T> {
 	private int top;
 	/** The stack used for peeling the graph. */
 	private final IntArrayList visitStack;
+	private int[][] edge2Vertex;
 
 	/** Creates a hypergraph sorter for a given number of edges.
 	 * 
@@ -244,7 +247,6 @@ public class HypergraphSolver<T> {
 		//if ( ! partial ) System.err.println( "After adding <" + x + ", " + y + ", " + z + ">" );
 	}
 
-	
 	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
 	 * 
 	 * @param iterable an iterable returning {@link #numEdges} triples of longs.
@@ -252,16 +254,35 @@ public class HypergraphSolver<T> {
 	 * @return true if the sorting procedure succeeded.
 	 */
 	public boolean generateAndSolve( final Iterable<long[]> iterable, final long seed ) {
+		return generateAndSolve( iterable, seed, null );
+	}
+
+	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
+	 * 
+	 * @param iterable an iterable returning {@link #numEdges} triples of longs.
+	 * @param seed a 64-bit random seed.
+	 * @param valueList a value list for indirect resolution, or {@code null}.
+	 * @return true if the sorting procedure succeeded.
+	 */
+	public boolean generateAndSolve( final Iterable<long[]> iterable, final long seed, final LongBigList valueList ) {
+		edge2Vertex = new int[ 3 ][ numEdges ];
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] e = new int[ 3 ];
 		cleanUpIfNecessary();
 		
-		/* We build the XOR'd edge list and compute the degree of each vertex. */
+		final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
+		
+		/* We build the edge list and compute the degree of each vertex. */
 		final Iterator<long[]> iterator = iterable.iterator();
-		for( int k = 0; k < numEdges; k++ ) {
+		for( int i = 0; i < numEdges; i++ ) {
 			HypergraphSorter.tripleToEdge( iterator.next(), seed, numVertices, partSize, e );
-			xorEdge( k, e[ 0 ], e[ 1 ], e[ 2 ], false );
+			if ( DEBUG ) System.err.println("Edge <" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + ">" );
+
+			xorEdge( i, e[ 0 ], e[ 1 ], e[ 2 ], false );
+			edgeList0[ i ] = e[ 0 ];
+			edgeList1[ i ] = e[ 1 ];
+			edgeList2[ i ] = e[ 2 ];
 			d[ e[ 0 ] ]++;
 			d[ e[ 1 ] ]++;
 			d[ e[ 2 ] ]++;
@@ -269,7 +290,7 @@ public class HypergraphSolver<T> {
 
 		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSolver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
 
-		return solve( iterable, seed );
+		return solve( iterable, seed, valueList );
 	}
 
 	/** Sorts the edges of a random 3-hypergraph in &ldquo;leaf peeling&rdquo; order.
@@ -287,10 +308,9 @@ public class HypergraphSolver<T> {
 
 		if ( top == numEdges ) LOGGER.debug( "Peeling completed." );
 		else {
-			LOGGER.debug( "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
+			LOGGER.debug( "Peeled " + top + " edges out of " + numEdges + "." );
 			return false;
 		}
-
 
 		return true;
 	}
@@ -322,74 +342,131 @@ public class HypergraphSolver<T> {
 		}
 	}
 	
-	
-	private boolean solve( final Iterable<long[]> iterable, final long seed ) {
+	private boolean solve( final Iterable<long[]> iterable, final long seed, final LongBigList valueList ) {
 		final boolean peeled = sort();
+		solution = new long[ numVertices ];
 
 		if ( computeEdges ) {
-			throw new AssertionError();
-		}
-		else {
 			if ( ! peeled ) {
-				int p = top;
 				final int[] e = new int[ 3 ];
+				Modulo2System system = new Modulo2System( numVertices );
 
 				// Fill stack, vertex1 and vertex2 with hyperedges in the 2-core
-				for ( Iterator<long[]> iterator = iterable.iterator(); iterator.hasNext(); ) {
+				int edge = 0;
+				for ( Iterator<long[]> iterator = iterable.iterator(); iterator.hasNext(); edge++ ) {
 					final long[] triple = iterator.next();
 					HypergraphSorter.tripleToEdge( triple, seed, numVertices, partSize, e );
 					if ( d[ e[ 0 ] ] > 0 && d[ e[ 1 ] ] > 0 && d[ e[ 2 ] ] > 0 ) {
 						assert d[ e[ 0 ] ] > 1 & d[ e[ 1 ] ] > 1 & d[ e[ 2 ] ] > 1;
-						stack[ p ] = e[ 0 ];
-						vertex1[ p ] = e[ 1 ];
-						vertex2[ p ] = e[ 2 ];
-						p++;
+
+						system.add( new Modulo2Equation( valueList.getLong( edge ), numVertices ).add( e[ 0 ] ).add( e[ 1 ] ).add( e[ 2 ] ) );
+					}
+				}
+				
+				if ( ! system.structuredGaussianElimination( solution ) ) {
+					LOGGER.debug( "System is unsolvable" );
+					return false;
+				}
+				assert system.check( solution );
+			}
+
+			while( top > 0 ) {
+				final int x = stack[ --top ];
+				final int k = edge[ x ];
+				final long s = solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ];
+				solution[ x ] = valueList.getLong( k ) ^ s;
+
+				assert ( valueList.getLong( k ) == ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] ) ) :
+					"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + valueList.getLong( k ) + " != " + ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] );
+			}
+				
+			return true;
+		}
+		else {
+			if ( ! peeled ) {
+				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
+
+				// Compress the edge representation eliminating peeled edges.
+				int length = 0;
+				for ( int i = 0; i < numEdges; i++ ) {
+					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
+						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
+						edgeList0[ length ] = edgeList0[ i ];
+						edgeList1[ length ] = edgeList1[ i ];
+						edgeList2[ length ] = edgeList2[ i ];
+						length++;
 					}
 				}
 
-				final int[] hinges = new int[ stack.length ];
-				if ( ! directHyperedges( d, stack, vertex1, vertex2, hinges, top ) ) return false;
-				// This set contains the hinges of the 2-core
+				final int[] hinge = new int[ length ];
+				if ( ! directHyperedges( d, edgeList0, edgeList1, edgeList2, hinge, length ) ) return false;
+				
+				if ( DEBUG ) for( int i = 0; i < length; i++ ) System.err.println( "<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + "> => " + hinge[ i ] );
+
+				// The hinges of the 2-core
 				final boolean[] hingeSet = new boolean[ numVertices ];
-				for( int i = top; i < hinges.length; i++ ) hingeSet[ hinges[ i ] ] = true;
+				for( int i = 0; i < length; i++ ) {
+					assert hingeSet[ hinge[ i ] ] == false : i;
+					hingeSet[ hinge[ i ] ] = true;
+				}
+				final Modulo3System system = new Modulo3System( numVertices );
 
-				Modulo3System system = new Modulo3System( numVertices );
-				for ( int i = top; i < hinges.length; i++ ) {
-					final int v0 = hinges[ i ];
-					final int v1 = vertex1[ i ];
-					final int v2 = vertex2[ i ];
-					final int k = v0 == v1 ? 1 : v0 == v2 ? 2 : 0;
-					assert k != 0 || stack[ i ] == hinges[ i ];
-					assert k != 1 || vertex1[ i ] == hinges[ i ];
-					assert k != 2 || vertex2[ i ] == hinges[ i ];
+				for ( int i = 0; i < length; i++ ) {
+					final int h = hinge[ i ];
+					final int v1 = edgeList1[ i ];
+					final int v2 = edgeList2[ i ];
+					final int k = h == v1 ? 1 : h == v2 ? 2 : 0;
+					assert k != 0 || edgeList0[ i ] == hinge[ i ];
+					assert k != 1 || edgeList1[ i ] == hinge[ i ];
+					assert k != 2 || edgeList2[ i ] == hinge[ i ];
+
 					
-					Modulo3Equation equation = new Modulo3Equation( k, numVertices );
-					if ( hingeSet[ stack[ i ] ] ) equation.add( stack[ i ], 1 );
-					if ( hingeSet[ vertex1[ i ] ] ) equation.add( vertex1[ i ], 1 );
-					if ( hingeSet[ vertex2[ i ] ] ) equation.add( vertex2[ i ], 1 );
+					// We do not add non-hinge variables, so they will be set to zero.
+					final Modulo3Equation equation = new Modulo3Equation( k, numVertices );
+					if ( hingeSet[ edgeList0[ i ] ] ) equation.add( edgeList0[ i ], 1 );
+					if ( hingeSet[ edgeList1[ i ] ] ) equation.add( edgeList1[ i ], 1 );
+					if ( hingeSet[ edgeList2[ i ] ] ) equation.add( edgeList2[ i ], 1 );
 
-					if ( equation.isUnsolvable() ) return false;
+					if ( equation.isUnsolvable() ) {
+						LOGGER.debug( "Unsolvable equation" );
+						return false;
+					}
 					if ( ! equation.isIdentity() ) system.add( equation );
 				}
 
-				solution = new int[ numVertices ];
-				if ( ! system.structuredGaussianElimination( solution ) ) return false;
+				if ( ! system.structuredGaussianElimination( solution ) ) {
+					LOGGER.debug( "System is unsolvable" );
+					return false;
+				}
 				assert system.check( solution );
-				for( int i = top; i < hinges.length; i++ ) if ( solution[ hinges[ i ] ] == 0 ) solution[ hinges[ i ] ] = 3;
+				for( int i = 0; i < length; i++ ) {
+					final int k = hinge[ i ] == edgeList1[ i ] ? 1 : hinge[ i ] == edgeList2[ i ] ? 2 : 0;
+					assert k != 0 || edgeList0[ i ] == hinge[ i ];
+					assert k != 1 || edgeList1[ i ] == hinge[ i ];
+					assert k != 2 || edgeList2[ i ] == hinge[ i ];
+					assert ( k == ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3 ) :
+						"<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + ">: " + i + " != " + ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3;
+
+					if ( solution[ hinge[ i ] ] == 0 ) solution[ hinge[ i ] ] = 3;
+				}
 			}
 
-			if ( solution == null ) solution = new int[ numVertices ];
+			if ( DEBUG ) System.err.println( "Peeled: " );
 
 			// Complete with peeled hyperedges
 			while ( top > 0 ) {
 				final int v = stack[ --top ];
-				final int k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 ); 
+				final int k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 );
+				if ( DEBUG ) System.err.println( "<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + "> => @" + k );  
 				assert k >= 0 && k < 3 : Integer.toString( k );
 				//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
-				final int s = solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ];
+				final long s = solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ];
 				assert solution[ v ] == 0;
-				final int value = ( k - s + 9 ) % 3;
+				final long value = ( k - s + 9 ) % 3;
 				solution[ v ] = value == 0 ? 3 : value;
+
+				assert ( k == ( solution[ v ] + solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ] ) % 3 ) :
+					"<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + ">: " + k + " != " + ( solution[ v ] + solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ] ) % 3;
 			}
 			
 			return true;
@@ -403,19 +480,19 @@ public class HypergraphSolver<T> {
 	 * @param vertex1 the second vertex of each edge.
 	 * @param vertex2 the third vertex of each edge.
 	 * @param hinges the vector where hinges will be stored.
-	 * @param offset the first hyperedge to be directed in the edge arrays.
+	 * @param length the number of hyperedges.
 	 * @return true if direction was successful.
 	 */
-	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int offset ) {
+	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int length ) {
 		final int numVertices = d.length;
-		final int[] weight = new int[ hinges.length ];
+		final int[] weight = new int[ length ];
 		final boolean[] isHinge = new boolean[ numVertices ];
-		final boolean[] isDone = new boolean[ vertex0.length ];
+		final boolean[] isDone = new boolean[ length ];
 		Arrays.fill( weight, 3 );
 
 		if ( ASSERTS ) {
 			final int[] testd = new int[ d.length ];
-			for ( int i = offset; i < hinges.length; i++ ) {
+			for ( int i = 0; i < length; i++ ) {
 				testd[ vertex0[ i ] ]++;
 				testd[ vertex1[ i ] ]++;
 				testd[ vertex2[ i ] ]++;
@@ -429,7 +506,7 @@ public class HypergraphSolver<T> {
 		final double[] priority = new double[ numVertices ];
 
 		Arrays.fill( d, 0 );
-		for ( int i = offset; i < hinges.length; i++ ) {
+		for ( int i = 0; i < length; i++ ) {
 			int v0 = vertex0[ i ];
 			edges[ v0 ][ d[ v0 ]++ ] = i;
 			int v1 = vertex1[ i ];
@@ -446,7 +523,7 @@ public class HypergraphSolver<T> {
 		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) heap[ heapSize++ ] = i;
 		final DoubleHeapIndirectPriorityQueue vertices = new DoubleHeapIndirectPriorityQueue( priority, heap, heapSize );
 
-		for ( int t = offset; t < hinges.length; t++ ) {		
+		for ( int t = 0; t < length; t++ ) {		
 			// Find hinge by looking at the node with minimum priority
 			if ( vertices.isEmpty() ) return false;
 			final int hinge = vertices.dequeue();
@@ -465,7 +542,7 @@ public class HypergraphSolver<T> {
 			if ( ASSERTS ) {
 				int minEdgeWeight = Integer.MAX_VALUE;
 				int minEdge = -1;
-				for( int i = offset; i < hinges.length; i++ ) if ( ! isDone[ i ] ) {
+				for( int i = 0; i < length; i++ ) if ( ! isDone[ i ] ) {
 					if ( vertex0[ i ] == hinge || vertex1[ i ] == hinge || vertex2[ i ] == hinge ) {
 						if ( weight[ i ] < minEdgeWeight ) {
 							minEdgeWeight = weight[ i ];
@@ -555,7 +632,7 @@ public class HypergraphSolver<T> {
 
 			if ( ASSERTS ) {
 				final double[] pri = new double[ numVertices ];
-				for( int i = offset; i < hinges.length; i++ ) if ( ! isDone[ i ] ) {
+				for( int i = 0; i < length; i++ ) if ( ! isDone[ i ] ) {
 					int w = 0;
 					if ( ! isHinge[ vertex0[ i ] ] ) w++;
 					if ( ! isHinge[ vertex1[ i ] ] ) w++;
@@ -582,7 +659,6 @@ public class HypergraphSolver<T> {
 			if ( DEBUG ) {
 				System.err.println( "Weights: " + Arrays.toString( weight ) );
 				System.err.println( "Priorities: " + Arrays.toString( priority ) );
-
 				System.err.println( "Queue size: " + vertices.size() );
 			}
 			

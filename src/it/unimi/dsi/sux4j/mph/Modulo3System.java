@@ -350,7 +350,7 @@ public class Modulo3System {
 	}
 
 
-	public boolean check( final int solution[] ) {
+	public boolean check( final long[] solution ) {
 		assert solution.length == numVars;
 		final LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
 		final LongBigList list = solutions.asLongBigList( 2 );
@@ -397,12 +397,12 @@ public class Modulo3System {
 	}
 
 
-	public boolean gaussianElimination( final int[] solution ) {
+	public boolean gaussianElimination( final long[] solution ) {
 		assert solution.length == numVars;
 		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
 		if ( ! gaussianElimination( solutions ) ) return false;
 		final LongBigList list = solutions.asLongBigList( 2 );
-		for( int i = solution.length; i-- != 0; ) solution[ i ] = (int)list.getLong( i );
+		for( int i = solution.length; i-- != 0; ) solution[ i ] = list.getLong( i );
 		return true;
 	}
 
@@ -432,7 +432,7 @@ public class Modulo3System {
 	}
 
 
-	public boolean structuredGaussianElimination( final int[] solution ) {
+	public boolean structuredGaussianElimination( final long[] solution ) {
 		assert solution.length == numVars;
 		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
 		if ( ! structuredGaussianElimination( solutions ) ) return false;
@@ -511,7 +511,7 @@ public class Modulo3System {
 				do var = variables.popInt(); while( weight[ var ] == 0 );
 				numHeavy++;
 				lightNormalized[ var / 32 ] ^= 1L << ( var % 32 ) * 2;
-				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + ( - weight[ var ] ) + " heavy (" + remaining + " equations to go)" );
+				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " heavy (" + remaining + " equations to go)" );
 				final int[] elements = varEquation[ var ].elements();
 				for( int i = varEquation[ var ].size(); i-- != 0; ) {
 					final int equationIndex = elements[ i ];
@@ -553,10 +553,9 @@ public class Modulo3System {
 						final int equationIndex = elements[ i ];
 						if ( equationIndex == first ) continue;
 						if ( --priority[ equationIndex ] == 1 ) equationList.add( equationIndex );
-						final Modulo3Equation temp = equations.get( equationIndex );
-						if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + temp + " with " );
-						temp.eliminate( pivot, equation );
-						if ( DEBUG ) System.err.println( temp );
+						if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equations.get( equationIndex ) + " with " );
+						equations.get( equationIndex ).eliminate( pivot, equation );
+						if ( DEBUG ) System.err.println( equations.get( equationIndex ) );
 					}
 				}
 			}

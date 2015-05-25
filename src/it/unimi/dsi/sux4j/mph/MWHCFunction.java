@@ -28,6 +28,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -291,7 +292,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	}
 
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 10;
+	public final static int LOG2_CHUNK_SIZE = 9;
 	/** The shift for chunks. */
 	private final int chunkShift;
 	/** The number of keys. */
@@ -510,14 +511,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
-	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect ) throws IOException {
+	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect ) throws IOException {
 		this.transform = transform;
 
 		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
 		if ( signatureWidth != 0 && dataWidth != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
-		
-		// If we have no keys, values must be a random-access list of longs.
-		final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 		
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
@@ -577,37 +575,35 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				int q = 0;
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 				final LongBigList data = dataBitVector.asLongBigList( this.width );
-				for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					HypergraphSorter<BitVector> sorter = new HypergraphSorter<BitVector>( chunk.size() );
+				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+					HypergraphSolver<BitVector> solver = new HypergraphSolver<BitVector>( chunk.size() );
 					do {
 						seed = r.nextLong();
-					} while ( ! sorter.generateAndSort( chunk.iterator(), seed ) );
+					} while ( ! solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
+						private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
+						
+						@Override
+						public long size64() {
+							return chunk.size();
+						}
+						
+						@Override
+						public long getLong( final long index ) {
+							return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
+						}
+					}) );
+
 
 					this.seed[ q ] = seed;
 					dataBitVector.fill( false );
-					data.size( sorter.numVertices );
-					offset[ q + 1 ] = offset[ q ] + sorter.numVertices; 
-
-					/* We assign values. */
-
-					int top = chunk.size(), x, k;
-					final int[] stack = sorter.stack;
-					final int[] vertex1 = sorter.vertex1;
-					final int[] vertex2 = sorter.vertex2;
-					final int[] edge = sorter.edge;
-
-					while( top > 0 ) {
-						x = stack[ --top ];
-						k = edge[ x ];
-						final long s = data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] );
-						final long value = indirect ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
-						data.set( x, value ^ s );
-
-						if ( ASSERTS ) assert ( value == ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) ) ) :
-							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) );
-					}
-
+					data.size( solver.numVertices );
+					offset[ q + 1 ] = offset[ q ] + solver.numVertices; 
 					q++;
+					
+					/* We assign values. */
+					final long[] solution = solver.solution;
+					for( int i = 0; i < solution.length; i++ ) data.set( i, solution[ i ] );
+
 					offlineData.add( dataBitVector );
 					pl.update();
 				}
