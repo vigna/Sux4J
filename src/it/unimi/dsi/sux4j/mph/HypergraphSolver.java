@@ -349,17 +349,15 @@ public class HypergraphSolver<T> {
 		if ( computeEdges ) {
 			if ( ! peeled ) {
 				final int[] e = new int[ 3 ];
+				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
 				Modulo2System system = new Modulo2System( numVertices );
 
 				// Fill stack, vertex1 and vertex2 with hyperedges in the 2-core
-				int edge = 0;
-				for ( Iterator<long[]> iterator = iterable.iterator(); iterator.hasNext(); edge++ ) {
-					final long[] triple = iterator.next();
-					HypergraphSorter.tripleToEdge( triple, seed, numVertices, partSize, e );
-					if ( d[ e[ 0 ] ] > 0 && d[ e[ 1 ] ] > 0 && d[ e[ 2 ] ] > 0 ) {
-						assert d[ e[ 0 ] ] > 1 & d[ e[ 1 ] ] > 1 & d[ e[ 2 ] ] > 1;
+				for ( int i = 0; i < numEdges; i++ ) {
+					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
+						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
 
-						system.add( new Modulo2Equation( valueList.getLong( edge ), numVertices ).add( e[ 0 ] ).add( e[ 1 ] ).add( e[ 2 ] ) );
+						system.add( new Modulo2Equation( valueList.getLong( i ), numVertices ).add( edgeList0[ i ] ).add( edgeList1[ i ] ).add( edgeList2[ i ] ) );
 					}
 				}
 				
