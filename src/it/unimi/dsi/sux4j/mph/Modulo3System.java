@@ -34,6 +34,7 @@ public class Modulo3System {
 	
 	/** A modulo-3 equation. */
 	public static class Modulo3Equation {
+		int count;
 		/** The vector representing the coefficients (two bits for each variable). */
 		protected final LongArrayBitVector bitVector;
 		/** The {@link LongArrayBitVector#bits() bv.bits()}, cached. */
@@ -46,8 +47,6 @@ public class Modulo3System {
 		protected int firstVar;
 		/** The first coefficient. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstCoeff;
-		/** The variables added to this equation. They might not be the variables in {@link #bitVector} if {@link #sub(Modulo3Equation, int)} has been invoked. */
-		protected IntArrayList addedVars;
 		/** Whether any variable appears on the left side of the equation. */
 		private boolean isEmpty;
 
@@ -62,7 +61,6 @@ public class Modulo3System {
 			this.bits = bitVector.bits();
 			this.list = bitVector.asLongBigList( 2 );
 			this.firstVar = Integer.MAX_VALUE;
-			this.addedVars = new IntArrayList();
 			this.isEmpty = true;
 		}
 		
@@ -73,7 +71,6 @@ public class Modulo3System {
 			this.list = this.bitVector.asLongBigList( 2 );
 			this.firstVar = equation.firstVar;
 			this.firstCoeff = equation.firstCoeff;
-			this.addedVars = equation.addedVars;
 			this.isEmpty = equation.isEmpty;
 		}
 		
@@ -85,7 +82,6 @@ public class Modulo3System {
 		 */
 		public Modulo3Equation add( final int variable, final int coefficient ) {
 			if ( list.set( variable, coefficient ) != 0 ) throw new IllegalArgumentException();
-			addedVars.add( variable );
 			if ( variable < firstVar ) {
 				firstVar = variable;
 				firstCoeff = coefficient;
@@ -150,7 +146,6 @@ public class Modulo3System {
 		 * @param mul a multiplier that will be applied to the subtrahend.
 		 */
 		public void sub( final Modulo3Equation equation, final int mul ) {
-			// Explicit multiplication tables to avoid modulo operators.
 			if ( mul == 1 ) {
 				c = ( c + 2 * equation.c ) % 3;
 				subMod3( equation.bits );
@@ -263,7 +258,7 @@ public class Modulo3System {
 		 */
 		public void normalized( final long[] result ) {
 			final long[] bits = this.bits;
-			// Drop coefficients
+			// Turn all nonzero coefficients into 1
 			for( int i = bits.length; i-- != 0; ) result[ i ] = ( bits[ i ] & 0x5555555555555555L ) | ( bits[ i ] & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
 		}
 
@@ -291,10 +286,11 @@ public class Modulo3System {
 			StringBuilder b = new StringBuilder();
 			boolean someNonZero = false;
 			for( int i = 0; i < list.size(); i++ ) {
-				if ( list.getLong( i ) != 0 ) {
+				final long coeff = list.getLong( i );
+				if ( coeff != 0 ) {
 					if ( someNonZero ) b.append( " + " );
 					someNonZero = true;
-					b.append( list.getLong( i ) == 1 ? "x" : "2x" ).append( '_' ).append( i );
+					b.append( coeff == 1 ? "x" : "2x" ).append( '_' ).append( i );
 				}
 	 		}
 			if ( ! someNonZero ) b.append( '0' );
@@ -359,12 +355,14 @@ public class Modulo3System {
 	}
 
 
-	public boolean check( final LongArrayBitVector solution ) {
-		assert solution.length() == numVars * 2;
-		final long[] solutionBits = solution.bits();
-
-		for( Modulo3Equation equation: equations ) 
-			if ( equation.c != Modulo3Equation.scalarProduct( equation.bits,  solutionBits ) % 3 ) return false;
+	public boolean check( final LongArrayBitVector solutions ) {
+		assert solutions.length() == numVars * 2;
+		final long[] solutionBits = solutions.bits();
+		for( Modulo3Equation equation: equations ) {
+			if ( equation.c != Modulo3Equation.scalarProduct( equation.bits, solutionBits ) % 3 ) {
+				return false;
+			}
+		}
 		return true;
 	}
 
@@ -393,6 +391,7 @@ public class Modulo3System {
 				if ( eqI.firstVar > eqJ.firstVar ) Collections.swap( equations, i, j );
 			}
 		}
+	
 		return true;
 	}
 
@@ -431,59 +430,75 @@ public class Modulo3System {
 		return true;
 	}
 
-
 	public boolean structuredGaussianElimination( final long[] solution ) {
-		assert solution.length == numVars;
-		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
-		if ( ! structuredGaussianElimination( solutions ) ) return false;
-		final LongBigList list = solutions.asLongBigList( 2 );
-		for( int i = solution.length; i-- != 0; ) solution[ i ] = (int)list.getLong( i );
-		return true;
+		final int[][] var2Eq = new int[ numVars ][];
+		final int[] d = new int[ numVars ];
+		for( final Modulo3Equation equation: equations ) 
+			for( int v = equation.list.size(); v-- != 0; ) 
+				if ( equation.list.getLong( v ) != 0 ) d[ v ]++; 
+		
+		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
+		Arrays.fill( d, 0 );
+		final int[] c = new int[ equations.size() ];
+		for( int e = equations.size(); e-- != 0; ) {
+			c[ e ] = equations.get( e ).c;
+			LongBigList list = equations.get( e ).list;
+			for( int v = list.size(); v-- != 0; ) 
+				if ( list.getLong( v ) != 0 ) var2Eq[ v ][ d[ v ]++ ] = e;
+		}
+		
+		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	public boolean structuredGaussianElimination( final LongArrayBitVector solution ) {
-		assert solution.length() == numVars * 2;
-
-		if ( DEBUG ) {
-			System.err.println();
-			System.err.println( "====================" );
-			System.err.println();
-			System.err.println( this );
-		}
-			
-		final int numEquations = equations.size();
+	public static boolean structuredGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
+		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
+	}
+	
+	public static boolean structuredGaussianElimination( Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
+		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
+
+		final int numVars = var2Eq.length;
+		assert solution.length == numVars;
+
+		final boolean buildSystem = system == null;
+		
+		if ( buildSystem ) {
+			system = new Modulo3System( numVars );
+			for( int i = 0; i < c.length; i++ ) system.add( new Modulo3Equation( c[ i ], numVars ) );
+		}
+		
 		/* The weight of each variable, that is, the number of equations still 
 		 * in the queue in which the variable appears. We use zero to 
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[ numVars ];
-		// For each variable, the equations containing it.
-		final IntArrayList[] varEquation = new IntArrayList[ numVars ];
+
 		// The priority of each equation still to be examined (the number of light variables).
 		final int[] priority = new int[ numEquations ];
 
-		for( int i = 0; i < numEquations; i++ ) {
-			final Modulo3Equation equation = equations.get( i );
-			// Initially, all variables are light.
-			final int[] elements = equation.addedVars.elements();
-			for( int j = equation.addedVars.size(); j-- != 0; ) {
-				final int var = elements[ j ];
-				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntArrayList( 8 );
-				weight[ var ]++;
-				varEquation[ var ].add( i );
-				priority[ i ]++;
+		for( final int v : variable ) {
+			weight[ v ] = var2Eq[ v ].length;
+			for( int e : var2Eq[ v ] ) {
+				if ( buildSystem ) system.equations.get( e ).add( v );
+				priority[ e ]++;
 			}
 		}
-
+		
+		if ( DEBUG ) {
+			System.err.println();
+			System.err.println( "===== Going to solve... ======" );
+			System.err.println();
+			System.err.println( system );
+		}
+			
 		// All variables in a stack returning heavier variables first.
 		final IntArrayList variables;
 		{
-			final int[] t = Util.identity( numVars );
-			final int[] u = new int[ t.length ];
+			final int[] u = new int[ variable.length ];
 			final int[] count = new int[ numEquations + 1 ]; // CountSort
-			for( int i = t.length; i-- != 0; ) count[ weight[ t[ i ] ] ]++;
+			for( int i = variable.length; i-- != 0; ) count[ weight[ variable[ i ] ] ]++;
 			for( int i = 1; i < count.length; i++ ) count[ i ] += count[ i - 1 ];
-			for( int i = t.length; i-- != 0; ) u[ --count[ weight[ t[ i ] ] ] ] = t[ i ];
+			for( int i = variable.length; i-- != 0; ) u[ --count[ weight[ variable[ i ] ] ] ] = variable[ i ];
 			variables = IntArrayList.wrap( u );
 		}
 		
@@ -497,12 +512,13 @@ public class Modulo3System {
 		// The light variable corresponding to each solved equation.
 		IntArrayList pivots = new IntArrayList();
 
+		final ArrayList<Modulo3Equation> equations = system.equations;
 		final long[] normalized = new long[ equations.get( 0 ).bits.length ];
 		// A bit vector made of 2-bit blocks containing a 01 in correspondence of each light variable.
 		final long[] lightNormalized = new long[ normalized.length ];
 		Arrays.fill( lightNormalized, 0x5555555555555555L );
 
-		numHeavy = 0;
+		int numHeavy = 0;
 
 		for( int remaining = equations.size(); remaining != 0; ) {
 			if ( equationList.isEmpty() ) {
@@ -512,11 +528,8 @@ public class Modulo3System {
 				numHeavy++;
 				lightNormalized[ var / 32 ] ^= 1L << ( var % 32 ) * 2;
 				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " heavy (" + remaining + " equations to go)" );
-				final int[] elements = varEquation[ var ].elements();
-				for( int i = varEquation[ var ].size(); i-- != 0; ) {
-					final int equationIndex = elements[ i ];
+				for( final int equationIndex: var2Eq[ var ] )
 					if ( --priority[ equationIndex ] == 1 ) equationList.push( equationIndex );
-				}
 			}
 			else {
 				remaining--;
@@ -548,9 +561,7 @@ public class Modulo3System {
 					weight[ pivot ] = 0;
 
 					// Now we need to eliminate the variable from all other equations containing it.
-					final int[] elements = varEquation[ pivot ].elements();
-					for( int i = varEquation[ pivot ].size(); i-- != 0; ) {
-						final int equationIndex = elements[ i ];
+					for( final int equationIndex: var2Eq[ pivot ] ) {
 						if ( equationIndex == first ) continue;
 						if ( --priority[ equationIndex ] == 1 ) equationList.add( equationIndex );
 						if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equations.get( equationIndex ) + " with " );
@@ -570,10 +581,11 @@ public class Modulo3System {
 		}
 
 		Modulo3System denseSystem = new Modulo3System( numVars, dense );
-		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
+		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 ); 
+		if ( ! denseSystem.gaussianElimination( solutions ) ) return false;  // numVars >= denseSystem.numVars
 
-		final long[] solutionBits = solution.bits();
-		final LongBigList solutionList = solution.asLongBigList( 2 );
+		final long[] solutionBits = solutions.bits();
+		final LongBigList solutionList = solutions.asLongBigList( 2 );
 
 		if ( DEBUG ) System.err.println( "Solution (dense): " + solutionList );
 
@@ -593,6 +605,10 @@ public class Modulo3System {
 
 		if ( DEBUG ) System.err.println( "Solution (all): " + solutionList );
 
+		assert system.check( solutions );
+		
+		// TODO: this could be significantly faster
+		for( int i = 0; i < solution.length; i++ ) solution[ i ] = solutionList.getLong( i );
 		return true;
 	}
 }

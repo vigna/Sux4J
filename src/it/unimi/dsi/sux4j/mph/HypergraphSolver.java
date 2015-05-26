@@ -22,11 +22,10 @@ package it.unimi.dsi.sux4j.mph;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.doubles.DoubleHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.sux4j.mph.Modulo2System.Modulo2Equation;
-import it.unimi.dsi.sux4j.mph.Modulo3System.Modulo3Equation;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -290,7 +289,7 @@ public class HypergraphSolver<T> {
 
 		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + HypergraphSolver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
 
-		return solve( iterable, seed, valueList );
+		return solve( valueList );
 	}
 
 	/** Sorts the edges of a random 3-hypergraph in &ldquo;leaf peeling&rdquo; order.
@@ -342,17 +341,15 @@ public class HypergraphSolver<T> {
 		}
 	}
 	
-	private boolean solve( final Iterable<long[]> iterable, final long seed, final LongBigList valueList ) {
+	private boolean solve( final LongBigList valueList ) {
 		final boolean peeled = sort();
 		solution = new long[ numVertices ];
 
 		if ( computeEdges ) {
 			if ( ! peeled ) {
-				final int[] e = new int[ 3 ];
 				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
 				Modulo2System system = new Modulo2System( numVertices );
 
-				// Fill stack, vertex1 and vertex2 with hyperedges in the 2-core
 				for ( int i = 0; i < numEdges; i++ ) {
 					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
 						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
@@ -396,57 +393,51 @@ public class HypergraphSolver<T> {
 					}
 				}
 
+				final int[][] edges = new int[ d.length ][];
+				for( int i = edges.length; i-- != 0; ) edges[ i ] = new int[ d[ i ] ];
+
+				Arrays.fill( d, 0 );
+				for ( int i = 0; i < length; i++ ) {
+					final int v0 = edgeList0[ i ];
+					edges[ v0 ][ d[ v0 ]++ ] = i;
+					final int v1 = edgeList1[ i ];
+					edges[ v1 ][ d[ v1 ]++ ] = i;
+					final int v2 = edgeList2[ i ];
+					edges[ v2 ][ d[ v2 ]++ ] = i;
+				}
+
 				final int[] hinge = new int[ length ];
-				if ( ! directHyperedges( d, edgeList0, edgeList1, edgeList2, hinge, length ) ) return false;
+				if ( ! directHyperedges( edges, d, edgeList0, edgeList1, edgeList2, hinge, length ) ) return false;
 				
 				if ( DEBUG ) for( int i = 0; i < length; i++ ) System.err.println( "<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + "> => " + hinge[ i ] );
 
-				// The hinges of the 2-core
-				final boolean[] hingeSet = new boolean[ numVertices ];
-				for( int i = 0; i < length; i++ ) {
-					assert hingeSet[ hinge[ i ] ] == false : i;
-					hingeSet[ hinge[ i ] ] = true;
-				}
-				final Modulo3System system = new Modulo3System( numVertices );
-
+				final int[] c = new int[ length ];
 				for ( int i = 0; i < length; i++ ) {
 					final int h = hinge[ i ];
-					final int v1 = edgeList1[ i ];
-					final int v2 = edgeList2[ i ];
-					final int k = h == v1 ? 1 : h == v2 ? 2 : 0;
-					assert k != 0 || edgeList0[ i ] == hinge[ i ];
-					assert k != 1 || edgeList1[ i ] == hinge[ i ];
-					assert k != 2 || edgeList2[ i ] == hinge[ i ];
-
-					
-					// We do not add non-hinge variables, so they will be set to zero.
-					final Modulo3Equation equation = new Modulo3Equation( k, numVertices );
-					if ( hingeSet[ edgeList0[ i ] ] ) equation.add( edgeList0[ i ], 1 );
-					if ( hingeSet[ edgeList1[ i ] ] ) equation.add( edgeList1[ i ], 1 );
-					if ( hingeSet[ edgeList2[ i ] ] ) equation.add( edgeList2[ i ], 1 );
-
-					if ( equation.isUnsolvable() ) {
-						LOGGER.debug( "Unsolvable equation" );
-						return false;
-					}
-					if ( ! equation.isIdentity() ) system.add( equation );
+					c[ i ] = h == edgeList1[ i ] ? 1 : h == edgeList2[ i ] ? 2 : 0;
+					assert c[ i ] != 0 || edgeList0[ i ] == hinge[ i ];
+					assert c[ i ] != 1 || edgeList1[ i ] == hinge[ i ];
+					assert c[ i ] != 2 || edgeList2[ i ] == hinge[ i ];
 				}
-
-				if ( ! system.structuredGaussianElimination( solution ) ) {
+				
+				if ( ! Modulo3System.structuredGaussianElimination( edges, c, hinge, solution ) ) {
 					LOGGER.debug( "System is unsolvable" );
 					return false;
 				}
-				assert system.check( solution );
-				for( int i = 0; i < length; i++ ) {
-					final int k = hinge[ i ] == edgeList1[ i ] ? 1 : hinge[ i ] == edgeList2[ i ] ? 2 : 0;
-					assert k != 0 || edgeList0[ i ] == hinge[ i ];
-					assert k != 1 || edgeList1[ i ] == hinge[ i ];
-					assert k != 2 || edgeList2[ i ] == hinge[ i ];
-					assert ( k == ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3 ) :
-						"<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + ">: " + i + " != " + ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3;
 
-					if ( solution[ hinge[ i ] ] == 0 ) solution[ hinge[ i ] ] = 3;
+
+				if ( ASSERTS ) {
+					for( int i = 0; i < length; i++ ) {
+						final int k = hinge[ i ] == edgeList1[ i ] ? 1 : hinge[ i ] == edgeList2[ i ] ? 2 : 0;
+						assert k != 0 || edgeList0[ i ] == hinge[ i ];
+						assert k != 1 || edgeList1[ i ] == hinge[ i ];
+						assert k != 2 || edgeList2[ i ] == hinge[ i ];
+						assert ( k == ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3 ) :
+							"<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + ">: " + i + " != " + ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3;
+					}
 				}
+				
+				for( int i = 0; i < length; i++ ) if ( solution[ hinge[ i ] ] == 0 ) solution[ hinge[ i ] ] = 3;
 			}
 
 			if ( DEBUG ) System.err.println( "Peeled: " );
@@ -481,7 +472,7 @@ public class HypergraphSolver<T> {
 	 * @param length the number of hyperedges.
 	 * @return true if direction was successful.
 	 */
-	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int length ) {
+	public static boolean directHyperedges( int[][] edges, int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int length ) {
 		final int numVertices = d.length;
 		final int[] weight = new int[ length ];
 		final boolean[] isHinge = new boolean[ numVertices ];
@@ -498,28 +489,14 @@ public class HypergraphSolver<T> {
 			if ( ! Arrays.equals( d, testd ) ) throw new AssertionError( "Degree array not valid: " + Arrays.toString( testd ) + " != " + Arrays.toString( d ) );
 		}
 		
-		final int[][] edges = new int[ d.length ][];
-		for( int i = edges.length; i-- != 0; ) edges[ i ] = new int[ d[ i ] ];
-
-		final double[] priority = new double[ numVertices ];
-
-		Arrays.fill( d, 0 );
-		for ( int i = 0; i < length; i++ ) {
-			int v0 = vertex0[ i ];
-			edges[ v0 ][ d[ v0 ]++ ] = i;
-			int v1 = vertex1[ i ];
-			edges[ v1 ][ d[ v1 ]++ ] = i;
-			int v2 = vertex2[ i ];
-			edges[ v2 ][ d[ v2 ]++ ] = i;
-			priority[ v0 ] += 1./3;
-			priority[ v1 ] += 1./3;
-			priority[ v2 ] += 1./3;
-		}
+		// Priorities, multiplied by 6 (so they are all integers)
+		final int[] priority = new int[ numVertices ];
+		for ( int i = 0; i < numVertices; i++ ) priority[ i ] += 2 * d[ i ];
 		
 		final int[] heap = new int[ d.length ];
 		int heapSize = 0;
 		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) heap[ heapSize++ ] = i;
-		final DoubleHeapIndirectPriorityQueue vertices = new DoubleHeapIndirectPriorityQueue( priority, heap, heapSize );
+		final IntHeapIndirectPriorityQueue vertices = new IntHeapIndirectPriorityQueue( priority, heap, heapSize );
 
 		for ( int t = 0; t < length; t++ ) {		
 			// Find hinge by looking at the node with minimum priority
@@ -554,7 +531,7 @@ public class HypergraphSolver<T> {
 			
 			
 			//System.err.println( "Round " + ( t - offset ) + ": found hinge " + hinge + " for edge " + edge + " (" + vertex0[ edge ] + ", " + vertex1[ edge ] + ", " + vertex2[ edge ] + ")" );
-			if ( priority[ hinge ] > 1 + 1E-12 ) {
+			if ( priority[ hinge ] > 6 ) {
 				//System.err.println( "Hinge " + hinge + " priority: " + priority[ hinge ] );
 				return false;
 			}
@@ -570,7 +547,7 @@ public class HypergraphSolver<T> {
 				final int v2 = vertex2[ e ];
 				assert hinge == v0 || hinge == v1 || hinge == v2 : hinge + " != " + v0 + ", " + v1 + ", " + v2;
 
-				final double update = -1. / weight[ e ] + 1. / --weight[ e ];
+				final int update = -6 / weight[ e ] + 6 / --weight[ e ];
 				
 				if ( ! isHinge[ v0 ] ) {
 					priority[ v0 ] += update;
@@ -600,7 +577,7 @@ public class HypergraphSolver<T> {
 				assert priority[ v0 ] > 0 || d[ v0 ] == 0;
 				if ( d[ v0 ] == 0 ) vertices.remove( v0 );
 				else {
-					priority[ v0 ] -= 1. / weight[ edge ];
+					priority[ v0 ] -= 6 / weight[ edge ];
 					if ( d[ v0 ] == 1 ) priority[ v0 ] = 0;
 					vertices.changed( v0 );
 				}
@@ -611,7 +588,7 @@ public class HypergraphSolver<T> {
 				assert priority[ v1 ] > 0 || d[ v1 ] == 0;
 				if ( d[ v1 ] == 0 ) vertices.remove( v1 );
 				else {
-					priority[ v1 ] -= 1. / weight[ edge ];
+					priority[ v1 ] -= 6 / weight[ edge ];
 					if ( d[ v1 ] == 1 ) priority[ v1 ] = 0;
 					vertices.changed( v1 );
 				}
@@ -622,7 +599,7 @@ public class HypergraphSolver<T> {
 				assert priority[ v2 ] > 0 || d[ v2 ] == 0;
 				if ( d[ v2 ] == 0 ) vertices.remove( v2 );
 				else {
-					priority[ v2 ] -= 1. / weight[ edge ];
+					priority[ v2 ] -= 6 / weight[ edge ];
 					if ( d[ v2 ] == 1 ) priority[ v2 ] = 0;
 					vertices.changed( v2 );
 				}
@@ -635,12 +612,12 @@ public class HypergraphSolver<T> {
 					if ( ! isHinge[ vertex0[ i ] ] ) w++;
 					if ( ! isHinge[ vertex1[ i ] ] ) w++;
 					if ( ! isHinge[ vertex2[ i ] ] ) w++;
-					pri[ vertex0[ i ] ] += 1./w;
-					pri[ vertex1[ i ] ] += 1./w;
-					pri[ vertex2[ i ] ] += 1./w;
+					pri[ vertex0[ i ] ] += 6 / w;
+					pri[ vertex1[ i ] ] += 6 / w;
+					pri[ vertex2[ i ] ] += 6 / w;
 					if ( weight[ i ] != w ) throw new AssertionError( "Edge " + i + ": " + w + " != " + weight[ i ] );
 				}
-				for( int i = 0; i < numVertices; i++ ) if ( ! isHinge[ i ] && d[ i ] > 1 && Math.abs( pri[ i ] - priority[ i ] ) > 1E-9 ) throw new AssertionError( "Vertex " + i + ": " + pri[ i ] + " != " + priority[ i ] );
+				for( int i = 0; i < numVertices; i++ ) if ( ! isHinge[ i ] && d[ i ] > 1 && pri[ i ] != priority[ i ] ) throw new AssertionError( "Vertex " + i + ": " + pri[ i ] + " != " + priority[ i ] );
 
 				/*double sum = 0;
 				for( int i = 0; i < priority.length; i++ ) {
