@@ -27,14 +27,12 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.Rank11;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -133,8 +131,15 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 
-	/** The length of a superblock. */
-	private static final int WORDS_PER_SUPERBLOCK = 32;
+	/** The local seed is generated using this step, so to be easily embeddable in {@link #offset}. */
+	private static final long SEED_STEP = 1L << 56;
+	/** The lowest 56 bits of {@link #offset} contain the number of keys stored up to the given chunk. */
+	private static final long OFFSET_MASK = -1L >>> 8;
+
+	/** The ratio between vertices and hyperedges. */
+	private static double C = 1.09 + 0.01;
+	/** Fixed-point representation of {@link #C}. */
+	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
 
 	/**
 	 * Counts the number of nonzero pairs of bits in a long.
@@ -143,8 +148,32 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of nonzero bit pairs in <code>x</code>.
 	 */
 
-	public static int countNonzeroPairs( final long x ) {
+	public final static int countNonzeroPairs( final long x ) {
 		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
+	}
+
+	/** Counts the number of nonzero pairs between two positions in the given arrays,
+	 * which represents a sequence of two-bit values. 
+	 * 
+	 * @param start start position (inclusive).
+	 * @param end end position (exclusive).
+	 * @param array an array of longs containing 2-bit values.
+	 * @return the number of nonzero 2-bit values between {@code start} and {@code end}.
+	 */
+	private final static long countNonzeroPairs( final long start, final long end, final long[] array ) {
+		int block = (int)( start / 32 );
+		final int endBlock = (int)( end / 32 );
+		final int startOffset = (int)( start % 32 );
+		final int endOffset = (int)( end % 32 ); 
+		
+		if ( block == endBlock ) return countNonzeroPairs( ( array[ block ] & ( 1L << endOffset * 2 ) - 1 ) >>> startOffset * 2 );
+
+		long pairs = 0;	
+		if ( startOffset != 0 ) pairs += countNonzeroPairs( array[ block++ ] >>> startOffset * 2 );		
+		while( block < endBlock ) pairs += countNonzeroPairs( array[ block++ ] );
+		if ( endOffset != 0 ) pairs += countNonzeroPairs( array[ block ] & ( 1L << endOffset * 2 ) - 1 );
+		
+		return pairs;
 	}
 
 	/** A builder class for {@link MinimalPerfectHashFunction}. */
@@ -240,9 +269,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 
-	/** The seed of the underlying 3-hypergraphs. */
-	protected final long[] seed;
-
 	/** The start offset of each chunk. */
 	protected final long[] offset;
 
@@ -264,32 +290,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The signatures. */
 	protected final LongBigList signatures;
 
-	/** The array of counts for blocks and superblocks. */
-	protected final long[] count;
-
-	/** This method implements a two-level ranking scheme. It is essentially a 
-	 * {@link Rank11} in which {@link Long#bitCount(long)} has been replaced
-	 * by {@link #countNonzeroPairs(long)}.
-	 * 
-	 * @param pos the position to rank in the 2-bit value array.
-	 * @return the number of hinges before the specified position.
-	 */
-	private long rank( long pos ) {
-		pos *= 2;
-		assert pos >= 0;
-		assert pos <= bitVector.length();
-
-		int word = (int)( pos / Long.SIZE );
-		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
-		final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 ) - 1;
-
-		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
-				countNonzeroPairs( array[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
-
-		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += countNonzeroPairs( array[ --word ] );
-		return result;
+	private static long vertexOffset( final long[] offset, final int chunk ) {
+		 return ( ( offset[ chunk ] & OFFSET_MASK ) * C_TIMES_256 >> 8 ) + chunk * 3;
 	}
-
 	
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
@@ -392,7 +395,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		LOGGER.debug( "Number of chunks: " + numChunks );
 
-		seed = new long[ numChunks ];
 		offset = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
@@ -404,7 +406,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		for ( ;; ) {
 			LOGGER.debug( "Generating minimal perfect hash function..." );
 
-			long seed = 0;
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
@@ -412,16 +413,20 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			try {
 				int q = 0;
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-					final HypergraphSolver<BitVector> solver = new HypergraphSolver<BitVector>( chunk.size(), false );
-					do {
-						seed = r.nextLong();
-					} while ( !solver.generateAndSolve( chunk, seed ) );
 
-					this.seed[ q ] = seed;
-					final long off = offset[ q ];
+					offset[ q + 1 ] = offset[ q ] + chunk.size();
+
+					long seed = 0;
+					final long off = vertexOffset( offset, q );
+					final HypergraphSolver<BitVector> solver = 
+							new HypergraphSolver<BitVector>( (int)( vertexOffset( offset, q + 1 ) - off ), chunk.size(), false );
+
+					do seed += SEED_STEP; while ( !solver.generateAndSolve( chunk, seed ) );
+
+					this.offset[ q ] |= seed;
 					final long[] solution = solver.solution;
 					for( int i = 0; i < solution.length; i++ ) values.set( i + off, solution[ i ] );
-					offset[ ++q ] = off + solver.numVertices;
+					q++;
 					
 					pl.update();
 
@@ -450,47 +455,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		}
 
 		globalSeed = chunkedHashStore.seed();
-
-		if ( n > 0 ) {
-			long m = values.size64();
-
-			final long length = bitVector.length();
-			
-			final int numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
-
-			final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
-			// Init rank/select structure
-			count = new long[ numCounts + 1 ];
-
-			long c = 0;
-			int pos = 0;
-			for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
-				count[ pos ] = c;
-
-				for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
-					if ( j != 0 && j % 6 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( j / 6 - 1 );
-					if ( i + j < numWords ) c += countNonzeroPairs( array[ i + j ] );
-				}
-			}
-			
-			count[ numCounts ] = c;
-			
-			if ( ASSERTS ) {
-				int k = 0;
-				for ( long i = 0; i < m; i++ ) {
-					assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i );
-					if ( values.getLong( i ) != 0 ) k++;
-					assert k <= n;
-				}
-
-				if ( keys != null ) {
-					final Iterator<? extends T> iterator = keys.iterator();
-					for ( long i = 0; i < n; i++ )
-						assert getLong( iterator.next() ) < n;
-				}
-			}
-		}
-		else count = LongArrays.EMPTY_ARRAY;
 
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
@@ -528,7 +492,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + count.length * Long.SIZE + offset.length * (long)Long.SIZE + seed.length * (long)Long.SIZE;
+		return values.size64() * 2 + offset.length * (long)Long.SIZE;
 	}
 
 	/**
@@ -541,29 +505,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	@Deprecated
 	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
 		this.n = mph.n;
-		this.seed = mph.seed;
 		this.offset = mph.offset;
 		this.bitVector = mph.bitVector;
 		this.globalSeed = mph.globalSeed;
 		this.chunkShift = mph.chunkShift;
 		this.values = mph.values;
 		this.array = mph.array;
-		this.count = mph.count;
 		this.transform = mph.transform.copy();
 		this.signatureMask = mph.signatureMask;
 		this.signatures = mph.signatures;
 	}
-
-//
-//	private long rank( long x ) {
-//		x *= 2;
-//		final int word = (int)( x / Long.SIZE );
-//		long rank = count[ word / ( BITS_PER_BLOCK / Long.SIZE ) ];
-//		int wordInBlock = word & ~( ( BITS_PER_BLOCK / Long.SIZE ) - 1 );
-//		while ( wordInBlock < word ) rank += countNonzeroPairs( array[ wordInBlock++ ] );
-//
-//		return rank + countNonzeroPairs( array[ word ] & ( 1L << x % Long.SIZE ) - 1 );
-//	}
 
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {
@@ -572,10 +523,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long chunkOffset = vertexOffset( offset, chunk );
+		HypergraphSorter.tripleToEdge( h, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		final long result = ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
@@ -594,10 +545,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long chunkOffset = vertexOffset( offset, chunk );
+		HypergraphSorter.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		final long result = ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
@@ -607,9 +558,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		return rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+		final long chunkOffset = vertexOffset( offset, chunk );
+		HypergraphSorter.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
+		return ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 	}
 
 	public long size64() {

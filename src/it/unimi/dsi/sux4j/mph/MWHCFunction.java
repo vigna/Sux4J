@@ -145,6 +145,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 
+	/** The local seed is generated using this step, so to be easily embeddable in {@link #offset}. */
+	private static final long SEED_STEP = 1L << 56;
+	/** The lowest 56 bits of {@link #offset} contain the number of keys stored up to the given chunk. */
+	private static final long OFFSET_MASK = -1L >>> 8;
+
+	/** The ratio between vertices and hyperedges. */
+	private static double C = 1.09 + 0.01;
+
 	/** A builder class for {@link MWHCFunction}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
@@ -303,8 +311,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	protected final int width;
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
-	/** The seed of the underlying 3-hypergraphs. */
-	protected final long[] seed;
 	/** The start offset of each block. */
 	protected final long[] offset;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
@@ -539,7 +545,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			data = null;
 			marker = null;
 			rank = null;
-			seed = null;
 			offset = null;
 			signatureMask = 0;
 			signatures = null;
@@ -552,7 +557,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		LOGGER.debug( "Number of chunks: " + numChunks );
 		
-		seed = new long[ numChunks ];
 		offset = new long[ numChunks + 1 ];
 		
 		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
@@ -566,7 +570,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		for(;;) {
 			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
 
-			long seed = 0;
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
@@ -576,10 +579,19 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 				final LongBigList data = dataBitVector.asLongBigList( this.width );
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					HypergraphSolver<BitVector> solver = new HypergraphSolver<BitVector>( chunk.size() );
-					do {
-						seed = r.nextLong();
-					} while ( ! solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
+
+					/* We need to avoid very small graphs, which give rise
+					 * to unsolvable system. This maximum returns 33 only when there are
+					 * less than 30 keys, or in the very unlikely evenience of a chunk with less than 30 keys. */
+					final int t = Math.max( (int)Math.floor( C * chunk.size() ), 33 );
+					// We prefer multiples of 3, so all parts have the same size.
+					offset[ q + 1 ] = offset[ q ] + t + ( 3 - t % 3 ) % 3;
+
+					long seed = 0;
+					final HypergraphSolver<BitVector> solver = 
+							new HypergraphSolver<BitVector>( (int)( offset[ q + 1 ] - offset[ q ] ), chunk.size() );
+
+					do seed += SEED_STEP; while ( ! solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
 						private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 						
 						@Override
@@ -593,11 +605,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						}
 					}) );
 
+					this.offset[ q ] |= seed;
 
-					this.seed[ q ] = seed;
 					dataBitVector.fill( false );
 					data.size( solver.numVertices );
-					offset[ q + 1 ] = offset[ q ] + solver.numVertices; 
 					q++;
 					
 					/* We assign values. */
@@ -639,7 +650,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			iterator.close();
 		}
 		// We estimate size using Rank16
-		if ( nonZero * this.width + m * 1.126 < m * this.width ) {
+		if ( nonZero * this.width + m * C < m * this.width ) {
 			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
@@ -720,8 +731,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long chunkOffset = offset[ chunk ] & OFFSET_MASK;
+		HypergraphSorter.tripleToEdge( h, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		
@@ -749,8 +760,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
+		final long chunkOffset = offset[ chunk ] & OFFSET_MASK;
+		HypergraphSorter.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		final long result = rank == null ?
@@ -783,7 +794,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * (long)Long.SIZE + offset.length * (long)Integer.SIZE;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + offset.length * (long)Integer.SIZE;
 	}
 
 	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.
@@ -799,7 +810,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		this.globalSeed = function.globalSeed;
 		this.offset = function.offset;
 		this.width = function.width;
-		this.seed = function.seed;
 		this.data = function.data;
 		this.rank = function.rank;
 		this.marker = function.marker;

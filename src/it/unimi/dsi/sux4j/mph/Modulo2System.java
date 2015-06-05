@@ -276,40 +276,67 @@ public class Modulo2System {
 		return true;
 	}
 
-
 	public boolean structuredGaussianElimination( final long[] solution ) {
+		final int[][] var2Eq = new int[ numVars ][];
+		final int[] d = new int[ numVars ];
+		for( final Modulo2Equation equation: equations ) 
+			for( int v = (int)equation.bitVector.length(); v-- != 0; ) 
+				if ( equation.bitVector.getBoolean( v ) ) d[ v ]++; 
+		
+		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
+		Arrays.fill( d, 0 );
+		final long[] c = new long[ equations.size() ];
+		for( int e = equations.size(); e-- != 0; ) {
+			c[ e ] = equations.get( e ).c;
+			LongArrayBitVector bitVector = equations.get( e ).bitVector;
+			for( int v = (int)bitVector.length(); v-- != 0; ) 
+				if ( bitVector.getBoolean( v ) ) var2Eq[ v ][ d[ v ]++ ] = e;
+		}
+		
+		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
+	}
+
+	public static boolean structuredGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
+	}
+	
+	public static boolean structuredGaussianElimination( Modulo2System system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+		final int numEquations = c.length;
+		if ( numEquations == 0 ) return true;
+
+		final int numVars = var2Eq.length;
 		assert solution.length == numVars;
 
-		if ( DEBUG ) {
-			System.err.println();
-			System.err.println( "====================" );
-			System.err.println();
-			System.err.println( this );
+		final boolean buildSystem = system == null;
+
+		if ( buildSystem ) {
+			system = new Modulo2System( numVars );
+			for( int i = 0; i < c.length; i++ ) system.add( new Modulo2Equation( c[ i ], numVars ) );
 		}
-			
-		final int numEquations = equations.size();
-		if ( numEquations == 0 ) return true;
+				
 		/* The weight of each variable, that is, the number of equations still 
 		 * in the queue in which the variable appears. We use zero to 
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[ numVars ];
-		// For each variable, the equations containing it.
-		final IntArrayList[] varEquation = new IntArrayList[ numVars ];
+
 		// The priority of each equation still to be examined (the number of light variables).
 		final int[] priority = new int[ numEquations ];
 
-		for( int i = 0; i < numEquations; i++ ) {
-			final Modulo2Equation equation = equations.get( i );
-			// Initially, all variables are light.
-			final int[] elements = equation.addedVars.elements();
-			for( int j = equation.addedVars.size(); j-- != 0; ) {
-				final int var = elements[ j ];
-				if ( varEquation[ var ] == null ) varEquation[ var ] = new IntArrayList( 8 );
-				weight[ var ]++;
-				varEquation[ var ].add( i );
-				priority[ i ]++;
+		for( final int v : variable ) {
+			weight[ v ] = var2Eq[ v ].length;
+			for( int e : var2Eq[ v ] ) {
+				if ( buildSystem ) system.equations.get( e ).add( v );
+				priority[ e ]++;
 			}
 		}
+		
+		if ( DEBUG ) {
+			System.err.println();
+			System.err.println( "===== Going to solve... ======" );
+			System.err.println();
+			System.err.println( system );
+		}
+			
 
 		// All variables in a stack returning heavier variables first.
 		final IntArrayList variables;
@@ -333,11 +360,12 @@ public class Modulo2System {
 		// The light variable corresponding to each solved equation.
 		IntArrayList pivots = new IntArrayList();
 
+		final ArrayList<Modulo2Equation> equations = system.equations;
 		// A bit vector containing a 1 in correspondence of each light variable.
 		final long[] lightNormalized = new long[ equations.get( 0 ).bits.length ];
 		Arrays.fill( lightNormalized, -1 );
 
-		numHeavy = 0;
+		int numHeavy = 0;
 
 		for( int remaining = equations.size(); remaining != 0; ) {
 			if ( equationList.isEmpty() ) {
@@ -347,11 +375,8 @@ public class Modulo2System {
 				numHeavy++;
 				lightNormalized[ var / 64 ] ^= 1L << ( var % 64 );
 				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " heavy (" + remaining + " equations to go)" );
-				final int[] elements = varEquation[ var ].elements();
-				for( int i = varEquation[ var ].size(); i-- != 0; ) {
-					final int equationIndex = elements[ i ];
+				for( final int equationIndex: var2Eq[ var ] )
 					if ( --priority[ equationIndex ] == 1 ) equationList.push( equationIndex );
-				}
 			}
 			else {
 				remaining--;
@@ -382,9 +407,7 @@ public class Modulo2System {
 					weight[ pivot ] = 0;
 
 					// Now we need to eliminate the variable from all other equations containing it.
-					final int[] elements = varEquation[ pivot ].elements();
-					for( int i = varEquation[ pivot ].size(); i-- != 0; ) {
-						final int equationIndex = elements[ i ];
+					for( final int equationIndex: var2Eq[ pivot ] ) {
 						if ( equationIndex == first ) continue;
 						if ( --priority[ equationIndex ] == 1 ) equationList.add( equationIndex );
 						if ( DEBUG ) System.err.print( "Replacing equation (" + equationIndex + ") " + equations.get( equationIndex ) + " with " );

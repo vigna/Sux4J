@@ -20,12 +20,12 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.sux4j.mph.Modulo2System.Modulo2Equation;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -152,13 +152,11 @@ public class HypergraphSolver<T> {
 	public final int[] vertex2;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
-	/** The edge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
+	/** The hinge stack. At the end of a peeling phase, it contains the hinges in reverse order. */
 	public final int[] stack;
-	/** The vector of solutions. */
-	public long[] solution;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
-	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
+	/** If false, we do not allocate {@link #edge} and to not compute edge indices. */
 	private final boolean computeEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;
@@ -166,20 +164,21 @@ public class HypergraphSolver<T> {
 	private int top;
 	/** The stack used for peeling the graph. */
 	private final IntArrayList visitStack;
+	/** Three parallel arrays containing each one of the three vertices of a hyperedge. */ 
 	private int[][] edge2Vertex;
+	/** The vector of solutions. */
+	public long[] solution;
 
-	/** Creates a hypergraph sorter for a given number of edges.
+	/** Creates a hypergraph solver for a given number of edges.
 	 * 
-	 * @param numEdges the number of edges of this hypergraph sorter.
+	 * @param numVertices the number of vertices of this hypergraph solver.
+	 * @param numEdges the number of edges of this hypergraph solver.
 	 * @param computeEdges if false, the index of the edge associated with each hinge will not be computed.
 	 */
-	public HypergraphSolver( final int numEdges, final boolean computeEdges ) {
+	public HypergraphSolver( final int numVertices, final int numEdges, final boolean computeEdges ) {
+		this.numVertices = numVertices;
 		this.numEdges = numEdges;
 		this.computeEdges = computeEdges;
-		// The theoretically sufficient number of vertices
-		final int m = numEdges == 0 ? 0 : (int)Math.ceil( GAMMA * numEdges ) + 1;
-		// This guarantees that the number of vertices is a multiple of 3
-		numVertices = m + ( 3 - m % 3 ) % 3;
 		partSize = numVertices / 3;
 		vertex1 = new int[ numVertices ];
 		vertex2 = new int[ numVertices ];
@@ -190,12 +189,13 @@ public class HypergraphSolver<T> {
 		neverUsed = true;
 	}
 
-	/** Creates a hypergraph sorter for a given number of edges.
+	/** Creates a hypergraph solver for a given number of vertices and edges.
 	 * 
-	 * @param numEdges the number of edges of this hypergraph sorter.
+	 * @param numVertices the number of vertices of this hypergraph solver.
+	 * @param numEdges the number of edges of this hypergraph solver.
 	 */
-	public HypergraphSolver( final int numEdges ) {
-		this( numEdges, true );
+	public HypergraphSolver( final int numVertices, final int numEdges ) {
+		this( numVertices, numEdges, true );
 	}
 	
 	private final void cleanUpIfNecessary() {
@@ -268,9 +268,9 @@ public class HypergraphSolver<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] e = new int[ 3 ];
-		cleanUpIfNecessary();
-		
 		final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
+
+		cleanUpIfNecessary();
 		
 		/* We build the edge list and compute the degree of each vertex. */
 		final Iterator<long[]> iterator = iterable.iterator();
@@ -300,7 +300,7 @@ public class HypergraphSolver<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		LOGGER.debug( "Peeling hypergraph..." );
+		LOGGER.debug( "Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)..." );
 
 		top = 0;
 		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
@@ -348,31 +348,40 @@ public class HypergraphSolver<T> {
 		if ( computeEdges ) {
 			if ( ! peeled ) {
 				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
-				Modulo2System system = new Modulo2System( numVertices );
 
-				for ( int i = 0; i < numEdges; i++ ) {
+				final int[][] vertex2Edge = new int[ d.length ][];
+				for( int i = vertex2Edge.length; i-- != 0; ) vertex2Edge[ i ] = new int[ d[ i ] ];
+				final int[] p = new int[ d.length ];
+				final long[] c = new long[ d.length - top ];
+
+				for ( int i = 0, j = 0; i < numEdges; i++ ) {
 					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
 						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
+						final int v0 = edgeList0[ i ];
+						vertex2Edge[ v0 ][ p[ v0 ]++ ] = j;
+						final int v1 = edgeList1[ i ];
+						vertex2Edge[ v1 ][ p[ v1 ]++ ] = j;
+						final int v2 = edgeList2[ i ];
+						vertex2Edge[ v2 ][ p[ v2 ]++ ] = j;
 
-						system.add( new Modulo2Equation( valueList.getLong( i ), numVertices ).add( edgeList0[ i ] ).add( edgeList1[ i ] ).add( edgeList2[ i ] ) );
+						c[ j++ ] = valueList.getLong( i );
 					}
 				}
 				
-				if ( ! system.structuredGaussianElimination( solution ) ) {
+				assert Arrays.equals( d, p );
+
+				if ( ! Modulo2System.structuredGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
 					LOGGER.debug( "System is unsolvable" );
 					return false;
 				}
-				assert system.check( solution );
 			}
 
 			while( top > 0 ) {
 				final int x = stack[ --top ];
-				final int k = edge[ x ];
-				final long s = solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ];
-				solution[ x ] = valueList.getLong( k ) ^ s;
+				solution[ x ] = valueList.getLong( edge[ x ] ) ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ];
 
-				assert ( valueList.getLong( k ) == ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] ) ) :
-					"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + valueList.getLong( k ) + " != " + ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] );
+				assert ( valueList.getLong( edge[ x ] ) == ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] ) ) :
+					"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + valueList.getLong( edge[ x ] ) + " != " + ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] );
 			}
 				
 			return true;
@@ -618,17 +627,6 @@ public class HypergraphSolver<T> {
 					if ( weight[ i ] != w ) throw new AssertionError( "Edge " + i + ": " + w + " != " + weight[ i ] );
 				}
 				for( int i = 0; i < numVertices; i++ ) if ( ! isHinge[ i ] && d[ i ] > 1 && pri[ i ] != priority[ i ] ) throw new AssertionError( "Vertex " + i + ": " + pri[ i ] + " != " + priority[ i ] );
-
-				/*double sum = 0;
-				for( int i = 0; i < priority.length; i++ ) {
-					if ( vertices.contains( i ) ) {
-						if ( priority[ i ] != 0 ) sum += priority[ i ];
-						else if ( !edges[ i ].isEmpty() ) sum += 1. / weight[ edges[ i ].first() ]; // Special case for force priority == 0
-					}
-				}
-				assert Math.abs( sum - ( hinges.length - t - 1 ) ) < 1E-9 : sum + " != " + ( hinges.length - t - 1 );*/  
-
-
 			}
 
 			if ( DEBUG ) {

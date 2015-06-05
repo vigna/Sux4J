@@ -163,17 +163,14 @@ public class Modulo3System {
 		 * @return the field-by-field mod 3 sum of {@code x} and {@code y}. 
 		 */
 		protected final static long addMod3( final long x, final long y ) {
-	        // mask the high bit of each pair set iff the result of the
-	        // sum in that position is >= 3
-	        // check if x is 2 and y is nonzero ...
-	        long mask = x & (y | (y << 1));
-	        // ... or x is 1 and y is 2
-	        mask |= (x << 1) & y;
-	        // clear the low bits
-	        mask &= 0x5555555555555555L << 1;
-	        // and turn 2s into 3s
-	        mask |= mask >> 1;
-	        return (x + y) - mask;
+		    final long xy = x | y;
+		    // x or y == 2 && x or y == 1
+		    long mask = (xy << 1) & xy;
+		    // x == 2 && y = 2
+		    mask |= x & y;
+		    mask &= 0x5555555555555555L << 1;
+		    mask |= mask >>> 1;
+		    return x + y - mask;
 	    }
 
 		/** Subtracts two 64-bit words made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
@@ -183,20 +180,17 @@ public class Modulo3System {
 		 * @return the field-by-field mod 3 difference of {@code x} and {@code y}. 
 		 */
 		protected final static long subMod3( final long x, long y ) {
-	        // Change of sign
-	        y = ( y & 0x5555555555555555L ) << 1 | ( y & 0xAAAAAAAAAAAAAAAAL ) >>> 1;
-	        // mask the high bit of each pair set iff the result of the
-	        // sum in that position is >= 3
-	        // check if x is 2 and y is nonzero ...
-			long mask = x & ( y | (y << 1) );
-	        // ... or x is 1 and y is 2
-	        mask |= (x << 1) & y;
-	        // clear the low bits
-	        mask &= 0x5555555555555555L << 1;
-	        // and turn 2s into 3s
-	        mask |= mask >> 1;
-	        return (x + y) - mask;
-	    }
+		    // y = 3 - y
+		    y = y ^ 0xFFFFFFFFFFFFFFFFL; // now y > 0
+		    // x == 2
+		    long mask = x;
+		    // (x == 2 && y == 2, 3) || y == 3;
+		    mask |= ((x | y) << 1) & y;
+		    mask &= 0x5555555555555555L << 1;
+		    mask |= mask >>> 1;
+		    return x + y - mask;
+		}
+		
 
 		/** Adds to the left side of this equation a bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
 		 * 

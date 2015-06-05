@@ -23,9 +23,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -149,11 +146,11 @@ public class HypergraphSorter<T> {
 	public final int[] vertex2;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
-	/** The edge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
+	/** The hinge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
 	public final int[] stack;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
-	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
+	/** If false, we do not allocate {@link #edge} and to not compute edge indices. */
 	private final boolean computeEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;

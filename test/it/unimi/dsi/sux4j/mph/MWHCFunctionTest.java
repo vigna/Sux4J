@@ -9,6 +9,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -32,10 +33,9 @@ public class MWHCFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
-
 		for ( int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8 ) {
 			for ( int signatureWidth: new int[] { -32, 0, 32, 64 } ) {
-				for ( int size = 1000; size < 10000000; size *= 10 ) {
+				for ( int size = 1; size < 10000000; size *= 10 ) {
 					String[] s = new String[ size ];
 					for ( int i = s.length; i-- != 0; )
 						s[ i ] = Integer.toString( i );

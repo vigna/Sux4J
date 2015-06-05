@@ -4,10 +4,32 @@ import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 
 
 public class HypergraphSolverTest {
+
+	public static int[][] vertex2Edge( final int numVars, final int[] vertex0, final int[] vertex1, final int[] vertex2 ) {
+		final int[][] vertex2Edge = new int[ numVars ][];
+		final int[] d = new int[ numVars ];
+		for( int i = vertex0.length; i-- != 0; ) {
+			d[ vertex0[ i ] ]++;
+			d[ vertex1[ i ] ]++;
+			d[ vertex2[ i ] ]++;
+		}
+		
+		for( int v = numVars; v-- != 0; ) vertex2Edge[ v ] = new int[ d[ v ] ];
+		Arrays.fill( d, 0 );
+		for( int i = vertex0.length; i-- != 0; ) {
+			vertex2Edge[ vertex0[ i ] ][ d[ vertex0[ i ] ]++ ] = i;
+			vertex2Edge[ vertex1[ i ] ][ d[ vertex1[ i ] ]++ ] = i;
+			vertex2Edge[ vertex2[ i ] ][ d[ vertex2[ i ] ]++ ] = i;
+		}
+		
+		return vertex2Edge;
+	}
 
 	@Test
 	public void smallTest() {
@@ -16,7 +38,7 @@ public class HypergraphSolverTest {
 		int[] vertex2 = { 2, 3, 4, 0 };
 		int[] d = { 3, 3, 3, 2, 1 };
 		int[] hinges = new int[ vertex1.length ];
-		assertTrue( HypergraphSolver.directHyperedges( d, vertex0, vertex1, vertex2, hinges, 0 ) );
+		assertTrue( HypergraphSolver.directHyperedges( vertex2Edge( 5, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges, 0 ) );
 	}
 
 	@Test
@@ -62,7 +84,7 @@ public class HypergraphSolverTest {
 					d[ w ]++;
 				}
 
-				assertTrue( "size: " + n + ", count: " + count, HypergraphSolver.directHyperedges( d, vertex0, vertex1, vertex2, hinges, 0 ) );
+				assertTrue( "size: " + n + ", count: " + count, HypergraphSolver.directHyperedges( vertex2Edge( d.length, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges, 0 ) );
 			}
 		}
 	}
