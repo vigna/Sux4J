@@ -142,14 +142,8 @@ public class HypergraphSolver<T> {
 	public static final double GAMMA = 1.09 + 0.01;
 	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
 	public final int numVertices;
-	/** {@link #numVertices} / 3. */
-	public final int partSize;
 	/** The number of edges in the hypergraph. */
 	public final int numEdges;
-	/** For each vertex, the XOR of the values of the smallest other vertex in each incident 3-hyperedge. */
-	public final int[] vertex1;
-	/** For each vertex, the XOR of the values of the largest other vertex in each incident 3-hyperedge. */
-	public final int[] vertex2;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
 	/** The hinge stack. At the end of a peeling phase, it contains the hinges in reverse order. */
@@ -179,10 +173,7 @@ public class HypergraphSolver<T> {
 		this.numVertices = numVertices;
 		this.numEdges = numEdges;
 		this.computeEdges = computeEdges;
-		partSize = numVertices / 3;
-		vertex1 = new int[ numVertices ];
-		vertex2 = new int[ numVertices ];
-		edge = computeEdges ? new int[ numVertices ] : null;
+		edge = new int[ numVertices ];
 		stack = new int[ numEdges ];
 		d = new int[ numVertices ];
 		visitStack = new IntArrayList( INITIAL_QUEUE_SIZE );
@@ -201,49 +192,62 @@ public class HypergraphSolver<T> {
 	private final void cleanUpIfNecessary() {
 		if ( ! neverUsed ) { 
 			Arrays.fill( d, 0 );
-			Arrays.fill( vertex1, 0 );
-			Arrays.fill( vertex2, 0 );
-			if ( computeEdges ) Arrays.fill( edge, 0 );
+			Arrays.fill( edge, 0 );
 		}
 		neverUsed = false;
 	}
 
-	private final void xorEdge( final int k, final int x, final int y, final int z, boolean partial ) {
-		//if ( partial ) System.err.println( "Stripping <" + x + ", " + y + ", " + z + ">: " + Arrays.toString( edge ) + " " + Arrays.toString( hinge ) );
-		if ( computeEdges ) {
-			if ( ! partial ) edge[ x ] ^= k;
-			edge[ y ] ^= k;
-			edge[ z ] ^= k;
-		}
+	private final void xorEdge( final int e, final int hinge ) {
+		if ( hinge != edge2Vertex[ 0 ][ e ] ) edge[ edge2Vertex[ 0 ][ e ] ] ^= e;
+		if ( hinge != edge2Vertex[ 1 ][ e ] ) edge[ edge2Vertex[ 1 ][ e ] ] ^= e;
+		if ( hinge != edge2Vertex[ 2 ][ e ] ) edge[ edge2Vertex[ 2 ][ e ] ] ^= e;
+	}
 
-		if ( ! partial ) {
-			if ( y < z ) {
-				vertex1[ x ] ^= y;
-				vertex2[ x ] ^= z;
-			}
-			else {
-				vertex1[ x ] ^= z;
-				vertex2[ x ] ^= y;
-			}
+	/** Turns a triple of longs into a 3-hyperedge.
+	 * 
+	 * <p>If there are no vertices the vector <code>e</code> will be filled with -1.
+	 * 
+	 * @param triple a triple of intermediate hashes.
+	 * @param seed the seed for the hash function.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
+	 * @param e an array to store the resulting edge.
+	 * @see #bitVectorToEdge(BitVector, long, int, int, int[])
+	 */
+	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
+		if ( numVertices == 0 ) {
+			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
+			return;
 		}
+		final long[] hash = new long[ 3 ];
+		Hashes.jenkins( triple, seed, hash );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+	}
 
-		if ( x < z ) {
-			vertex1[ y ] ^= x;
-			vertex2[ y ] ^= z;
+	/** Turns a bit vector into a 3-hyperedge.
+	 * 
+	 * <p>If there are no vertices the vector <code>e</code> will be filled with -1.
+	 * 
+	 * @param bv a bit vector.
+	 * @param seed the seed for the hash function.
+	 * @param numVertices the number of vertices in the underlying hypergraph.
+	 * @param e an array to store the resulting edge.
+	 */
+	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int partSize, final int e[] ) {
+		if ( numVertices == 0 ) {
+			e[ 0 ] = e[ 1 ] = e[ 2 ] = -1;
+			return;
 		}
-		else {
-			vertex1[ y ] ^= z;
-			vertex2[ y ] ^= x;
-		}
-		if ( x < y ) {
-			vertex1[ z ] ^= x;
-			vertex2[ z ] ^= y;
-		}
-		else {
-			vertex1[ z ] ^= y;
-			vertex2[ z ] ^= x;
-		}
-		//if ( ! partial ) System.err.println( "After adding <" + x + ", " + y + ", " + z + ">" );
+		final long[] hash = new long[ 3 ];
+		Hashes.jenkins( bv, seed, hash );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+	}
+	
+	private String edge2String( final int e ) {
+		return "<" + edge2Vertex[ 0 ][ e ] + "," + edge2Vertex[ 1 ][ e ] + "," + edge2Vertex[ 2 ][ e ] + ">";
 	}
 
 	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
@@ -275,13 +279,13 @@ public class HypergraphSolver<T> {
 		/* We build the edge list and compute the degree of each vertex. */
 		final Iterator<long[]> iterator = iterable.iterator();
 		for( int i = 0; i < numEdges; i++ ) {
-			HypergraphSorter.tripleToEdge( iterator.next(), seed, numVertices, partSize, e );
+			tripleToEdge( iterator.next(), seed, numVertices, e );
 			if ( DEBUG ) System.err.println("Edge <" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + ">" );
 
-			xorEdge( i, e[ 0 ], e[ 1 ], e[ 2 ], false );
 			edgeList0[ i ] = e[ 0 ];
 			edgeList1[ i ] = e[ 1 ];
 			edgeList2[ i ] = e[ 2 ];
+			xorEdge( i, -1 );
 			d[ e[ 0 ] ]++;
 			d[ e[ 1 ] ]++;
 			d[ e[ 2 ] ]++;
@@ -316,8 +320,6 @@ public class HypergraphSolver<T> {
 
 	private void peel( final int x ) {
 		// System.err.println( "Visiting " + x + "..." );
-		final int[] vertex1 = this.vertex1;
-		final int[] vertex2 = this.vertex2;
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
@@ -328,15 +330,19 @@ public class HypergraphSolver<T> {
 		visitStack.clear();
 		visitStack.push( x );
 
+		final int[] edge2Vertex0 = edge2Vertex[ 0 ];
+		final int[] edge2Vertex1 = edge2Vertex[ 1 ];
+		final int[] edge2Vertex2 = edge2Vertex[ 2 ];
+		
 		while ( ! visitStack.isEmpty() ) {
 			v = visitStack.popInt();
 			if ( d[ v ] == 1 ) {
 				stack[ top++ ] = v;
-				--d[ v ];
 				// System.err.println( "Stripping <" + v + ", " + vertex1[ v ] + ", " + vertex2[ v ] + ">" );
-				xorEdge( computeEdges ? edge[ v ] : -1, v, vertex1[ v ], vertex2[ v ], true );
-				if ( --d[ vertex1[ v ] ] == 1 ) visitStack.add( vertex1[ v ] );
-				if ( --d[ vertex2[ v ] ] == 1 ) visitStack.add( vertex2[ v ] );				
+				xorEdge( edge[ v ], v );
+				if ( --d[ edge2Vertex0[ edge[ v ] ] ] == 1 ) visitStack.add( edge2Vertex0[ edge[ v ] ] );
+				if ( --d[ edge2Vertex1[ edge[ v ] ] ] == 1 ) visitStack.add( edge2Vertex1[ edge[ v ] ] );
+				if ( --d[ edge2Vertex2[ edge[ v ] ] ] == 1 ) visitStack.add( edge2Vertex2[ edge[ v ] ] );
 			}
 		}
 	}
@@ -344,10 +350,12 @@ public class HypergraphSolver<T> {
 	private boolean solve( final LongBigList valueList ) {
 		final boolean peeled = sort();
 		solution = new long[ numVertices ];
+		final long[] solution = this.solution;
+		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge = this.edge, d = this.d;
 
 		if ( computeEdges ) {
+
 			if ( ! peeled ) {
-				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
 
 				final int[][] vertex2Edge = new int[ d.length ][];
 				for( int i = vertex2Edge.length; i-- != 0; ) vertex2Edge[ i ] = new int[ d[ i ] ];
@@ -355,13 +363,13 @@ public class HypergraphSolver<T> {
 				final long[] c = new long[ d.length - top ];
 
 				for ( int i = 0, j = 0; i < numEdges; i++ ) {
-					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
-						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
-						final int v0 = edgeList0[ i ];
+					if ( d[ edge2Vertex0[ i ] ] > 0 && d[ edge2Vertex1[ i ] ] > 0 && d[ edge2Vertex2[ i ] ] > 0 ) {
+						assert d[ edge2Vertex0[ i ] ] > 1 & d[ edge2Vertex1[ i ] ] > 1 & d[ edge2Vertex2[ i ] ] > 1;
+						final int v0 = edge2Vertex0[ i ];
 						vertex2Edge[ v0 ][ p[ v0 ]++ ] = j;
-						final int v1 = edgeList1[ i ];
+						final int v1 = edge2Vertex1[ i ];
 						vertex2Edge[ v1 ][ p[ v1 ]++ ] = j;
-						final int v2 = edgeList2[ i ];
+						final int v2 = edge2Vertex2[ i ];
 						vertex2Edge[ v2 ][ p[ v2 ]++ ] = j;
 
 						c[ j++ ] = valueList.getLong( i );
@@ -378,55 +386,57 @@ public class HypergraphSolver<T> {
 
 			while( top > 0 ) {
 				final int x = stack[ --top ];
-				solution[ x ] = valueList.getLong( edge[ x ] ) ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ];
-
-				assert ( valueList.getLong( edge[ x ] ) == ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] ) ) :
-					"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + valueList.getLong( edge[ x ] ) + " != " + ( solution[ x ] ^ solution[ vertex1[ x ] ] ^ solution[ vertex2[ x ] ] );
+				solution[ x ] = valueList.getLong( edge[ x ] );
+				if ( x != edge2Vertex0[ edge[ x ] ] ) solution[ x ] ^= solution[ edge2Vertex0[ edge[ x ] ] ];
+				if ( x != edge2Vertex1[ edge[ x ] ] ) solution[ x ] ^= solution[ edge2Vertex1[ edge[ x ] ] ];
+				if ( x != edge2Vertex2[ edge[ x ] ] ) solution[ x ] ^= solution[ edge2Vertex2[ edge[ x ] ] ];
+				
+				assert valueList.getLong( edge[ x ] ) == ( solution[ edge2Vertex[ edge[ x ] ][ 0 ] ] ^ solution[ edge2Vertex[ edge[ x ] ][ 1 ] ] ^ solution[ edge2Vertex[ edge[ x ] ][ 2 ] ] ) :
+					edge2String( edge[ x ] ) + ": " + valueList.getLong( edge[ x ] ) + " != " + ( solution[ edge2Vertex[ edge[ x ] ][ 0 ] ] ^ solution[ edge2Vertex[ edge[ x ] ][ 1 ] ] ^ solution[ edge2Vertex[ edge[ x ] ][ 2 ] ] );
 			}
 				
 			return true;
 		}
 		else {
 			if ( ! peeled ) {
-				final int[] edgeList0 = edge2Vertex[ 0 ], edgeList1 = edge2Vertex[ 1 ], edgeList2 = edge2Vertex[ 2 ];
-
-				// Compress the edge representation eliminating peeled edges.
-				int length = 0;
-				for ( int i = 0; i < numEdges; i++ ) {
-					if ( d[ edgeList0[ i ] ] > 0 && d[ edgeList1[ i ] ] > 0 && d[ edgeList2[ i ] ] > 0 ) {
-						assert d[ edgeList0[ i ] ] > 1 & d[ edgeList1[ i ] ] > 1 & d[ edgeList2[ i ] ] > 1;
-						edgeList0[ length ] = edgeList0[ i ];
-						edgeList1[ length ] = edgeList1[ i ];
-						edgeList2[ length ] = edgeList2[ i ];
-						length++;
-					}
-				}
-
+				final int length = numEdges - top;
+				final int[] remEdge2Vertex0 = new int[ length ], remEdge2Vertex1 = new int[ length ], remEdge2Vertex2 = new int[ length ]; 
 				final int[][] edges = new int[ d.length ][];
 				for( int i = edges.length; i-- != 0; ) edges[ i ] = new int[ d[ i ] ];
 
+				// Compress the edge representation eliminating peeled edges.
+				for ( int i = 0, j = 0; i < numEdges; i++ ) {
+					if ( d[ edge2Vertex0[ i ] ] > 0 && d[ edge2Vertex1[ i ] ] > 0 && d[ edge2Vertex2[ i ] ] > 0 ) {
+						assert d[ edge2Vertex0[ i ] ] > 1 & d[ edge2Vertex1[ i ] ] > 1 & d[ edge2Vertex2[ i ] ] > 1;
+						remEdge2Vertex0[ j ] = edge2Vertex0[ i ];
+						remEdge2Vertex1[ j ] = edge2Vertex1[ i ];
+						remEdge2Vertex2[ j ] = edge2Vertex2[ i ];
+						j++;
+					}
+				}
+
 				Arrays.fill( d, 0 );
 				for ( int i = 0; i < length; i++ ) {
-					final int v0 = edgeList0[ i ];
+					final int v0 = remEdge2Vertex0[ i ];
 					edges[ v0 ][ d[ v0 ]++ ] = i;
-					final int v1 = edgeList1[ i ];
+					final int v1 = remEdge2Vertex1[ i ];
 					edges[ v1 ][ d[ v1 ]++ ] = i;
-					final int v2 = edgeList2[ i ];
+					final int v2 = remEdge2Vertex2[ i ];
 					edges[ v2 ][ d[ v2 ]++ ] = i;
 				}
 
 				final int[] hinge = new int[ length ];
-				if ( ! directHyperedges( edges, d, edgeList0, edgeList1, edgeList2, hinge, length ) ) return false;
+				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge, length ) ) return false;
 				
-				if ( DEBUG ) for( int i = 0; i < length; i++ ) System.err.println( "<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + "> => " + hinge[ i ] );
+				if ( DEBUG ) for( int i = 0; i < length; i++ ) System.err.println( "<" + remEdge2Vertex0[ i ] + "," + remEdge2Vertex1[ i ] + "," + remEdge2Vertex2[ i ] + "> => " + hinge[ i ] );
 
 				final int[] c = new int[ length ];
 				for ( int i = 0; i < length; i++ ) {
 					final int h = hinge[ i ];
-					c[ i ] = h == edgeList1[ i ] ? 1 : h == edgeList2[ i ] ? 2 : 0;
-					assert c[ i ] != 0 || edgeList0[ i ] == hinge[ i ];
-					assert c[ i ] != 1 || edgeList1[ i ] == hinge[ i ];
-					assert c[ i ] != 2 || edgeList2[ i ] == hinge[ i ];
+					c[ i ] = h == remEdge2Vertex0[ i ] ? 0 : h == remEdge2Vertex1[ i ] ? 1 : 2;
+					assert c[ i ] != 0 || remEdge2Vertex0[ i ] == hinge[ i ];
+					assert c[ i ] != 1 || remEdge2Vertex1[ i ] == hinge[ i ];
+					assert c[ i ] != 2 || remEdge2Vertex2[ i ] == hinge[ i ];
 				}
 				
 				if ( ! Modulo3System.structuredGaussianElimination( edges, c, hinge, solution ) ) {
@@ -437,34 +447,45 @@ public class HypergraphSolver<T> {
 
 				if ( ASSERTS ) {
 					for( int i = 0; i < length; i++ ) {
-						final int k = hinge[ i ] == edgeList1[ i ] ? 1 : hinge[ i ] == edgeList2[ i ] ? 2 : 0;
-						assert k != 0 || edgeList0[ i ] == hinge[ i ];
-						assert k != 1 || edgeList1[ i ] == hinge[ i ];
-						assert k != 2 || edgeList2[ i ] == hinge[ i ];
-						assert ( k == ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3 ) :
-							"<" + edgeList0[ i ] + "," + edgeList1[ i ] + "," + edgeList2[ i ] + ">: " + i + " != " + ( solution[ edgeList0[ i ] ] + solution[ edgeList1[ i ] ] + solution[ edgeList2[ i ] ] ) % 3;
+						final int k = hinge[ i ] == remEdge2Vertex0[ i ] ? 0 : hinge[ i ] == remEdge2Vertex1[ i ] ? 1 : 2;
+						assert k != 0 || remEdge2Vertex0[ i ] == hinge[ i ];
+						assert k != 1 || remEdge2Vertex1[ i ] == hinge[ i ];
+						assert k != 2 || remEdge2Vertex2[ i ] == hinge[ i ];
+						assert ( k == ( solution[ remEdge2Vertex0[ i ] ] + solution[ remEdge2Vertex1[ i ] ] + solution[ remEdge2Vertex2[ i ] ] ) % 3 ) :
+							"<" + remEdge2Vertex0[ i ] + "," + remEdge2Vertex1[ i ] + "," + remEdge2Vertex2[ i ] + ">: " + k + " != " + ( solution[ remEdge2Vertex0[ i ] ] + solution[ remEdge2Vertex1[ i ] ] + solution[ remEdge2Vertex2[ i ] ] ) % 3;
 					}
 				}
 				
 				for( int i = 0; i < length; i++ ) if ( solution[ hinge[ i ] ] == 0 ) solution[ hinge[ i ] ] = 3;
 			}
 
-			if ( DEBUG ) System.err.println( "Peeled: " );
+			if ( DEBUG ) System.err.println( "Peeled (" + top + "): " );
 
 			// Complete with peeled hyperedges
 			while ( top > 0 ) {
 				final int v = stack[ --top ];
-				final int k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 );
-				if ( DEBUG ) System.err.println( "<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + "> => @" + k );  
-				assert k >= 0 && k < 3 : Integer.toString( k );
-				//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
-				final long s = solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ];
-				assert solution[ v ] == 0;
-				final long value = ( k - s + 9 ) % 3;
-				solution[ v ] = value == 0 ? 3 : value;
+				final int e = edge[ v ];
+				int k;
+				if ( v == edge2Vertex0[ e ] ) k = 0;
+				else if ( v == edge2Vertex1[ e ] ) k = 1;
+				else k = 2; 
 
-				assert ( k == ( solution[ v ] + solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ] ) % 3 ) :
-					"<" + v + "," + vertex1[ v ] + "," + vertex2[ v ] + ">: " + k + " != " + ( solution[ v ] + solution[ vertex1[ v ] ] + solution[ vertex2[ v ] ] ) % 3;
+				assert v == edge2Vertex0[ e ] || v == edge2Vertex1[ e ] || v == edge2Vertex2[ e ] : v + " not in " + edge2String( e );
+				
+				if ( DEBUG ) System.err.println( edge2String( e ) + " => @" + k );  
+
+				assert solution[ v ] == 0;
+
+				long s = 0;
+				if ( v != edge2Vertex0[ e ] ) s += solution[ edge2Vertex0[ e ] ];
+				if ( v != edge2Vertex1[ e ] ) s += solution[ edge2Vertex1[ e ] ];
+				if ( v != edge2Vertex2[ e ] ) s += solution[ edge2Vertex2[ e ] ];
+
+				s = ( k - s + 9 ) % 3;
+				solution[ v ] = s == 0 ? 3 : s;
+
+				assert k == ( solution[ edge2Vertex0[ e ] ] + solution[ edge2Vertex1[ e ] ] + solution[ edge2Vertex2[ e ] ] ) % 3 :
+					edge2String( e ) + ": " + k + " != " + ( solution[ edge2Vertex0[ e ] ] + solution[ edge2Vertex1[ e ] ] + solution[ edge2Vertex2[ e ] ] ) % 3 ;
 			}
 			
 			return true;

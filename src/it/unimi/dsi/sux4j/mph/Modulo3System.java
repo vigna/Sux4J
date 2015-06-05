@@ -80,13 +80,20 @@ public class Modulo3System {
 		 * @param coefficient its coefficient.
 		 * @return this equation.
 		 */
-		public Modulo3Equation add( final int variable, final int coefficient ) {
-			if ( list.set( variable, coefficient ) != 0 ) throw new IllegalArgumentException();
-			if ( variable < firstVar ) {
-				firstVar = variable;
-				firstCoeff = coefficient;
+		public Modulo3Equation add( final int variable, int coefficient ) {
+			final int oldCoefficient = (int)list.set( variable, coefficient );
+			if ( oldCoefficient != 0 ) list.set( variable, coefficient = ( coefficient + oldCoefficient ) % 3 );
+			if ( coefficient != 0 ) {
+				if ( variable < firstVar ) {
+					firstVar = variable;
+					firstCoeff = coefficient;
+				}
+				isEmpty = false;
 			}
-			isEmpty = false;
+			else {
+				// All bets are off. We rebuild the information.
+				if ( variable == firstVar ) updateEmptyAndFirstVar();
+			}
 			return this;
 		}
 		
@@ -215,11 +222,24 @@ public class Modulo3System {
 				isNotEmpty |= ( x[ i ] = subMod3( x[ i ], y[ i ] ) ); 
 			isEmpty = isNotEmpty == 0;
 		}
-		
-		/** Updates the information contained in {@link #firstVar} and {@link #firstCoeff}.
-		 * 
-		 * <p>This method does not check whether {@link #firstVar} is actually updated.
-		 */
+
+		/** Updates the information contained in {@link #isEmpty}, {@link #firstVar} and {@link #firstCoeff}. */
+		private void updateEmptyAndFirstVar() {
+			int i = -1;
+			while( ++i < bits.length && bits[ i ] == 0 );
+			if ( i == bits.length ) {
+				isEmpty = true;
+				firstVar = Integer.MAX_VALUE;
+				return;
+			}
+			isEmpty = false;
+			final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
+			firstVar = lsb + 32 * i;
+			firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
+		}
+
+
+		/** Updates the information contained in {@link #firstVar} and {@link #firstCoeff}. */
 		public void updateFirstVar() {
 			if ( isEmpty ) firstVar = Integer.MAX_VALUE;
 			else {
@@ -471,11 +491,36 @@ public class Modulo3System {
 		final int[] priority = new int[ numEquations ];
 
 		for( final int v : variable ) {
-			weight[ v ] = var2Eq[ v ].length;
-			for( int e : var2Eq[ v ] ) {
-				if ( buildSystem ) system.equations.get( e ).add( v );
-				priority[ e ]++;
+			final int[] eq = var2Eq[ v ];
+			if ( eq.length == 0 ) continue;
+			
+			int currEq = eq[ 0 ];
+			int currCoeff = 1;
+			int j = 0;
+
+			for( int i = 1; i < eq.length; i++ ) {
+				if ( eq[ i ] != currEq ) {
+					if ( currCoeff != 3 ) {
+						if ( buildSystem ) system.equations.get( currEq ).add( v, currCoeff );
+						weight[ v ]++;
+						priority[ currEq ]++;
+						eq[ j++ ] = currEq;
+					}
+					currEq = eq[ i ];
+					currCoeff = 1;
+				}
+				else currCoeff++;
 			}
+		
+			if ( currCoeff != 3 ) {
+				if ( buildSystem ) system.equations.get( currEq ).add( v, currCoeff );
+				weight[ v ]++;
+				priority[ currEq ]++;
+				eq[ j++ ] = currEq;
+			}
+			
+			// In case we found duplicates, we replace the array with a uniquified one.
+			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
 		}
 		
 		if ( DEBUG ) {
@@ -489,7 +534,7 @@ public class Modulo3System {
 		final IntArrayList variables;
 		{
 			final int[] u = new int[ variable.length ];
-			final int[] count = new int[ numEquations + 1 ]; // CountSort
+			final int[] count = new int[ 3 * numEquations + 1 ]; // CountSort
 			for( int i = variable.length; i-- != 0; ) count[ weight[ variable[ i ] ] ]++;
 			for( int i = 1; i < count.length; i++ ) count[ i ] += count[ i - 1 ];
 			for( int i = variable.length; i-- != 0; ) u[ --count[ weight[ variable[ i ] ] ] ] = variable[ i ];

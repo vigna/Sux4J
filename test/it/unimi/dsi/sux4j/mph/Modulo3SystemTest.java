@@ -67,7 +67,20 @@ public class Modulo3SystemTest {
 		assertArrayEquals( new int[] { 2, 2, 2 }, reduced.coefficients() );
 	}
 
+	@Test
+	public void testAdd() {
+		Modulo3Equation equation = new Modulo3Equation( 2, 4 ).add( 0, 1 ).add( 0, 2 );
+		assertEquals( Integer.MAX_VALUE, equation.firstVar );
+		
+		equation = new Modulo3Equation( 2, 4 ).add( 0, 1 ).add( 1, 1 ).add( 0, 2 );
+		assertEquals( 1, equation.firstVar );
+		assertEquals( 1, equation.firstCoeff );
 
+		equation = new Modulo3Equation( 2, 4 ).add( 0, 1 ).add( 1, 1 ).add( 1, 2 );
+		assertEquals( 0, equation.firstVar );
+		assertEquals( 1, equation.firstCoeff );
+	}
+	
 	@Test
 	public void testOne() {
 		Modulo3System system = new Modulo3System( 2 );

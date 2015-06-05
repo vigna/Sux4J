@@ -732,7 +732,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		Hashes.jenkins( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ] & OFFSET_MASK;
-		HypergraphSorter.tripleToEdge( h, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		HypergraphSolver.tripleToEdge( h, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		
@@ -761,7 +761,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ] & OFFSET_MASK;
-		HypergraphSorter.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		HypergraphSolver.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( ( offset[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		final long result = rank == null ?

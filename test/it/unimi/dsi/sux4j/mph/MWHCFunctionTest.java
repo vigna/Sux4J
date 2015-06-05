@@ -9,7 +9,6 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
