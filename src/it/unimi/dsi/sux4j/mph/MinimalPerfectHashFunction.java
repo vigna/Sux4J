@@ -290,8 +290,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The signatures. */
 	protected final LongBigList signatures;
 
-	private static long vertexOffset( final long[] offset, final int chunk ) {
-		 return ( ( offset[ chunk ] & OFFSET_MASK ) * C_TIMES_256 >> 8 );
+	private static long vertexOffset( final long edgeOffsetSeed ) {
+		 return ( ( edgeOffsetSeed & OFFSET_MASK ) * C_TIMES_256 >> 8 );
 	}
 	
 	/**
@@ -417,9 +417,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					offset[ q + 1 ] = offset[ q ] + chunk.size();
 
 					long seed = 0;
-					final long off = vertexOffset( offset, q );
+					final long off = vertexOffset( offset[ q ] );
 					final HypergraphSolver<BitVector> solver = 
-							new HypergraphSolver<BitVector>( (int)( vertexOffset( offset, q + 1 ) - off ), chunk.size(), false );
+							new HypergraphSolver<BitVector>( (int)( vertexOffset( offset[ q + 1 ] ) - off ), chunk.size(), false );
 
 					do seed += SEED_STEP; while ( !solver.generateAndSolve( chunk, seed ) );
 
@@ -523,10 +523,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffset( offset, chunk );
-		HypergraphSolver.tripleToEdge( h, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
+		final long edgeOffsetSeed = offset[ chunk ];
+		final long chunkOffset = vertexOffset( edgeOffsetSeed );
+		HypergraphSolver.tripleToEdge( h, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
+		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
@@ -545,10 +546,11 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffset( offset, chunk );
-		HypergraphSolver.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
+		final long edgeOffsetSeed = offset[ chunk ];
+		final long chunkOffset = vertexOffset( edgeOffsetSeed );
+		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
+		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
@@ -558,9 +560,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffset( offset, chunk );
-		HypergraphSorter.tripleToEdge( triple, offset[ chunk ] & ~OFFSET_MASK, (int)( vertexOffset( offset, chunk + 1 ) - chunkOffset ), e );
-		return ( offset[ chunk ] & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
+		final long edgeOffsetSeed = offset[ chunk ];
+		final long chunkOffset = vertexOffset( edgeOffsetSeed );
+		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
+		return ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 	}
 
 	public long size64() {

@@ -34,7 +34,7 @@ public class MWHCFunctionTest {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		for ( int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8 ) {
 			for ( int signatureWidth: new int[] { -32, 0, 32, 64 } ) {
-				for ( int size = 1; size < 10000000; size *= 10 ) {
+				for ( int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 64, 100, 1000, 10000, 100000 } ) {
 					String[] s = new String[ size ];
 					for ( int i = s.length; i-- != 0; )
 						s[ i ] = Integer.toString( i );
@@ -55,6 +55,7 @@ public class MWHCFunctionTest {
 					chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
 					chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
 					mph = new MWHCFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+					chunkedHashStore.close();
 
 					check( size, s, mph, signatureWidth );
 				}

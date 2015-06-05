@@ -81,19 +81,13 @@ public class Modulo3System {
 		 * @return this equation.
 		 */
 		public Modulo3Equation add( final int variable, int coefficient ) {
-			final int oldCoefficient = (int)list.set( variable, coefficient );
-			if ( oldCoefficient != 0 ) list.set( variable, coefficient = ( coefficient + oldCoefficient ) % 3 );
-			if ( coefficient != 0 ) {
-				if ( variable < firstVar ) {
-					firstVar = variable;
-					firstCoeff = coefficient;
-				}
-				isEmpty = false;
+			assert coefficient % 3 != 0 : coefficient;
+			if ( list.set( variable, coefficient ) != 0 ) throw new IllegalStateException();
+			if ( variable < firstVar ) {
+				firstVar = variable;
+				firstCoeff = coefficient;
 			}
-			else {
-				// All bets are off. We rebuild the information.
-				if ( variable == firstVar ) updateEmptyAndFirstVar();
-			}
+			isEmpty = false;
 			return this;
 		}
 		
@@ -222,22 +216,6 @@ public class Modulo3System {
 				isNotEmpty |= ( x[ i ] = subMod3( x[ i ], y[ i ] ) ); 
 			isEmpty = isNotEmpty == 0;
 		}
-
-		/** Updates the information contained in {@link #isEmpty}, {@link #firstVar} and {@link #firstCoeff}. */
-		private void updateEmptyAndFirstVar() {
-			int i = -1;
-			while( ++i < bits.length && bits[ i ] == 0 );
-			if ( i == bits.length ) {
-				isEmpty = true;
-				firstVar = Integer.MAX_VALUE;
-				return;
-			}
-			isEmpty = false;
-			final int lsb = Long.numberOfTrailingZeros( bits[ i ] ) / 2;
-			firstVar = lsb + 32 * i;
-			firstCoeff = (int)( bits[ i ] >> lsb * 2 & 3 );
-		}
-
 
 		/** Updates the information contained in {@link #firstVar} and {@link #firstCoeff}. */
 		public void updateFirstVar() {
@@ -454,7 +432,7 @@ public class Modulo3System {
 		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
 		Arrays.fill( d, 0 );
 		final int[] c = new int[ equations.size() ];
-		for( int e = equations.size(); e-- != 0; ) {
+		for( int e = 0; e < equations.size(); e++ ) {
 			c[ e ] = equations.get( e ).c;
 			LongBigList list = equations.get( e ).list;
 			for( int v = list.size(); v-- != 0; ) 
@@ -500,6 +478,7 @@ public class Modulo3System {
 
 			for( int i = 1; i < eq.length; i++ ) {
 				if ( eq[ i ] != currEq ) {
+					assert eq[ i ] > currEq;
 					if ( currCoeff != 3 ) {
 						if ( buildSystem ) system.equations.get( currEq ).add( v, currCoeff );
 						weight[ v ]++;

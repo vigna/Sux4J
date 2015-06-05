@@ -323,12 +323,38 @@ public class Modulo2System {
 		final int[] priority = new int[ numEquations ];
 
 		for( final int v : variable ) {
-			weight[ v ] = var2Eq[ v ].length;
-			for( int e : var2Eq[ v ] ) {
-				if ( buildSystem ) system.equations.get( e ).add( v );
-				priority[ e ]++;
+			final int[] eq = var2Eq[ v ];
+			if ( eq.length == 0 ) continue;
+			
+			int currEq = eq[ 0 ];
+			boolean currCoeff = true;
+			int j = 0;
+
+			for( int i = 1; i < eq.length; i++ ) {
+				if ( eq[ i ] != currEq ) {
+					assert eq[ i ] > currEq;
+					if ( currCoeff ) {
+						if ( buildSystem ) system.equations.get( currEq ).add( v );
+						weight[ v ]++;
+						priority[ currEq ]++;
+						eq[ j++ ] = currEq;
+					}
+					currEq = eq[ i ];
+					currCoeff = true;
+				}
+				else currCoeff = ! currCoeff;
 			}
-		}
+		
+			if ( currCoeff ) {
+				if ( buildSystem ) system.equations.get( currEq ).add( v );
+				weight[ v ]++;
+				priority[ currEq ]++;
+				eq[ j++ ] = currEq;
+			}
+			
+			// In case we found duplicates, we replace the array with a uniquified one.
+			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
+		}		
 		
 		if ( DEBUG ) {
 			System.err.println();

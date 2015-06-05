@@ -152,6 +152,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	/** The ratio between vertices and hyperedges. */
 	private static double C = 1.09 + 0.01;
+	/** Fixed-point representation of {@link #C}. */
+	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
 
 	/** A builder class for {@link MWHCFunction}. */
 	public static class Builder<T> {
@@ -580,12 +582,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				final LongBigList data = dataBitVector.asLongBigList( this.width );
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
-					/* We need to avoid very small graphs, which give rise
-					 * to unsolvable system. This maximum returns 33 only when there are
-					 * less than 30 keys, or in the very unlikely evenience of a chunk with less than 30 keys. */
-					final int t = Math.max( (int)Math.floor( C * chunk.size() ), 33 );
-					// We prefer multiples of 3, so all parts have the same size.
-					offset[ q + 1 ] = offset[ q ] + t + ( 3 - t % 3 ) % 3;
+					offset[ q + 1 ] = offset[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
 
 					long seed = 0;
 					final HypergraphSolver<BitVector> solver = 
@@ -703,9 +700,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		offlineData.close();
 		
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
-				HypergraphSorter.GAMMA * this.width :
-					HypergraphSorter.GAMMA + this.width + 0.126 ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ? C * this.width : C + this.width + 0.126 ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 		if ( signatureWidth > 0 ) {
