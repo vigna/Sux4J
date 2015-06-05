@@ -131,9 +131,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 
-	/** The local seed is generated using this step, so to be easily embeddable in {@link #offset}. */
+	/** The local seed is generated using this step, so to be easily embeddable in {@link #edgeOffsetAndSeed}. */
 	private static final long SEED_STEP = 1L << 56;
-	/** The lowest 56 bits of {@link #offset} contain the number of keys stored up to the given chunk. */
+	/** The lowest 56 bits of {@link #edgeOffsetAndSeed} contain the number of keys stored up to the given chunk. */
 	private static final long OFFSET_MASK = -1L >>> 8;
 
 	/** The ratio between vertices and hyperedges. */
@@ -254,9 +254,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		}
 	}
 	
-	/** The number of bits per block in the rank structure. */
-	public static final int BITS_PER_BLOCK = 1024;
-
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 9;
 
@@ -269,8 +266,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 
-	/** The start offset of each chunk. */
-	protected final long[] offset;
+	/** A long containing the cumulating function of the chunk edges in the lower 56 bits, 
+	 * and the local seed of each chunk in the upper 8 bits. The method {@link #vertexOffset(long)}
+	 * returns the chunk (i.e., vertex) cumulative value starting from the edge cumulative value. */
+	protected final long[] edgeOffsetAndSeed;
 
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
 	protected final LongBigList values;
@@ -290,7 +289,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The signatures. */
 	protected final LongBigList signatures;
 
-	private static long vertexOffset( final long edgeOffsetSeed ) {
+	protected static long vertexOffset( final long edgeOffsetSeed ) {
 		 return ( ( edgeOffsetSeed & OFFSET_MASK ) * C_TIMES_256 >> 8 );
 	}
 	
@@ -395,7 +394,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		LOGGER.debug( "Number of chunks: " + numChunks );
 
-		offset = new long[ numChunks + 1 ];
+		edgeOffsetAndSeed = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
 		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)( Math.ceil( n * HypergraphSolver.GAMMA ) + 1 ) + 4 * numChunks ) );
@@ -414,16 +413,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				int q = 0;
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
 
-					offset[ q + 1 ] = offset[ q ] + chunk.size();
+					edgeOffsetAndSeed[ q + 1 ] = edgeOffsetAndSeed[ q ] + chunk.size();
 
 					long seed = 0;
-					final long off = vertexOffset( offset[ q ] );
+					final long off = vertexOffset( edgeOffsetAndSeed[ q ] );
 					final HypergraphSolver<BitVector> solver = 
-							new HypergraphSolver<BitVector>( (int)( vertexOffset( offset[ q + 1 ] ) - off ), chunk.size(), false );
+							new HypergraphSolver<BitVector>( (int)( vertexOffset( edgeOffsetAndSeed[ q + 1 ] ) - off ), chunk.size(), false );
 
 					do seed += SEED_STEP; while ( !solver.generateAndSolve( chunk, seed ) );
 
-					this.offset[ q ] |= seed;
+					this.edgeOffsetAndSeed[ q ] |= seed;
 					final long[] solution = solver.solution;
 					for( int i = 0; i < solution.length; i++ ) values.set( i + off, solution[ i ] );
 					q++;
@@ -492,7 +491,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return values.size64() * 2 + offset.length * (long)Long.SIZE;
+		return values.size64() * 2 + edgeOffsetAndSeed.length * (long)Long.SIZE;
 	}
 
 	/**
@@ -505,7 +504,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	@Deprecated
 	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
 		this.n = mph.n;
-		this.offset = mph.offset;
+		this.edgeOffsetAndSeed = mph.edgeOffsetAndSeed;
 		this.bitVector = mph.bitVector;
 		this.globalSeed = mph.globalSeed;
 		this.chunkShift = mph.chunkShift;
@@ -523,9 +522,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final long[] h = new long[ 3 ];
 		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long edgeOffsetSeed = offset[ chunk ];
+		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( h, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
+		HypergraphSolver.tripleToEdge( h, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
@@ -546,9 +545,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long edgeOffsetSeed = offset[ chunk ];
+		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
+		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
@@ -560,9 +559,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long edgeOffsetSeed = offset[ chunk ];
+		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( offset[ chunk + 1 ] ) - chunkOffset ), e );
+		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		return ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 	}
 
