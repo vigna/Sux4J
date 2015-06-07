@@ -20,6 +20,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -419,6 +420,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				int q = 0;
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 				final LongBigList data = dataBitVector.asLongBigList( this.width );
+				long unsolvable = 0;
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
 					vertexOffsetAndSeed[ q + 1 ] = vertexOffsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
@@ -427,19 +429,25 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					final HypergraphSolver<BitVector> solver = 
 							new HypergraphSolver<BitVector>( (int)( vertexOffsetAndSeed[ q + 1 ] - vertexOffsetAndSeed[ q ] ), chunk.size() );
 
-					do seed += SEED_STEP; while ( ! solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
-						private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
-						
-						@Override
-						public long size64() {
-							return chunk.size();
-						}
-						
-						@Override
-						public long getLong( final long index ) {
-							return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
-						}
-					}) );
+					for(;;) {
+						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
+							private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
+
+							@Override
+							public long size64() {
+								return chunk.size();
+							}
+
+							@Override
+							public long getLong( final long index ) {
+								return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
+							}
+						});
+						unsolvable += solver.unsolvable;
+						if ( solved ) break;
+						seed += SEED_STEP;
+						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+					}
 
 					this.vertexOffsetAndSeed[ q ] |= seed;
 
@@ -454,6 +462,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					offlineData.add( dataBitVector );
 					pl.update();
 				}
+
+				LOGGER.info( "Unsolvable graphs: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
 
 				pl.done();
 				break;

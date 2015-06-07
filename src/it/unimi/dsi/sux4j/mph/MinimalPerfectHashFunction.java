@@ -20,6 +20,7 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -397,7 +398,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		edgeOffsetAndSeed = new long[ numChunks + 1 ];
 
 		bitVector = LongArrayBitVector.getInstance();
-		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)( Math.ceil( n * HypergraphSolver.GAMMA ) + 1 ) + 4 * numChunks ) );
+		( values = bitVector.asLongBigList( 2 ) ).size( n * C_TIMES_256 >> 8 );
 		array = bitVector.bits();
 
 		int duplicates = 0;
@@ -411,6 +412,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			try {
 				int q = 0;
+				long undirectable = 0, unsolvable = 0;
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
 
 					edgeOffsetAndSeed[ q + 1 ] = edgeOffsetAndSeed[ q ] + chunk.size();
@@ -418,9 +420,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					long seed = 0;
 					final long off = vertexOffset( edgeOffsetAndSeed[ q ] );
 					final HypergraphSolver<BitVector> solver = 
-							new HypergraphSolver<BitVector>( (int)( vertexOffset( edgeOffsetAndSeed[ q + 1 ] ) - off ), chunk.size(), false );
+							new HypergraphSolver<BitVector>( (int)( vertexOffset( edgeOffsetAndSeed[ q + 1 ] ) - off ), chunk.size() );
 
-					do seed += SEED_STEP; while ( !solver.generateAndSolve( chunk, seed ) );
+					for(;;) {
+						final boolean solved = solver.generateAndSolve( chunk, seed );
+						undirectable += solver.undirectable;
+						unsolvable += solver.unsolvable;
+						if ( solved ) break;
+						seed += SEED_STEP;
+						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+					}
 
 					this.edgeOffsetAndSeed[ q ] |= seed;
 					final long[] solution = solver.solution;
@@ -441,6 +450,9 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					}
 				}
 
+				LOGGER.info( "Undirectable graphs: " + undirectable + "/" + numChunks + " (" + Util.format( 100.0 * undirectable / numChunks ) + "%)");
+				LOGGER.info( "Unsolvable graphs: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				
 				pl.done();
 				break;
 			}

@@ -28,6 +28,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+/** Solver for <b>Z</b>/2<b>Z</b> linear systems.
+ * 
+ * <p>The known terms can be in (<b>Z</b>/2<b>Z</b>)<sup><var>k</var></sup>, with
+ * 0 &le; <var>k</var> &le; 64.
+ * 
+ * @author Sebastiano Vigna
+ */
+
 public class Modulo2System {
 	private final static boolean DEBUG = false;
 	
@@ -39,10 +47,9 @@ public class Modulo2System {
 		protected final long[] bits;
 		/** The constant term. */
 		protected long c;
-		/** The first variable. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
+		/** The first variable. It is {@link Integer#MAX_VALUE} if the 
+		 * first variable is not known. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstVar;
-		/** The variables added to this equation. They might not be the variables in {@link #bitVector} if {@link #add(Modulo2Equation)} has been invoked. */
-		protected IntArrayList addedVars;
 		/** Whether any variable appears on the left side of the equation. */
 		private boolean isEmpty;
 
@@ -56,7 +63,6 @@ public class Modulo2System {
 			this.bitVector = LongArrayBitVector.ofLength( numVars );
 			this.bits = bitVector.bits();
 			this.firstVar = Integer.MAX_VALUE;
-			this.addedVars = new IntArrayList();
 			this.isEmpty = true;
 		}
 		
@@ -65,20 +71,18 @@ public class Modulo2System {
 			this.bitVector = equation.bitVector.copy();
 			this.bits = this.bitVector.bits();
 			this.firstVar = equation.firstVar;
-			this.addedVars = equation.addedVars;
 			this.isEmpty = equation.isEmpty;
 		}
 		
-		/** Adds a new variable with given coefficient.
+		/** Adds a new variable.
 		 * 
 		 * @param variable a variable.
 		 * @return this equation.
+		 * @throws IllegalStateException if you try to add twice the same variable.
 		 */
 		public Modulo2Equation add( final int variable ) {
 			assert ! bitVector.getBoolean( variable );
 			bitVector.set( variable );
-			addedVars.add( variable );
-			if ( variable < firstVar ) firstVar = variable;
 			isEmpty = false;
 			return this;
 		}
@@ -96,7 +100,7 @@ public class Modulo2System {
 			return variables.toIntArray();
 		}
 
-		/** Subtract from this equation another equation multiplied by a provided constant.
+		/** Add another equation to this equation.
 		 * 
 		 * @param equation an equation.
 		 */
@@ -109,10 +113,7 @@ public class Modulo2System {
 			isEmpty = isNotEmpty == 0;
 		}
 		
-		/** Updates the information contained in {@link #firstVar}.
-		 * 
-		 * <p>This method does not check whether {@link #firstVar} is actually updated.
-		 */
+		/** Updates the information contained in {@link #firstVar}. */
 		public void updateFirstVar() {
 			if ( isEmpty ) firstVar = Integer.MAX_VALUE;
 			else {
@@ -185,14 +186,14 @@ public class Modulo2System {
 	/** The number of heavy variables after a call to {@link #structuredGaussianElimination(LongArrayBitVector)}. */
 	private int numHeavy;
 
-	public Modulo2System( final int numVar ) {
+	public Modulo2System( final int numVars ) {
 		equations = new ArrayList<Modulo2Equation>();
-		this.numVars = numVar;
+		this.numVars = numVars;
 	}
 
-	protected Modulo2System( final int numVar , ArrayList<Modulo2Equation> system  ) {
+	protected Modulo2System( final int numVars , ArrayList<Modulo2Equation> system  ) {
 		this.equations = system;
-		this.numVars = numVar;
+		this.numVars = numVars;
 	}
 	
 	public Modulo2System copy() {
@@ -201,17 +202,13 @@ public class Modulo2System {
 		return new Modulo2System( numVars, list );
 	}
 
-	/** Adds a new equation to the system.
+	/** Adds an equation to the system.
 	 * 
 	 * @param equation an equation with the same number of variables of the system.
 	 */
 	public void add( Modulo2Equation equation ) {
 		if ( equation.bitVector.length() != numVars ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.bitVector.length() + ") does not match the number of variables of the system (" + numVars + ")" );
 		equations.add( equation );
-	}
-
-	public int size() {
-		return equations.size();
 	}
 
 	@Override
@@ -276,6 +273,16 @@ public class Modulo2System {
 		return true;
 	}
 
+	/** Solves the system using incremental structured Gaussian elimination. 
+	 * 
+	 * <p><strong>Warning</strong>: this method is very inefficient, as it
+	 * scans linearly the equations, builds from scratch the {@code var2Eq}
+	 * parameter of {@link #structuredGaussianElimination(Modulo2System, int[][], long[], int[], long[])},
+	 * and finally calls it. It should be used mainly to write unit tests.
+	 * 
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public boolean structuredGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
@@ -286,7 +293,7 @@ public class Modulo2System {
 		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
 		Arrays.fill( d, 0 );
 		final long[] c = new long[ equations.size() ];
-		for( int e = equations.size(); e-- != 0; ) {
+		for( int e = 0; e < equations.size(); e++ ) {
 			c[ e ] = equations.get( e ).c;
 			LongArrayBitVector bitVector = equations.get( e ).bitVector;
 			for( int v = (int)bitVector.length(); v-- != 0; ) 
@@ -296,10 +303,40 @@ public class Modulo2System {
 		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
+	/** Solves a system using incremental structured Gaussian elimination. 
+	 *
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * equation indices must appear in nondecreasing order; an equation
+	 * may appear several times for a given variable, in which case the final coefficient 
+	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
+	 * when calling this method from a {@link HypergraphSolver}). Note that this array
+	 * will be altered if some equation appears multiple time associated with a variable.
+	 * @param c the array of known terms, one for each equation.
+	 * @param variable the variables with respect to which the system should be solved
+	 * (variables not appearing in this array will be simply assigned zero).  
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public static boolean structuredGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
 		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	
+	/** Solves a system using incremental structured Gaussian elimination. 
+	 *
+	 * @param system a modulo-3 system.
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * equation indices must appear in nondecreasing order; an equation
+	 * may appear several times for a given variable, in which case the final coefficient 
+	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
+	 * when calling this method from a {@link HypergraphSolver}). The resulting system
+	 * must be identical to {@code system}. Note that this array
+	 * will be altered if some equation appears multiple time associated with a variable.
+	 * @param c the array of known terms, one for each equation.
+	 * @param variable the variables with respect to which the system should be solved
+	 * (variables not appearing in this array will be simply assigned zero).  
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public static boolean structuredGaussianElimination( Modulo2System system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
 		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
@@ -330,6 +367,10 @@ public class Modulo2System {
 			boolean currCoeff = true;
 			int j = 0;
 
+			/** We count the number of appearances in an equation and compute
+			 * the correct coefficient (which might be zero). If there are
+			 * several appearances of the same equation, we compact the array
+			 * and, in the end, replace it with a shorter one. */
 			for( int i = 1; i < eq.length; i++ ) {
 				if ( eq[ i ] != currEq ) {
 					assert eq[ i ] > currEq;

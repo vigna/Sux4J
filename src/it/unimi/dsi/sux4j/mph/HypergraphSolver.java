@@ -136,10 +136,6 @@ public class HypergraphSolver<T> {
 	private static final boolean DEBUG = false;
 	private final static Logger LOGGER = LoggerFactory.getLogger( HypergraphSolver.class );
 	
-	/** The mythical threshold (or better, a very closed upper bound of): the 2-core of a random 
-	 * 3-hypergraph is directable and the underlying system is solvable with high probability if the ratio
-	 * vertices/edges exceeds this constant. */
-	public static final double GAMMA = 1.09 + 0.01;
 	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
 	public final int numVertices;
 	/** The number of edges in the hypergraph. */
@@ -150,8 +146,6 @@ public class HypergraphSolver<T> {
 	public final int[] stack;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
-	/** If false, we do not allocate {@link #edge} and to not compute edge indices. */
-	private final boolean computeEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
@@ -164,17 +158,19 @@ public class HypergraphSolver<T> {
 	private final boolean[] peeled;
 	/** The vector of solutions. */
 	public long[] solution;
+	/** The number of generated unsolvable systems. */
+	public int unsolvable;
+	/** The number of generated undirectable graphs. */
+	public int undirectable;
 
-	/** Creates a hypergraph solver for a given number of edges.
+	/** Creates a hypergraph solver for a given number of vertices and edges.
 	 * 
 	 * @param numVertices the number of vertices of this hypergraph solver.
 	 * @param numEdges the number of edges of this hypergraph solver.
-	 * @param computeEdges if false, the index of the edge associated with each hinge will not be computed.
 	 */
-	public HypergraphSolver( final int numVertices, final int numEdges, final boolean computeEdges ) {
+	public HypergraphSolver( final int numVertices, final int numEdges ) {
 		this.numVertices = numVertices;
 		this.numEdges = numEdges;
-		this.computeEdges = computeEdges;
 		peeled = new boolean[ numEdges ];
 		edge = new int[ numVertices ];
 		edge2Vertex = new int[ 3 ][ numEdges ];
@@ -183,21 +179,13 @@ public class HypergraphSolver<T> {
 		visitStack = new IntArrayList( INITIAL_QUEUE_SIZE );
 		neverUsed = true;
 	}
-
-	/** Creates a hypergraph solver for a given number of vertices and edges.
-	 * 
-	 * @param numVertices the number of vertices of this hypergraph solver.
-	 * @param numEdges the number of edges of this hypergraph solver.
-	 */
-	public HypergraphSolver( final int numVertices, final int numEdges ) {
-		this( numVertices, numEdges, true );
-	}
 	
 	private final void cleanUpIfNecessary() {
 		if ( ! neverUsed ) { 
 			Arrays.fill( d, 0 );
 			Arrays.fill( edge, 0 );
 			Arrays.fill( peeled, false );
+			undirectable = unsolvable = 0;
 		}
 		neverUsed = false;
 	}
@@ -273,6 +261,9 @@ public class HypergraphSolver<T> {
 	}
 
 	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
+	 * 
+	 * <p>The known part is provided by {@code valueList}. If it is {@code null}, the known
+	 * part will be obtained by directing the hyperedges.
 	 * 
 	 * @param iterable an iterable returning {@link #numEdges} triples of longs.
 	 * @param seed a 64-bit random seed.
@@ -362,7 +353,7 @@ public class HypergraphSolver<T> {
 		final long[] solution = this.solution;
 		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge = this.edge, d = this.d;
 
-		if ( computeEdges ) {
+		if ( valueList != null ) {
 
 			if ( ! peelingCompleted ) {
 
@@ -386,6 +377,7 @@ public class HypergraphSolver<T> {
 				}
 				
 				if ( ! Modulo2System.structuredGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
+					unsolvable++;
 					LOGGER.debug( "System is unsolvable" );
 					return false;
 				}
@@ -432,7 +424,11 @@ public class HypergraphSolver<T> {
 				}
 
 				final int[] hinge = new int[ nonPeeled ];
-				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge, nonPeeled ) ) return false;
+				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge, nonPeeled ) ) {
+					LOGGER.debug( "Hypergraph cannot be directed" );
+					undirectable++;
+					return false;
+				}
 				
 				if ( DEBUG ) for( int i = 0; i < nonPeeled; i++ ) System.err.println( "<" + remEdge2Vertex0[ i ] + "," + remEdge2Vertex1[ i ] + "," + remEdge2Vertex2[ i ] + "> => " + hinge[ i ] );
 
@@ -446,6 +442,7 @@ public class HypergraphSolver<T> {
 				}
 				
 				if ( ! Modulo3System.structuredGaussianElimination( edges, c, hinge, solution ) ) {
+					unsolvable++;
 					LOGGER.debug( "System is unsolvable" );
 					return false;
 				}

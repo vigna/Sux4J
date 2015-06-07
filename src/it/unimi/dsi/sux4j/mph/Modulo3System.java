@@ -29,12 +29,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+/** Solver for <b>Z</b>/3<b>Z</b> modular systems.
+ * 
+ * @author Sebastiano Vigna
+ */
+
 public class Modulo3System {
 	private final static boolean DEBUG = false;
 	
 	/** A modulo-3 equation. */
 	public static class Modulo3Equation {
-		int count;
 		/** The vector representing the coefficients (two bits for each variable). */
 		protected final LongArrayBitVector bitVector;
 		/** The {@link LongArrayBitVector#bits() bv.bits()}, cached. */
@@ -43,7 +47,8 @@ public class Modulo3System {
 		protected final LongBigList list;
 		/** The constant term. */
 		protected int c;
-		/** The first variable. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
+		/** The first variable. It is {@link Integer#MAX_VALUE} if the 
+		 * first variable is not known. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstVar;
 		/** The first coefficient. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstCoeff;
@@ -55,7 +60,7 @@ public class Modulo3System {
 		 * @param c the constant term.
 		 * @param numVars the number of variables.
 		 */
-		public Modulo3Equation( final int c, final int numVars ){
+		public Modulo3Equation( final int c, final int numVars ) {
 			this.c = c;
 			this.bitVector = LongArrayBitVector.ofLength( numVars * 2 );
 			this.bits = bitVector.bits();
@@ -79,14 +84,11 @@ public class Modulo3System {
 		 * @param variable a variable.
 		 * @param coefficient its coefficient.
 		 * @return this equation.
+		 * @throws IllegalStateException if you try to add twice the same variable.
 		 */
 		public Modulo3Equation add( final int variable, int coefficient ) {
 			assert coefficient % 3 != 0 : coefficient;
 			if ( list.set( variable, coefficient ) != 0 ) throw new IllegalStateException();
-			if ( variable < firstVar ) {
-				firstVar = variable;
-				firstCoeff = coefficient;
-			}
 			isEmpty = false;
 			return this;
 		}
@@ -113,11 +115,11 @@ public class Modulo3System {
 			return variables.toIntArray();
 		}
 
-		/** Returns an array containing the coeffcient in variable increasing order.
+		/** Returns an array containing the coefficients in variable increasing order.
 		 * 
 		 * <p>Mainly for debugging purposes.
 		 * 
-		 * @return an array containing the coeffcient in variable increasing order.
+		 * @return an array, parallel to that returned by {@link #variables()}, containing the coefficients in variable increasing order.
 		 * @see #variables()
 		 */
 		public int[] coefficients() {
@@ -126,7 +128,7 @@ public class Modulo3System {
 			return coefficients.toIntArray();
 		}
 		
-		/** Eliminates the given variable from this equation, using the provided equation, but subtracting it multiplied by a suitable constant.
+		/** Eliminates the given variable from this equation, using the provided equation, by subtracting it multiplied by a suitable constant.
 		 * 
 		 * @param var a variable.
 		 * @param equation an equation in which {@code var} appears. 
@@ -301,14 +303,14 @@ public class Modulo3System {
 	/** The number of heavy variables after a call to {@link #structuredGaussianElimination(LongArrayBitVector)}. */
 	private int numHeavy;
 
-	public Modulo3System( final int numVar ) {
+	public Modulo3System( final int numVars ) {
 		equations = new ArrayList<Modulo3Equation>();
-		this.numVars = numVar;
+		this.numVars = numVars;
 	}
 
-	protected Modulo3System( final int numVar , ArrayList<Modulo3Equation> system  ) {
+	protected Modulo3System( final int numVars , ArrayList<Modulo3Equation> system  ) {
 		this.equations = system;
-		this.numVars = numVar;
+		this.numVars = numVars;
 	}
 	
 	public Modulo3System copy() {
@@ -317,17 +319,13 @@ public class Modulo3System {
 		return new Modulo3System( numVars, list );
 	}
 
-	/** Adds a new equation to the system.
+	/** Adds an equation to the system.
 	 * 
 	 * @param equation an equation with the same number of variables of the system.
 	 */
 	public void add( Modulo3Equation equation ) {
 		if ( equation.list.size() != numVars ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size() + ") does not match the number of variables of the system (" + numVars + ")" );
 		equations.add( equation );
-	}
-
-	public int size() {
-		return equations.size();
 	}
 
 	@Override
@@ -350,11 +348,8 @@ public class Modulo3System {
 	public boolean check( final LongArrayBitVector solutions ) {
 		assert solutions.length() == numVars * 2;
 		final long[] solutionBits = solutions.bits();
-		for( Modulo3Equation equation: equations ) {
-			if ( equation.c != Modulo3Equation.scalarProduct( equation.bits, solutionBits ) % 3 ) {
-				return false;
-			}
-		}
+		for( Modulo3Equation equation: equations )
+			if ( equation.c != Modulo3Equation.scalarProduct( equation.bits, solutionBits ) % 3 ) return false;
 		return true;
 	}
 
@@ -416,12 +411,22 @@ public class Modulo3System {
 			int sum = ( equation.c - Modulo3Equation.scalarProduct( equation.bits, solutionBits ) ) % 3;
 			if ( sum < 0 ) sum += 3;
 
-			solutionList.set( equation.firstVar,  sum == 0 ? 0 : equation.firstCoeff == sum ? 1 : 2 );
+			solutionList.set( equation.firstVar, sum == 0 ? 0 : equation.firstCoeff == sum ? 1 : 2 );
 		}
 
 		return true;
 	}
 
+	/** Solves the system using incremental structured Gaussian elimination. 
+	 * 
+	 * <p><strong>Warning</strong>: this method is very inefficient, as it
+	 * scans linearly the equations, builds from scratch the {@code var2Eq}
+	 * parameter of {@link #structuredGaussianElimination(Modulo3System, int[][], int[], int[], long[])}
+	 * and finally calls it. It should be used mainly to write unit tests.
+	 * 
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public boolean structuredGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
@@ -442,10 +447,40 @@ public class Modulo3System {
 		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
+	/** Solves a system using incremental structured Gaussian elimination. 
+	 *
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
+	 * equation indices must appear in nondecreasing order; an equation
+	 * may appear several times for a given variable, in which case the final coefficient 
+	 * of the variable in the equation is given by the number of appearances modulo 2 (this weird format is useful
+	 * when calling this method from a {@link HypergraphSolver}). Note that this array
+	 * will be altered if some equation appears multiple time associated with a variable.
+	 * @param c the array of known terms, one for each equation.
+	 * @param variable the variables with respect to which the system should be solved
+	 * (variables not appearing in this array will be simply assigned zero).  
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public static boolean structuredGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
 		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	
+	/** Solves a system using incremental structured Gaussian elimination. 
+	 *
+	 * @param system a modulo-2 system.
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
+	 * equation indices must appear in nondecreasing order; an equation
+	 * may appear several times for a given variable, in which case the final coefficient 
+	 * of the variable in the equation is given by the number of appearances modulo 2 (this weird format is useful
+	 * when calling this method from a {@link HypergraphSolver}). The resulting system
+	 * must be identical to {@code system}. Note that this array
+	 * will be altered if some equation appears multiple time associated with a variable.
+	 * @param c the array of known terms, one for each equation.
+	 * @param variable the variables with respect to which the system should be solved
+	 * (variables not appearing in this array will be simply assigned zero).  
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public static boolean structuredGaussianElimination( Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
 		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
@@ -476,10 +511,15 @@ public class Modulo3System {
 			int currCoeff = 1;
 			int j = 0;
 
+			/** We count the number of appearances in an equation and compute
+			 * the correct coefficient (which might be zero). If there are
+			 * several appearances of the same equation, we compact the array
+			 * and, in the end, replace it with a shorter one. */
 			for( int i = 1; i < eq.length; i++ ) {
 				if ( eq[ i ] != currEq ) {
 					assert eq[ i ] > currEq;
-					if ( currCoeff != 3 ) {
+					currCoeff = currCoeff % 3;
+					if ( currCoeff != 0 ) {
 						if ( buildSystem ) system.equations.get( currEq ).add( v, currCoeff );
 						weight[ v ]++;
 						priority[ currEq ]++;
