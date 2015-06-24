@@ -24,7 +24,6 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntHeapIndirectPriorityQueue;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 import java.util.Arrays;
@@ -523,18 +522,25 @@ public class HypergraphSolver<T> {
 		}
 		
 		// Priorities, multiplied by 6 (so they are all integers)
+		final IntArrayList[] queue = new IntArrayList[ 8 ];
+		for( int i = queue.length; i-- != 0; ) queue[ i ] = new IntArrayList();
+		final int[] posInQueue = new int[ numVertices ];
+				
 		final int[] priority = new int[ numVertices ];
 		for ( int i = 0; i < numVertices; i++ ) priority[ i ] += 2 * d[ i ];
 		
-		final int[] heap = new int[ d.length ];
-		int heapSize = 0;
-		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) heap[ heapSize++ ] = i;
-		final IntHeapIndirectPriorityQueue vertices = new IntHeapIndirectPriorityQueue( priority, heap, heapSize );
+		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) {
+			final IntArrayList q = queue[ Math.min( 7, priority[ i ] ) ];
+			posInQueue[ i ] = q.size();
+			q.add( i );
+		}
 
 		for ( int t = 0; t < length; t++ ) {		
 			// Find hinge by looking at the node with minimum priority
-			if ( vertices.isEmpty() ) return false;
-			final int hinge = vertices.dequeue();
+			int minPriority = 0;
+			while( minPriority < 8 && queue[ minPriority ].isEmpty() ) minPriority++;
+			if ( minPriority == 8 ) return false;
+			final int hinge = queue[ minPriority ].popInt();
 			int edge = -1;
 			int minWeight = Integer.MAX_VALUE;
 			for( int i = edges[ hinge ].length; i-- != 0; ) {
@@ -583,19 +589,13 @@ public class HypergraphSolver<T> {
 				final int update = -6 / weight[ e ] + 6 / --weight[ e ];
 				
 				if ( ! isHinge[ v0 ] ) {
-					priority[ v0 ] += update;
-					assert priority[ v0 ] > 0;
-					vertices.changed( v0 );
+					update( queue, posInQueue, priority, v0, update );
 				}
 				if ( ! isHinge[ v1 ] ) {
-					priority[ v1 ] += update;
-					assert priority[ v1 ] > 0;
-					vertices.changed( v1 );
+					update( queue, posInQueue, priority, v1, update );
 				}
 				if ( ! isHinge[ v2 ] ) {
-					priority[ v2 ] += update;
-					assert priority[ v2 ] > 0;
-					vertices.changed( v2 );
+					update( queue, posInQueue, priority, v2, update );
 				}
 			}
 
@@ -607,35 +607,17 @@ public class HypergraphSolver<T> {
 
 			d[ v0 ]--;
 			if ( ! isHinge[ v0 ] ) {
-				assert priority[ v0 ] > 0 || d[ v0 ] == 0;
-				if ( d[ v0 ] == 0 ) vertices.remove( v0 );
-				else {
-					priority[ v0 ] -= 6 / weight[ edge ];
-					if ( d[ v0 ] == 1 ) priority[ v0 ] = 0;
-					vertices.changed( v0 );
-				}
+				update2( d, weight, queue, posInQueue, priority, edge, v0 );
 			}
 
 			d[ v1 ]--;
 			if ( ! isHinge[ v1 ] ) {
-				assert priority[ v1 ] > 0 || d[ v1 ] == 0;
-				if ( d[ v1 ] == 0 ) vertices.remove( v1 );
-				else {
-					priority[ v1 ] -= 6 / weight[ edge ];
-					if ( d[ v1 ] == 1 ) priority[ v1 ] = 0;
-					vertices.changed( v1 );
-				}
+				update2( d, weight, queue, posInQueue, priority, edge, v1 );
 			}
 
 			d[ v2 ]--;
 			if ( ! isHinge[ v2 ] ) {
-				assert priority[ v2 ] > 0 || d[ v2 ] == 0;
-				if ( d[ v2 ] == 0 ) vertices.remove( v2 );
-				else {
-					priority[ v2 ] -= 6 / weight[ edge ];
-					if ( d[ v2 ] == 1 ) priority[ v2 ] = 0;
-					vertices.changed( v2 );
-				}
+				update2( d, weight, queue, posInQueue, priority, edge, v2 );
 			}
 
 			if ( ASSERTS ) {
@@ -656,11 +638,49 @@ public class HypergraphSolver<T> {
 			if ( DEBUG ) {
 				System.err.println( "Weights: " + Arrays.toString( weight ) );
 				System.err.println( "Priorities: " + Arrays.toString( priority ) );
-				System.err.println( "Queue size: " + vertices.size() );
+				//System.err.println( "Queue size: " + vertices.size() );
 			}
 			
 		}
 		return true;
+	}
+
+	private static void remove( final IntArrayList queue, final int v, final int[] posInQueue  ) {
+		final int position = posInQueue[ v ];
+		assert position < queue.size();
+		final int last = queue.popInt();
+		if ( position == queue.size() ) return;
+		queue.set( posInQueue[ last ] = position, last );
+	}
+	
+	private static void update2( int[] d, final int[] weight, final IntArrayList[] queue, final int[] posInQueue, final int[] priority, int edge, final int v ) {
+		assert priority[ v ] > 0 || d[ v ] == 0;
+		final int queueBefore = Math.min( 7, priority[ v ] );
+		if ( d[ v ] == 0 ) remove( queue[ queueBefore ], v, posInQueue );
+		else {
+			priority[ v ] -= 6 / weight[ edge ];
+			if ( d[ v ] == 1 ) priority[ v ] = 0;
+			final int queueAfter = Math.min( 7, priority[ v ] );
+			if ( queueBefore != queueAfter ) {
+				// Remove from queueBefore
+				remove( queue[ queueBefore ], v, posInQueue );
+				posInQueue[ v ] = queue[ queueAfter ].size();
+				queue[ queueAfter ].push( v );
+			}
+		}
+	}
+
+	private static void update( final IntArrayList[] queue, final int[] posInQueue, final int[] priority, final int v, final int update ) {
+		final int queueBefore = Math.min( 7, priority[ v ] );
+		priority[ v ] += update;
+		assert priority[ v ] > 0;
+		final int queueAfter = Math.min( 7, priority[ v ] );
+		if ( queueBefore != queueAfter ) {
+			// Remove from queueBefore
+			remove( queue[ queueBefore ], v, posInQueue );
+			posInQueue[ v ] = queue[ queueAfter ].size();
+			queue[ queueAfter ].push( v );
+		}
 	}
 }
 
