@@ -135,7 +135,7 @@ public class HypergraphSolver<T> {
 	private static final boolean DEBUG = false;
 	private final static Logger LOGGER = LoggerFactory.getLogger( HypergraphSolver.class );
 	
-	/** The number of vertices in the hypergraph (&lceil; {@link #GAMMA} * {@link #numEdges} &rceil; + 1, rounded up to the nearest multiple of 3). */
+	/** The number of vertices in the hypergraph. */
 	public final int numVertices;
 	/** The number of edges in the hypergraph. */
 	public final int numEdges;
@@ -423,7 +423,7 @@ public class HypergraphSolver<T> {
 				}
 
 				final int[] hinge = new int[ nonPeeled ];
-				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge, nonPeeled ) ) {
+				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge ) ) {
 					LOGGER.debug( "Hypergraph cannot be directed" );
 					undirectable++;
 					return false;
@@ -495,37 +495,40 @@ public class HypergraphSolver<T> {
 	}
 	
 	/** Directs the edges of a 3-hypergraph.
-	 * 
 	 * @param d the degree array.
 	 * @param vertex0 the first vertex of each edge.
 	 * @param vertex1 the second vertex of each edge.
 	 * @param vertex2 the third vertex of each edge.
 	 * @param hinges the vector where hinges will be stored.
-	 * @param length the number of hyperedges.
+	 * 
 	 * @return true if direction was successful.
 	 */
-	public static boolean directHyperedges( int[][] edges, int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int length ) {
+	public static boolean directHyperedges( int[][] edges , int[] d , int[] vertex0 , int[] vertex1 , int[] vertex2 , int[] hinges  ) {
 		final int numVertices = d.length;
-		final int[] weight = new int[ length ];
+		final int numEdges = vertex0.length;
+		final int[] weight = new int[ numEdges ];
 		final boolean[] isHinge = new boolean[ numVertices ];
-		final boolean[] isDone = new boolean[ length ];
+		final boolean[] isDone = new boolean[ numEdges ];
 		Arrays.fill( weight, 3 );
 
 		if ( ASSERTS ) {
 			final int[] testd = new int[ d.length ];
-			for ( int i = 0; i < length; i++ ) {
+			for ( int i = 0; i < numEdges; i++ ) {
 				testd[ vertex0[ i ] ]++;
 				testd[ vertex1[ i ] ]++;
 				testd[ vertex2[ i ] ]++;
 			}
-			if ( ! Arrays.equals( d, testd ) ) throw new AssertionError( "Degree array not valid: " + Arrays.toString( testd ) + " != " + Arrays.toString( d ) );
+			if ( ! Arrays.equals( testd, d ) ) throw new AssertionError( "Degree array not valid: " + Arrays.toString( testd ) + " != " + Arrays.toString( d ) );
 		}
 		
-		// Priorities, multiplied by 6 (so they are all integers)
+		/* - queues of index 0,1,..,6 contains vertices with that priority.
+		 * - the queue of index 7 contains all vertices with priority > 6. */
 		final IntArrayList[] queue = new IntArrayList[ 8 ];
 		for( int i = queue.length; i-- != 0; ) queue[ i ] = new IntArrayList();
+		// For each vertex, its position in the queue it lives in.
 		final int[] posInQueue = new int[ numVertices ];
 				
+		// Priorities, multiplied by 6 (so they are all integers)
 		final int[] priority = new int[ numVertices ];
 		for ( int i = 0; i < numVertices; i++ ) priority[ i ] += 2 * d[ i ];
 		
@@ -535,7 +538,7 @@ public class HypergraphSolver<T> {
 			q.add( i );
 		}
 
-		for ( int t = 0; t < length; t++ ) {		
+		for ( int t = 0; t < numEdges; t++ ) {		
 			// Find hinge by looking at the node with minimum priority
 			int minPriority = 0;
 			while( minPriority < 8 && queue[ minPriority ].isEmpty() ) minPriority++;
@@ -556,7 +559,7 @@ public class HypergraphSolver<T> {
 			if ( ASSERTS ) {
 				int minEdgeWeight = Integer.MAX_VALUE;
 				int minEdge = -1;
-				for( int i = 0; i < length; i++ ) if ( ! isDone[ i ] ) {
+				for( int i = 0; i < numEdges; i++ ) if ( ! isDone[ i ] ) {
 					if ( vertex0[ i ] == hinge || vertex1[ i ] == hinge || vertex2[ i ] == hinge ) {
 						if ( weight[ i ] < minEdgeWeight ) {
 							minEdgeWeight = weight[ i ];
@@ -588,15 +591,9 @@ public class HypergraphSolver<T> {
 
 				final int update = -6 / weight[ e ] + 6 / --weight[ e ];
 				
-				if ( ! isHinge[ v0 ] ) {
-					update( queue, posInQueue, priority, v0, update );
-				}
-				if ( ! isHinge[ v1 ] ) {
-					update( queue, posInQueue, priority, v1, update );
-				}
-				if ( ! isHinge[ v2 ] ) {
-					update( queue, posInQueue, priority, v2, update );
-				}
+				if ( ! isHinge[ v0 ] ) increase( queue, posInQueue, priority, v0, update );
+				if ( ! isHinge[ v1 ] ) increase( queue, posInQueue, priority, v1, update );
+				if ( ! isHinge[ v2 ] ) increase( queue, posInQueue, priority, v2, update );
 			}
 
 			final int v0 = vertex0[ edge ];
@@ -606,23 +603,17 @@ public class HypergraphSolver<T> {
 			assert hinge == v0 || hinge == v1 || hinge == v2 : hinge + " != " + v0 + ", " + v1 + ", " + v2;
 
 			d[ v0 ]--;
-			if ( ! isHinge[ v0 ] ) {
-				update2( d, weight, queue, posInQueue, priority, edge, v0 );
-			}
+			if ( ! isHinge[ v0 ] ) decrease( queue, posInQueue, priority, d, v0, weight[ edge ] );
 
 			d[ v1 ]--;
-			if ( ! isHinge[ v1 ] ) {
-				update2( d, weight, queue, posInQueue, priority, edge, v1 );
-			}
+			if ( ! isHinge[ v1 ] ) decrease( queue, posInQueue, priority, d, v1, weight[ edge ] );
 
 			d[ v2 ]--;
-			if ( ! isHinge[ v2 ] ) {
-				update2( d, weight, queue, posInQueue, priority, edge, v2 );
-			}
+			if ( ! isHinge[ v2 ] ) decrease( queue, posInQueue, priority, d, v2, weight[ edge ] );
 
 			if ( ASSERTS ) {
 				final double[] pri = new double[ numVertices ];
-				for( int i = 0; i < length; i++ ) if ( ! isDone[ i ] ) {
+				for( int i = 0; i < numEdges; i++ ) if ( ! isDone[ i ] ) {
 					int w = 0;
 					if ( ! isHinge[ vertex0[ i ] ] ) w++;
 					if ( ! isHinge[ vertex1[ i ] ] ) w++;
@@ -653,34 +644,32 @@ public class HypergraphSolver<T> {
 		queue.set( posInQueue[ last ] = position, last );
 	}
 	
-	private static void update2( int[] d, final int[] weight, final IntArrayList[] queue, final int[] posInQueue, final int[] priority, int edge, final int v ) {
-		assert priority[ v ] > 0 || d[ v ] == 0;
-		final int queueBefore = Math.min( 7, priority[ v ] );
-		if ( d[ v ] == 0 ) remove( queue[ queueBefore ], v, posInQueue );
-		else {
-			priority[ v ] -= 6 / weight[ edge ];
-			if ( d[ v ] == 1 ) priority[ v ] = 0;
-			final int queueAfter = Math.min( 7, priority[ v ] );
-			if ( queueBefore != queueAfter ) {
-				// Remove from queueBefore
-				remove( queue[ queueBefore ], v, posInQueue );
-				posInQueue[ v ] = queue[ queueAfter ].size();
-				queue[ queueAfter ].push( v );
-			}
-		}
-	}
-
-	private static void update( final IntArrayList[] queue, final int[] posInQueue, final int[] priority, final int v, final int update ) {
-		final int queueBefore = Math.min( 7, priority[ v ] );
-		priority[ v ] += update;
-		assert priority[ v ] > 0;
-		final int queueAfter = Math.min( 7, priority[ v ] );
+	private static void move( final IntArrayList[] queue, final int[] posInQueue, final int v, final int queueBefore, final int queueAfter ) {
 		if ( queueBefore != queueAfter ) {
-			// Remove from queueBefore
 			remove( queue[ queueBefore ], v, posInQueue );
 			posInQueue[ v ] = queue[ queueAfter ].size();
 			queue[ queueAfter ].push( v );
 		}
 	}
-}
 
+	private static void decrease( final IntArrayList[] queue , final int[] posInQueue , final int[] priority , int[] d , final int v , final int w  ) {
+		assert priority[ v ] > 0 || d[ v ] == 0;
+		final int queueBefore = Math.min( 7, priority[ v ] );
+		if ( d[ v ] == 0 ) remove( queue[ queueBefore ], v, posInQueue );
+		else {
+			if ( d[ v ] == 1 ) priority[ v ] = 0;
+			else priority[ v ] -= 6 / w; 
+			final int queueAfter = Math.min( 7, priority[ v ] );
+			move( queue, posInQueue, v, queueBefore, queueAfter );
+		}
+	}
+
+	private static void increase( final IntArrayList[] queue, final int[] posInQueue, final int[] priority, final int v, final int update ) {
+		assert update > 0;
+		final int queueBefore = Math.min( 7, priority[ v ] );
+		priority[ v ] += update;
+		assert priority[ v ] > 0;
+		final int queueAfter = Math.min( 7, priority[ v ] );
+		move( queue, posInQueue, v, queueBefore, queueAfter );
+	}
+}

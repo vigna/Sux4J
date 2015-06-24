@@ -38,7 +38,7 @@ public class HypergraphSolverTest {
 		int[] vertex2 = { 2, 3, 4, 0 };
 		int[] d = { 3, 3, 3, 2, 1 };
 		int[] hinges = new int[ vertex1.length ];
-		assertTrue( HypergraphSolver.directHyperedges( vertex2Edge( 5, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges, 0 ) );
+		assertTrue( HypergraphSolver.directHyperedges( vertex2Edge( 5, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges ) );
 	}
 
 	@Test
@@ -84,7 +84,7 @@ public class HypergraphSolverTest {
 					d[ w ]++;
 				}
 
-				assertTrue( "size: " + n + ", count: " + count, HypergraphSolver.directHyperedges( vertex2Edge( d.length, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges, 0 ) );
+				assertTrue( "size: " + n + ", count: " + count, HypergraphSolver.directHyperedges( vertex2Edge( d.length, vertex0, vertex1, vertex2 ), d, vertex0, vertex1, vertex2, hinges ) );
 			}
 		}
 	}
