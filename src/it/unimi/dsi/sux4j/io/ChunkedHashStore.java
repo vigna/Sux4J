@@ -147,7 +147,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	}
 	
 	/** The size of the output buffers. */
-	public final static int OUTPUT_BUFFER_SIZE = 32768;	
+	public final static int OUTPUT_BUFFER_SIZE = 16 * 1024;	
 	/** The logarithm of the number of physical disk chunks. */
 	public final static int LOG2_DISK_CHUNKS = 8;
 	/** The number of physical disk chunks. */
