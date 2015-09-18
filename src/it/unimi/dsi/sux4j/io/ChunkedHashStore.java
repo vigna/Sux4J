@@ -417,7 +417,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		Arrays.fill( count, 0 );
 		try {
 			for( DataOutputStream d: dos ) d.close();
-			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ) ) );
+			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ), OUTPUT_BUFFER_SIZE ) );
 		}
 		catch ( IOException e ) {
 			throw new RuntimeException( e );
