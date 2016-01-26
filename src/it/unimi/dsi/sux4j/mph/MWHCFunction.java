@@ -316,7 +316,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	}
 
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 9;
+	public final static int LOG2_CHUNK_SIZE = 10;
 	/** The shift for chunks. */
 	private final int chunkShift;
 	/** The number of keys. */

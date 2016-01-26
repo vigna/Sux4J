@@ -508,4 +508,54 @@ public class Modulo2System {
 
 		return true;
 	}
+
+	/* Temporary method to test speedup due to lazy Gaussian elimination. */
+	public static boolean gaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+		final int numEquations = c.length;
+		if ( numEquations == 0 ) return true;
+
+		final int numVars = var2Eq.length;
+		assert solution.length == numVars;
+
+		final Modulo2System system = new Modulo2System( numVars );
+		for( int i = 0; i < c.length; i++ ) system.add( new Modulo2Equation( c[ i ], numVars ) );
+				
+		for( final int v : variable ) {
+			final int[] eq = var2Eq[ v ];
+			if ( eq.length == 0 ) continue;
+			
+			int currEq = eq[ 0 ];
+			boolean currCoeff = true;
+			int j = 0;
+
+			/** We count the number of appearances in an equation and compute
+			 * the correct coefficient (which might be zero). If there are
+			 * several appearances of the same equation, we compact the array
+			 * and, in the end, replace it with a shorter one. */
+			for( int i = 1; i < eq.length; i++ ) {
+				if ( eq[ i ] != currEq ) {
+					assert eq[ i ] > currEq;
+					if ( currCoeff ) {
+						system.equations.get( currEq ).add( v );
+						eq[ j++ ] = currEq;
+					}
+					currEq = eq[ i ];
+					currCoeff = true;
+				}
+				else currCoeff = ! currCoeff;
+			}
+		
+			if ( currCoeff ) {
+				system.equations.get( currEq ).add( v );
+				eq[ j++ ] = currEq;
+			}
+			
+			// In case we found duplicates, we replace the array with a uniquified one.
+			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
+		}		
+		
+		if ( ! system.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
+
+		return true;
+	}
 }
