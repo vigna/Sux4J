@@ -5,7 +5,6 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntListIterator;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,35 +56,38 @@ public class Modulo2SparseSystem {
 		public void add( final Modulo2Equation equation ) {
 			IntListIterator iteratorThis = this.variables.iterator();
 			IntListIterator iteratorOther = equation.variables.iterator();
-			
-			int a = iteratorThis.nextInt(), b = iteratorOther.nextInt();
-			for ( ;; ) {
-				if ( a < b ) {
-					if ( !iteratorThis.hasNext() ) {
-						iteratorThis.add( b );
-						break;
+
+			if ( iteratorOther.hasNext() )  {
+				if ( iteratorThis.hasNext() ) {
+					int a = iteratorThis.nextInt(), b = iteratorOther.nextInt();
+					for ( ;; ) {
+						if ( a < b ) {
+							if ( !iteratorThis.hasNext() ) {
+								iteratorThis.add( b );
+								break;
+							}
+							a = iteratorThis.nextInt();
+						}
+						else if ( a > b ) {
+							iteratorThis.previousInt();
+							iteratorThis.add( b );
+							iteratorThis.nextInt();
+							if ( !iteratorOther.hasNext() ) break;
+							b = iteratorOther.nextInt();
+						}
+						else {
+							iteratorThis.remove();
+							if ( !iteratorThis.hasNext() ) break;
+							if ( !iteratorOther.hasNext() ) break;
+							a = iteratorThis.nextInt();
+							b = iteratorOther.nextInt();
+						}
 					}
-					a = iteratorThis.nextInt();
 				}
-				else if ( a > b ) {
-					iteratorThis.previousInt();
-					iteratorThis.add( b );
-					iteratorThis.nextInt();
-					if ( !iteratorOther.hasNext() ) break;
-					b = iteratorOther.nextInt();
-				}
-				else {
-					iteratorThis.remove();
-					if ( !iteratorThis.hasNext() ) break;
-					if ( !iteratorOther.hasNext() ) break;
-					a = iteratorThis.nextInt();
-					b = iteratorOther.nextInt();
-				}
+				while ( iteratorOther.hasNext() )
+					variables.add( iteratorOther.nextInt() );
 			}
 
-			while ( iteratorOther.hasNext() )
-				variables.add( iteratorOther.nextInt() );
-			
 			c ^= equation.c;
 		}
 
