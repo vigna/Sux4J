@@ -39,7 +39,7 @@ public class Modulo2SparseSystemTest {
 		assertTrue( system.copy().gaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 		Arrays.fill( solution, 0 );
-		assertTrue( system.copy().structuredGaussianElimination( solution ) );
+		assertTrue( system.copy().lazyGaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 	}
 
@@ -50,7 +50,7 @@ public class Modulo2SparseSystemTest {
 		system.add( new Modulo2Equation( 1 ).add( 0 ) );
 		final long[] solution = new long[ 1 ];
 		assertFalse( system.copy().gaussianElimination( solution ) );
-		assertFalse( system.copy().structuredGaussianElimination( solution ) );
+		assertFalse( system.copy().lazyGaussianElimination( solution ) );
 	}
 
 	@Test
@@ -62,7 +62,7 @@ public class Modulo2SparseSystemTest {
 		assertTrue( system.copy().gaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 		Arrays.fill( solution, 0 );
-		assertTrue( system.copy().structuredGaussianElimination( solution ) );
+		assertTrue( system.copy().lazyGaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 	}
 
@@ -79,7 +79,7 @@ public class Modulo2SparseSystemTest {
 		assertTrue( system.copy().gaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 		Arrays.fill( solution, 0 );
-		assertTrue( system.copy().structuredGaussianElimination( solution ) );
+		assertTrue( system.copy().lazyGaussianElimination( solution ) );
 		assertTrue( system.check( solution ) );
 	}
 
@@ -94,7 +94,7 @@ public class Modulo2SparseSystemTest {
 			assertTrue( system.copy().gaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
 			Arrays.fill( solution, 0 );
-			assertTrue( system.copy().structuredGaussianElimination( solution ) );
+			assertTrue( system.copy().lazyGaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
 		}
 	}
@@ -142,7 +142,7 @@ public class Modulo2SparseSystemTest {
 			assertTrue( system.copy().gaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
 			Arrays.fill( solution, 0 );
-			assertTrue( system.copy().structuredGaussianElimination( solution ) );
+			assertTrue( system.copy().lazyGaussianElimination( solution ) );
 			assertTrue( system.check( solution ) );
 		}
 	}

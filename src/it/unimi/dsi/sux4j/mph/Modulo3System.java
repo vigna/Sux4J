@@ -461,7 +461,7 @@ public class Modulo3System {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
+	public static boolean lazyGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
 		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	

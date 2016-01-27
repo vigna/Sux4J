@@ -183,8 +183,8 @@ public class Modulo2System {
 	private final int numVars;
 	/** The equations. */
 	private final ArrayList<Modulo2Equation> equations;
-	/** The number of heavy variables after a call to {@link #structuredGaussianElimination(LongArrayBitVector)}. */
-	private int numHeavy;
+	/** The number of active variables after a call to {@link #lazyGaussianElimination(LongArrayBitVector)}. */
+	private int numActive;
 
 	public Modulo2System( final int numVars ) {
 		equations = new ArrayList<Modulo2Equation>();
@@ -251,7 +251,6 @@ public class Modulo2System {
 
 				if ( eqI.firstVar > eqJ.firstVar ) Collections.swap( equations, i, j );
 			}
-			System.err.println(this.equations);
 		}
 		return true;
 	}
@@ -274,17 +273,17 @@ public class Modulo2System {
 		return true;
 	}
 
-	/** Solves the system using incremental structured Gaussian elimination. 
+	/** Solves the system using lazy Gaussian elimination. 
 	 * 
 	 * <p><strong>Warning</strong>: this method is very inefficient, as it
 	 * scans linearly the equations, builds from scratch the {@code var2Eq}
-	 * parameter of {@link #structuredGaussianElimination(Modulo2System, int[][], long[], int[], long[])},
+	 * parameter of {@link #lazyGaussianElimination(Modulo2System, int[][], long[], int[], long[])},
 	 * and finally calls it. It should be used mainly to write unit tests.
 	 * 
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public boolean structuredGaussianElimination( final long[] solution ) {
+	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
 		for( final Modulo2Equation equation: equations ) 
@@ -301,10 +300,10 @@ public class Modulo2System {
 				if ( bitVector.getBoolean( v ) ) var2Eq[ v ][ d[ v ]++ ] = e;
 		}
 		
-		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
+		return lazyGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
 	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
 	 * equation indices must appear in nondecreasing order; an equation
@@ -318,11 +317,11 @@ public class Modulo2System {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
-		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
+	public static boolean lazyGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+		return lazyGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
 	 * @param system a modulo-3 system.
 	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
@@ -338,7 +337,7 @@ public class Modulo2System {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( Modulo2System system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+	public static boolean lazyGaussianElimination( Modulo2System system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
 		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
 
@@ -433,14 +432,14 @@ public class Modulo2System {
 		final long[] lightNormalized = new long[ equations.get( 0 ).bits.length ];
 		Arrays.fill( lightNormalized, -1 );
 
-		int numHeavy = 0;
+		int numActive = 0;
 
 		for( int remaining = equations.size(); remaining != 0; ) {
 			if ( equationList.isEmpty() ) {
 				// Make another variable heavy
 				int var;
 				do var = variables.popInt(); while( weight[ var ] == 0 );
-				numHeavy++;
+				numActive++;
 				lightNormalized[ var / 64 ] ^= 1L << ( var % 64 );
 				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " heavy (" + remaining + " equations to go)" );
 				for( final int equationIndex: var2Eq[ var ] )
@@ -487,7 +486,7 @@ public class Modulo2System {
 		}
 
 		if ( DEBUG ) {
-			System.err.println( "Heavy variables: " + numHeavy + " (" + Util.format( numHeavy * 100 / numVars ) + "%)" );
+			System.err.println( "Active variables: " + numActive + " (" + Util.format( numActive * 100 / numVars ) + "%)" );
 			System.err.println( "Dense equations: " + dense );
 			System.err.println( "Solved equations: " + solved );
 			System.err.println( "Pivots: " + pivots );

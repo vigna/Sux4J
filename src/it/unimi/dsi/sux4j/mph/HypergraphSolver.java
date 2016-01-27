@@ -375,7 +375,7 @@ public class HypergraphSolver<T> {
 					}
 				}
 				
-				if ( ! Modulo2System.structuredGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
+				if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
 					unsolvable++;
 					LOGGER.debug( "System is unsolvable" );
 					return false;
@@ -440,7 +440,7 @@ public class HypergraphSolver<T> {
 					assert c[ i ] != 2 || remEdge2Vertex2[ i ] == hinge[ i ];
 				}
 				
-				if ( ! Modulo3System.structuredGaussianElimination( edges, c, hinge, solution ) ) {
+				if ( ! Modulo3System.lazyGaussianElimination( edges, c, hinge, solution ) ) {
 					unsolvable++;
 					LOGGER.debug( "System is unsolvable" );
 					return false;
