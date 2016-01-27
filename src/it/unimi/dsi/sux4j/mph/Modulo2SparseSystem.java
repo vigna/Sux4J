@@ -54,41 +54,35 @@ public class Modulo2SparseSystem {
 		 */
 		
 		public void add( final Modulo2Equation equation ) {
-			IntListIterator iteratorThis = this.variables.iterator();
-			IntListIterator iteratorOther = equation.variables.iterator();
+			int i = 0, j = 0, k = 0;
+			final int s = variables.size(), t = equation.variables.size();
+			final int[] a = variables.elements(), b = equation.variables.elements(), result = new int[ s + t ];
 
-			if ( iteratorOther.hasNext() )  {
-				if ( iteratorThis.hasNext() ) {
-					int a = iteratorThis.nextInt(), b = iteratorOther.nextInt();
-					for ( ;; ) {
-						if ( a < b ) {
-							if ( !iteratorThis.hasNext() ) {
-								iteratorThis.add( b );
-								break;
-							}
-							a = iteratorThis.nextInt();
-						}
-						else if ( a > b ) {
-							iteratorThis.previousInt();
-							iteratorThis.add( b );
-							iteratorThis.nextInt();
-							if ( !iteratorOther.hasNext() ) break;
-							b = iteratorOther.nextInt();
-						}
-						else {
-							iteratorThis.remove();
-							if ( !iteratorThis.hasNext() ) break;
-							if ( !iteratorOther.hasNext() ) break;
-							a = iteratorThis.nextInt();
-							b = iteratorOther.nextInt();
-						}
+			if ( t != 0 && s != 0 ) {
+				for ( ;; ) {
+					if ( a[ i ] < b[ j ] ) {
+						result[ k++ ]  = a[ i++ ];
+						if ( i == s ) break;
+					}
+					else if ( a[ i ] > b[ j ] ) {
+						result[ k++ ]  = b[ j++ ];
+						if ( j == t ) break;
+					}
+					else {
+						i++;
+						j++;
+						if ( i == s ) break;
+						if ( j == t ) break;
 					}
 				}
-				while ( iteratorOther.hasNext() )
-					variables.add( iteratorOther.nextInt() );
 			}
 
+			while ( i < s ) result[ k++ ] = a[ i++ ];
+			while ( j < t ) result[ k++ ] = b[ j++ ];
+
 			c ^= equation.c;
+			variables.size( k );
+			System.arraycopy( result, 0, variables.elements(), 0, k );
 		}
 
 		public boolean isUnsolvable() {
@@ -249,17 +243,17 @@ public class Modulo2SparseSystem {
 		return true;
 	}
 
-	/** Solves the system using incremental structured Gaussian elimination. 
+	/** Solves the system using lazy Gaussian elimination. 
 	 * 
 	 * <p><strong>Warning</strong>: this method is very inefficient, as it
 	 * scans linearly the equations, builds from scratch the {@code var2Eq}
-	 * parameter of {@link #structuredGaussianElimination(Modulo2SparseSystem, int[][], long[], int[], long[])},
+	 * parameter of {@link #lazyGaussianElimination(Modulo2SparseSystem, int[][], long[], int[], long[])},
 	 * and finally calls it. It should be used mainly to write unit tests.
 	 * 
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public boolean structuredGaussianElimination( final long[] solution ) {
+	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
 		for( final Modulo2Equation equation: equations ) 
@@ -277,10 +271,10 @@ public class Modulo2SparseSystem {
 			}
 		}
 		
-		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
+		return lazyGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
 	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
 	 * equation indices must appear in nondecreasing order; an equation
@@ -294,11 +288,11 @@ public class Modulo2SparseSystem {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
-		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
+	public static boolean lazyGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+		return lazyGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
 	 * @param system a modulo-3 system.
 	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
@@ -314,7 +308,7 @@ public class Modulo2SparseSystem {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( Modulo2SparseSystem system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
+	public static boolean lazyGaussianElimination( Modulo2SparseSystem system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
 		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
 
