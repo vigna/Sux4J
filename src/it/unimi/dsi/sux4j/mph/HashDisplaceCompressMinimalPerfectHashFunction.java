@@ -378,7 +378,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
 							final long[] h = new long[ 3 ];
-							Hashes.jenkins( triple, seed, h );
+							Hashes.spooky( triple, seed, h );
 							final ArrayList<long[]> b = bucket[ (int)( ( h[ 0 ] >>> 1 ) % numBuckets ) ];
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
@@ -457,7 +457,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 						final long h[] = new long[ 3 ];
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
-							Hashes.jenkins( triple, seed[ chunkNumber ], h );
+							Hashes.spooky( triple, seed[ chunkNumber ], h );
 							h[ 0 ] = ( h[ 0 ] >>> 1 ) % numBuckets;
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
@@ -551,13 +551,13 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, triple );
+		Hashes.spooky( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
+		Hashes.spooky( triple, seed[ chunk ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
@@ -579,7 +579,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 		
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
+		Hashes.spooky( triple, seed[ chunk ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		

@@ -125,7 +125,7 @@ import org.slf4j.LoggerFactory;
  * <p>To compute the chunk corresponding to given element, use
  * <pre>
  * final long[] h = new long[ 3 ];
- * Hashes.jenkins( transform.toBitVector( key ), seed, h );
+ * Hashes.spooky( transform.toBitVector( key ), seed, h );
  * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] &gt;&gt;&gt; chunkShift );
  * </pre>
  * where <code>seed</code> is the store seed, and <code>chunkShift</code> 
@@ -276,7 +276,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	public void add( final T o, final long value ) throws IOException {
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( o ), seed, triple );
+		Hashes.spooky( transform.toBitVector( o ), seed, triple );
 		add( triple, value );
 	}
 	
@@ -314,7 +314,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		if ( pl != null ) pl.start( "Adding elements..." );
 		final long[] triple = new long[ 3 ];
 		while( elements.hasNext() ) {
-			Hashes.jenkins( transform.toBitVector( elements.next() ), seed, triple );
+			Hashes.spooky( transform.toBitVector( elements.next() ), seed, triple );
 			add( triple, values != null ? values.nextLong() : filteredSize );
 			if ( pl != null ) pl.lightUpdate();
 		}

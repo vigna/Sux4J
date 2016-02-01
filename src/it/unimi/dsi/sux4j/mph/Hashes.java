@@ -38,7 +38,7 @@ public class Hashes {
 
 	private Hashes() {}
 
-	private final static long ARBITRARY_BITS = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value */
+	private final static long ARBITRARY_BITS = 0x9e3779b97f4a7c13L; /* the golden ratio; an arbitrary value. */
 
 	/** Jenkins 64-bit hashing (all three values produced).
 	 *
@@ -67,7 +67,7 @@ public class Hashes {
 
 		/* Set up the internal state */
 		a = b = seed;
-		c = ARBITRARY_BITS; /* the golden ratio; an arbitrary value */
+		c = ARBITRARY_BITS;
 
 		while ( length - from > Long.SIZE * 2 ) {
 			a += bv.getLong( from, from + Long.SIZE );
@@ -136,7 +136,7 @@ public class Hashes {
 
 		/* Set up the internal state */
 		a = b = seed;
-		c = ARBITRARY_BITS; /* the golden ratio; an arbitrary value */
+		c = ARBITRARY_BITS;
 
 		while ( length - from > Long.SIZE * 2 ) {
 			a += bv.getLong( from, from + Long.SIZE );
@@ -219,7 +219,7 @@ public class Hashes {
 
 		/* Set up the internal state */
 		a = b = seed;
-		c = ARBITRARY_BITS; /* the golden ratio; an arbitrary value */
+		c = ARBITRARY_BITS;
 
 		aa[ i ] = a;
 		bb[ i ] = b;
@@ -418,7 +418,7 @@ public class Hashes {
 
 		/* Set up the internal state */
 		a = b = seed;
-		c = ARBITRARY_BITS; /* the golden ratio; an arbitrary value */
+		c = ARBITRARY_BITS;
 
 		a += triple[ 0 ];
 		b += triple[ 1 ];
@@ -442,13 +442,12 @@ public class Hashes {
 		h[ 2 ] = c;
 	}
 
-
 	public static void spooky( final long[] triple, final long seed, final long[] h )  {
 		long h0, h1, h2, h3;
 		h0 = seed;
-		h1 = triple[ 0 ];
-		h2 = triple[ 1 ];
-		h3 = triple[ 2 ];
+		h1 = ARBITRARY_BITS + triple[ 0 ];
+		h2 = ARBITRARY_BITS + triple[ 1 ];
+		h3 = ARBITRARY_BITS + triple[ 2 ];
 
 		h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 		h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;

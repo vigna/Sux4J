@@ -101,7 +101,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)o ), seed, triple );
+		Hashes.spooky( transform.toBitVector( (T)o ), seed, triple );
 		final long index = mph.getLongByTriple( triple );
 		if ( index == -1 ) return defRetValue;
 		final long prefix = lcpLengths.getLong( index ); 

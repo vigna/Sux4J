@@ -75,10 +75,10 @@ import org.slf4j.LoggerFactory;
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
  * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
- * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
+ * turning the keys into such a triple using {@linkplain Hashes#spooky(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
- * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
+ * rehashed using {@link Hashes#spooky(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
  * 
  * <p><strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
@@ -86,9 +86,8 @@ import org.slf4j.LoggerFactory;
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>We use {@linkplain Hashes#jenkins(BitVector, long, long[]) Jenkin's hash} in its 64-bit incarnation: beside
- * providing an excellent hash function, it actually computes <em>three</em> 64-bit hash values,
- * which is exactly what we need.
+ * <p>We use {@linkplain Hashes#spooky(BitVector, long, long[]) Jenkins's SpookyHash} 
+ * to compute <em>three</em> 64-bit hash values.
  * 
  * <h3>The XOR trick</h3>
  * 
@@ -207,7 +206,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.jenkins( bv, seed, hash );
+		Hashes.spooky( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
@@ -240,7 +239,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.jenkins( triple, seed, hash );
+		Hashes.spooky( triple, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
