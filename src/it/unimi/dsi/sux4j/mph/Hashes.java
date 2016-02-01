@@ -1431,7 +1431,7 @@ public class Hashes {
 
 		final int bits = (int)( remaining % Long.SIZE );
 		if ( bits != 0 ) {
-			final long partial = bv.getLong( length - bits, bits );
+			final long partial = bv.getLong( length - bits, length );
 			switch( remainingWords ) {
 			case 0:
 				h0 += partial;
