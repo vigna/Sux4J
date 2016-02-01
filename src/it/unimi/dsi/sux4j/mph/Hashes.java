@@ -444,12 +444,11 @@ public class Hashes {
 
 
 	public static void spooky( final long[] triple, final long seed, final long[] h )  {
-
 		long h0, h1, h2, h3;
 		h0 = seed;
-		h1 = ARBITRARY_BITS + triple[ 0 ];
-		h2 = ARBITRARY_BITS + triple[ 1 ];
-		h3 = ARBITRARY_BITS + triple[ 2 ];
+		h1 = triple[ 0 ];
+		h2 = triple[ 1 ];
+		h3 = triple[ 2 ];
 
 		h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 		h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
@@ -459,9 +458,9 @@ public class Hashes {
 		h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
 		h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
 		h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
-		h2 = Long.rotateLeft(h2, 62);   h2 += h3;  h0 ^= h2;
+		h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
 		h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
-		h0 = Long.rotateLeft(h0, 5);  h0 += h1;  h2 ^= h0;
+		h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 		h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
 		h[ 0 ] = h0;
@@ -1232,7 +1231,7 @@ public class Hashes {
 		int remaining = length;
 		int pos = 0;
 
-		while (remaining >= Long.SIZE * 4) {
+		while ( remaining >= Long.SIZE * 4 ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
 
@@ -1244,18 +1243,18 @@ public class Hashes {
 	        h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
 	        h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
-	        h2 = Long.rotateLeft(h2, 62);   h2 += h3;  h0 ^= h2;
+	        h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
 	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
-	        h0 = Long.rotateLeft(h0, 5);  h0 += h1;  h2 ^= h0;
+	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
 			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
 			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
-			remaining -= Long.SIZE * 4;
+			remaining -= 4 * Long.SIZE;
 			pos += 4 * Long.SIZE;
 		}
 
-		if (remaining >= Long.SIZE * 2) {
+		if ( remaining >= Long.SIZE * 2 ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
 			remaining -= 2 * Long.SIZE;
@@ -1269,14 +1268,14 @@ public class Hashes {
 	        h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
 	        h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
-	        h2 = Long.rotateLeft(h2, 62);   h2 += h3;  h0 ^= h2;
+	        h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
 	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
-	        h0 = Long.rotateLeft(h0, 5);  h0 += h1;  h2 ^= h0;
+	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
 		}
 
-		h3 += (long)( length ) << 54;
+		h3 += (long)( length ) << 53;
 
 		if ( remaining > Long.SIZE ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
@@ -1295,12 +1294,12 @@ public class Hashes {
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 26);  h1 += h0;
         h2 ^= h1;  h1 = Long.rotateLeft(h1, 51);  h2 += h1;
         h3 ^= h2;  h2 = Long.rotateLeft(h2, 28);  h3 += h2;
-        h0 ^= h3;  h3 = Long.rotateLeft(h3, 9);  h0 += h3;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 9);   h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 47);  h1 += h0;
         h2 ^= h1;  h1 = Long.rotateLeft(h1, 54);  h2 += h1;
         h3 ^= h2;  h2 = Long.rotateLeft(h2, 32);  h3 += h2;
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
-        h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);   h1 += h0;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
         triple[ 0 ] = h0;
         triple[ 1 ] = h1;
@@ -1398,10 +1397,12 @@ public class Hashes {
 			h11 = Long.rotateLeft(h11, 46);
 			h10 += h0;
 
+			pos += Long.SIZE * 12;
 			remaining -= Long.SIZE * 12;
 		}
 
-		switch ((int)(remaining / Long.SIZE)) {
+		final int remainingWords = (int)(remaining / Long.SIZE);
+		switch ( remainingWords ) {
 		case 11:
 			h10 += bv.getLong( pos + Long.SIZE * 10, pos + Long.SIZE * 11 );
 		case 10:
@@ -1429,9 +1430,49 @@ public class Hashes {
 		}
 
 		final int bits = (int)( remaining % Long.SIZE );
-		if ( remaining != 0 ) h11 += bv.getLong( length - bits, length );
+		if ( bits != 0 ) {
+			final long partial = bv.getLong( length - bits, bits );
+			switch( remainingWords ) {
+			case 0:
+				h0 += partial;
+				break;
+			case 1:
+				h1 += partial;
+				break;
+			case 2:
+				h2 += partial;
+				break;
+			case 3:
+				h3 += partial;
+				break;
+			case 4:
+				h4 += partial;
+				break;
+			case 5:
+				h5 += partial;
+				break;
+			case 6:
+				h6 += partial;
+				break;
+			case 7:
+				h7 += partial;
+				break;
+			case 8:
+				h8 += partial;
+				break;
+			case 9:
+				h9 += partial;
+				break;
+			case 10:
+				h10 += partial;
+				break;
+			case 11:
+				h11 += partial;
+				break;
+			}
+		}
 
-		h11 += remaining << 54;
+		h11 += remaining << 53;
 
 		for (int i = 0; i < 3; i++) {
 	        h11 += h1;
@@ -1471,6 +1512,7 @@ public class Hashes {
 	        h1 ^= h10;
 	        h0 = Long.rotateLeft(h0, 54);
 		}
+
 		triple[ 0 ] = h0;
 		triple[ 1 ] = h1;
 		triple[ 2 ] = h2;
