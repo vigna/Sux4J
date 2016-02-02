@@ -438,7 +438,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 											cc1[ k ] = c1;
 											iterator.remove();
 										}
-										else Arrays.fill( used,  false );
+										else for( int d: done ) used[ d ] = false;
 									}
 									if ( bucketsToDo.isEmpty() ) break ext;
 								}
