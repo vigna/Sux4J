@@ -256,7 +256,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	}
 	
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 9;
+	public final static int LOG2_CHUNK_SIZE = 10;
 
 	/** The number of keys. */
 	protected final long n;
