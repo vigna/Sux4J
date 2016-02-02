@@ -311,6 +311,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param elements an iterator returning elements.
 	 */
 	public void addAll( final Iterator<? extends T> elements, final LongIterator values ) throws IOException {
+		pl.expectedUpdates = -1;
 		if ( pl != null ) pl.start( "Adding elements..." );
 		final long[] triple = new long[ 3 ];
 		while( elements.hasNext() ) {
