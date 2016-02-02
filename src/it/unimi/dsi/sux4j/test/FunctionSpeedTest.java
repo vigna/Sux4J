@@ -61,11 +61,13 @@ public class FunctionSpeedTest {
 		final String save = jsapResult.getString( "save" );
 		final int maxStrings = jsapResult.getInt( "n" );
 		
+		if ( zipped && random ) throw new IllegalArgumentException( "You cannot use zipped files for random tests" );
 		if ( save != null && ! random ) throw new IllegalArgumentException( "You can save test string only for random tests" );
+		if ( file != null && ! random ) throw new IllegalArgumentException( "The \"file\" option is meaningful for random tests only" );
 		
 		@SuppressWarnings("unchecked")
 		final Object2LongFunction<? extends CharSequence> function = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName );
-		final FileLinesCollection flc = new FileLinesCollection( termFile, encoding.name(), zipped );
+		final FileLinesCollection flc = new FileLinesCollection( termFile, encoding.name() );
 
 		if ( random ) {
 			final FileLinesList fll = new FileLinesList( termFile, encoding.name() );
