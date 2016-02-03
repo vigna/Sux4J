@@ -28,7 +28,9 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -38,13 +40,17 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.util.AbstractCollection;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -611,6 +617,52 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
+		final FastBufferedInputStream fbis = new FastBufferedInputStream( zipped ? new GZIPInputStream( new FileInputStream( stringFile ) ) : new FileInputStream( stringFile ) ); 
+		final Collection<byte[]> lines = new AbstractCollection<byte[]>() {
+			@Override
+			public Iterator<byte[]> iterator() {
+				final byte[] buffer = new byte[ 16384 ];
+				try {
+					fbis.position( 0 );
+				}
+				catch ( IOException e ) {
+					throw new RuntimeException( e.getMessage(), e );
+				}
+				return new AbstractObjectIterator<byte[]>() {
+					boolean toRead = true;
+					int read;
+
+					@Override
+					public boolean hasNext() {
+						if ( toRead == false ) return read != -1;
+						toRead = false;
+						try {
+							read = fbis.readLine( buffer, FastBufferedInputStream.ALL_TERMINATORS );
+						}
+						catch ( IOException e ) {
+							throw new RuntimeException( e.getMessage(), e );
+						}
+						if ( read == buffer.length ) throw new IllegalStateException();
+						return read != -1;
+					}
+
+					@Override
+					public byte[] next() {
+						if ( ! hasNext() ) throw new NoSuchElementException();
+						toRead = true;
+						return Arrays.copyOf( buffer, read );
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				throw new UnsupportedOperationException();
+			}
+		};
+		BinIO.storeObject( new MinimalPerfectHashFunction<byte[]>( lines,  TransformationStrategies.byteArray(), signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+
+		if (false){
 		final Collection<MutableString> collection;
 		if ( "-".equals( stringFile ) ) {
 			final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -628,6 +680,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						: TransformationStrategies.utf16();
 
 		BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		}
 		LOGGER.info( "Saved." );
 	}
 }
