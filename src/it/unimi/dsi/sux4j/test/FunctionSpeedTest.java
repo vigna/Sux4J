@@ -95,12 +95,12 @@ public class FunctionSpeedTest {
 				long time = -System.nanoTime();
 				for( int i = 0; i < n; i++ ) {
 					t ^= function.getLong( s.readSelfDelimUTF8( fbais ) );
-					if ( ( i % 0xFFFFF ) == 0 ) System.out.print('.');
+					if ( ( i % 0xFFFFF ) == 0 ) System.err.print('.');
 				}
-				System.out.println();
+				System.err.println();
 				time += System.nanoTime();
 				if ( k < 10 ) total += time;
-				System.out.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / n ) + " ns/item" );
+				System.err.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / n ) + " ns/item" );
 			}
 			System.out.println( "Average: " + Util.format( total / 1E10 ) + "s, " + Util.format( total / ( 10. * n ) ) + " ns/item" );
 			if ( t == 0 ) System.err.println( t );
