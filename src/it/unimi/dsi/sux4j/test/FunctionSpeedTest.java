@@ -34,14 +34,14 @@ public class FunctionSpeedTest {
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( FunctionSpeedTest.class.getName(), "Test the speed of a function",
+		final SimpleJSAP jsap = new SimpleJSAP( FunctionSpeedTest.class.getName(), "Test the speed of a function. Performs thirteen repetitions: the first three ones are warmup, and the average of the remaining ten is printed on standard output. The detailed results are logged to standard error.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing." ),
 					new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding." ),
 					new FlaggedOption( "save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used." ),
 					new FlaggedOption( "file", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'f', "file", "In case of a random test, store the random strings in this file and use it to scan them." ),
-					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format." ),
+					new Switch( "zipped", 'z', "zipped", "The term list is compressed in gzip format (for sequential tests only)." ),
 					new Switch( "random", 'r', "random", "Test randomly selected and shuffled strings." ),
 					new Switch( "check", 'c', "check", "Check that the term list is mapped to its ordinal position." ),
 					new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised function." ),
@@ -62,6 +62,7 @@ public class FunctionSpeedTest {
 		final int maxStrings = jsapResult.getInt( "n" );
 		
 		if ( zipped && random ) throw new IllegalArgumentException( "You cannot use zipped files for random tests" );
+		if ( jsapResult.userSpecified( "n" ) && ! random ) throw new IllegalArgumentException( "The number of string is meaningful for random tests only" );
 		if ( save != null && ! random ) throw new IllegalArgumentException( "You can save test string only for random tests" );
 		if ( file != null && ! random ) throw new IllegalArgumentException( "The \"file\" option is meaningful for random tests only" );
 		
@@ -134,26 +135,26 @@ public class FunctionSpeedTest {
 			System.gc();
 			System.gc();
 			
-			long total = 0;
-			int size = 0;
+			long total = 0, t = -1;
+			final long size = flc.size();
 			for( int k = 13; k-- != 0; ) {
-				final Iterator<? extends CharSequence> i = flc.iterator();
+				final Iterator<? extends CharSequence> iterator = flc.iterator();
 
 				long time = -System.nanoTime();
-				int j = 0;
 				long index;
-				while( i.hasNext() ) {
-					index = function.getLong( i.next() );
-					if ( check && index != j ) throw new AssertionError( index + " != " + j ); 
-					if ( ( j++ & 0xFFFFF ) == 0 ) System.err.print('.');
+				for( long i = 0; i < size; i++ ) {
+					index = function.getLong( iterator.next() );
+					t ^= index;
+					if ( check && index != i ) throw new AssertionError( index + " != " + i ); 
+					if ( ( i & 0xFFFFF ) == 0 ) System.err.print('.');
 				}
-				size = j;
 				System.err.println();
 				time += System.nanoTime();
 				if ( k < 10 ) total += time;
-				System.err.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / j ) + " ns/item" );
+				System.err.println( Util.format( time / 1E9 ) + "s, " + Util.format( (double)time / size ) + " ns/item" );
 			}
-			System.out.println( "Average: " + Util.format( total / 10E9 ) + "s, " + Util.format( total / ( 10. * size ) ) + " ns/item" );
+			System.out.println( "Average: " + Util.format( total / 1E10 ) + "s, " + Util.format( total / ( 10. * size ) ) + " ns/item" );
+			if ( t == 0 ) System.err.println( t );
 		}
 	}
 }
