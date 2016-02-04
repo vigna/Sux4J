@@ -300,17 +300,17 @@ public class HypergraphSolver<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		LOGGER.debug( "Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)..." );
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)..." );
 
 		top = 0;
 		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
 
 		if ( top == numEdges ) {
-			LOGGER.debug( "Peeling completed." );
+			if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling completed." );
 			return true;
 		}
 		
-		LOGGER.debug( "Peeled " + top + " edges out of " + numEdges + "." );
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeled " + top + " edges out of " + numEdges + "." );
 		return false;
 	}
 
@@ -376,7 +376,7 @@ public class HypergraphSolver<T> {
 				
 				if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
 					unsolvable++;
-					LOGGER.debug( "System is unsolvable" );
+					if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "System is unsolvable" );
 					return false;
 				}
 			}
@@ -423,7 +423,7 @@ public class HypergraphSolver<T> {
 
 				final int[] hinge = new int[ nonPeeled ];
 				if ( ! directHyperedges( edges, d, remEdge2Vertex0, remEdge2Vertex1, remEdge2Vertex2, hinge ) ) {
-					LOGGER.debug( "Hypergraph cannot be directed" );
+					if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Hypergraph cannot be directed" );
 					undirectable++;
 					return false;
 				}
@@ -441,7 +441,7 @@ public class HypergraphSolver<T> {
 				
 				if ( ! Modulo3System.lazyGaussianElimination( edges, c, hinge, solution ) ) {
 					unsolvable++;
-					LOGGER.debug( "System is unsolvable" );
+					if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "System is unsolvable" );
 					return false;
 				}
 

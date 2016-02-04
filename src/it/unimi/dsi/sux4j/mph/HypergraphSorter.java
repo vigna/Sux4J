@@ -368,18 +368,14 @@ public class HypergraphSorter<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		LOGGER.debug( "Peeling hypergraph..." );
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph..." );
 
 		top = 0;
 		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
 
-		if ( top == numEdges ) LOGGER.debug( "Peeling completed." );
-		else {
-			LOGGER.debug( "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
-			return false;
-		}
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( top == numEdges ? "Peeling completed." : "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
 
-		return true;
+		return top == numEdges;
 	}
 
 	private void peel( final int x ) {

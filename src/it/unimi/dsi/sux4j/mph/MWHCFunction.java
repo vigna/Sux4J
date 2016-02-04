@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.Util;
+import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -682,6 +683,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
 			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
 			new Switch( "compacted", 'c', "compacted", "Whether the resulting function should be compacted." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
@@ -697,86 +699,45 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final File tempDir = jsapResult.getFile( "tempDir" );
+		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
 		final boolean compacted = jsapResult.getBoolean( "compacted" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 
-		
-		
-		final FastBufferedInputStream fbis = new FastBufferedInputStream( zipped ? new GZIPInputStream( new FileInputStream( stringFile ) ) : new FileInputStream( stringFile ) ); 
-		final Collection<byte[]> lines = new AbstractCollection<byte[]>() {
-			@Override
-			public Iterator<byte[]> iterator() {
-				final byte[] buffer = new byte[ 16384 ];
-				try {
-					fbis.position( 0 );
-				}
-				catch ( IOException e ) {
-					throw new RuntimeException( e.getMessage(), e );
-				}
-				return new AbstractObjectIterator<byte[]>() {
-					boolean toRead = true;
-					int read;
-
-					@Override
-					public boolean hasNext() {
-						if ( toRead == false ) return read != -1;
-						toRead = false;
-						try {
-							read = fbis.readLine( buffer, FastBufferedInputStream.ALL_TERMINATORS );
-						}
-						catch ( IOException e ) {
-							throw new RuntimeException( e.getMessage(), e );
-						}
-						if ( read == buffer.length ) throw new IllegalStateException();
-						return read != -1;
-					}
-
-					@Override
-					public byte[] next() {
-						if ( ! hasNext() ) throw new NoSuchElementException();
-						toRead = true;
-						return Arrays.copyOf( buffer, read );
-					}
-				};
-			}
-
-			@Override
-			public int size() {
-				throw new UnsupportedOperationException();
-			}
-		};
-
-		BinIO.storeObject( new MWHCFunction<byte[]>( lines, TransformationStrategies.byteArray(), signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );		
-		
-		if ( false ){
-		final Collection<MutableString> collection;
-		if ( "-".equals( stringFile ) ) {
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.displayLocalSpeed = true;
-			pl.displayFreeMemory = true;
-			pl.start( "Loading strings..." );
-			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
-			pl.done();
+		if ( byteArray ) {
+			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
+			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
+			BinIO.storeObject( new MWHCFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );		
 		}
-		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = iso
-				? TransformationStrategies.iso() 
-				: utf32 
-					? TransformationStrategies.utf32()
-					: TransformationStrategies.utf16();
+		else {
+			final Collection<MutableString> collection;
+			if ( "-".equals( stringFile ) ) {
+				final ProgressLogger pl = new ProgressLogger( LOGGER );
+				pl.displayLocalSpeed = true;
+				pl.displayFreeMemory = true;
+				pl.start( "Loading strings..." );
+				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.done();
+			}
+			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			final TransformationStrategy<CharSequence> transformationStrategy = iso
+					? TransformationStrategies.iso() 
+							: utf32 
+							? TransformationStrategies.utf32()
+									: TransformationStrategies.utf16();
 
-		if ( jsapResult.userSpecified( "values" ) ) {
-			final String values = jsapResult.getString( "values" );
-			int dataWidth = 0;
-			for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
+							if ( jsapResult.userSpecified( "values" ) ) {
+								final String values = jsapResult.getString( "values" );
+								int dataWidth = 0;
+								for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
 
-			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false, compacted ), functionName );
-		}
-					
-		else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );
+								BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false, compacted ), functionName );
+							}
+
+							else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );
 		}
 		LOGGER.info( "Completed." );
 	}
