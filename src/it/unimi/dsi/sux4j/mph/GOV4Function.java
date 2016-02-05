@@ -148,9 +148,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean DEBUG = false;
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #vertexOffsetAndSeed}. */
-	private static final long SEED_STEP = 1L << 56;
+	private static final long SEED_STEP = 1L << 54;
 	/** The lowest 56 bits of {@link #vertexOffsetAndSeed} contain the number of keys stored up to the given chunk. */
-	private static final long OFFSET_MASK = -1L >>> 8;
+	private static final long OFFSET_MASK = -1L >>> 12;
 
 	/** The ratio between vertices and hyperedges. */
 	private static double C = 1.02 + 0.01;
@@ -417,7 +417,8 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				long unsolvable = 0;
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
-					vertexOffsetAndSeed[ q + 1 ] = vertexOffsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
+					final int variables = ( C_TIMES_256 * chunk.size() >>> 8 );
+					vertexOffsetAndSeed[ q + 1 ] = vertexOffsetAndSeed[ q ] + ( variables < 100 ? variables + 1 : variables );
 
 					long seed = 0;
 					final Hypergraph4Solver<BitVector> solver = 
@@ -476,20 +477,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( vertexOffsetAndSeed ) );
 
 		globalSeed = chunkedHashStore.seed();
-
-		// Check for compaction
-		long nonZero = 0;
 		m = vertexOffsetAndSeed[ vertexOffsetAndSeed.length - 1 ];
-
-		{
-			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-			while( iterator.hasNext() ) {
-				final LongBigList data = iterator.next().asLongBigList( this.width );
-				for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
-			}
-			iterator.close();
-		}
-
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
 		this.data = dataBitVector.asLongBigList( this.width );
 			
@@ -527,7 +515,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		Hashes.spooky( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
-		Hypergraph4Solver.quadrupleToEdge( h, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		Hypergraph4Solver.tripleToEdge( h, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
 		
@@ -547,25 +535,21 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
-/*	public long getLongByTriple( final long[] triple ) {
+	public long getLongByTriple( final long[] triple ) {
 		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
+		final int[] e = new int[ 4 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
 		HypergraphSolver.tripleToEdge( triple, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
-		if ( e0 == -1 ) return defRetValue;
-		final long result = rank == null ?
-				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
-				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
-				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
-				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
+		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
+		
+		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );
 		if ( signatureMask == 0 ) return result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if ( signatures != null ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
+		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
-	*/
+
 	/** Returns the number of keys in the function domain.
 	 *
 	 * @return the number of the keys in the function domain.
@@ -602,7 +586,6 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
 			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
-			new Switch( "compacted", 'c', "compacted", "Whether the resulting function should be compacted." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
 			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
@@ -618,7 +601,6 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final File tempDir = jsapResult.getFile( "tempDir" );
 		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean compacted = jsapResult.getBoolean( "compacted" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 

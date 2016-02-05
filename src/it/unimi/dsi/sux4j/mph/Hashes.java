@@ -442,7 +442,7 @@ public class Hashes {
 		h[ 2 ] = c;
 	}
 
-	public static void spooky( final long[] triple, final long seed, final long[] h )  {
+	public static void spooky( final long[] triple, final long seed, final long[] tuple )  {
 		long h0, h1, h2, h3;
 		h0 = seed;
 		h1 = ARBITRARY_BITS + triple[ 0 ];
@@ -462,9 +462,12 @@ public class Hashes {
 		h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 		h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
-		h[ 0 ] = h0;
-		h[ 1 ] = h1;
-		h[ 2 ] = h2;
+		switch( tuple.length ) {
+		case 4: tuple[ 3 ] = h3;
+		case 3: tuple[ 2 ] = h2;
+		case 2: tuple[ 1 ] = h1;
+		case 1: tuple[ 0 ] = h0;
+		}
 	}
 
 
@@ -1218,7 +1221,7 @@ public class Hashes {
 	 * @param src contains long values for which the hash code is computed
 	 * @param seed seed value used to initialize engine state
 	 */
-	private static void smallSpooky( final BitVector bv, final long seed, final long[] triple ) {
+	private static void smallSpooky( final BitVector bv, final long seed, final long[] tuple ) {
 
 		long h0, h1, h2, h3;
 		h0 = seed;
@@ -1300,16 +1303,19 @@ public class Hashes {
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
-        triple[ 0 ] = h0;
-        triple[ 1 ] = h1;
-        triple[ 2 ] = h2;
+		switch( tuple.length ) {
+		case 4: tuple[ 3 ] = h3;
+		case 3: tuple[ 2 ] = h2;
+		case 2: tuple[ 1 ] = h1;
+		case 1: tuple[ 0 ] = h0;
+		}
 	}
 
 	/**
 	 */
-	public static void spooky( final BitVector bv, final long seed, final long[] triple ) {
+	public static void spooky( final BitVector bv, final long seed, final long[] tuple ) {
 		if ( bv.length() < Long.SIZE * 12 ) {
-			smallSpooky( bv, seed, triple );
+			smallSpooky( bv, seed, tuple );
 			return;
 		}
 
@@ -1512,9 +1518,12 @@ public class Hashes {
 	        h0 = Long.rotateLeft(h0, 54);
 		}
 
-		triple[ 0 ] = h0;
-		triple[ 1 ] = h1;
-		triple[ 2 ] = h2;
+		switch( tuple.length ) {
+		case 4: tuple[ 3 ] = h3;
+		case 3: tuple[ 2 ] = h2;
+		case 2: tuple[ 1 ] = h1;
+		case 1: tuple[ 0 ] = h0;
+		}
 	}
 
 	/** A simple test to check the relative speed of various hashes on your architecture.

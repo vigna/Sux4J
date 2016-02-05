@@ -75,7 +75,7 @@ import org.slf4j.LoggerFactory;
  * <h2>Support for preprocessed keys</h2>
  * 
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
- * {@link #generateAndSort(Iterator, long)} and {@link #quadrupleToEdge(long[], long, int, int, int[])} use
+ * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
  * turning the keys into such a triple using {@linkplain Hashes#spooky(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
@@ -207,23 +207,23 @@ public class Hypergraph4Solver<T> {
 	 * 
 	 * <p>If there are no vertices the vector <code>e</code> will be filled with -1.
 	 * 
-	 * @param quadruple a triple of intermediate hashes.
+	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
 	 * @param numVertices the number of vertices in the underlying hypergraph.
 	 * @param e an array to store the resulting edge.
 	 * @see #bitVectorToEdge(BitVector, long, int, int[])
 	 */
-	public static void quadrupleToEdge( final long[] quadruple, final long seed, final int numVertices, final int e[] ) {
+	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
 		if ( numVertices == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ]  = -1;
 			return;
 		}
-		final long[] hash = new long[ 3 ];
-		Hashes.spooky( quadruple, seed, hash );
+		final long[] hash = new long[ 4 ];
+		Hashes.spooky( triple, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 3 ] = (int)( ( ( hash[ 0 ] ^ hash[ 1 ] ^ hash[ 2 ] ) & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 	}
 
 	/** Turns a bit vector into a 3-hyperedge.
@@ -240,12 +240,12 @@ public class Hypergraph4Solver<T> {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ] -1;
 			return;
 		}
-		final long[] hash = new long[ 3 ];
+		final long[] hash = new long[ 4 ];
 		Hashes.spooky( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 3 ] = (int)( ( ( hash[ 0 ] ^ hash[ 1 ] ^ hash[ 2 ] ) & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 	}
 	
 	private String edge2String( final int e ) {
@@ -283,7 +283,7 @@ public class Hypergraph4Solver<T> {
 		final int[] e = new int[ 4 ];
 		final Iterator<long[]> iterator = iterable.iterator();
 		for( int i = 0; i < numEdges; i++ ) {
-			quadrupleToEdge( iterator.next(), seed, numVertices, e );
+			tripleToEdge( iterator.next(), seed, numVertices, e );
 			if ( DEBUG ) System.err.println("Edge <" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + "," + e[ 3 ] + ">" );
 			d[ edge2Vertex0[ i ] = e[ 0 ] ]++;
 			d[ edge2Vertex1[ i ] = e[ 1 ] ]++;
