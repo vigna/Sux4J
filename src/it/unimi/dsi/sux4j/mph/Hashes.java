@@ -1233,7 +1233,8 @@ public class Hashes {
 		int remaining = length;
 		int pos = 0;
 
-		while ( remaining >= Long.SIZE * 4 ) {
+		// mix almost complete blocks (guarantee to leave 9 bits free)
+		while ( remaining >= Long.SIZE * 4 - 9 ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
 
@@ -1251,7 +1252,7 @@ public class Hashes {
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
 			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
-			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+			h1 += bv.getLong( pos + 3 * Long.SIZE, Math.min( length, pos + 4 * Long.SIZE ) );
 			remaining -= 4 * Long.SIZE;
 			pos += 4 * Long.SIZE;
 		}
@@ -1277,7 +1278,7 @@ public class Hashes {
 
 		}
 
-		h3 += (long)( length ) << 53;
+		h3 += (long)( remaining ) << 55;
 
 		if ( remaining > Long.SIZE ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
@@ -1327,8 +1328,8 @@ public class Hashes {
 		long pos = 0;
 		long remaining = length;
 
-		// mix complete blocks:
-		while ( remaining >= Long.SIZE * 12 ) {
+		// mix almost complete blocks (guarantee to leave 11 bits free)
+		while ( remaining >= Long.SIZE * 12 - 11 ) {
 
 			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h2 ^= h10;
@@ -1396,7 +1397,7 @@ public class Hashes {
 			h10 = Long.rotateLeft(h10, 22);
 			h9 += h11;
 
-			h11 += bv.getLong( pos + 11 * Long.SIZE, pos + 12 * Long.SIZE );
+			h11 += bv.getLong( pos + 11 * Long.SIZE, Math.min( length, pos + 12 * Long.SIZE ) );
 			h1 ^= h9;
 			h10 ^= h11;
 			h11 = Long.rotateLeft(h11, 46);
@@ -1435,7 +1436,7 @@ public class Hashes {
 		}
 
 		final int bits = (int)( remaining % Long.SIZE );
-		if ( bits != 0 ) {
+		if ( bits > 0 ) {
 			final long partial = bv.getLong( length - bits, length );
 			switch( remainingWords ) {
 			case 0:
@@ -1538,9 +1539,10 @@ public class Hashes {
 
 		final ProgressLogger pl = new ProgressLogger();
 		long t = 0;
+		long h[] = new long[ 3 ];
 
 		for( int k = 4; k-- != 0; ) {
-			pl.start( "Timing MurmurHash..." );
+/*			pl.start( "Timing MurmurHash..." );
 
 			for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
 			if ( t == 0 ) System.err.println( t ); // To avoid excision
@@ -1549,7 +1551,6 @@ public class Hashes {
 
 			pl.start( "Timing MurmurHash3..." );
 
-			long h[] = new long[ 3 ];
 			for( int i = n; i-- != 0; ) {
 				murmur3( bv, 0, h );
 				t += h[ 0 ];
@@ -1567,7 +1568,7 @@ public class Hashes {
 			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
-
+	*/
 			pl.start( "Timing SpookyHash..." );
 
 			for( int i = n; i-- != 0; ) {
@@ -1577,7 +1578,7 @@ public class Hashes {
 			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
-
+/*
 			final long[] preprocessMurmur = preprocessMurmur( bv, 0 );
 
 			pl.start( "Timing preprocessed MurmurHash..." );
@@ -1610,7 +1611,7 @@ public class Hashes {
 			for( int i = n; i-- != 0; ) t += jenkins( bv, l - 1, aa, bb, cc );
 			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
-			pl.done( n );
+			pl.done( n );*/
 		}
 	}
 }
