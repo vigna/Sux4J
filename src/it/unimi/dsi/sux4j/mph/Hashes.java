@@ -1274,7 +1274,6 @@ public class Hashes {
 	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
 	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
-
 		}
 
 		if ( remaining > Long.SIZE ) {
@@ -1310,6 +1309,91 @@ public class Hashes {
 		case 1: tuple[ 0 ] = h0;
 		}
 	}
+
+	public static long spooky4( final BitVector bv, final long seed ) {
+
+		long h0, h1, h2, h3;
+		h0 = seed;
+		h1 = seed;
+		h2 = ARBITRARY_BITS;
+		h3 = ARBITRARY_BITS;
+
+		final int length = (int)bv.length();
+		int remaining = length;
+		int pos = 0;
+
+		while ( remaining >= Long.SIZE * 4 ) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+
+	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 30);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 41);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 54);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
+
+			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
+			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+			remaining -= 4 * Long.SIZE;
+			pos += 4 * Long.SIZE;
+		}
+
+		if ( remaining >= Long.SIZE * 2 ) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+			remaining -= 2 * Long.SIZE;
+			pos += 2 * Long.SIZE;
+
+	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 30);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 41);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 54);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
+		}
+
+		if ( remaining > Long.SIZE ) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, length );
+		}
+		else if ( remaining > 0 ) {
+			h2 += bv.getLong( pos, length );
+		}
+		else {
+			h2 += ARBITRARY_BITS;
+			h3 += ARBITRARY_BITS;
+		}
+
+		h0 += length;
+
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 15);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 52);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 26);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 51);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 28);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 9);   h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 47);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 54);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 32);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
+
+        return h1;
+	}
+
 
 	public static void spooky12( final BitVector bv, final long seed, final long[] tuple ) {
 		if ( bv.length() < Long.SIZE * 12 ) {
@@ -1626,6 +1710,63 @@ public class Hashes {
 		case 2: tuple[ 1 ] = h1;
 		case 1: tuple[ 0 ] = h0;
 		}
+	}
+
+	public static long spooky4( final BitVector bv, final long prefixLength, final long seed, final long[] state ) {
+
+		long h0, h1, h2, h3;
+		h0 = seed;
+		h1 = seed;
+		h2 = ARBITRARY_BITS;
+		h3 = ARBITRARY_BITS;
+		long pos;
+		
+		if ( prefixLength >= 2 * Long.SIZE ) {
+			final int p = 4 * (int)( ( prefixLength - 2 * Long.SIZE ) / ( 4 * Long.SIZE ) );
+			h0 = state[ p + 0 ];
+			h1 = state[ p + 1 ];
+			h2 = state[ p + 2 ];
+			h3 = state[ p + 3 ];
+			pos = p * Long.SIZE + 2 * Long.SIZE;
+		}
+		else pos = 0;
+
+		long remaining = prefixLength - pos;
+
+		if ( remaining >= Long.SIZE * 2 ) {
+			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h1 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+			remaining -= 2 * Long.SIZE;
+			pos += 2 * Long.SIZE;
+		}
+
+		if ( remaining > Long.SIZE ) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, prefixLength );
+		}
+		else if ( remaining > 0 ) {
+			h2 += bv.getLong( pos, prefixLength );
+		}
+		else {
+			h2 += ARBITRARY_BITS;
+			h3 += ARBITRARY_BITS;
+		}
+
+		h0 += prefixLength;
+
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 15);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 52);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 26);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 51);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 28);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 9);   h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 47);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 54);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 32);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
+
+        return h1;
 	}
 
 

@@ -387,7 +387,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o );
 		final long[] triple = new long[ 3 ];
-		Hashes.spooky12( bitVector, seed, triple );
+		Hashes.spooky4( bitVector, seed, triple );
 		final long value = offsetLcpLength.getLongByTriple( triple );
 		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return defRetValue;

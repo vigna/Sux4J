@@ -238,7 +238,7 @@ public class HypergraphSolver<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.spooky12( bv, seed, hash );
+		Hashes.spooky4( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );

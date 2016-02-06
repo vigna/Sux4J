@@ -533,7 +533,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final long[] h = new long[ 3 ];
-		Hashes.spooky12( transform.toBitVector( (T)key ), globalSeed, h );
+		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );

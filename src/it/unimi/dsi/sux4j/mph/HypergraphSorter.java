@@ -206,7 +206,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.spooky12( bv, seed, hash );
+		Hashes.spooky4( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );

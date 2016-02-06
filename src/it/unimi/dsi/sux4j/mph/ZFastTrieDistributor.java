@@ -158,9 +158,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				path.append( node.path );
 
 				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, true );
-				path.remove( (int)( path.length() - 1 ) );
+				path.removeBoolean( (int)( path.length() - 1 ) );
 
-				final long h = Hashes.jenkins( path, seed );
+				final long h = Hashes.spooky4( path, seed );
 				final long p = ( -1L << Fast.mostSignificantBit( parentPathLength ^ path.length() ) & path.length() );
 
 				if ( ASSERTS ) assert p <= path.length() : p + " > " + path.length();
@@ -542,7 +542,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % ( 1L << log2BucketSize ) == 0 ? " (bucket)" : "" ));
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
-					long h = Hashes.jenkins( curr, seed );
+					long h = Hashes.spooky4( curr, seed );
 					mistakeSignatures.add( (int)h );
 					mistakes++;
 				}
@@ -563,7 +563,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			pl.start( "Searching for false positives..." );
 			
 			for( BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
-				long h = Hashes.jenkins( curr, seed );
+				long h = Hashes.spooky4( curr, seed );
 				if ( mistakeSignatures.contains( (int)h ) ) {
 					positives.add( curr.copy() );
 					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) ); 
@@ -613,15 +613,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	}
 
 	private long getNodeStringLength( BitVector v ) {
-		return getNodeStringLength( v, Hashes.preprocessJenkins( v, seed ) );
+		return getNodeStringLength( v, Hashes.preprocessSpooky4( v, seed ) );
 	}
 	
-	private long getNodeStringLength( BitVector v, final long[][] state ) {
+	private long getNodeStringLength( BitVector v, final long[] state ) {
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
 		
-		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
-		
-		final long corr = Hashes.jenkins( v, v.length(), a, b, c );
+		final long corr = Hashes.spooky4( v, v.length(), seed, state );
 		if ( mistakeSignatures.contains( (int)corr ) ) {
 			if ( DEBUG ) System.err.println( "Correcting..." );
 			return corrections.getLong( v );
@@ -638,7 +636,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i );
-				Hashes.jenkins( v, f, a, b, c, triple );
+				Hashes.spooky4( v, f, seed, state, triple );
 				final long data = signatures.getLongByTriple( triple );
 				
 				if ( data == -1 ) {
@@ -653,9 +651,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 						r = f;
 					}
 					else {
-						final long h = Hashes.jenkins( v, g, a, b, c );
+						final long h = Hashes.spooky4( v, g, seed, state );
 						
-						if ( ASSERTS ) assert h == Hashes.jenkins( v.subVector( 0, g ), seed );
+						if ( ASSERTS ) assert h == Hashes.spooky4( v.subVector( 0, g ), seed );
 
 						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
 
@@ -675,13 +673,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	public long getLong( final Object o ) {
 		final BitVector bv = (BitVector)o;
-		final long state[][] = Hashes.preprocessJenkins( bv, seed );
+		final long state[] = Hashes.preprocessSpooky4( bv, seed );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
+		Hashes.spooky4( bv, bv.length(), seed, state, triple );
 		return getLongByBitVectorTripleAndState( bv, triple, state );
 	}
 
-	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[][] state ) {
+	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[] state ) {
 		if ( noDelimiters ) return 0;
 		final int b = (int)behaviour.getLongByTriple( triple );
 		if ( emptyTrie ) return b;

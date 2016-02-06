@@ -265,9 +265,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
-		final long state[][] = Hashes.preprocessJenkins( bv, seed );
+		final long state[] = Hashes.preprocessSpooky4( bv, seed );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
+		Hashes.spooky4( bv, bv.length(), seed, state, triple );
 
 		final long bucket = distributor.getLongByBitVectorTripleAndState( bv, triple, state );
 		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
