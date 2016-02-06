@@ -1233,8 +1233,7 @@ public class Hashes {
 		int remaining = length;
 		int pos = 0;
 
-		// mix almost complete blocks (guarantee to leave 9 bits free)
-		while ( remaining >= Long.SIZE * 4 - 9 ) {
+		while ( remaining >= Long.SIZE * 4 ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
 
@@ -1278,8 +1277,6 @@ public class Hashes {
 
 		}
 
-		h3 += (long)( remaining ) << 55;
-
 		if ( remaining > Long.SIZE ) {
 			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h3 += bv.getLong( pos + 1 * Long.SIZE, length );
@@ -1291,6 +1288,8 @@ public class Hashes {
 			h2 += ARBITRARY_BITS;
 			h3 += ARBITRARY_BITS;
 		}
+
+		h0 += length;
 
         h3 ^= h2;  h2 = Long.rotateLeft(h2, 15);  h3 += h2;
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 52);  h0 += h3;
@@ -1328,9 +1327,7 @@ public class Hashes {
 		long pos = 0;
 		long remaining = length;
 
-		// mix almost complete blocks (guarantee to leave 11 bits free)
-		while ( remaining >= Long.SIZE * 12 - 11 ) {
-
+		while ( remaining >= Long.SIZE * 11 ) {
 			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
 			h2 ^= h10;
 			h11 ^= h0;
@@ -1410,6 +1407,7 @@ public class Hashes {
 		final int remainingWords = (int)(remaining / Long.SIZE);
 		switch ( remainingWords ) {
 		case 11:
+			assert false;
 			h10 += bv.getLong( pos + Long.SIZE * 10, pos + Long.SIZE * 11 );
 		case 10:
 			h9 += bv.getLong( pos + Long.SIZE * 9, pos + Long.SIZE * 10 );
@@ -1473,12 +1471,13 @@ public class Hashes {
 				h10 += partial;
 				break;
 			case 11:
+				assert false;
 				h11 += partial;
 				break;
 			}
 		}
 
-		h11 += remaining << 53;
+		h11 += length;
 
 		for (int i = 0; i < 3; i++) {
 	        h11 += h1;
