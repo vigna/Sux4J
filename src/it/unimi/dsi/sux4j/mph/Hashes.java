@@ -1406,9 +1406,6 @@ public class Hashes {
 
 		final int remainingWords = (int)(remaining / Long.SIZE);
 		switch ( remainingWords ) {
-		case 11:
-			assert false;
-			h10 += bv.getLong( pos + Long.SIZE * 10, pos + Long.SIZE * 11 );
 		case 10:
 			h9 += bv.getLong( pos + Long.SIZE * 9, pos + Long.SIZE * 10 );
 		case 9:
@@ -1469,10 +1466,6 @@ public class Hashes {
 				break;
 			case 10:
 				h10 += partial;
-				break;
-			case 11:
-				assert false;
-				h11 += partial;
 				break;
 			}
 		}
