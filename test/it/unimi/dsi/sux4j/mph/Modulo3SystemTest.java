@@ -126,7 +126,7 @@ public class Modulo3SystemTest {
 
 	@Test
 	public void testRandom() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 2 );
+		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 10, 100, 1000 } ) {
 			Modulo3System system = new Modulo3System( size );
 			// Few equations
