@@ -1034,7 +1034,7 @@ public class SpookyHash {
 		System.out.println( hash( a, 0, a.length, 0 ) );
 		
 		long t[] = new long[ 3 ];
-		Hashes.spooky( LongArrayBitVector.wrap( a ), 0, t );
+		Hashes.spooky12( LongArrayBitVector.wrap( a ), 0, t );
 		System.out.println( t[ 0 ] );
 	}
 }

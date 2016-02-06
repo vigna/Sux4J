@@ -363,7 +363,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
-		Hashes.spooky( transform.toBitVector( (T)o ), seed, triple );
+		Hashes.spooky12( transform.toBitVector( (T)o ), seed, triple );
 		if ( firstFunction != null ) {
 			final int firstValue = (int)firstFunction.getLongByTriple( triple );
 			if ( firstValue == -1 ) return defRetValue;

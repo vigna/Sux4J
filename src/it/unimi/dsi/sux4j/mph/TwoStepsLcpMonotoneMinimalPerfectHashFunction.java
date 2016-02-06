@@ -416,7 +416,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o ).fast();
 		final long[] triple = new long[ 3 ];
-		Hashes.spooky( bitVector, seed, triple );
+		Hashes.spooky12( bitVector, seed, triple );
 		final long prefix = lcpLengths.getLongByTriple( triple ); 
 		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
 		final long result = ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLongByTriple( triple );

@@ -551,7 +551,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
-		Hashes.spooky( transform.toBitVector( (T)key ), globalSeed, triple );
+		Hashes.spooky12( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );

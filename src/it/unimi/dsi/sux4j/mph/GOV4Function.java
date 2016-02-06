@@ -512,7 +512,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 4 ];
 		final long[] h = new long[ 3 ];
-		Hashes.spooky( transform.toBitVector( (T)o ), globalSeed, h );
+		Hashes.spooky12( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
 		Hypergraph4Solver.tripleToEdge( h, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );

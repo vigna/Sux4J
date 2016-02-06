@@ -671,15 +671,15 @@ public class Hashes {
 			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -702,15 +702,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -764,15 +764,15 @@ public class Hashes {
 			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -795,15 +795,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -861,15 +861,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -930,15 +930,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -990,15 +990,15 @@ public class Hashes {
 			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1021,15 +1021,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1085,15 +1085,15 @@ public class Hashes {
 			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1116,15 +1116,15 @@ public class Hashes {
 			}
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1184,15 +1184,15 @@ public class Hashes {
 			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
 
 			k1 *= c1;
-			k1 = ( k1 << 23 ) | ( k1 >>> 64 - 23 );
+			k1 = Long.rotateLeft( k1, 23 );
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = ( h2 << 41 ) | ( h2 >>> 64 - 41 );
+			h2 = Long.rotateLeft( h2, 41 );
 
 			k2 *= c2;
-			k2 = ( k2 << 23 ) | ( k2 >>> 64 - 23 );
+			k2 = Long.rotateLeft( k2, 23 );
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1221,7 +1221,7 @@ public class Hashes {
 	 * @param src contains long values for which the hash code is computed
 	 * @param seed seed value used to initialize engine state
 	 */
-	private static void smallSpooky( final BitVector bv, final long seed, final long[] tuple ) {
+	public static void spooky4( final BitVector bv, final long seed, final long[] tuple ) {
 
 		long h0, h1, h2, h3;
 		h0 = seed;
@@ -1251,7 +1251,7 @@ public class Hashes {
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
 			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
-			h1 += bv.getLong( pos + 3 * Long.SIZE, Math.min( length, pos + 4 * Long.SIZE ) );
+			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
 			remaining -= 4 * Long.SIZE;
 			pos += 4 * Long.SIZE;
 		}
@@ -1311,11 +1311,9 @@ public class Hashes {
 		}
 	}
 
-	/**
-	 */
-	public static void spooky( final BitVector bv, final long seed, final long[] tuple ) {
+	public static void spooky12( final BitVector bv, final long seed, final long[] tuple ) {
 		if ( bv.length() < Long.SIZE * 12 ) {
-			smallSpooky( bv, seed, tuple );
+			spooky4( bv, seed, tuple );
 			return;
 		}
 
@@ -1519,6 +1517,118 @@ public class Hashes {
 		}
 	}
 
+	
+	public static long[] preprocessSpooky4( final BitVector bv, final long seed ) {
+		final long length = bv.length();
+		if ( length < Long.SIZE * 2 ) return null;
+		final long[] state = new long[ 4 * (int)( length + Long.SIZE * 2 ) / ( 4 * Long.SIZE ) ];
+
+		long h0, h1, h2, h3;
+		h0 = seed;
+		h1 = seed;
+		h2 = ARBITRARY_BITS;
+		h3 = ARBITRARY_BITS;
+		
+		long remaining = length;
+		long pos = 0;
+		int p = 0;
+
+		for(;;) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+
+	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 30);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 41);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 54);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 48);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 38);  h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 37);  h1 += h2;  h3 ^= h1;
+	        h2 = Long.rotateLeft(h2, 62);  h2 += h3;  h0 ^= h2;
+	        h3 = Long.rotateLeft(h3, 34);  h3 += h0;  h1 ^= h3;
+	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
+	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
+
+			state[ p + 0 ] = h0;
+			state[ p + 1 ] = h1;
+			state[ p + 2 ] = h2;
+			state[ p + 3 ] = h3;
+			p += 4;
+			
+			if ( remaining >= Long.SIZE * 6 ) {
+				h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
+				h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+				remaining -= 4 * Long.SIZE;
+				pos += 4 * Long.SIZE;
+			}
+			else return state;
+		}
+	}
+
+	public static void spooky4( final BitVector bv, final long prefixLength, final long seed, final long[] state, final long[] tuple ) {
+
+		long h0, h1, h2, h3;
+		h0 = seed;
+		h1 = seed;
+		h2 = ARBITRARY_BITS;
+		h3 = ARBITRARY_BITS;
+		long pos;
+		
+		if ( prefixLength >= 2 * Long.SIZE ) {
+			final int p = 4 * (int)( ( prefixLength - 2 * Long.SIZE ) / ( 4 * Long.SIZE ) );
+			h0 = state[ p + 0 ];
+			h1 = state[ p + 1 ];
+			h2 = state[ p + 2 ];
+			h3 = state[ p + 3 ];
+			pos = p * Long.SIZE + 2 * Long.SIZE;
+		}
+		else pos = 0;
+
+		long remaining = prefixLength - pos;
+
+		if ( remaining >= Long.SIZE * 2 ) {
+			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h1 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+			remaining -= 2 * Long.SIZE;
+			pos += 2 * Long.SIZE;
+		}
+
+		if ( remaining > Long.SIZE ) {
+			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+			h3 += bv.getLong( pos + 1 * Long.SIZE, prefixLength );
+		}
+		else if ( remaining > 0 ) {
+			h2 += bv.getLong( pos, prefixLength );
+		}
+		else {
+			h2 += ARBITRARY_BITS;
+			h3 += ARBITRARY_BITS;
+		}
+
+		h0 += prefixLength;
+
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 15);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 52);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 26);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 51);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 28);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 9);   h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 47);  h1 += h0;
+        h2 ^= h1;  h1 = Long.rotateLeft(h1, 54);  h2 += h1;
+        h3 ^= h2;  h2 = Long.rotateLeft(h2, 32);  h3 += h2;
+        h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
+        h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
+
+		switch( tuple.length ) {
+		case 4: tuple[ 3 ] = h3;
+		case 3: tuple[ 2 ] = h2;
+		case 2: tuple[ 1 ] = h1;
+		case 1: tuple[ 0 ] = h0;
+		}
+	}
+
+
 	/** A simple test to check the relative speed of various hashes on your architecture.
 	 *
 	 * @param arg the length of the bit vector to hash, and then the number of evaluations.
@@ -1551,7 +1661,7 @@ public class Hashes {
 
 			pl.done( n );
 
-			pl.start( "Timing Jenkins's hash..." );
+			*/pl.start( "Timing Jenkins's hash..." );
 
 			for( int i = n; i-- != 0; ) {
 				jenkins( bv, 0, h );
@@ -1560,11 +1670,20 @@ public class Hashes {
 			if ( t == 0 ) System.err.println( t ); // To avoid excision
 
 			pl.done( n );
-	*/
-			pl.start( "Timing SpookyHash..." );
+	
+			pl.start( "Timing SpookyHash4..." );
 
 			for( int i = n; i-- != 0; ) {
-				spooky( bv, 0, h );
+				spooky4( bv, 0, h );
+				t += h[ 0 ];
+			}
+			if ( t == 0 ) System.err.println( t ); // To avoid excision
+
+			pl.done( n );
+			pl.start( "Timing SpookyHash12..." );
+
+			for( int i = n; i-- != 0; ) {
+				spooky12( bv, 0, h );
 				t += h[ 0 ];
 			}
 			if ( t == 0 ) System.err.println( t ); // To avoid excision

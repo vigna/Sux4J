@@ -77,7 +77,7 @@ import org.slf4j.LoggerFactory;
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
  * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
- * turning the keys into such a triple using {@linkplain Hashes#spooky(BitVector,long,long[]) SpookyHash} and
+ * turning the keys into such a triple using {@linkplain Hashes#spooky12(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
  * rehashed using {@link Hashes#spooky([], long, long[])}&mdash;this is necessary to vary the associated edges whenever
@@ -88,7 +88,7 @@ import org.slf4j.LoggerFactory;
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>We use {@linkplain Hashes#spooky(BitVector, long, long[]) Jenkins's SpookyHash} 
+ * <p>We use {@linkplain Hashes#spooky12(BitVector, long, long[]) Jenkins's SpookyHash} 
  * to compute <em>three</em> 64-bit hash values.
  * 
  * <h3>The XOR trick</h3>
@@ -238,7 +238,7 @@ public class HypergraphSolver<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.spooky( bv, seed, hash );
+		Hashes.spooky12( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
 		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );

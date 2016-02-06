@@ -276,7 +276,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	public void add( final T o, final long value ) throws IOException {
 		final long[] triple = new long[ 3 ];
-		Hashes.spooky( transform.toBitVector( o ), seed, triple );
+		Hashes.spooky12( transform.toBitVector( o ), seed, triple );
 		add( triple, value );
 	}
 	
@@ -317,7 +317,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		}
 		final long[] triple = new long[ 3 ];
 		while( elements.hasNext() ) {
-			Hashes.spooky( transform.toBitVector( elements.next() ), seed, triple );
+			Hashes.spooky12( transform.toBitVector( elements.next() ), seed, triple );
 			add( triple, values != null ? values.nextLong() : filteredSize );
 			if ( pl != null ) pl.lightUpdate();
 		}
