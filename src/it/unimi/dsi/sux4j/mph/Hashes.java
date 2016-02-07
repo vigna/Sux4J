@@ -1391,7 +1391,7 @@ public class Hashes {
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
-        return h1;
+        return h0;
 	}
 
 
@@ -1766,7 +1766,7 @@ public class Hashes {
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
-        return h1;
+        return h0;
 	}
 
 

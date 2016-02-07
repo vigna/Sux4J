@@ -56,10 +56,10 @@ import org.slf4j.LoggerFactory;
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
