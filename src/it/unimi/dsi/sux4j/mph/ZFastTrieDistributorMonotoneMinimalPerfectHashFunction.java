@@ -236,7 +236,6 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 				return size;
 			}
 		}, this.log2BucketSize ).indirect().build();
-		//System.err.println( "*********" + chunkedHashStore.seed() );
 
 		seed = chunkedHashStore.seed();
 		double logU = averageLength * log( 2 );

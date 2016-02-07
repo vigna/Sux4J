@@ -3,12 +3,15 @@ package it.unimi.dsi.sux4j.mph;
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongLists;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.HashDisplaceCompressMinimalPerfectHashFunction.Builder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -62,4 +65,10 @@ public class HashDisplaceCompressMinimalPerfectHashFunctionTest {
 		}
 	}
 
+	@Test
+	public void testEmpty() throws IOException {
+		List<String> emptyList = Collections.emptyList();
+		HashDisplaceCompressMinimalPerfectHashFunction<String> mph = new HashDisplaceCompressMinimalPerfectHashFunction.Builder<String>().keys( emptyList ).transform( TransformationStrategies.utf16() ).build();
+		assertEquals( -1, mph.getLong( "a" ) );
+	}
 }

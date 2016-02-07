@@ -178,6 +178,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private final ProgressLogger pl;
 	/** If nonzero, no associated data is saved in the store: {@link Chunk#data(long)} will return the first of the three hashes associated with the key, masked by this value. */
 	private final long hashMask;
+	/** The temporary directory for this chunked hash store, or {@code null}. */
+	private final File tempDir;
 	/** The data output streams for the disk chunks. */
 	private DataOutputStream[] dos;
 	/** The number of disk chunks divided by {@link #diskChunkStep}. */
@@ -239,6 +241,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final int hashWidth, final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
+		this.tempDir = tempDir;
 		this.hashMask = hashWidth == 0 ? 0 : -1L >>> Long.SIZE - hashWidth;
 		
 		file = new File[ DISK_CHUNKS ];
@@ -261,6 +264,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	public long seed() {
 		locked = true;
 		return seed;
+	}
+
+	/** Return the temporary directory of this chunked hash store, or {@code null}.
+	 *
+	 * @return the temporary directory of this chunked hash store, or {@code null}.
+	 */
+	public File tempDir() {
+		return tempDir;
 	}
 	
 	/** Return the transformation strategy provided at construction time. 
@@ -309,6 +320,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** Adds the elements returned by an iterator to this store, associating them with specified values.
 	 * 
 	 * @param elements an iterator returning elements.
+	 * @param values an iterator on values parallel to {@code elements}.
 	 */
 	public void addAll( final Iterator<? extends T> elements, final LongIterator values ) throws IOException {
 		if ( pl != null ) {
@@ -710,6 +722,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					}
 
 					it.unimi.dsi.fastutil.Arrays.quickSort( 0, chunkSize, new AbstractIntComparator() {
+						private static final long serialVersionUID = 0L;
+
 						public int compare( final int x, final int y ) {
 							int t = Long.signum( buffer0[ x ] - buffer0[ y ] );
 							if ( t != 0 ) return t;

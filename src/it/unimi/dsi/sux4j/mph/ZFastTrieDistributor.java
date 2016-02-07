@@ -56,10 +56,10 @@ import org.slf4j.LoggerFactory;
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
 	private static final long serialVersionUID = 1L;
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 
 	/** An integer representing the exit-on-the-left behaviour. */
 	private final static int LEFT = 0;
@@ -150,7 +150,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				final LongBigList internalNodeSignatures,
 				final long seed,
 				final boolean left ) throws IOException {
-			if ( ASSERTS ) assert ( node.left != null ) == ( node.right != null );
+			assert ( node.left != null ) == ( node.right != null );
 
 			long parentPathLength = Math.max( 0, path.length() - 1 );
 
@@ -163,12 +163,12 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				final long h = Hashes.spooky4( path, seed );
 				final long p = ( -1L << Fast.mostSignificantBit( parentPathLength ^ path.length() ) & path.length() );
 
-				if ( ASSERTS ) assert p <= path.length() : p + " > " + path.length();
-				if ( ASSERTS ) assert path.length() == 0 || p > parentPathLength : p + " <= " + parentPathLength;
+				assert p <= path.length() : p + " > " + path.length();
+				assert path.length() == 0 || p > parentPathLength : p + " <= " + parentPathLength;
 
 				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
 				representations.add( path.copy() );
-				if ( ASSERTS ) assert Fast.length( path.length() ) <= logW;
+				assert Fast.length( path.length() ) <= logW;
 				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key (" + p + "," + path.subVector( 0, p ).hashCode() + ") " + path.subVector( 0, p ) + ", signature " + ( h & signatureMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & signatureMask ) << logW | ( path.length() & logWMask )) + ")" );
 
 				internalNodeSignatures.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
@@ -242,10 +242,10 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 								prefix -= pathLength + 1;
 								pos += pathLength + 1;
 								node = node.right;
-								if ( ASSERTS ) assert node == null || prefix >= 0 : prefix + " <= " + 0;
+								assert node == null || prefix >= 0 : prefix + " <= " + 0;
 							}
 
-							if ( ASSERTS ) assert node != null;
+							assert node != null;
 
 							if ( DDEBUG ) leaves.add( prev.copy() );
 							prevDelimiter.replace( prev );
@@ -265,7 +265,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				signatureSize = logLogW + log2BucketSize;
 				signatureMask = ( 1L << signatureSize ) - 1;
 				
-				if ( ASSERTS ) assert logW + signatureSize <= Long.SIZE;
+				assert logW + signatureSize <= Long.SIZE;
 				
 				this.root = root;
 				
@@ -520,10 +520,16 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			rankerArray = null;
 
 			LOGGER.info( "Computing length/signature map..." );
-			signatures = new MWHCFunction.Builder<BitVector>().keys( intermediateTrie.internalNodeKeys ).transform( TransformationStrategies.identity() ).values( intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
+
+			ChunkedHashStore<BitVector> intermediateTrieChunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), chunkedHashStore.tempDir() );
+			intermediateTrieChunkedHashStore.reset( seed );
+			intermediateTrieChunkedHashStore.addAll( intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator() );
+
+			signatures = new MWHCFunction.Builder<BitVector>().store( intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
+			intermediateTrieChunkedHashStore.close();
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
@@ -553,7 +559,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			pl.done();
 			
 			LOGGER.info( "Errors: " + mistakes + " (" + ( 100.0 * mistakes / size ) + "%)" );
-			if ( ASSERTS ) assert (double)mistakes / size < .5 : 100.0 * mistakes / size + "% >= 50%";  
+			assert size < 10000 || (double)mistakes / size < .5 : "size = " + size + ", errors = " + 100.0 * mistakes / size + "% >= 50%";
 			
 			ObjectArrayList<BitVector> positives = new ObjectArrayList<BitVector>();
 			LongArrayList results = new LongArrayList();
@@ -631,13 +637,14 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		long mask = 1L << i;
 		final long triple[] = new long[ 3 ];
 		while( r - l > 1 ) {
-			if ( ASSERTS ) assert i > -1;
+			assert i > -1;
 			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i );
 				Hashes.spooky4( v, f, seed, state, triple );
 				final long data = signatures.getLongByTriple( triple );
+				assert signatures.getLong( v.subVector( 0, f ) ) == data : signatures.getLong( v.subVector( 0, f ) ) + " != " + data + " (prefix: " + f + ")"; 
 				
 				if ( data == -1 ) {
 					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
@@ -653,7 +660,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 					else {
 						final long h = Hashes.spooky4( v, g, seed, state );
 						
-						if ( ASSERTS ) assert h == Hashes.spooky4( v.subVector( 0, g ), seed );
+						assert h == Hashes.spooky4( v.subVector( 0, g ), seed );
 
 						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
 

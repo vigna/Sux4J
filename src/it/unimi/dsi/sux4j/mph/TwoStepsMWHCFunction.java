@@ -252,6 +252,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			rankMean = escape = width = 0;
 			firstFunction = secondFunction = null;
 			remap = null;
+			if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 			return;
 		}
 

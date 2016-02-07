@@ -30,8 +30,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigLists;
@@ -39,7 +37,6 @@ import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
@@ -53,17 +50,12 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.util.AbstractCollection;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -249,6 +241,23 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
+		/** Specifies a chunked hash store containing keys and values, and an output width.
+		 * 
+		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks 
+		 * if you use the {@linkplain #indirect() indirect} feature, values representable in at most the specified number of bits otherwise. 
+		 * 
+		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all values contained in the store.
+		 * @return this builder.
+		 */
+		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore, final int outputWidth ) {
+			this.chunkedHashStore = chunkedHashStore;
+			this.outputWidth = outputWidth;
+			return this;
+		}
+
 		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}.
 		 * 
 		 * <p>Contrarily to {@link #values(LongIterable)}, this method does not require a complete scan of the value
@@ -275,7 +284,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @return this builder.
 		 * @see #values(LongIterable,int)
 		 */
-		public Builder<T> values(  final LongIterable values ) {
+		public Builder<T> values( final LongIterable values ) {
 			this.values = values;
 			int outputWidth = 0;
 			for( LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
@@ -399,6 +408,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			vertexOffsetAndSeed = null;
 			signatureMask = 0;
 			signatures = null;
+			if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 			return;
 		}
 

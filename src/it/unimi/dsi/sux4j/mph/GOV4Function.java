@@ -144,7 +144,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV4Function.class );
-	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #vertexOffsetAndSeed}. */
@@ -238,6 +237,23 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 */
 		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
 			this.chunkedHashStore = chunkedHashStore;
+			return this;
+		}
+
+		/** Specifies a chunked hash store containing keys and values, and an output width.
+		 * 
+		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks 
+		 * if you use the {@linkplain #indirect() indirect} feature, values representable in at most the specified number of bits otherwise. 
+		 * 
+		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all values contained in the store.
+		 * @return this builder.
+		 */
+		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore, final int outputWidth ) {
+			this.chunkedHashStore = chunkedHashStore;
+			this.outputWidth = outputWidth;
 			return this;
 		}
 

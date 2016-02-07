@@ -7,3 +7,4 @@
 - Support enclose() in JacobsonBalancedParentheses
 - Support UTF-32 in all main() methods.
 - Experiment with a SimpleSelect like SDArray, in which the budget per subinventory is variable with the length of the block.
+- Add builder method with output width to original MWHCFunction
