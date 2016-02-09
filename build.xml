@@ -132,11 +132,11 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6" target="1.6" classpathref="compile.classpath"/>
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.7" target="1.7" classpathref="compile.classpath"/>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.6" target="1.6" classpathref="test.classpath"/>
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.7" target="1.7" classpathref="test.classpath"/>
 	</target>
 	
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
@@ -161,7 +161,7 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					source="1.6" 
+					source="1.7" 
 					windowtitle="Sux4J ${version}"
 					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>

@@ -36,6 +36,8 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
+import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -286,72 +288,6 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/**
 	 * Creates a new minimal perfect hash function for the given keys.
 	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, transform, null, null );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the chunked hash store files, or {@code null} for the current directory.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
-		this( keys, transform, tempDir, null );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for keys provided by a {@link ChunkedHashStore}.
-	 * 
-	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a checked chunked hash store containing the keys. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public GOVMinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( null, transform, null, chunkedHashStore );
-	}
-	
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash, or {@code null}.
-	 * @param transform a transformation strategy for the keys.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( keys, transform, null, chunkedHashStore );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash, or {@code null}.
-	 * @param transform a transformation strategy for the keys.
-	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
-		this( keys, transform, 0, tempDir, chunkedHashStore );
-	}
-
-	/**
-	 * Creates a new minimal perfect hash function for the given keys.
-	 * 
 	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a signature width, or 0 for no signature.
@@ -515,7 +451,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
 	 * then retrieve the resulting values by generating a single triple of hashes. The method 
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.

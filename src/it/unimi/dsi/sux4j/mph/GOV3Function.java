@@ -47,6 +47,8 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
+import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -305,7 +307,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 		
-		/** Specifies that the function cmust be <em>compacted</em>.
+		/** Specifies that the function must be <em>compacted</em>.
 		 * 
 		 * @return this builder.
 		 */
@@ -327,7 +329,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new GOV3Function<T>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect, compacted );
+			return new GOV3Function<T>( keys, transform, signatureWidth, values, outputWidth, indirect, compacted, tempDir, chunkedHashStore );
 		}
 	}
 
@@ -368,14 +370,15 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each element.
 	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
+	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
+	 * must be accessed to retrieve the actual values.
+	 * @param compacted if true, the coefficients will be compacted. 
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
 	 * or values, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
-	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
-	 * must be accessed to retrieve the actual values. 
 	 */
-	protected GOV3Function( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect, final boolean compacted ) throws IOException {
+	protected GOV3Function( final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final boolean indirect , final boolean compacted , final File tempDir , ChunkedHashStore<T> chunkedHashStore  ) throws IOException {
 		this.transform = transform;
 
 		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
@@ -427,7 +430,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		int duplicates = 0;
 		
 		for(;;) {
-			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
+			LOGGER.debug( "Generating GOV function with " + this.width + " output bits..." );
 
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
@@ -612,7 +615,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
 	 * then retrieve the resulting values by generating a single triple of hashes. The method 
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
@@ -674,7 +677,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			new Switch( "compacted", 'c', "compacted", "Whether the resulting function should be compacted." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
@@ -696,7 +699,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
 			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new GOV3Function<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );		
+			BinIO.storeObject( new GOV3Function<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, false, compacted, tempDir, null ), functionName );		
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -720,10 +723,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								int dataWidth = 0;
 								for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
 
-								BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false, compacted ), functionName );
+								BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, false, compacted, tempDir, null ), functionName );
 							}
 
-							else BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );
+							else BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, false, compacted, tempDir, null ), functionName );
 		}
 		LOGGER.info( "Completed." );
 	}

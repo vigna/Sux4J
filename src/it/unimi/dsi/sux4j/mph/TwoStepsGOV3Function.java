@@ -267,8 +267,8 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 
 			/* This cost function is dependent on the implementation of GOV3Function. 
 			 * Note that for r = 0 we are actually computing the cost of a single function (the first one). */
-			final long cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * r, HypergraphSorter.GAMMA * n * r ) +
-					(long)Math.min( HypergraphSorter.GAMMA * post * 1.126 + post * w, HypergraphSorter.GAMMA * post * w ) +
+			final long cost = (long)Math.min( GOV3Function.C * n * 1.126 + n * r, GOV3Function.C * n * r ) +
+					(long)Math.min( GOV3Function.C * post * 1.126 + post * w, GOV3Function.C * post * w ) +
 					pos * Long.SIZE;
 
 			if ( cost < bestCost ) { 

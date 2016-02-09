@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.solve;
 
 /*
  * Sux4J: Succinct data structures for Java
@@ -42,7 +42,7 @@ public class Modulo3System {
 		private final static boolean DEBUG = false;
 	
 	/** A modulo-3 equation. */
-	public static class Modulo3Equation {
+	protected static class Modulo3Equation {
 		/** The vector representing the coefficients (two bits for each variable). */
 		protected final LongArrayBitVector bitVector;
 		/** The {@link LongArrayBitVector#bits() bv.bits()}, cached. */

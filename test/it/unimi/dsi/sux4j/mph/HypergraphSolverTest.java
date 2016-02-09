@@ -2,6 +2,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
 import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
 
 import java.util.Arrays;

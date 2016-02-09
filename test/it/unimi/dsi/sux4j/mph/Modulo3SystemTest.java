@@ -9,7 +9,8 @@ import java.util.Arrays;
 
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.sux4j.mph.Modulo3System.Modulo3Equation;
+import it.unimi.dsi.sux4j.mph.solve.Modulo3System;
+import it.unimi.dsi.sux4j.mph.solve.Modulo3System.Modulo3Equation;
 import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
 
 import org.junit.Test;

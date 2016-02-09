@@ -6,7 +6,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.sux4j.mph.Modulo2SparseSystem.Modulo2Equation;
+import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem;
+import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem.Modulo2Equation;
 import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
 
 import java.util.Arrays;

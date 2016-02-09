@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.solve;
 
 
 /*		 

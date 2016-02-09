@@ -3,7 +3,6 @@ package it.unimi.dsi.sux4j.mph;
 import static org.junit.Assert.assertEquals;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongLists;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.CHDMinimalPerfectHashFunction.Builder;
 

@@ -45,6 +45,8 @@ import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
+import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -400,7 +402,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		int duplicates = 0;
 		
 		for(;;) {
-			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
+			LOGGER.debug( "Generating GOV function with " + this.width + " output bits..." );
 
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
@@ -526,7 +528,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
 	 * then retrieve the resulting values by generating a single triple of hashes. The method 
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
@@ -583,7 +585,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 

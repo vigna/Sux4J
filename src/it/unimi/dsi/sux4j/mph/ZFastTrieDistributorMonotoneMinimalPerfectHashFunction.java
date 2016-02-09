@@ -154,19 +154,6 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 
 	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
-	 * keys and transformation strategy. 
-	 * 
-	 * @param keys the keys among which the trie must be able to rank.
-	 * @param transform a transformation strategy that must turn the keys into a list of
-	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, transform, -1, 0, null );
-	}
-	
-	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
 	 * keys, transformation strategy and bucket size. 
 	 * 
 	 * @param keys the keys among which the trie must be able to rank.
@@ -285,7 +272,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a probabilistic z-fast trie as a distributor reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),

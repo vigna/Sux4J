@@ -66,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * longest common prefixes as distributors, and store their lengths using a {@link TwoStepsMWHCFunction}.
+ * longest common prefixes as distributors, and store their lengths using a {@link TwoStepsGOV3Function}.
  * 
  * <p>This implementation should use a few less bits per elements than {@link LcpMonotoneMinimalPerfectHashFunction},
  * but it is a bit slower as one or two additional functions must be queried.
@@ -170,7 +170,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	/** A function mapping each element to the offset inside its bucket. */
 	protected final GOV3Function<BitVector> offsets;
 	/** A function mapping each element to the length of the longest common prefix of its bucket. */
-	protected final TwoStepsMWHCFunction<BitVector> lcpLengths;
+	protected final TwoStepsGOV3Function<BitVector> lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
 	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
@@ -182,30 +182,6 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	/** The signatures. */
 	protected final LongBigList signatures; 
 	
-	/**
-	 * Creates a new two-steps LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, -1, transform );
-	}
-	
-	/**
-	 * Creates a new two-steps LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param numKeys the number of keys, or -1 if the number of keys is not known (will be computed).
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public TwoStepsLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final int numKeys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, numKeys, transform, 0, null );
-	}
 	
 	/**
 	 * Creates a new two-steps LCP monotone minimal perfect hash function for the given keys.
@@ -247,7 +223,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			return;
 		}
 
-		int t = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		int t = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( t );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
@@ -339,7 +315,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}, log2BucketSize ).indirect().build();
 
 		// Build function assigning the lcp length to each element.
-		this.lcpLengths = new TwoStepsMWHCFunction.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
+		this.lcpLengths = new TwoStepsGOV3Function.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ); 
 			}
@@ -371,14 +347,14 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			}
 		}
 
-		double secondFunctionForecastBitsPerElement = ( s + HypergraphSorter.GAMMA + ( Math.pow( 2, s ) - 1 ) * this.lcpLengths.width / n + ( this.lcpLengths.width + HypergraphSorter.GAMMA ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
+		double secondFunctionForecastBitsPerElement = ( s + GOV3Function.C + ( Math.pow( 2, s ) - 1 ) * this.lcpLengths.width / n + ( this.lcpLengths.width + GOV3Function.C ) * ( Math.pow( 1 - p, Math.pow( 2, s ) + 1 ) ) );
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( log2BucketSize + HypergraphSorter.GAMMA + secondFunctionForecastBitsPerElement + ( Fast.log2( Math.E ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( log2BucketSize + GOV3Function.C + secondFunctionForecastBitsPerElement + ( Fast.log2( Math.E ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 		if ( signatureWidth != 0 ) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			chunkedHashStore.filter( null ); // TwoStepsMWHCFunction uses filtering.
+			chunkedHashStore.filter( null ); // two-steps functions use filtering.
 			signatures = chunkedHashStore.signatures( signatureWidth, pl );
 		}
 		else {
@@ -395,7 +371,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	}
 	
 	private static double s( double p, int r ) {
-		return Fast.log2( W( 1 / ( Math.log(2) * ( r + HypergraphSorter.GAMMA ) * ( p - 1 ) ) ) / Math.log( 1 - p ) );
+		return Fast.log2( W( 1 / ( Math.log(2) * ( r + GOV3Function.C ) * ( p - 1 ) ) ) / Math.log( 1 - p ) );
 	}
 
 	public long size64() {

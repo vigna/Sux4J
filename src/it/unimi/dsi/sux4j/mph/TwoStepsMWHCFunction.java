@@ -80,8 +80,10 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * @author Sebastiano Vigna
  * @since 1.0.2
+ * @deprecated Please use {@link TwoStepsGOV3Function}.
  */
 
+@Deprecated
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 5L;
     private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsMWHCFunction.class );

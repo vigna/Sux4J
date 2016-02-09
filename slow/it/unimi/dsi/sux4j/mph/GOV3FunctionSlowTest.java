@@ -9,7 +9,7 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-public class MWHCFunctionSlowTest {
+public class GOV3FunctionSlowTest {
 
 	@Test
 	public void testBig() throws IOException {

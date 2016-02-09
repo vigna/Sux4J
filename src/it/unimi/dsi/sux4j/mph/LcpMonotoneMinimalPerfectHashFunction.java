@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import static java.lang.Math.E;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -180,46 +179,6 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		}
 	}
 
-	
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, -1, transform );
-	}
-
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param numKeys the number of keys, or -1 if the number of keys is not known (will be computed).
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final int numKeys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, (long)numKeys, transform );
-	}
-
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param numKeys the number of keys, or -1 if the number of keys is not known (will be computed).
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final long numKeys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, numKeys, transform, 0, null );
-	}
-
-
 	/**
 	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
 	 * 
@@ -258,7 +217,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return;
 		}
 		
-		final int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		final int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
@@ -367,7 +326,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GAMMA - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GOV3Function.C - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 		if ( signatureWidth != 0 ) {

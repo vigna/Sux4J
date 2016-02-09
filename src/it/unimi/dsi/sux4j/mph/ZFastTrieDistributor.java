@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -586,15 +585,15 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			corrections = new GOV3Function.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
 
 			final int bucketSize = 1 << log2BucketSize;
-			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
+			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GOV3Function.C + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
 			LOGGER.debug( "Actual signature bits per element: " + (double)signatures.numBits() / size );
-			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
+			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( GOV3Function.C + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
 			LOGGER.debug( "Actual ranker bits per element: " + (double)ranker.numBits() / size );
 			LOGGER.debug( "Forecast leaves bits per element: " + ( 3.0 / bucketSize ) );
 			LOGGER.debug( "Actual leaves bits per element: " + (double)leaves.bitVector().length() / size );
-			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GAMMA / bucketSize ) );
+			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GOV3Function.C / bucketSize ) );
 			LOGGER.debug( "Actual mistake bits per element: " + (double)numBitsForMistakes() / size );
-			LOGGER.debug( "Forecast behaviour bits per element: " + GAMMA );
+			LOGGER.debug( "Forecast behaviour bits per element: " + GOV3Function.C );
 			LOGGER.debug( "Actual behaviour bits per element: " + (double)behaviour.numBits() / size );
 					}
 		else {

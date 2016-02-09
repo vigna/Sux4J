@@ -144,7 +144,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
@@ -261,7 +261,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		final double avgLength = (double)totalLength / n;
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * HypergraphSorter.GAMMA + 2 + avgLength + Fast.log2( avgLength ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * GOV3Function.C + 2 + avgLength + Fast.log2( avgLength ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
@@ -282,7 +282,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( VLLcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( VLLcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a variable-length LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),

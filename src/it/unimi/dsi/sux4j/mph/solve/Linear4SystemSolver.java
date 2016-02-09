@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.solve;
 
 /*
  * Sux4J: Succinct data structures for Java
@@ -25,6 +25,9 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.sux4j.mph.GOV4Function;
+import it.unimi.dsi.sux4j.mph.Hashes;
+import it.unimi.dsi.sux4j.mph.HypergraphSorter;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -32,7 +35,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** A class implementing resolution of a random 4-regular linear systems on <b>F</b><sub>2</sub> 
+/** A class implementing solution of a random 4-regular linear systems on <b>F</b><sub>2</sub> 
  * using the techniques described by
  * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna in
  * &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, 2016. It
