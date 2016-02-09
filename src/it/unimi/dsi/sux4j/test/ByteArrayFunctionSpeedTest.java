@@ -2,19 +2,24 @@ package it.unimi.dsi.sux4j.test;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
+import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.lang.MutableString;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
+import java.util.AbstractCollection;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.zip.GZIPInputStream;
 
+import com.google.common.base.Charsets;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -25,11 +30,11 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-public class FunctionSpeedTest {
+public class ByteArrayFunctionSpeedTest {
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( FunctionSpeedTest.class.getName(), "Test the speed of a function. Performs thirteen repetitions: the first three ones are warmup, and the average of the remaining ten is printed on standard output. The detailed results are logged to standard error.",
+		final SimpleJSAP jsap = new SimpleJSAP( ByteArrayFunctionSpeedTest.class.getName(), "Test the speed of a function on byte arrays. Performs thirteen repetitions: the first three ones are warmup, and the average of the remaining ten is printed on standard output. The detailed results are logged to standard error.",
 				new Parameter[] {
 					new FlaggedOption( "bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms." ),
 					new FlaggedOption( "n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing." ),
@@ -58,43 +63,91 @@ public class FunctionSpeedTest {
 		if ( save != null && ! random ) throw new IllegalArgumentException( "You can save test string only for random tests" );
 		
 		@SuppressWarnings("unchecked")
-		final Object2LongFunction<? extends CharSequence> function = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName );
-		final FileLinesCollection flc = new FileLinesCollection( termFile, encoding.name(), zipped );
-		final long size = flc.size();
+		final Object2LongFunction<byte[]> function = (Object2LongFunction<byte[]>)BinIO.loadObject( functionName );
+		@SuppressWarnings("resource")
+		final FastBufferedInputStream fbis = new FastBufferedInputStream( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ) ); 
+		final Collection<byte[]> lines = new AbstractCollection<byte[]>() {
+			@Override
+			public Iterator<byte[]> iterator() {
+				final byte[] buffer = new byte[ 16384 ];
+				try {
+					fbis.position( 0 );
+				}
+				catch ( IOException e ) {
+					throw new RuntimeException( e.getMessage(), e );
+				}
+				return new AbstractObjectIterator<byte[]>() {
+					boolean toRead = true;
+					int read;
+
+					@Override
+					public boolean hasNext() {
+						if ( toRead == false ) return read != -1;
+						toRead = false;
+						try {
+							read = fbis.readLine( buffer, FastBufferedInputStream.ALL_TERMINATORS );
+						}
+						catch ( IOException e ) {
+							throw new RuntimeException( e.getMessage(), e );
+						}
+						if ( read == buffer.length ) throw new IllegalStateException();
+						return read != -1;
+					}
+
+					@Override
+					public byte[] next() {
+						if ( ! hasNext() ) throw new NoSuchElementException();
+						toRead = true;
+						return Arrays.copyOf( buffer, read );
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				throw new UnsupportedOperationException();
+			}
+		};
+		
+		long size = 0;
+		for( Iterator<byte[]> ii = lines.iterator(); ii.hasNext(); size++ ) ii.next();
 
 		if ( random ) {
 			final int n = (int)Math.min( maxStrings, size );
-			MutableString[] test = new MutableString[ n ];
+			byte[][] test = new byte[ n ][];
 			final int step = (int)( size / n ) - 1;
-			final Iterator<? extends CharSequence> iterator = flc.iterator();
+			final Iterator<byte[]> iterator = lines.iterator();
 			for( int i = 0; i < n; i++ ) {
-				test[ i ] = new MutableString( iterator.next() );
+				test[ i ] = iterator.next().clone();
 				for( int j = step; j-- != 0; ) iterator.next();
 			}
 			Collections.shuffle( Arrays.asList( test ) );
 
 			if ( save != null ) {
 				final PrintStream ps = new PrintStream( save, encoding.name() );
-				for( MutableString s: test ) s.println( ps );
+				for( byte[] s: test ) ps.println( new String( s, Charsets.ISO_8859_1 ) );
 				ps.close();
 			}
 
 			FastByteArrayOutputStream fbaos = new FastByteArrayOutputStream();
-			for( MutableString s: test ) s.writeSelfDelimUTF8( fbaos );
+			for( byte[] s: test ) {
+				fbaos.write( s );
+				fbaos.write( 10 );
+			}
 			fbaos.close();
 			test = null;
-			final FastByteArrayInputStream fbais = new FastByteArrayInputStream( fbaos.array, 0, fbaos.length );
-			final MutableString s = new MutableString();
 
 			System.gc();
 			System.gc();
-			
+	
+			byte[] buffer = new byte[ 16384 ];
 			long total = 0, t = -1;
 			for( int k = 13; k-- != 0; ) {
-				fbais.position( 0 );
+				fbis.position( 0 );
 				long time = -System.nanoTime();
 				for( int i = 0; i < n; i++ ) {
-					t ^= function.getLong( s.readSelfDelimUTF8( fbais ) );
+					final int read = fbis.readLine( buffer );
+					t ^= function.getLong( Arrays.copyOf( buffer, read ) );
 					if ( ( i % 0xFFFFF ) == 0 ) System.err.print('.');
 				}
 				System.err.println();
@@ -111,7 +164,7 @@ public class FunctionSpeedTest {
 			
 			long total = 0, t = -1;
 			for( int k = 13; k-- != 0; ) {
-				final Iterator<? extends CharSequence> iterator = flc.iterator();
+				final Iterator<byte[]> iterator = lines.iterator();
 
 				long time = -System.nanoTime();
 				long index;

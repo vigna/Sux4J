@@ -32,10 +32,9 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.mph.GOV3Function;
+import it.unimi.dsi.sux4j.mph.GOV3Function.Builder;
 import it.unimi.dsi.sux4j.mph.Hashes;
-import it.unimi.dsi.sux4j.mph.MWHCFunction;
-import it.unimi.dsi.sux4j.mph.MWHCFunction.Builder;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.DataInputStream;
@@ -70,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * the second one has rank 1, and so on), unless you specified at {@linkplain #ChunkedHashStore(TransformationStrategy, File, int, ProgressLogger) construction time}
  * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the triple
  * associated with the object (the hash width is the number of bits stored). This feature makes it possible, for example, to implement a static
- * {@linkplain Builder#dictionary(int) dictionary} using an {@link MWHCFunction}.
+ * {@linkplain Builder#dictionary(int) dictionary} using a {@link GOV3Function}.
  * 
  * <p>Once all elements have been added, they can be gathered into <em>chunks</em> whose 
  * tentative size can be set by calling {@link #log2Chunks(int)}. More precisely,
@@ -82,14 +81,14 @@ import org.slf4j.LoggerFactory;
  * provided by a chunk returns a <em>quadruple</em> whose last element is the data associated with the element
  * that generated the triple.
  * 
- * <p>It is possible (albeit unlikely) that different elements generate the same hash. This event is detected
+ * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
  * during chunk iteration (not while accumulating hashes), and it will throw a {@link ChunkedHashStore.DuplicateException}.
  * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
  * from scratch. Note that after a few (say, three) exceptions you can safely assume that there are duplicate elements. If you 
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable}, 
  * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked chunked hash store.
  * 
- * <p>Note that every {@link #reset(long)} changes the seed used by the store to generate triples. So, if this seed has to be
+ * <p>Every {@link #reset(long)} changes the seed used by the store to generate triples. So, if this seed has to be
  * stored this must happen <em>after</em> the last call to {@link #reset(long)}. To help tracking this fact, a call to 
  * {@link #seed()} will <em>lock</em> the store; any further call to {@link #reset(long)} will throw an {@link IllegalStateException}.
  * In case the store needs to be reused, you can call {@link #clear()}, that will bring back the store to after-creation state.
@@ -118,14 +117,14 @@ import org.slf4j.LoggerFactory;
  * 
  * <p>Chunked hash stores should be built by classes that need to manipulate elements in chunks of approximate given 
  * size without needing access to the elements themselves, but just to their triples, a typical
- * example being {@link MinimalPerfectHashFunction}, which uses the triples to compute a 3-hyperedge. Once a chunked hash
+ * example being {@link GOV3Function}, which uses the triples to compute a 3-hyperedge. Once a chunked hash
  * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
  * collection need not to be scanned again).
  * 
  * <p>To compute the chunk corresponding to given element, use
  * <pre>
  * final long[] h = new long[ 3 ];
- * Hashes.jenkins( transform.toBitVector( key ), seed, h );
+ * Hashes.spooky4( transform.toBitVector( key ), seed, h );
  * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] &gt;&gt;&gt; chunkShift );
  * </pre>
  * where <code>seed</code> is the store seed, and <code>chunkShift</code> 
@@ -147,7 +146,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	}
 	
 	/** The size of the output buffers. */
-	public final static int OUTPUT_BUFFER_SIZE = 32768;	
+	public final static int OUTPUT_BUFFER_SIZE = 16 * 1024;	
 	/** The logarithm of the number of physical disk chunks. */
 	public final static int LOG2_DISK_CHUNKS = 8;
 	/** The number of physical disk chunks. */
@@ -178,6 +177,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private final ProgressLogger pl;
 	/** If nonzero, no associated data is saved in the store: {@link Chunk#data(long)} will return the first of the three hashes associated with the key, masked by this value. */
 	private final long hashMask;
+	/** The temporary directory for this chunked hash store, or {@code null}. */
+	private final File tempDir;
 	/** The data output streams for the disk chunks. */
 	private DataOutputStream[] dos;
 	/** The number of disk chunks divided by {@link #diskChunkStep}. */
@@ -239,6 +240,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final int hashWidth, final ProgressLogger pl ) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
+		this.tempDir = tempDir;
 		this.hashMask = hashWidth == 0 ? 0 : -1L >>> Long.SIZE - hashWidth;
 		
 		file = new File[ DISK_CHUNKS ];
@@ -262,6 +264,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		locked = true;
 		return seed;
 	}
+
+	/** Return the temporary directory of this chunked hash store, or {@code null}.
+	 *
+	 * @return the temporary directory of this chunked hash store, or {@code null}.
+	 */
+	public File tempDir() {
+		return tempDir;
+	}
 	
 	/** Return the transformation strategy provided at construction time. 
 	 * @return the transformation strategy provided at construction time. */
@@ -276,7 +286,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	public void add( final T o, final long value ) throws IOException {
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( o ), seed, triple );
+		Hashes.spooky4( transform.toBitVector( o ), seed, triple );
 		add( triple, value );
 	}
 	
@@ -309,12 +319,16 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** Adds the elements returned by an iterator to this store, associating them with specified values.
 	 * 
 	 * @param elements an iterator returning elements.
+	 * @param values an iterator on values parallel to {@code elements}.
 	 */
 	public void addAll( final Iterator<? extends T> elements, final LongIterator values ) throws IOException {
-		if ( pl != null ) pl.start( "Adding elements..." );
+		if ( pl != null ) {
+			pl.expectedUpdates = -1;
+			pl.start( "Adding elements..." );
+		}
 		final long[] triple = new long[ 3 ];
 		while( elements.hasNext() ) {
-			Hashes.jenkins( transform.toBitVector( elements.next() ), seed, triple );
+			Hashes.spooky4( transform.toBitVector( elements.next() ), seed, triple );
 			add( triple, values != null ? values.nextLong() : filteredSize );
 			if ( pl != null ) pl.lightUpdate();
 		}
@@ -417,7 +431,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		Arrays.fill( count, 0 );
 		try {
 			for( DataOutputStream d: dos ) d.close();
-			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ) ) );
+			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ), OUTPUT_BUFFER_SIZE ) );
 		}
 		catch ( IOException e ) {
 			throw new RuntimeException( e );
@@ -707,6 +721,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					}
 
 					it.unimi.dsi.fastutil.Arrays.quickSort( 0, chunkSize, new AbstractIntComparator() {
+						private static final long serialVersionUID = 0L;
+
 						public int compare( final int x, final int y ) {
 							int t = Long.signum( buffer0[ x ] - buffer0[ y ] );
 							if ( t != 0 ) return t;

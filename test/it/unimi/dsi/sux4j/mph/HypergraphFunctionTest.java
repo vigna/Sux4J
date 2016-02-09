@@ -24,7 +24,7 @@ public class HypergraphFunctionTest {
 			for ( int i = s.length; i-- != 0; )
 				s[ (int)( v[ i ] = i ) ] = Integer.toString( i );
 
-			MWHCFunction<String> function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
+			GOV3Function<String> function = new GOV3Function.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
 
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
@@ -32,11 +32,11 @@ public class HypergraphFunctionTest {
 			File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 			temp.deleteOnExit();
 			BinIO.storeObject( function, temp );
-			function = (MWHCFunction<String>)BinIO.loadObject( temp );
+			function = (GOV3Function<String>)BinIO.loadObject( temp );
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
 
-			function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).build();
+			function = new GOV3Function.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).build();
 			for ( int i = s.length; i-- != 0; )
 				assertEquals( i, function.getLong( s[ i ] ) );
 		}
@@ -56,7 +56,7 @@ public class HypergraphFunctionTest {
 		for ( int i = s.length; i-- != 0; )
 			s[ (int)( v[ i ] = i ) ] = binary( i );
 
-		MWHCFunction<String> function = new MWHCFunction.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
+		GOV3Function<String> function = new GOV3Function.Builder<String>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).values( LongArrayList.wrap( v ), 12 ).build();
 
 		int[] check = new int[ s.length ];
 		Arrays.fill( check, -1 );
@@ -66,7 +66,7 @@ public class HypergraphFunctionTest {
 		File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 		temp.deleteOnExit();
 		BinIO.storeObject( function, temp );
-		function = (MWHCFunction<String>)BinIO.loadObject( temp );
+		function = (GOV3Function<String>)BinIO.loadObject( temp );
 		for ( int i = s.length; i-- != 0; )
 			assertEquals( i, function.getLong( s[ i ] ) );
 	}

@@ -11,12 +11,12 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
-public class TwoStepsMWHCFunctionTest {
+public class TwoStepsGOV3FunctionTest {
 
 	@Test
 	public void testSimpleList() throws IOException {
 		LongBigList l = LongBigLists.asBigList( new LongArrayList( new long[] { 4, 4, 4, 0, 1 } ) );
-		TwoStepsMWHCFunction<CharSequence> mph = new TwoStepsMWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
+		TwoStepsGOV3Function<CharSequence> mph = new TwoStepsGOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
@@ -27,7 +27,7 @@ public class TwoStepsMWHCFunctionTest {
 	@Test
 	public void testSimpleCompressedList() throws IOException {
 		LongBigList l = LongBigLists.asBigList( new LongArrayList( new long[] { 4, 4, 4, 4, 4, 4, 0, 10000 } ) );
-		TwoStepsMWHCFunction<CharSequence> mph = new TwoStepsMWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e", "f", "g", "h" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
+		TwoStepsGOV3Function<CharSequence> mph = new TwoStepsGOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e", "f", "g", "h" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
@@ -41,7 +41,7 @@ public class TwoStepsMWHCFunctionTest {
 	@Test
 	public void testCompressedList() throws IOException {
 		LongBigList l = LongBigLists.asBigList( new LongArrayList( new long[] { 4, 4, 3, 3, 3, 4, 0, 10000 } ) );
-		TwoStepsMWHCFunction<CharSequence> mph = new TwoStepsMWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e", "f", "g", "h" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
+		TwoStepsGOV3Function<CharSequence> mph = new TwoStepsGOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d", "e", "f", "g", "h" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );

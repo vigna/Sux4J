@@ -62,7 +62,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( PaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
@@ -76,7 +76,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 	/** A PaCo trie assigning keys to buckets. */
 	private final PaCoTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
-	private final MWHCFunction<BitVector> offset;
+	private final GOV3Function<BitVector> offset;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
@@ -166,7 +166,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 		
 		LOGGER.info( "Generating offset function..." );
 		
-		offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offset = new GOV3Function.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}
@@ -179,7 +179,7 @@ public class PaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends Ab
 
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 	}
 

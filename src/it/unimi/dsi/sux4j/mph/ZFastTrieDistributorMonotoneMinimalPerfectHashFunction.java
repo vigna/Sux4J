@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import static java.lang.Math.E;
 import static java.lang.Math.log;
 import it.unimi.dsi.bits.BitVector;
@@ -67,11 +66,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
- * Similarly to an {@link MWHCFunction}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
+ * Similarly to an {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
  */
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
@@ -83,7 +82,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	/** A hollow trie distributor assigning keys to buckets. */
 	private final ZFastTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
-	private final MWHCFunction<BitVector> offset;
+	private final GOV3Function<BitVector> offset;
 	/** The seed returned by the {@link ChunkedHashStore}. */
 	private long seed; 
 	/** The mask to compare signatures, or zero for no signatures. */
@@ -155,19 +154,6 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 
 	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
-	 * keys and transformation strategy. 
-	 * 
-	 * @param keys the keys among which the trie must be able to rank.
-	 * @param transform a transformation strategy that must turn the keys into a list of
-	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, transform, -1, 0, null );
-	}
-	
-	/** Creates a new monotone minimal perfect hash function based on a z-fast trie distributor using the given
 	 * keys, transformation strategy and bucket size. 
 	 * 
 	 * @param keys the keys among which the trie must be able to rank.
@@ -227,7 +213,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offset = new GOV3Function.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
@@ -236,15 +222,14 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 				return size;
 			}
 		}, this.log2BucketSize ).indirect().build();
-		//System.err.println( "*********" + chunkedHashStore.seed() );
 
 		seed = chunkedHashStore.seed();
 		double logU = averageLength * log( 2 );
 		LOGGER.info( "Forecast bit cost per element: "
 				+ 1.0 / forecastBucketSize
 				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( forecastBucketSize ) + 
-						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GAMMA + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
-						+ 3 + GAMMA * forecastBucketSize + GAMMA * forecastBucketSize * log2( forecastBucketSize ) ) ); 
+						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GOV3Function.C + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
+						+ 3 + GOV3Function.C * forecastBucketSize + GOV3Function.C * forecastBucketSize * log2( forecastBucketSize ) ) ); 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
@@ -265,9 +250,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
-		final long state[][] = Hashes.preprocessJenkins( bv, seed );
+		final long state[] = Hashes.preprocessSpooky4( bv, seed );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
+		Hashes.spooky4( bv, bv.length(), seed, state, triple );
 
 		final long bucket = distributor.getLongByBitVectorTripleAndState( bv, triple, state );
 		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
@@ -287,7 +272,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a probabilistic z-fast trie as a distributor reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),

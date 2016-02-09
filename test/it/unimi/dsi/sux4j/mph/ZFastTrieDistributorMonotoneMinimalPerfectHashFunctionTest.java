@@ -1,6 +1,7 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
@@ -100,7 +101,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 						s[ v[ i ] = i ] = binary( i );
 
 					ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeIso(), b, signatureWidth, null );
-					mph.numBits();
+					if ( d >= 10000 ) assertTrue( (double)mph.numBits() / d + " >= 10 ", mph.numBits() / d < 10 );
 
 					check( s, d, mph, signatureWidth );
 

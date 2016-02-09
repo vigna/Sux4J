@@ -85,4 +85,23 @@ public class HashesTest {
 		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR, 0 ), h[ 2 ] );
 		assertEquals( Hashes.jenkins( BitVectors.EMPTY_VECTOR ), h[ 2 ] );
 	}
+
+	@Test
+	public void testSpooky4Preprocessing() {
+		Random r = new XorShift1024StarRandom( 1 );
+		for( int size: new int[] { 0, 10, 16, 100, 12 * 64 - 1, 12 * 64, 12 * 64 + 1, 1000, 2000, 2048 } ) {
+			for ( int l = 0; l < size; l++ ) {
+				LongArrayBitVector bv = LongArrayBitVector.getInstance( size );
+				for ( int i = 0; i < l; i++ ) bv.add( r.nextBoolean() );
+				long[] state = Hashes.preprocessSpooky4( bv, 0 );
+				for ( int i = 0; i < l; i++ ) {
+					final long[] h = new long[ 4 ];
+					Hashes.spooky4( bv, i, 0, state, h );
+					final long[] k = new long[ 4 ];
+					Hashes.spooky4( bv.subVector( 0, i ), 0, k );
+					assertArrayEquals( "Prefix length " + i, k, h );
+				}
+			}
+		}
+	}
 }

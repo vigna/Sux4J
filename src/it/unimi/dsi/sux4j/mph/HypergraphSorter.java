@@ -23,9 +23,6 @@ package it.unimi.dsi.sux4j.mph;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -78,10 +75,10 @@ import org.slf4j.LoggerFactory;
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
  * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
- * turning the keys into such a triple using {@linkplain Hashes#jenkins(BitVector) Jenkins's hash} and
+ * turning the keys into such a triple using {@linkplain Hashes#spooky4(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
- * rehashed using {@link Hashes#jenkins(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
+ * rehashed using {@link Hashes#spooky4(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
  * 
  * <p><strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
@@ -89,23 +86,22 @@ import org.slf4j.LoggerFactory;
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>We use {@linkplain Hashes#jenkins(BitVector, long, long[]) Jenkin's hash} in its 64-bit incarnation: beside
- * providing an excellent hash function, it actually computes <em>three</em> 64-bit hash values,
- * which is exactly what we need.
+ * <p>We use {@linkplain Hashes#spooky4(BitVector, long, long[]) Jenkins's SpookyHash} 
+ * to compute <em>three</em> 64-bit hash values.
  * 
  * <h3>The XOR trick</h3>
  * 
- * <p>Since the list of edges incident to a node is
- * accessed during the peeling process only when the node has degree one, we can actually
- * store in a single integer the XOR of the indices of all edges incident to the node. This approach
+ * <p>Since the list of edges incident to a vertex is
+ * accessed during the peeling process only when the vertex has degree one, we can actually
+ * store in a single integer the XOR of the indices of all edges incident to the vertex. This approach
  * significantly simplifies the code and reduces memory usage. It is described in detail
  * in &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BBOCOPRH">Cache-oblivious peeling of random hypergraphs</a>&rdquo;, by
  * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data 
  * Compression Conference 2014</i>, 2014.
  * 
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
- * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node
- * two additional values that contain a XOR of the other two nodes of each edge incident on the node. This
+ * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each vertex
+ * two additional values that contain a XOR of the other two vertices of each edge incident on the vertex. This
  * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
  * hinge) plus two additional vertices.
  * 
@@ -119,11 +115,7 @@ import org.slf4j.LoggerFactory;
  * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
- * <P>To help diagnosing problem with the generation process
- * class, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
- *
- * <P>Note that if the the peeling process fails more than twice, you should
- * suspect that there are duplicates in the string list (unless the number of vertices is very small).
+ * <P>To help diagnosing problem with the generation process, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
  *
  * @author Sebastiano Vigna
  */
@@ -149,11 +141,11 @@ public class HypergraphSorter<T> {
 	public final int[] vertex2;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
-	/** The edge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
+	/** The hinge stack. At the end of a successful sorting phase, it contains the hinges in reverse order. */
 	public final int[] stack;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
-	/** If true, we do not allocate {@link #edge} and to not compute edge indices. */
+	/** If false, we do not allocate {@link #edge} and to not compute edge indices. */
 	private final boolean computeEdges;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
 	private boolean neverUsed;
@@ -210,7 +202,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.jenkins( bv, seed, hash );
+		Hashes.spooky4( bv, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
@@ -243,7 +235,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.jenkins( triple, seed, hash );
+		Hashes.spooky4( triple, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
@@ -372,18 +364,14 @@ public class HypergraphSorter<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		LOGGER.debug( "Peeling hypergraph..." );
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph..." );
 
 		top = 0;
 		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
 
-		if ( top == numEdges ) LOGGER.debug( "Peeling completed." );
-		else {
-			LOGGER.debug( "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
-			return false;
-		}
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( top == numEdges ? "Peeling completed." : "Visit failed: peeled " + top + " edges out of " + numEdges + "." );
 
-		return true;
+		return top == numEdges;
 	}
 
 	private void peel( final int x ) {
@@ -411,84 +399,6 @@ public class HypergraphSorter<T> {
 				if ( --d[ vertex2[ v ] ] == 1 ) visitStack.add( vertex2[ v ] );				
 			}
 		}
-	}
-	
-	/** Directs the edges of a 3-hypergraph.
-	 * 
-	 * @param d the degree array.
-	 * @param vertex0 the first vertex of each edge.
-	 * @param vertex1 the second vertex of each edge.
-	 * @param vertex2 the third vertex of each edge.
-	 * @param hinges the vector where hinges will be stored.
-	 * @param offset the first hyperedge to be directed in the edge arrays.
-	 * @return true if direction was successful.
-	 */
-	public static boolean directHyperedges( int[] d, int[] vertex0, int[] vertex1, int[] vertex2, int[] hinges, int offset ) {
-		final IntLinkedOpenHashSet v = new IntLinkedOpenHashSet();
-		final IntOpenHashSet e = new IntOpenHashSet();
-		final IntOpenHashSet[] edges = new IntOpenHashSet[ d.length ];
-		for( int i = edges.length; i-- != 0; ) edges[ i ] = new IntOpenHashSet();
-		final boolean[] set = new boolean[ d.length ];
-
-		for ( int i = offset; i < hinges.length; i++ ) {
-			e.add( i );			
-			edges[ vertex0[ i ] ].add( i );
-			edges[ vertex1[ i ] ].add( i );
-			edges[ vertex2[ i ] ].add( i );
-		}
-
-		for ( int i = 0; i < d.length; i++ ) if ( d[ i ] > 0 ) v.add( i );
-
-		final int[] weight = new int[ hinges.length - offset ];
-		Arrays.fill( weight, 3 );
-		final double[] priority = new double[ v.lastInt() + 1 ];
-
-		for ( int t = offset; t < hinges.length; t++ ) {
-			for ( IntIterator i = v.iterator(); i.hasNext(); ) {
-				final int node = i.nextInt();
-				priority[ node ] = 0;
-
-				if ( set[ node ] ) priority[ node ] = 2;
-				else if ( d[ node ] == 1 ) priority[ node ] = 0;
-				else {
-					for ( IntIterator j = edges[ node ].iterator(); j.hasNext(); ) {
-						final int edge = j.nextInt();
-						priority[ node ] += 1.0 / weight[ edge - offset ];
-					}
-				}
-			}
-			int smallestNode = Integer.MAX_VALUE;
-			double smallestValue = Double.MAX_VALUE;
-			for ( IntIterator i = v.iterator(); i.hasNext(); ) {
-				final int node = i.nextInt();
-				if ( smallestValue > priority[ node ] ) {
-					smallestNode = node;
-					smallestValue = priority[ node ];
-				}
-
-			}
-			if ( priority[ smallestNode ] > 1 ) return false;
-			else {
-				int smallestEdge = -1;
-				for( IntIterator i = edges[ smallestNode ].iterator(); i.hasNext(); ) {
-					final int edge = i.nextInt();
-					if ( smallestEdge == -1 || weight[ edge - offset ] < weight[ smallestEdge - offset ] ) smallestEdge = edge;
-					weight[ edge ]--;
-				}
-
-				hinges[ smallestEdge ] = smallestNode;
-				e.remove( smallestEdge );
-				if ( set[ smallestNode ] == true ) return false;
-				set[ smallestNode ] = true;
-				edges[ vertex0[ smallestEdge ] ].remove( smallestEdge );
-				edges[ vertex1[ smallestEdge ] ].remove( smallestEdge );
-				edges[ vertex2[ smallestEdge ] ].remove( smallestEdge );
-				if ( --d[ vertex0[ smallestEdge ] ] == 0 ) v.remove( vertex0[ smallestEdge ] );
-				if ( --d[ vertex1[ smallestEdge ] ] == 0 ) v.remove( vertex1[ smallestEdge ] );
-				if ( --d[ vertex2[ smallestEdge ] ] == 0 ) v.remove( vertex2[ smallestEdge ] );
-			}
-		}
-		return true;
 	}
 }
 

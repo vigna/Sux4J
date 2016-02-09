@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
 public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( HollowTrieDistributor.class );
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 
@@ -80,13 +80,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	/** The list of skips, indexed by the internal nodes (we do not need skips on the leaves). */
 	private final EliasFanoLongBigList skips;
 	/** For each external node and each possible path, the related behaviour. */
-	private final MWHCFunction<BitVector> externalBehaviour;
+	private final GOV3Function<BitVector> externalBehaviour;
 	/** The number of (internal and external) nodes of the trie. */
 	private final long size;
 	/** The balanced parentheses structure used to represent the trie. */
 	private final BalancedParentheses balParen;
 	/** Records the keys which are false follows. */
-	private final MWHCFunction<BitVector> falseFollowsDetector;
+	private final GOV3Function<BitVector> falseFollowsDetector;
 	/** The average skip length in bits (actually, the average length in bits of a skip length increased by one). */
 	protected double meanSkipLength;
 
@@ -447,8 +447,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			}
 		};
 
-		externalBehaviour = new MWHCFunction.Builder<BitVector>().keys( new IterableStream( new InputBitStream( externalKeysFile ), externalTestFunction, externalValues ) ).transform( TransformationStrategies.identity() ).values( externalValues, 1 ).build();
-		falseFollowsDetector = new MWHCFunction.Builder<BitVector>().keys( new IterableStream( new InputBitStream( falseFollowsKeyFile ), falseFollows, falseFollowsValues ) ).transform( TransformationStrategies.identity() ).values( falseFollowsValues, 1 ).build();
+		externalBehaviour = new GOV3Function.Builder<BitVector>().keys( new IterableStream( new InputBitStream( externalKeysFile ), externalTestFunction, externalValues ) ).transform( TransformationStrategies.identity() ).values( externalValues, 1 ).build();
+		falseFollowsDetector = new GOV3Function.Builder<BitVector>().keys( new IterableStream( new InputBitStream( falseFollowsKeyFile ), falseFollows, falseFollowsValues ) ).transform( TransformationStrategies.identity() ).values( falseFollowsValues, 1 ).build();
 
 		if ( ASSERTS ) {
 			assert externalBehaviour.size64() == externalTestFunction.size();

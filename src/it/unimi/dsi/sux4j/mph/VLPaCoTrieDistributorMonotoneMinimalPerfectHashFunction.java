@@ -66,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 2L;
+    public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 	
@@ -81,7 +81,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	/** A PaCo trie assigning keys to buckets. */
 	private final VLPaCoTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
-	private final MWHCFunction<BitVector> offset;
+	private final GOV3Function<BitVector> offset;
 	private SparseSelect select;
 	
 	@SuppressWarnings("unchecked")
@@ -161,13 +161,6 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			distributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
 		}
 
-		/*
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 2 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize / 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize - 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 2, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 1 ) );
-		System.err.println( new BitStreamImmutableBinaryTrie<BitVector>( vectors, bucketSize * 4, TransformationStrategies.identity() ).numBits() / (double)n + ( HypergraphSorter.GAMMA + log2BucketSize + 2 ) );
-		*/	
-		
 		LOGGER.info( "Bucket size: " + bucketSize );
 
 		final SparseRank sparseRank;
@@ -190,7 +183,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		
 		if ( size > 0 ) {
-			offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+			offset = new GOV3Function.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 				public long getLong( long index ) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
@@ -211,7 +204,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		LOGGER.debug( "Forecast distributor bit cost: " + ( size / bucketSize ) * ( maxLength + log2BucketSize - Math.log( size ) ) );
 		LOGGER.debug( "Actual distributor bit cost: " + distributor.numBits() );
-		LOGGER.debug( "Forecast bit cost per element: " + ( HypergraphSorter.GAMMA + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( maxLength - Fast.log2( size ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 	}
 
@@ -225,7 +218,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a variable-length PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),

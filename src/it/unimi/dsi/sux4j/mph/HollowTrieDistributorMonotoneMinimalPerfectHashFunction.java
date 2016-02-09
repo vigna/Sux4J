@@ -20,7 +20,6 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
@@ -63,7 +62,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	
 	/** The number of elements. */
@@ -77,7 +76,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	/** A hollow trie distributor assigning keys to buckets. */
 	private final HollowTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
-	private final MWHCFunction<BitVector> offset;
+	private final GOV3Function<BitVector> offset;
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
@@ -135,14 +134,14 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GAMMA ) ) );
+		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) );
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
 		distributor = new HollowTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
-		offset = new MWHCFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).values( new AbstractLongBigList() {
+		offset = new GOV3Function.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketMask; 
 			}
@@ -152,7 +151,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}, log2BucketSize ).build();
 
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( GAMMA * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GAMMA ) ) + Fast.log2( 4 + Fast.log2( averageLength ) + 1 + Fast.log2( Fast.log2( averageLength + 1 ) + 1 ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GOV3Function.C ) ) + Fast.log2( 4 + Fast.log2( averageLength ) + 1 + Fast.log2( Fast.log2( averageLength + 1 ) + 1 ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
@@ -167,7 +166,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a hollow trie as a distributor reading a newline-separated list of strings.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),

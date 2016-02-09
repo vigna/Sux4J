@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2015 Sebastiano Vigna 
+ * Copyright (C) 2014-2015 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import it.unimi.dsi.Util;
+import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -93,12 +94,14 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
  * you can {@linkplain Builder#store(ChunkedHashStore) pass a ChunkedHashStore}
  * containing the keys (associated with any value); however, if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
- * <P>The memory requirements for the algorithm we use are &#8776;2 bits per key. Thus, this class
- * uses less memory than a {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction}. Nonetheless,
- * its construction time is an order of magnitude larger. Query time is only slightly slower. Different
- * tradeoffs between construction time, query time and space can be obtained by tweaking the
+ * <P>The memory requirements for the algorithm we use are &#8776;2 bits per key for {@linkplain Builder#loadFactor(int) load factor}
+ * equal to one and {@linkplain Builder#lambda(int) &lambda;} = 5. Thus, this class
+ * can use &#8776;10% less memory than a {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}. 
+ * 
+ * <p>However, its construction time is an order of magnitude larger, and query time is about 50% slower. 
+ * Different tradeoffs between construction time, query time and space can be obtained by tweaking the
  * {@linkplain Builder#loadFactor(int) load factor} and the parameter {@linkplain Builder#lambda(int) &lambda;} (see the
  * paper below for their exact meaning). 
  * 
@@ -125,13 +128,13 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * @since 3.2.0
  */
 
-public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-	private static final Logger LOGGER = LoggerFactory.getLogger( HashDisplaceCompressMinimalPerfectHashFunction.class );
+public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+	private static final Logger LOGGER = LoggerFactory.getLogger( CHDMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = true;
 
-	public static final long serialVersionUID = 4L;
+	public static final long serialVersionUID = 5L;
 
-	/** A builder class for {@link HashDisplaceCompressMinimalPerfectHashFunction}. */
+	/** A builder class for {@link CHDMinimalPerfectHashFunction}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
@@ -173,7 +176,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 			return this;
 		}
 		
-		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys to hash}; the strategy can be {@linkplain TransformationStrategies raw}.
 		 * 
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
 		 * @return this builder.
@@ -183,7 +186,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 			return this;
 		}
 		
-		/** Specifies that the resulting {@link HashDisplaceCompressMinimalPerfectHashFunction} should be signed using a given number of bits per key.
+		/** Specifies that the resulting {@link CHDMinimalPerfectHashFunction} should be signed using a given number of bits per key.
 		 * 
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
@@ -217,23 +220,20 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 		
 		/** Builds a minimal perfect hash function.
 		 * 
-		 * @return a {@link HashDisplaceCompressMinimalPerfectHashFunction} instance with the specified parameters.
+		 * @return a {@link CHDMinimalPerfectHashFunction} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
-		public HashDisplaceCompressMinimalPerfectHashFunction<T> build() throws IOException {
+		public CHDMinimalPerfectHashFunction<T> build() throws IOException {
 			if ( built ) throw new IllegalStateException( "This builder has been already used" );
 			built = true;
 			if ( transform == null ) {
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new HashDisplaceCompressMinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
+			return new CHDMinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
-	/** The number of bits per block in the rank structure. */
-	public static final int BITS_PER_BLOCK = 1024;
-
 	/** The logarithm of the desired chunk size. */
 	public final static int LOG2_CHUNK_SIZE = 16;
 
@@ -271,7 +271,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 	protected final LongBigList signatures;
 
 	/**
-	 * Creates a new minimal perfect hash function for the given keys.
+	 * Creates a new CHD minimal perfect hash function for the given keys.
 	 * 
 	 * @param keys the keys to hash, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
@@ -282,7 +282,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected HashDisplaceCompressMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected CHDMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -378,7 +378,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
 							final long[] h = new long[ 3 ];
-							Hashes.jenkins( triple, seed, h );
+							Hashes.spooky4( triple, seed, h );
 							final ArrayList<long[]> b = bucket[ (int)( ( h[ 0 ] >>> 1 ) % numBuckets ) ];
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
@@ -393,6 +393,8 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 
 						final int[] perm = Util.identity( bucket.length );
 						IntArrays.quickSort( perm, new AbstractIntComparator() {
+							private static final long serialVersionUID = 1L;
+
 							@Override
 							public int compare( int a0, int a1 ) {
 								return Integer.compare( bucket[ a1 ].size(), bucket[ a0 ].size() );
@@ -457,7 +459,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 						final long h[] = new long[ 3 ];
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
-							Hashes.jenkins( triple, seed[ chunkNumber ], h );
+							Hashes.spooky4( triple, seed[ chunkNumber ], h );
 							h[ 0 ] = ( h[ 0 ] >>> 1 ) % numBuckets;
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
@@ -551,13 +553,13 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( transform.toBitVector( (T)key ), globalSeed, triple );
+		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offset[ chunk ];
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
+		Hashes.spooky4( triple, seed[ chunk ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
@@ -579,7 +581,7 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
 		
 		final long[] h = new long[ 3 ];
-		Hashes.jenkins( triple, seed[ chunk ], h );
+		Hashes.spooky4( triple, seed[ chunk ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
@@ -597,52 +599,63 @@ public class HashDisplaceCompressMinimalPerfectHashFunction<T> extends AbstractH
 		s.defaultReadObject();
 	}
 
-
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+		final SimpleJSAP jsap = new SimpleJSAP( CHDMinimalPerfectHashFunction.class.getName(), "Builds a CHD minimal perfect hash function reading a newline-separated list of strings.", 
+				new Parameter[] {
+			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
+			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
+			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
+			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
+			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
+			new FlaggedOption( "lambda", JSAP.INTEGER_PARSER, "5", JSAP.NOT_REQUIRED, 'l', "lambda", "The average size of a bucket of the first-level hash function." ),
+			new FlaggedOption( "loadFactor", JSAP.DOUBLE_PARSER, "1", JSAP.NOT_REQUIRED, 'f', "load-factor", "The load factor." ),
+			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
+			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
+			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
+				"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ), 
+		} );
 
-		final SimpleJSAP jsap = new SimpleJSAP( HashDisplaceCompressMinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
-				new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-				new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-				new FlaggedOption( "lambda", JSAP.INTEGER_PARSER, "5", JSAP.NOT_REQUIRED, 'l', "lambda", "The average size of a bucket of the first-level hash function." ),
-				new FlaggedOption( "loadFactor", JSAP.DOUBLE_PARSER, "1", JSAP.NOT_REQUIRED, 'f', "load-factor", "The load factor." ),
-				new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
-				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
-				new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
-						"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ), } );
-
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );
 		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
 		final boolean zipped = jsapResult.getBoolean( "zipped" );
+		final File tempDir = jsapResult.getFile( "tempDir" );
+		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
 		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
 		final int lambda = jsapResult.getInt( "lambda" ); 
 		final double loadFactor = jsapResult.getDouble( "loadFactor" ); 
 
-		final Collection<MutableString> collection;
-		if ( "-".equals( stringFile ) ) {
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
-			pl.displayLocalSpeed = true;
-			pl.displayFreeMemory = true;
-			pl.start( "Loading strings..." );
-			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
-			pl.done();
+		if ( byteArray ) {
+			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
+			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
+			BinIO.storeObject( new CHDMinimalPerfectHashFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
 		}
-		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = iso 
-				? TransformationStrategies.iso() 
-				: utf32 
-						? TransformationStrategies.utf32()
-						: TransformationStrategies.utf16();
+		else {
+			final Collection<MutableString> collection;
+			if ( "-".equals( stringFile ) ) {
+				final ProgressLogger pl = new ProgressLogger( LOGGER );
+				pl.displayLocalSpeed = true;
+				pl.displayFreeMemory = true;
+				pl.start( "Loading strings..." );
+				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.done();
+			}
+			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			final TransformationStrategy<CharSequence> transformationStrategy = iso 
+					? TransformationStrategies.rawIso() 
+							: utf32 
+							? TransformationStrategies.rawUtf32()
+									: TransformationStrategies.rawUtf16();
 
-		BinIO.storeObject( new HashDisplaceCompressMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+							BinIO.storeObject( new CHDMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
+		}
 		LOGGER.info( "Saved." );
 	}
 }

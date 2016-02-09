@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -55,7 +54,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -70,17 +69,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	/** For each external node and each possible path, the related behaviour. */
-	private final MWHCFunction<BitVector> behaviour;
+	private final GOV3Function<BitVector> behaviour;
 	/** The number of elements of the set upon which the trie is built. */
 	private final long size;
-	private MWHCFunction<BitVector> signatures;
+	private GOV3Function<BitVector> signatures;
 	private TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
 	private long signatureMask;
 	private int numDelimiters;
 	private IntOpenHashSet mistakeSignatures;
-	private MWHCFunction<BitVector> corrections;
+	private GOV3Function<BitVector> corrections;
 	/** Whether the underlying probabilistic trie is empty. */
 	private boolean emptyTrie;
 	/** Whether there are no delimiters. */
@@ -150,7 +149,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				final LongBigList internalNodeSignatures,
 				final long seed,
 				final boolean left ) throws IOException {
-			if ( ASSERTS ) assert ( node.left != null ) == ( node.right != null );
+			assert ( node.left != null ) == ( node.right != null );
 
 			long parentPathLength = Math.max( 0, path.length() - 1 );
 
@@ -158,17 +157,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				path.append( node.path );
 
 				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, true );
-				path.remove( (int)( path.length() - 1 ) );
+				path.removeBoolean( (int)( path.length() - 1 ) );
 
-				final long h = Hashes.jenkins( path, seed );
+				final long h = Hashes.spooky4( path, seed );
 				final long p = ( -1L << Fast.mostSignificantBit( parentPathLength ^ path.length() ) & path.length() );
 
-				if ( ASSERTS ) assert p <= path.length() : p + " > " + path.length();
-				if ( ASSERTS ) assert path.length() == 0 || p > parentPathLength : p + " <= " + parentPathLength;
+				assert p <= path.length() : p + " > " + path.length();
+				assert path.length() == 0 || p > parentPathLength : p + " <= " + parentPathLength;
 
 				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
 				representations.add( path.copy() );
-				if ( ASSERTS ) assert Fast.length( path.length() ) <= logW;
+				assert Fast.length( path.length() ) <= logW;
 				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key (" + p + "," + path.subVector( 0, p ).hashCode() + ") " + path.subVector( 0, p ) + ", signature " + ( h & signatureMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & signatureMask ) << logW | ( path.length() & logWMask )) + ")" );
 
 				internalNodeSignatures.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
@@ -242,10 +241,10 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 								prefix -= pathLength + 1;
 								pos += pathLength + 1;
 								node = node.right;
-								if ( ASSERTS ) assert node == null || prefix >= 0 : prefix + " <= " + 0;
+								assert node == null || prefix >= 0 : prefix + " <= " + 0;
 							}
 
-							if ( ASSERTS ) assert node != null;
+							assert node != null;
 
 							if ( DDEBUG ) leaves.add( prev.copy() );
 							prevDelimiter.replace( prev );
@@ -265,7 +264,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				signatureSize = logLogW + log2BucketSize;
 				signatureMask = ( 1L << signatureSize ) - 1;
 				
-				if ( ASSERTS ) assert logW + signatureSize <= Long.SIZE;
+				assert logW + signatureSize <= Long.SIZE;
 				
 				this.root = root;
 				
@@ -444,7 +443,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		signatureMask =  intermediateTrie.signatureMask;
 
 		LOGGER.info( "Computing behaviour function..." );
-		behaviour = new MWHCFunction.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
+		behaviour = new GOV3Function.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {
@@ -520,10 +519,16 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			rankerArray = null;
 
 			LOGGER.info( "Computing length/signature map..." );
-			signatures = new MWHCFunction.Builder<BitVector>().keys( intermediateTrie.internalNodeKeys ).transform( TransformationStrategies.identity() ).values( intermediateTrie.internalNodeSignatures, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
+
+			ChunkedHashStore<BitVector> intermediateTrieChunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), chunkedHashStore.tempDir() );
+			intermediateTrieChunkedHashStore.reset( seed );
+			intermediateTrieChunkedHashStore.addAll( intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator() );
+
+			signatures = new GOV3Function.Builder<BitVector>().store( intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
+			intermediateTrieChunkedHashStore.close();
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
@@ -542,7 +547,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % ( 1L << log2BucketSize ) == 0 ? " (bucket)" : "" ));
 				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
 					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
-					long h = Hashes.jenkins( curr, seed );
+					long h = Hashes.spooky4( curr, seed );
 					mistakeSignatures.add( (int)h );
 					mistakes++;
 				}
@@ -553,7 +558,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			pl.done();
 			
 			LOGGER.info( "Errors: " + mistakes + " (" + ( 100.0 * mistakes / size ) + "%)" );
-			if ( ASSERTS ) assert (double)mistakes / size < .5 : 100.0 * mistakes / size + "% >= 50%";  
+			assert size < 10000 || (double)mistakes / size < .5 : "size = " + size + ", errors = " + 100.0 * mistakes / size + "% >= 50%";
 			
 			ObjectArrayList<BitVector> positives = new ObjectArrayList<BitVector>();
 			LongArrayList results = new LongArrayList();
@@ -563,7 +568,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			pl.start( "Searching for false positives..." );
 			
 			for( BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
-				long h = Hashes.jenkins( curr, seed );
+				long h = Hashes.spooky4( curr, seed );
 				if ( mistakeSignatures.contains( (int)h ) ) {
 					positives.add( curr.copy() );
 					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) ); 
@@ -577,18 +582,18 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			this.mistakeSignatures = mistakeSignatures;
 
 			LOGGER.info( "Creating correction function..." );
-			corrections = new MWHCFunction.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
+			corrections = new GOV3Function.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
 
 			final int bucketSize = 1 << log2BucketSize;
-			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
+			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GOV3Function.C + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
 			LOGGER.debug( "Actual signature bits per element: " + (double)signatures.numBits() / size );
-			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( HypergraphSorter.GAMMA + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
+			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( GOV3Function.C + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
 			LOGGER.debug( "Actual ranker bits per element: " + (double)ranker.numBits() / size );
 			LOGGER.debug( "Forecast leaves bits per element: " + ( 3.0 / bucketSize ) );
 			LOGGER.debug( "Actual leaves bits per element: " + (double)leaves.bitVector().length() / size );
-			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GAMMA / bucketSize ) );
+			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GOV3Function.C / bucketSize ) );
 			LOGGER.debug( "Actual mistake bits per element: " + (double)numBitsForMistakes() / size );
-			LOGGER.debug( "Forecast behaviour bits per element: " + GAMMA );
+			LOGGER.debug( "Forecast behaviour bits per element: " + GOV3Function.C );
 			LOGGER.debug( "Actual behaviour bits per element: " + (double)behaviour.numBits() / size );
 					}
 		else {
@@ -613,15 +618,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	}
 
 	private long getNodeStringLength( BitVector v ) {
-		return getNodeStringLength( v, Hashes.preprocessJenkins( v, seed ) );
+		return getNodeStringLength( v, Hashes.preprocessSpooky4( v, seed ) );
 	}
 	
-	private long getNodeStringLength( BitVector v, final long[][] state ) {
+	private long getNodeStringLength( BitVector v, final long[] state ) {
 		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
 		
-		final long[] a = state[ 0 ], b = state[ 1 ], c = state[ 2 ];
-		
-		final long corr = Hashes.jenkins( v, v.length(), a, b, c );
+		final long corr = Hashes.spooky4( v, v.length(), seed, state );
 		if ( mistakeSignatures.contains( (int)corr ) ) {
 			if ( DEBUG ) System.err.println( "Correcting..." );
 			return corrections.getLong( v );
@@ -633,13 +636,14 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		long mask = 1L << i;
 		final long triple[] = new long[ 3 ];
 		while( r - l > 1 ) {
-			if ( ASSERTS ) assert i > -1;
+			assert i > -1;
 			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
 			
 			if ( ( l & mask ) != ( r - 1 & mask ) ) {
 				final long f = ( r - 1 ) & ( -1L << i );
-				Hashes.jenkins( v, f, a, b, c, triple );
+				Hashes.spooky4( v, f, seed, state, triple );
 				final long data = signatures.getLongByTriple( triple );
+				assert signatures.getLong( v.subVector( 0, f ) ) == data : signatures.getLong( v.subVector( 0, f ) ) + " != " + data + " (prefix: " + f + ")"; 
 				
 				if ( data == -1 ) {
 					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
@@ -653,9 +657,9 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 						r = f;
 					}
 					else {
-						final long h = Hashes.jenkins( v, g, a, b, c );
+						final long h = Hashes.spooky4( v, g, seed, state );
 						
-						if ( ASSERTS ) assert h == Hashes.jenkins( v.subVector( 0, g ), seed );
+						assert h == Hashes.spooky4( v.subVector( 0, g ), seed );
 
 						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
 
@@ -675,13 +679,13 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	public long getLong( final Object o ) {
 		final BitVector bv = (BitVector)o;
-		final long state[][] = Hashes.preprocessJenkins( bv, seed );
+		final long state[] = Hashes.preprocessSpooky4( bv, seed );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bv, bv.length(), state[ 0 ], state[ 1 ], state[ 2 ], triple );
+		Hashes.spooky4( bv, bv.length(), seed, state, triple );
 		return getLongByBitVectorTripleAndState( bv, triple, state );
 	}
 
-	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[][] state ) {
+	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[] state ) {
 		if ( noDelimiters ) return 0;
 		final int b = (int)behaviour.getLongByTriple( triple );
 		if ( emptyTrie ) return b;

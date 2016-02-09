@@ -9,12 +9,12 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-public class MWHCFunctionSlowTest {
+public class GOV3FunctionSlowTest {
 
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final MWHCFunction<Long> f = new MWHCFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).values( new AbstractLongBigList() {
+		final GOV3Function<Long> f = new GOV3Function.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).values( new AbstractLongBigList() {
 
 			@Override
 			public long getLong( long index ) {

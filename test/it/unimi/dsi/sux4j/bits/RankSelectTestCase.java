@@ -48,7 +48,7 @@ public abstract class RankSelectTestCase {
 		final long length = rank.bitVector().length();
 		final BitVector bits = rank.bitVector();
 		
-		for( int j = 0, i = 0; i < length; i++ ) {
+		for( long j = 0, i = 0; i < length; i++ ) {
 			assertEquals( "Ranking " + i, j, rank.rank( i ) );
 			if ( bits.getBoolean( i ) ) j++;
 		}

@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import static java.lang.Math.E;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -72,11 +71,11 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors.
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
- * Similarly to an {@link MWHCFunction}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
+ * Similarly to an {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -91,9 +90,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	protected final int bucketSizeMask;
 	/** A function mapping each key to the offset inside its bucket (lowest {@link #log2BucketSize} bits) and
 	 * to the length of the longest common prefix of its bucket (remaining bits). */
-	protected final MWHCFunction<BitVector> offsetLcpLength;
+	protected final GOV3Function<BitVector> offsetLcpLength;
 	/** A function mapping each longest common prefix to its bucket. */
-	protected final MWHCFunction<BitVector> lcp2Bucket;
+	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	/** The seed returned by the {@link ChunkedHashStore}. */
@@ -180,46 +179,6 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		}
 	}
 
-	
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, -1, transform );
-	}
-
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param numKeys the number of keys, or -1 if the number of keys is not known (will be computed).
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final int numKeys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, (long)numKeys, transform );
-	}
-
-	/**
-	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
-	 * 
-	 * @param keys the keys to hash.
-	 * @param numKeys the number of keys, or -1 if the number of keys is not known (will be computed).
-	 * @param transform a transformation strategy for the keys.
-	 * @deprecated Please use the new {@linkplain Builder builder}.
-	 */
-	@Deprecated
-	public LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final long numKeys, final TransformationStrategy<? super T> transform ) throws IOException {
-		this( keys, numKeys, transform, 0, null );
-	}
-
-
 	/**
 	 * Creates a new LCP monotone minimal perfect hash function for the given keys.
 	 * 
@@ -258,7 +217,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return;
 		}
 		
-		final int theoreticalBucketSize = (int)Math.ceil( 1 + HypergraphSorter.GAMMA * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		final int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
@@ -322,7 +281,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new MWHCFunction.Builder<BitVector>().keys( TransformationStrategies.wrap( keys, transform ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys( TransformationStrategies.wrap( keys, transform ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ) << log2BucketSize | index & bucketSizeMask; 
 			}
@@ -333,7 +292,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		
 		LOGGER.info( "Generating the map from LCPs to buckets..." );
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).tempDir( tempDir ).build();
+		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).tempDir( tempDir ).build();
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -367,7 +326,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 		}
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GAMMA - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GOV3Function.C - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) ); 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 		if ( signatureWidth != 0 ) {
@@ -387,7 +346,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		if ( n == 0 ) return defRetValue;
 		final BitVector bitVector = transform.toBitVector( (T)o );
 		final long[] triple = new long[ 3 ];
-		Hashes.jenkins( bitVector, seed, triple );
+		Hashes.spooky4( bitVector, seed, triple );
 		final long value = offsetLcpLength.getLongByTriple( triple );
 		final long prefix = value >>> log2BucketSize; 
 		if ( prefix > bitVector.length() ) return defRetValue;
