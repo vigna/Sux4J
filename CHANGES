@@ -1,3 +1,27 @@
+3.4.0
+
+- Complete revamp of the mph package. New algorithms provide
+  better space and faster lookup. Please read carefully the
+  package documentation.
+
+- Older maps such as MWHCFunction, MinimalPerfectHashFunction
+  and TwoStepsMWHCFunction have been deprecated, and will be
+  removed sooner or later.
+
+- All serial version UIDs have been updated.
+
+- We now use SpookyHash.
+
+- We now support, for all functions for which it is possible, 
+  raw (i.e., non-lexicographical) transformation strategies
+  (as they are faster).
+
+- Fixed a lot of documentations, main methods, etc.
+
+- Several functions can now be built from the command line
+  using byte-arrays as keys; strings are read without any
+  decoding.
+
 3.2.2
 
 - Improved speed for selection in a word thanks to an idea of Giuseppe

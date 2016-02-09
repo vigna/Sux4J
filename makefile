@@ -5,7 +5,10 @@ TAR=tar
 source: source2
 	gunzip sux4j-$(version)-src.tar.gz
 	$(TAR) --delete --wildcards -v -f sux4j-$(version)-src.tar \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/Modulo2System.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystem.java \
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystemTest.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/bits/Rank12.java \
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/bits/Rank12Test.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java
 	gzip sux4j-$(version)-src.tar
@@ -19,7 +22,6 @@ source2:
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
-		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/ivy.xml \
 		sux4j-$(version)/pom-model.xml \
@@ -38,7 +40,6 @@ binary:
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
-		sux4j-$(version)/JavaBig.pdf \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
 	$(TAR) zcvf sux4j-deps.tar.gz --owner=0 --group=0 --transform='s|.*/||' $$(find sux4j-$(version)/jars/runtime -iname \*.jar -exec readlink {} \;) 
