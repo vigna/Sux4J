@@ -66,7 +66,7 @@ import org.slf4j.LoggerFactory;
 
 public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( PaCoTrieDistributor.class );
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	/** Infinity-like value for initialising node prefixes. It's one less than {@link Integer#MAX_VALUE} because we need to be able to add one

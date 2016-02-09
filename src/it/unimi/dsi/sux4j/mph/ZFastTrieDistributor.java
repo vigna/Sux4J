@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;

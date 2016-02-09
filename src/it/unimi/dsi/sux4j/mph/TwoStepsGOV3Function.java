@@ -83,7 +83,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 0L;
     private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsGOV3Function.class );
 		
     private final static boolean ASSERTS = false;

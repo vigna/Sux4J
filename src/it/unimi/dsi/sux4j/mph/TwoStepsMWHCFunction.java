@@ -83,7 +83,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 5L;
     private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsMWHCFunction.class );
 		
     private final static boolean ASSERTS = false;
