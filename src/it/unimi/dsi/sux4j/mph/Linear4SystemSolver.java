@@ -32,112 +32,94 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
- * Majewski-Wormald-Havas-Czech technique.
+/** A class implementing resolution of a random 4-regular linear systems on <b>F</b><sub>2</sub> 
+ * using the techniques described by
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna in
+ * &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, 2016. It
+ * can be seen as a generalization of the {@linkplain HypergraphSorter 3-hypergraph edge sorting procedure}
+ * that is necessary for the Majewski-Wormald-Havas-Czech technique.
  * 
- * <p>Bohdan S. Majewski, Nicholas C. Wormald, George Havas, and Zbigniew J. Czech have
- * described in &ldquo;A family of perfect hashing methods&rdquo;, 
- * <i>Comput. J.</i>, 39(6):547&minus;554, 1996,
- * a 3-hypergraph based technique to store functions
- * (actually, the paper uses the technique just to store a permutation of the key set, but
- * it is clear it can be used to store any function). More generally, the procedure 
- * first generates a random 3-partite 3-hypergraph whose edges correspond to elements of the function domain.
- * Then, it sorts the edges of the random 3-hypergraph so that for each edge at least one vertex, the <em>hinge</em>, never
- * appeared before in the sorted edge list (this happens with high probability if the number of vertices is at
- * least {@linkplain #GAMMA &gamma;} times the number of edges).
+ * <p>Instances of this class contain the data necessary to generate the random system
+ * and solve it. At construction time, you provide just the desired number
+ * of equations and variables; then, you
+ * call {@link #generateAndSolve(Iterable, long, LongBigList)} providing a value list;
+ * it will generate
+ * a random linear system on <b>F</b><sub>2</sub> with four variables per equation; the constant term for the
+ * <var>k</var>-th equation will be the <var>k</var>-th element of the provided list. This kind of
+ * system is useful for computing a {@link GOV4Function}.
+ * The number of elements returned by the provide {@link Iterable} must
+ * be equal to the number of equation passed at construction time.
  * 
- * <p>Instances of this class contain the data necessary to generate the random hypergraph
- * and apply the sorting procedure. At construction time, you provide just the desired number
- * of edges; then, each call to {@link #generateAndSort(Iterator, TransformationStrategy, long) generateAndSort()}
- * will generate a new 3-hypergraph using a 64-bit seed, an iterator returning the key set,
- * and a corresponding {@link TransformationStrategy}. If the method returns true, the sorting was
- * successful and in the public field {@link #stack} you can retrieve hinges in the <em>opposite</em>
- * of the desired order (so enumerating hinges starting from the last in {@link #stack} you
- * are guaranteed to find each time a vertex that never appeared in some 3-hyperedge associated with previous hinges). For each hinge, the corresponding values
- * in {@link #vertex1} and {@link #vertex2} complete the 3-hyperedge associated with the hinge, and the corresponding
- * value in {@link #edge} contains the index of the 3-hyperedge (i.e., the index of the key that generated the hyperedge).
- * The computation of the last value can be {@linkplain #HypergraphSolver(int, boolean) disabled} if you do not need it.
- * 
- * <p>The public fields {@link #numEdges} and {@link #numVertices} expose information about the generated
- * 3-hypergraph. For <var>m</var> edges, the number of vertices will be &lceil; {@linkplain #GAMMA &gamma;}<var>m</var> &rceil; + 1, rounded up 
- * to the nearest multiple of 3, unless <var>m</var> is zero, in which case the number of vertices will be zero, too.
- * Note that index of the hash function that generated a particular vertex of a 3-hyperedge can be recovered
- * dividing by {@link #partSize}, which is exactly {@link #numVertices}/3. 
- * 
- * <p>To guarantee consistent results when reading a Majewski-Wormald-Havas-Czech-like structure,
- * the method {@link #bitVectorToEdge(BitVector, long, int, int, int[]) bitVectorToEdge()} can be used to retrieve, starting from
- * a bit vector, the corresponding edge. While having a function returning the edge starting
+ * <p>To guarantee consistent results when reading a {@link GOV4Function}
+ * the method {@link #bitVectorToEquation(BitVector, long, int, int[])} can be used to retrieve, starting from
+ * a bit vector, the corresponding equation. While having a function returning the edge starting
  * from a key would be more object-oriented and avoid hidden dependencies, it would also require
  * storing the transformation provided at construction time, which would make this class non-thread-safe.
  * Just be careful to transform the keys into bit vectors using
- * the same {@link TransformationStrategy} used to generate the random 3-hypergraph.
+ * the same {@link TransformationStrategy} used to generate the random linear system.
  * 
  * <h2>Support for preprocessed keys</h2>
  * 
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
- * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
+ * generation methods and {@link #tripleToEquation(long[], long, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
- * turning the keys into such a triple using {@linkplain Hashes#spooky12(BitVector,long,long[]) SpookyHash} and
+ * turning the keys into such a triple using {@linkplain Hashes#spooky4(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
- * rehashed using {@link Hashes#spooky([], long, long[])}&mdash;this is necessary to vary the associated edges whenever
- * the generated 3-hypergraph is not acyclic.
+ * rehashed using {@link Hashes#spooky4(long[], long, long[])}&mdash;this is necessary to vary the linear system
+ * whenever it is unsolvable (or the associated hypergraph is not orientable).
  * 
  * <p><strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
  * methods. It is your responsibility to pair them correctly.
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>We use {@linkplain Hashes#spooky12(BitVector, long, long[]) Jenkins's SpookyHash} 
+ * <p>We use {@linkplain Hashes#spooky4(BitVector, long, long[]) Jenkins's SpookyHash} 
  * to compute <em>three</em> 64-bit hash values.
  * 
  * <h3>The XOR trick</h3>
  * 
- * <p>Since the list of edges incident to a node is
- * accessed during the peeling process only when the node has degree one, we can actually
- * store in a single integer the XOR of the indices of all edges incident to the node. This approach
+ * <p>Before proceeding with the actual solution of the linear system, we perform a <em>peeling</em>
+ * of the hypergraph associated with the system, which iteratively removes edges that contain a vertex
+ * of degree one. Since the list of edges incident to a vertex is
+ * accessed during the peeling process only when the vertex has degree one, we can actually
+ * store in a single integer the XOR of the indices of all edges incident to the vertex. This approach
  * significantly simplifies the code and reduces memory usage. It is described in detail
  * in &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BBOCOPRH">Cache-oblivious peeling of random hypergraphs</a>&rdquo;, by
  * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data 
  * Compression Conference 2014</i>, 2014.
  * 
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
- * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node
- * two additional values that contain a XOR of the other two nodes of each edge incident on the node. This
+ * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each vertex
+ * two additional values that contain a XOR of the other two vertices of each edge incident on the node. This
  * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
  * hinge) plus two additional vertices.
  * 
  * <h3>Rounds and Logging</h3>
  * 
- * <P>Building and sorting a large 3-hypergraph may take hours. As it happens with all probabilistic algorithms,
- * one can just give estimates of the expected time.
+ * <P>Building and sorting a large 4-regular linear system is difficult, as
+ * solving linear systems is superquadratic. This classes uses techniques introduced in the
+ * paper quoted in the introduction (and in particular <em>broadword programming</em> and
+ * <em>lazy Gaussian evaluation</em>) to speed up the process by orders of magnitudes.
  * 
- * <P>There are two probabilistic sources of problems: duplicate edges and non-acyclic hypergraphs.
- * However, the probability of duplicate edges is vanishing when <var>n</var> approaches infinity,
- * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
- * of trials that tends to 1 as <var>n</var> approaches infinity.
- *  
- * <P>To help diagnosing problem with the generation process
- * class, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
- *
- * <P>Note that if the the peeling process fails more than twice, you should
- * suspect that there are duplicates in the string list (unless the number of vertices is very small).
+ * <p>Note that we might generate non-solvable systems, in which case
+ * one has to try again with a different seed.
+ * 
+ * <P>To help diagnosing problem with the generation process, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
  *
  * @author Sebastiano Vigna
  */
 
-
-public class Hypergraph4Solver<T> {
+public class Linear4SystemSolver<T> {
 	/** The initial size of the queue used to peel the 3-hypergraph. */
 	private static final int INITIAL_QUEUE_SIZE = 1024;
-	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
-	private final static Logger LOGGER = LoggerFactory.getLogger( Hypergraph4Solver.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger( Linear4SystemSolver.class );
 	
 	/** The number of vertices in the hypergraph. */
-	public final int numVertices;
+	private final int numVariables;
 	/** The number of edges in the hypergraph. */
-	public final int numEdges;
+	private final int numEdges;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
 	public final int[] edge;
 	/** The hinge stack. At the end of a peeling phase, it contains the hinges in reverse order. */
@@ -161,19 +143,19 @@ public class Hypergraph4Solver<T> {
 	/** The number of generated undirectable graphs. */
 	public int undirectable;
 
-	/** Creates a hypergraph solver for a given number of vertices and edges.
+	/** Creates a linear 4-regular system solver for a given number of variables and equations.
 	 * 
-	 * @param numVertices the number of vertices of this hypergraph solver.
-	 * @param numEdges the number of edges of this hypergraph solver.
+	 * @param numVariables the number of variables.
+	 * @param numEquations the number of equations.
 	 */
-	public Hypergraph4Solver( final int numVertices, final int numEdges ) {
-		this.numVertices = numVertices;
-		this.numEdges = numEdges;
-		peeled = new boolean[ numEdges ];
-		edge = new int[ numVertices ];
-		edge2Vertex = new int[ 4 ][ numEdges ];
-		stack = new int[ numEdges ];
-		d = new int[ numVertices ];
+	public Linear4SystemSolver( final int numVariables, final int numEquations ) {
+		this.numVariables = numVariables;
+		this.numEdges = numEquations;
+		peeled = new boolean[ numEquations ];
+		edge = new int[ numVariables ];
+		edge2Vertex = new int[ 4 ][ numEquations ];
+		stack = new int[ numEquations ];
+		d = new int[ numVariables ];
 		visitStack = new IntArrayList( INITIAL_QUEUE_SIZE );
 		neverUsed = true;
 	}
@@ -202,75 +184,65 @@ public class Hypergraph4Solver<T> {
 		edge[ edge2Vertex[ 3 ][ e ] ] ^= e;
 	}
 
-
-	/** Turns a triple of longs into a 3-hyperedge.
+	/** Turns a triple of longs into an equation.
 	 * 
-	 * <p>If there are no vertices the vector <code>e</code> will be filled with -1.
+	 * <p>If there are no variables the vector <code>e</code> will be filled with -1.
 	 * 
 	 * @param triple a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
-	 * @param numVertices the number of vertices in the underlying hypergraph.
-	 * @param e an array to store the resulting edge.
-	 * @see #bitVectorToEdge(BitVector, long, int, int[])
+	 * @param numVariables the number of variables in the system.
+	 * @param e an array to store the resulting equation.
+	 * @see #bitVectorToEquation(BitVector, long, int, int[])
 	 */
-	public static void tripleToEdge( final long[] triple, final long seed, final int numVertices, final int e[] ) {
-		if ( numVertices == 0 ) {
+	public static void tripleToEquation( final long[] triple, final long seed, final int numVariables, final int e[] ) {
+		if ( numVariables == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ]  = -1;
 			return;
 		}
 		final long[] hash = new long[ 4 ];
-		Hashes.spooky( triple, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		Hashes.spooky4( triple, seed, hash );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
 	}
 
-	/** Turns a bit vector into a 3-hyperedge.
+	/** Turns a bit vector into an equation.
 	 * 
-	 * <p>If there are no vertices the vector <code>e</code> will be filled with -1.
+	 * <p>If there are no variables the vector <code>e</code> will be filled with -1.
 	 * 
 	 * @param bv a bit vector.
 	 * @param seed the seed for the hash function.
-	 * @param numVertices the number of vertices in the underlying hypergraph.
+	 * @param numVariables the number of variables in the system.
 	 * @param e an array to store the resulting edge.
 	 */
-	public static void bitVectorToEdge( final BitVector bv, final long seed, final int numVertices, final int e[] ) {
-		if ( numVertices == 0 ) {
+	public static void bitVectorToEquation( final BitVector bv, final long seed, final int numVariables, final int e[] ) {
+		if ( numVariables == 0 ) {
 			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ] -1;
 			return;
 		}
 		final long[] hash = new long[ 4 ];
 		Hashes.spooky4( bv, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
-		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVertices );
+		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
 	}
 	
 	private String edge2String( final int e ) {
 		return "<" + edge2Vertex[ 0 ][ e ] + "," + edge2Vertex[ 1 ][ e ] + "," + edge2Vertex[ 2 ][ e ] + "," + edge2Vertex[ 3 ][ e ] + ">";
 	}
 
-	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
+	/** Generates a random 4-regular linear system on <b>F</b><sub>2</sub> 
+	 * and tries to solve it.
 	 * 
-	 * @param iterable an iterable returning {@link #numEdges} triples of longs.
+	 * <p>The constant part is provided by {@code valueList}.
+	 * 
+	 * @param iterable an iterable returning triples of longs.
 	 * @param seed a 64-bit random seed.
-	 * @return true if the sorting procedure succeeded.
-	 */
-	public boolean generateAndSolve( final Iterable<long[]> iterable, final long seed ) {
-		return generateAndSolve( iterable, seed, null );
-	}
-
-	/** Generates a random 3-hypergraph and tries to solve the system defined by its edges.
-	 * 
-	 * <p>The known part is provided by {@code valueList}. If it is {@code null}, the known
-	 * part will be obtained by directing the hyperedges.
-	 * 
-	 * @param iterable an iterable returning {@link #numEdges} triples of longs.
-	 * @param seed a 64-bit random seed.
-	 * @param valueList a value list for indirect resolution, or {@code null}.
-	 * @return true if the sorting procedure succeeded.
+	 * @param valueList a value list containing the constant part.
+	 * @return true if a solution was found.
+	 * @see Linear4SystemSolver
 	 */
 	public boolean generateAndSolve( final Iterable<long[]> iterable, final long seed, final LongBigList valueList ) {
 		// We cache all variables for faster access
@@ -283,7 +255,7 @@ public class Hypergraph4Solver<T> {
 		final int[] e = new int[ 4 ];
 		final Iterator<long[]> iterator = iterable.iterator();
 		for( int i = 0; i < numEdges; i++ ) {
-			tripleToEdge( iterator.next(), seed, numVertices, e );
+			tripleToEquation( iterator.next(), seed, numVariables, e );
 			if ( DEBUG ) System.err.println("Edge <" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + "," + e[ 3 ] + ">" );
 			d[ edge2Vertex0[ i ] = e[ 0 ] ]++;
 			d[ edge2Vertex1[ i ] = e[ 1 ] ]++;
@@ -292,7 +264,7 @@ public class Hypergraph4Solver<T> {
 			xorEdge( i );
 		}
 
-		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + Hypergraph4Solver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
+		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + Linear4SystemSolver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
 
 		return solve( valueList );
 	}
@@ -305,10 +277,10 @@ public class Hypergraph4Solver<T> {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)..." );
+		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph (" + numVariables + " vertices, " + numEdges + " edges)..." );
 
 		top = 0;
-		for( int i = 0; i < numVertices; i++ ) if ( d[ i ] == 1 ) peel( i );
+		for( int i = 0; i < numVariables; i++ ) if ( d[ i ] == 1 ) peel( i );
 
 		if ( top == numEdges ) {
 			if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling completed." );
@@ -354,7 +326,7 @@ public class Hypergraph4Solver<T> {
 	
 	private boolean solve( final LongBigList valueList ) {
 		final boolean peelingCompleted = sort();
-		solution = new long[ numVertices ];
+		solution = new long[ numVariables ];
 		final long[] solution = this.solution;
 		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge2Vertex3 = edge2Vertex[ 3 ], edge = this.edge, d = this.d;
 
@@ -381,13 +353,14 @@ public class Hypergraph4Solver<T> {
 				}
 			}
 
-			if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVertices ), solution ) ) {
+			if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVariables ), solution ) ) {
 				unsolvable++;
 				if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "System is unsolvable" );
 				return false;
 			}
 		}
 
+		// Complete with peeled hyperedges
 		while( top > 0 ) {
 			final int x = stack[ --top ];
 			final int e = edge[ x ];

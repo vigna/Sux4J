@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import static it.unimi.dsi.bits.Fast.log2;
-import static it.unimi.dsi.sux4j.mph.HypergraphSorter.GAMMA;
 import static java.lang.Math.E;
 import static java.lang.Math.log;
 import it.unimi.dsi.bits.BitVector;
@@ -67,7 +66,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * a {@linkplain ZFastTrieDistributor z-fast trie} as a distributor.
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
- * Similarly to an {@link MWHCFunction}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
+ * Similarly to an {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
  */
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
@@ -83,7 +82,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	/** A hollow trie distributor assigning keys to buckets. */
 	private final ZFastTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
-	private final MWHCFunction<BitVector> offset;
+	private final GOV3Function<BitVector> offset;
 	/** The seed returned by the {@link ChunkedHashStore}. */
 	private long seed; 
 	/** The mask to compare signatures, or zero for no signatures. */
@@ -227,7 +226,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		distributor = new ZFastTrieDistributor<BitVector>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
 
 		LOGGER.info( "Computing offsets..." );
-		offset = new MWHCFunction.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offset = new GOV3Function.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
 			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1; 
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
@@ -242,8 +241,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		LOGGER.info( "Forecast bit cost per element: "
 				+ 1.0 / forecastBucketSize
 				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( forecastBucketSize ) + 
-						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GAMMA + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
-						+ 3 + GAMMA * forecastBucketSize + GAMMA * forecastBucketSize * log2( forecastBucketSize ) ) ); 
+						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GOV3Function.C + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) ) 
+						+ 3 + GOV3Function.C * forecastBucketSize + GOV3Function.C * forecastBucketSize * log2( forecastBucketSize ) ) ); 
 		
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		

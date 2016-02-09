@@ -75,10 +75,10 @@ import org.slf4j.LoggerFactory;
  * <p>This class provides two special access points for classes that have pre-digested their keys. The methods
  * {@link #generateAndSort(Iterator, long)} and {@link #tripleToEdge(long[], long, int, int, int[])} use
  * fixed-length 192-bit keys under the form of triples of longs. The intended usage is that of 
- * turning the keys into such a triple using {@linkplain Hashes#spooky12(BitVector,long,long[]) SpookyHash} and
+ * turning the keys into such a triple using {@linkplain Hashes#spooky4(BitVector,long,long[]) SpookyHash} and
  * then operating directly on the hash codes. This is particularly useful in chunked constructions, where
  * the keys are replaced by their 192-bit hashes in the first place. Note that the hashes are actually
- * rehashed using {@link Hashes#spooky(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
+ * rehashed using {@link Hashes#spooky4(long[], long, long[])}&mdash;this is necessary to vary the associated edges whenever
  * the generated 3-hypergraph is not acyclic.
  * 
  * <p><strong>Warning</strong>: you cannot mix the bitvector-based and the triple-based constructors and static
@@ -86,22 +86,22 @@ import org.slf4j.LoggerFactory;
  * 
  * <h2>Implementation details</h2>
  * 
- * <p>We use {@linkplain Hashes#spooky12(BitVector, long, long[]) Jenkins's SpookyHash} 
+ * <p>We use {@linkplain Hashes#spooky4(BitVector, long, long[]) Jenkins's SpookyHash} 
  * to compute <em>three</em> 64-bit hash values.
  * 
  * <h3>The XOR trick</h3>
  * 
- * <p>Since the list of edges incident to a node is
- * accessed during the peeling process only when the node has degree one, we can actually
- * store in a single integer the XOR of the indices of all edges incident to the node. This approach
+ * <p>Since the list of edges incident to a vertex is
+ * accessed during the peeling process only when the vertex has degree one, we can actually
+ * store in a single integer the XOR of the indices of all edges incident to the vertex. This approach
  * significantly simplifies the code and reduces memory usage. It is described in detail
  * in &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BBOCOPRH">Cache-oblivious peeling of random hypergraphs</a>&rdquo;, by
  * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data 
  * Compression Conference 2014</i>, 2014.
  * 
  * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
- * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each node
- * two additional values that contain a XOR of the other two nodes of each edge incident on the node. This
+ * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each vertex
+ * two additional values that contain a XOR of the other two vertices of each edge incident on the vertex. This
  * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
  * hinge) plus two additional vertices.
  * 
@@ -115,11 +115,7 @@ import org.slf4j.LoggerFactory;
  * and once the hypergraph has been generated, the stripping procedure succeeds in an expected number
  * of trials that tends to 1 as <var>n</var> approaches infinity.
  *  
- * <P>To help diagnosing problem with the generation process
- * class, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
- *
- * <P>Note that if the the peeling process fails more than twice, you should
- * suspect that there are duplicates in the string list (unless the number of vertices is very small).
+ * <P>To help diagnosing problem with the generation process, this class will {@linkplain Logger#debug(String) log at debug level} what's happening.
  *
  * @author Sebastiano Vigna
  */
@@ -239,7 +235,7 @@ public class HypergraphSorter<T> {
 			return;
 		}
 		final long[] hash = new long[ 3 ];
-		Hashes.spooky( triple, seed, hash );
+		Hashes.spooky4( triple, seed, hash );
 		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 1 ] = (int)( partSize + ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );
 		e[ 2 ] = (int)( ( partSize << 1 ) + ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % partSize );

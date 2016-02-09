@@ -65,7 +65,7 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 
-/** A function stored using two {@linkplain GOV3Function Majewski-Wormald-Havas-Czech functions}&mdash;one for
+/** A function stored using two {@linkplain GOV3Function}s&mdash;one for
  * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
  * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
  * 
@@ -79,16 +79,16 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * you will have to reset it to its previous state.
  * 
  * @author Sebastiano Vigna
- * @since 1.0.2
+ * @since 4.0
  */
 
-public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
+public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 4L;
-    private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsMWHCFunction.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsGOV3Function.class );
 		
     private final static boolean ASSERTS = false;
 
-	/** A builder class for {@link TwoStepsMWHCFunction}. */
+	/** A builder class for {@link TwoStepsGOV3Function}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
@@ -159,14 +159,14 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		 * @return an {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
-		public TwoStepsMWHCFunction<T> build() throws IOException {
+		public TwoStepsGOV3Function<T> build() throws IOException {
 			if ( built ) throw new IllegalStateException( "This builder has been already used" );
 			built = true;
 			if ( transform == null ) {
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new TwoStepsMWHCFunction<T>( keys, transform, values, tempDir, chunkedHashStore);
+			return new TwoStepsGOV3Function<T>( keys, transform, values, tempDir, chunkedHashStore);
 		}
 	}
 
@@ -202,7 +202,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected TwoStepsMWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected TwoStepsGOV3Function( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
@@ -243,7 +243,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		this.width = w;
 		final int m = counts.size();
 		
-		LOGGER.debug( "Generating two-steps MWHC function with " + w + " output bits..." );
+		LOGGER.debug( "Generating two-steps GOV3 function with " + w + " output bits..." );
 
 		// Sort keys by reverse frequency
 		final long[] keysArray = counts.keySet().toLongArray( new long[ m ] );
@@ -265,7 +265,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		// Examine every possible choice for r. Note that r = 0 implies one function, so we do not need to test the case r == w.
 		for( int r = 0; r < w && pos < m; r++ ) {
 
-			/* This cost function is dependent on the implementation of MWHCFunction. 
+			/* This cost function is dependent on the implementation of GOV3Function. 
 			 * Note that for r = 0 we are actually computing the cost of a single function (the first one). */
 			final long cost = (long)Math.min( HypergraphSorter.GAMMA * n * 1.126 + n * r, HypergraphSorter.GAMMA * n * r ) +
 					(long)Math.min( HypergraphSorter.GAMMA * post * 1.126 + post * w, HypergraphSorter.GAMMA * post * w ) +
@@ -369,7 +369,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( TwoStepsMWHCFunction.class.getName(), "Builds a two-steps MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+		final SimpleJSAP jsap = new SimpleJSAP( TwoStepsGOV3Function.class.getName(), "Builds a two-steps GOV3 function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
@@ -377,7 +377,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
 			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
 			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
+			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised two-steps GOV3 function." ),
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
@@ -408,7 +408,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 					? TransformationStrategies.rawUtf32()
 					: TransformationStrategies.rawUtf16();
 
-		BinIO.storeObject( new TwoStepsMWHCFunction<CharSequence>( collection, transformationStrategy, LongBigArrayBigList.wrap( BinIO.loadLongsBig( jsapResult.getString( "values" ) ) ), tempDir, null ), functionName );
+		BinIO.storeObject( new TwoStepsGOV3Function<CharSequence>( collection, transformationStrategy, LongBigArrayBigList.wrap( BinIO.loadLongsBig( jsapResult.getString( "values" ) ) ), tempDir, null ), functionName );
 		LOGGER.info( "Completed." );
 	}
 }

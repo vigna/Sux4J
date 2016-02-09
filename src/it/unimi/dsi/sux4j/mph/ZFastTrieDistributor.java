@@ -70,17 +70,17 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	/** For each external node and each possible path, the related behaviour. */
-	private final MWHCFunction<BitVector> behaviour;
+	private final GOV3Function<BitVector> behaviour;
 	/** The number of elements of the set upon which the trie is built. */
 	private final long size;
-	private MWHCFunction<BitVector> signatures;
+	private GOV3Function<BitVector> signatures;
 	private TwoStepsLcpMonotoneMinimalPerfectHashFunction<BitVector> ranker;
 	private long logWMask;
 	private int logW;
 	private long signatureMask;
 	private int numDelimiters;
 	private IntOpenHashSet mistakeSignatures;
-	private MWHCFunction<BitVector> corrections;
+	private GOV3Function<BitVector> corrections;
 	/** Whether the underlying probabilistic trie is empty. */
 	private boolean emptyTrie;
 	/** Whether there are no delimiters. */
@@ -444,7 +444,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		signatureMask =  intermediateTrie.signatureMask;
 
 		LOGGER.info( "Computing behaviour function..." );
-		behaviour = new MWHCFunction.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
+		behaviour = new GOV3Function.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
 		intermediateTrie.externalValues = null;
 
 		if ( ! emptyTrie ) {
@@ -525,7 +525,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			intermediateTrieChunkedHashStore.reset( seed );
 			intermediateTrieChunkedHashStore.addAll( intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator() );
 
-			signatures = new MWHCFunction.Builder<BitVector>().store( intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
+			signatures = new GOV3Function.Builder<BitVector>().store( intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
@@ -583,7 +583,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			this.mistakeSignatures = mistakeSignatures;
 
 			LOGGER.info( "Creating correction function..." );
-			corrections = new MWHCFunction.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
+			corrections = new GOV3Function.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
 
 			final int bucketSize = 1 << log2BucketSize;
 			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GAMMA + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );

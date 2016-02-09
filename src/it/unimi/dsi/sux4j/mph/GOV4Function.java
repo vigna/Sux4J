@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2015 Sebastiano Vigna 
+ * Copyright (C) 2016 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -44,8 +44,6 @@ import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.Rank;
-import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -73,7 +71,8 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** An immutable function stored quasi-succinctly using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+/** An immutable function stored quasi-succinctly using the Genuzio-Ottaviano-Vigna {@linkplain Linear4SystemSolver 4-regular linear system technique}.
+ * With respect to a {@link GOV3Function}, instances of this class have slightly slower lookups and are slightly slower to build, but use less space.
  * 
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
  * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
@@ -85,7 +84,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <h3>Signing</h3>
  * 
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an {@link GOV4Function}.
+ * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a {@link GOV4Function}.
  * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
  * is no way to associate a key with its signature). A <var>w</var>-bit signature will
  * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
@@ -116,29 +115,24 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
  * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
  * 
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} is
  * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
  * 
  * <h2>Implementation Details</h2>
  * 
- * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges
- * to that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>,
- * never appeared before. We then assign to each vertex a value in such a way that for each 3-hyperedge the 
- * XOR of the three values associated to its vertices is the required value for the corresponding
- * element of the function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
+ * <p>The detail of the data structure
+ * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 4-regular linear system on <b>F</b><sub>2</sub>, where
+ * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key. 
+ * Then, we {@linkplain Linear4SystemSolver solve} it and store the solution. Since the system must have &#8776;3% more variables than equations to be solvable,
+ * an <var>r</var>-bit {@link GOV4Function} on <var>n</var> keys requires 1.03<var>rn</var>
+ * bits.
  * 
- * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
- * in a separate array, using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
- * 
- * <p>A non-compacted, <var>r</var>-bit {@link GOV4Function} on <var>n</var> keys requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
- * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
- * the most space-efficient method.
- * 
+ * @see GOV3Function
  * @author Sebastiano Vigna
- * @since 0.2
+ * @since 4.0.0
  */
 
 public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
@@ -146,13 +140,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV4Function.class );
 	private static final boolean DEBUG = false;
 
-	/** The local seed is generated using this step, so to be easily embeddable in {@link #vertexOffsetAndSeed}. */
+	/** The local seed is generated using this step, so to be easily embeddable in {@link #offsetAndSeed}. */
 	private static final long SEED_STEP = 1L << 54;
-	/** The lowest 56 bits of {@link #vertexOffsetAndSeed} contain the number of keys stored up to the given chunk. */
+	/** The lowest 56 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given chunk. */
 	private static final long OFFSET_MASK = -1L >>> 12;
 
-	/** The ratio between vertices and hyperedges. */
-	private static double C = 1.02 + 0.01;
+	/** The ratio between variables and equations. */
+	public static double C = 1.02 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
 	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
 
@@ -166,7 +160,6 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		protected LongIterable values;
 		protected int outputWidth = -1;
 		protected boolean indirect;
-		protected boolean compacted;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
@@ -301,20 +294,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		public Builder<T> indirect() {
 			this.indirect = true;
 			return this;
-		}
-		
-		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(ChunkedHashStore) store} contains
-		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
-		 * 
-		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
-		 * 
-		 * @return this builder.
-		 */
-		public Builder<T> compacted() {
-			this.compacted = true;
-			return this;
-		}
-		
+		}		
 
 		/** Builds a new function.
 		 * 
@@ -338,14 +318,14 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	private final int chunkShift;
 	/** The number of keys. */
 	protected final long n;
-	/** The number of vertices of the intermediate hypergraph. */
+	/** The number of variables. */
 	protected final long m;
 	/** The data width. */
 	protected final int width;
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 	/** A long containing the start offset of each chunk in the lower 56 bits, and the local seed of each chunk in the upper 8 bits. */
-	protected final long[] vertexOffsetAndSeed;
+	protected final long[] offsetAndSeed;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	protected final LongBigList data;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
@@ -397,7 +377,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) {
 			m = this.globalSeed = chunkShift = this.width = 0;
 			data = null;
-			vertexOffsetAndSeed = null;
+			offsetAndSeed = null;
 			signatureMask = 0;
 			signatures = null;
 			return;
@@ -409,7 +389,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		
 		LOGGER.debug( "Number of chunks: " + numChunks );
 		
-		vertexOffsetAndSeed = new long[ numChunks + 1 ];
+		offsetAndSeed = new long[ numChunks + 1 ];
 		
 		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
 
@@ -434,11 +414,12 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
 					final int variables = ( C_TIMES_256 * chunk.size() >>> 8 );
-					vertexOffsetAndSeed[ q + 1 ] = vertexOffsetAndSeed[ q ] + ( variables < 100 ? variables + 1 : variables );
+					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( variables < 100 ? variables + 1 : variables );
 
 					long seed = 0;
-					final Hypergraph4Solver<BitVector> solver = 
-							new Hypergraph4Solver<BitVector>( (int)( vertexOffsetAndSeed[ q + 1 ] - vertexOffsetAndSeed[ q ] ), chunk.size() );
+					final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
+					final Linear4SystemSolver<BitVector> solver = 
+							new Linear4SystemSolver<BitVector>( v, chunk.size() );
 
 					for(;;) {
 						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
@@ -460,10 +441,10 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
 					}
 
-					this.vertexOffsetAndSeed[ q ] |= seed;
+					this.offsetAndSeed[ q ] |= seed;
 
 					dataBitVector.fill( false );
-					data.size( solver.numVertices );
+					data.size( v );
 					q++;
 					
 					/* We assign values. */
@@ -474,7 +455,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 					pl.update();
 				}
 
-				LOGGER.info( "Unsolvable graphs: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				LOGGER.info( "Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
 
 				pl.done();
 				break;
@@ -490,10 +471,10 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			}
 		}
 
-		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( vertexOffsetAndSeed ) );
+		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offsetAndSeed ) );
 
 		globalSeed = chunkedHashStore.seed();
-		m = vertexOffsetAndSeed[ vertexOffsetAndSeed.length - 1 ];
+		m = offsetAndSeed[ offsetAndSeed.length - 1 ];
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
 		this.data = dataBitVector.asLongBigList( this.width );
 			
@@ -530,14 +511,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final long[] h = new long[ 3 ];
 		Hashes.spooky4( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
-		Hypergraph4Solver.tripleToEdge( h, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
+		Linear4SystemSolver.tripleToEquation( h, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
 		
 		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );
 		if ( signatureMask == 0 ) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
@@ -555,13 +535,12 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 4 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
-		HypergraphSolver.tripleToEdge( triple, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
+		Linear3SystemSolver.tripleToEquation( triple, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
 		
 		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );
 		if ( signatureMask == 0 ) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
@@ -585,7 +564,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( data != null ? data.size64() : 0 ) * width + vertexOffsetAndSeed.length * (long)Long.SIZE;
+		return ( data != null ? data.size64() : 0 ) * width + offsetAndSeed.length * (long)Long.SIZE;
 	}
 
 	public boolean containsKey( final Object o ) {
@@ -594,7 +573,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( GOV4Function.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+		final SimpleJSAP jsap = new SimpleJSAP( GOV4Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),

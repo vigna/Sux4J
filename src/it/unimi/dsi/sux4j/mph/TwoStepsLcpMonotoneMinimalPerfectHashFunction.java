@@ -72,7 +72,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * but it is a bit slower as one or two additional functions must be queried.
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
- * Similarly to an {@link MWHCFunction}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
+ * Similarly to an {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
  */
 
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
@@ -168,11 +168,11 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	/** The mask for {@link #log2BucketSize} bits. */
 	protected final int bucketSizeMask;
 	/** A function mapping each element to the offset inside its bucket. */
-	protected final MWHCFunction<BitVector> offsets;
+	protected final GOV3Function<BitVector> offsets;
 	/** A function mapping each element to the length of the longest common prefix of its bucket. */
 	protected final TwoStepsMWHCFunction<BitVector> lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
-	protected final MWHCFunction<BitVector> lcp2Bucket;
+	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	/** The seed returned by the {@link ChunkedHashStore}. */
@@ -312,7 +312,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}
 
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
+		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
 
 		if ( DEBUG ) {
 			int p = 0;
@@ -329,7 +329,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		lcps.close();
 
 		// Build function assigning the bucket offset to each element.
-		offsets = new MWHCFunction.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offsets = new GOV3Function.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
 			public long getLong( long index ) {
 				return index & bucketSizeMask; 
 			}

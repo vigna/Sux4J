@@ -29,13 +29,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-/** Solver for <b>Z</b>/3<b>Z</b> modular systems.
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/** Solver for <b>F</b><sub>3</sub> linear systems.
  * 
  * @author Sebastiano Vigna
  */
 
 public class Modulo3System {
-	private final static boolean DEBUG = false;
+	private final static Logger LOGGER = LoggerFactory.getLogger( Modulo3System.class );
+		private final static boolean DEBUG = false;
 	
 	/** A modulo-3 equation. */
 	public static class Modulo3Equation {
@@ -300,9 +304,7 @@ public class Modulo3System {
 	private final int numVars;
 	/** The equations. */
 	private final ArrayList<Modulo3Equation> equations;
-	/** The number of heavy variables after a call to {@link #structuredGaussianElimination(LongArrayBitVector)}. */
-	private int numHeavy;
-
+	
 	public Modulo3System( final int numVars ) {
 		equations = new ArrayList<Modulo3Equation>();
 		this.numVars = numVars;
@@ -383,6 +385,12 @@ public class Modulo3System {
 	}
 
 
+	/** Solves the system using Gaussian elimination and write the solution
+	 * in an array of longs (mainly for testing purposes). 
+	 * 
+	 * @param solution an array where the solution will be written. 
+	 * @return true if the system is solvable.
+	 */
 	public boolean gaussianElimination( final long[] solution ) {
 		assert solution.length == numVars;
 		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
@@ -393,6 +401,13 @@ public class Modulo3System {
 	}
 
 
+	/** Solves the system using Gaussian elimination and write the solution
+	 * in a bit vector. 
+	 * 
+	 * @param solution a bit vector where the solution will be written using 
+	 * two bits per value. 
+	 * @return true if the system is solvable.
+	 */
 	public boolean gaussianElimination( final LongArrayBitVector solution ) {
 		assert solution.length() == numVars * 2;
 		for ( Modulo3Equation equation: equations ) equation.updateFirstVar();
@@ -416,18 +431,17 @@ public class Modulo3System {
 
 		return true;
 	}
-
-	/** Solves the system using incremental structured Gaussian elimination. 
+	/** Solves the system using lazy Gaussian elimination. 
 	 * 
 	 * <p><strong>Warning</strong>: this method is very inefficient, as it
 	 * scans linearly the equations, builds from scratch the {@code var2Eq}
-	 * parameter of {@link #structuredGaussianElimination(Modulo3System, int[][], int[], int[], long[])}
+	 * parameter of {@link #lazyGaussianElimination(Modulo3System, int[][], int[], int[], long[])}
 	 * and finally calls it. It should be used mainly to write unit tests.
 	 * 
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public boolean structuredGaussianElimination( final long[] solution ) {
+	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
 		for( final Modulo3Equation equation: equations ) 
@@ -444,16 +458,16 @@ public class Modulo3System {
 				if ( list.getLong( v ) != 0 ) var2Eq[ v ][ d[ v ]++ ] = e;
 		}
 		
-		return structuredGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
+		return lazyGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
 	 * equation indices must appear in nondecreasing order; an equation
 	 * may appear several times for a given variable, in which case the final coefficient 
-	 * of the variable in the equation is given by the number of appearances modulo 2 (this weird format is useful
-	 * when calling this method from a {@link HypergraphSolver}). Note that this array
+	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
+	 * when calling this method from a {@link Linear3SystemSolver}). Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
@@ -462,17 +476,18 @@ public class Modulo3System {
 	 * @return true if the system is solvable.
 	 */
 	public static boolean lazyGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
-		return structuredGaussianElimination( null, var2Eq, c, variable, solution );
+		return lazyGaussianElimination( null, var2Eq, c, variable, solution );
 	}
 	
-	/** Solves a system using incremental structured Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination. 
 	 *
-	 * @param system a modulo-2 system.
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
+	 * @param system a modulo-3 system, or {@code null}, in which case the system will be rebuilt
+	 * from the other variables.
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
 	 * equation indices must appear in nondecreasing order; an equation
 	 * may appear several times for a given variable, in which case the final coefficient 
-	 * of the variable in the equation is given by the number of appearances modulo 2 (this weird format is useful
-	 * when calling this method from a {@link HypergraphSolver}). The resulting system
+	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
+	 * when calling this method from a {@link Linear3SystemSolver}). The resulting system
 	 * must be identical to {@code system}. Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
@@ -481,7 +496,7 @@ public class Modulo3System {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	public static boolean structuredGaussianElimination( Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
+	public static boolean lazyGaussianElimination( Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
 		final int numEquations = c.length;
 		if ( numEquations == 0 ) return true;
 
@@ -511,7 +526,7 @@ public class Modulo3System {
 			int currCoeff = 1;
 			int j = 0;
 
-			/** We count the number of appearances in an equation and compute
+			/* We count the number of appearances in an equation and compute
 			 * the correct coefficient (which might be zero). If there are
 			 * several appearances of the same equation, we compact the array
 			 * and, in the end, replace it with a shorter one. */
@@ -560,32 +575,32 @@ public class Modulo3System {
 			variables = IntArrayList.wrap( u );
 		}
 		
-		// The equations that are neither dense, nor solved, and have weight <= 1.
+		// The equations that are not dense and have weight <= 1.
 		final IntArrayList equationList = new IntArrayList();
 		for( int i = priority.length; i-- != 0; ) if ( priority[ i ] <= 1 ) equationList.add( i );
-		// The equations that are part of the dense system (entirely made of heavy variables).
+		// The equations that are part of the dense system (entirely made of active variables).
 		ArrayList<Modulo3Equation> dense = new ArrayList<Modulo3Equation>();
-		// The equations that define a light variable in term of heavy variables.
+		// The equations that define a solved variable in term of active variables.
 		ArrayList<Modulo3Equation> solved = new ArrayList<Modulo3Equation>();
-		// The light variable corresponding to each solved equation.
+		// The solved variables (parallel to solved).
 		IntArrayList pivots = new IntArrayList();
 
 		final ArrayList<Modulo3Equation> equations = system.equations;
 		final long[] normalized = new long[ equations.get( 0 ).bits.length ];
-		// A bit vector made of 2-bit blocks containing a 01 in correspondence of each light variable.
-		final long[] lightNormalized = new long[ normalized.length ];
-		Arrays.fill( lightNormalized, 0x5555555555555555L );
+		// A bit vector made of 2-bit blocks containing a 01 in correspondence of each idle variable.
+		final long[] idleNormalized = new long[ normalized.length ];
+		Arrays.fill( idleNormalized, 0x5555555555555555L );
 
-		int numHeavy = 0;
+		int numActive = 0;
 
 		for( int remaining = equations.size(); remaining != 0; ) {
 			if ( equationList.isEmpty() ) {
-				// Make another variable heavy
+				// Make another variable active
 				int var;
 				do var = variables.popInt(); while( weight[ var ] == 0 );
-				numHeavy++;
-				lightNormalized[ var / 32 ] ^= 1L << ( var % 32 ) * 2;
-				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " heavy (" + remaining + " equations to go)" );
+				numActive++;
+				idleNormalized[ var / 32 ] ^= 1L << ( var % 32 ) * 2;
+				if ( DEBUG ) System.err.println( "Making variable " + var + " of weight " + weight[ var ] + " active (" + remaining + " equations to go)" );
 				for( final int equationIndex: var2Eq[ var ] )
 					if ( --priority[ equationIndex ] == 1 ) equationList.push( equationIndex );
 			}
@@ -599,23 +614,23 @@ public class Modulo3System {
 					if ( equation.isUnsolvable() ) return false;
 					if ( equation.isIdentity() ) continue;
 					/* This equation must be necessarily solved by standard Gaussian elimination. No updated
-					 * is needed, as all its variables are heavy. */
+					 * is needed, as all its variables are active. */
 					dense.add( equation );
 				}
 				else if ( priority[ first ] == 1 ) {
-					/* This is solved (in terms of the heavy variables). Let's find the pivot, that is, 
-					 * the only light variable. Note that we do not need to update varEquation[] of any variable, as they
-					 * are all either heavy (the non-pivot), or appearing only in this equation (the pivot). */
+					/* This is solved (in terms of the active variables). Let's find the pivot, that is, 
+					 * the only idle variable. Note that we do not need to update varEquation[] of any variable, as they
+					 * are all either active (the non-pivot), or appearing only in this equation (the pivot). */
 					equation.normalized( normalized );
 					int wordIndex = 0;
-					while( ( normalized[ wordIndex ] & lightNormalized[ wordIndex ] ) == 0 ) wordIndex++;
-					final int pivot = wordIndex * 32 + Long.numberOfTrailingZeros( normalized[ wordIndex ] & lightNormalized[ wordIndex ] ) / 2; 
+					while( ( normalized[ wordIndex ] & idleNormalized[ wordIndex ] ) == 0 ) wordIndex++;
+					final int pivot = wordIndex * 32 + Long.numberOfTrailingZeros( normalized[ wordIndex ] & idleNormalized[ wordIndex ] ) / 2; 
 
-					// Record the light variable and the equation for computing it later.
+					// Record the idle variable and the equation for computing it later.
 					if ( DEBUG ) System.err.println( "Adding to solved variables x_" + pivot + " by equation " + equation );
 					pivots.add( pivot );
 					solved.add( equation );
-					// This forces to skip the pivot when looking for a new variable to be made heavy.
+					// This forces to skip the pivot when looking for a new variable to be made active.
 					weight[ pivot ] = 0;
 
 					// Now we need to eliminate the variable from all other equations containing it.
@@ -630,9 +645,9 @@ public class Modulo3System {
 			}
 		}
 
+		LOGGER.debug( "Active variables: " + numActive + " (" + Util.format( numActive * 100 / numVars ) + "%)" );
 
 		if ( DEBUG ) {
-			System.err.println( "Heavy variables: " + numHeavy + " (" + Util.format( numHeavy * 100 / numVars ) + "%)" );
 			System.err.println( "Dense equations: " + dense );
 			System.err.println( "Solved equations: " + solved );
 			System.err.println( "Pivots: " + pivots );

@@ -71,7 +71,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
 	private static final Logger LOGGER = LoggerFactory.getLogger( HollowTrieMonotoneMinimalPerfectHashFunction.class );
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -364,7 +364,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a hollow trie reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash function based on a hollow trie reading a newline-separated list of strings.",
 				new Parameter[] {
 						new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 						new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),

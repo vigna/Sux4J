@@ -64,7 +64,8 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /**
- * A minimal perfect hash function.
+ * A minimal perfect hash function stored using the Genuzio-Ottaviano-Vigna {@linkplain Linear3SystemSolver 3-regular linear system technique}.
+ * It is the fastest minimal perfect hash function available with space close to 2 bits per key.
  * 
  * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
  * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
@@ -80,11 +81,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * containing the keys (associated with any value); however, if the store is rebuilt because of a
  * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
- * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
- * o(<var>n</var>) bits per key, plus the bits for the random hashes (which are usually
- * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
- * 
  * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
@@ -97,40 +93,32 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <h3>How it Works</h3>
  * 
- * <p>The technique used is very similar (but developed independently) to that described by Fabiano
- * C. Botelho, Rasmus Pagh and Nivio Ziviani in &ldquo;Simple and Efficient Minimal Perfect Hashing
- * Functions&rdquo;, <i>Algorithms and data structures: 10th international workshop, WADS 2007</i>,
- * number 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping
- * technique described therein was actually first proposed by Bernard Chazelle, Joe Kilian, Ronitt
- * Rubinfeld and Ayellet Tal in &ldquo;The Bloomier Filter: an Efficient Data Structure for Static
- * Support Lookup Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the
- * steps to implement a mutable table.
- * 
- * <p>The basic ingredient is the Majewski-Wormald-Havas-Czech
- * {@linkplain HypergraphSorter 3-hypergraph technique}. After generating a random 3-hypergraph, we
- * {@linkplain HypergraphSorter sort} its 3-hyperedges to that a distinguished vertex in each
- * 3-hyperedge, the <em>hinge</em>, never appeared before. We then assign to each vertex a
- * two-bit number in such a way that for each 3-hyperedge the sum of the values associated to its
- * vertices modulo 3 gives the index of the hash function generating the hinge. As as a result we
- * obtain a perfect hash of the original set (one just has to compute the three hash functions,
- * collect the three two-bit values, add them modulo 3 and take the corresponding hash function
- * value).
- * 
- * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value
+ * <p>The detail of the data structure
+ * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 3-regular hypergraph
+ * and give it an {@linkplain Orient3Hypergraph orientation}. From the orientation, we generate
+ * a random linear system on <b>F</b><sub>3</sub>, where the variables in the <var>k</var>-th equation
+ * are the vertices of the <var>k</var>-th hyperedge, and
+ * the known term of the <var>k</var>-th equation is the vertex giving orientation to the <var>k</var>-th hyperedge. 
+ * Then, we {@linkplain Linear3SystemSolver solve the system} and store the solution, which provides a perfect hash function. 
+ *   
+ * <p>To obtain a minimal perfect hash function, we simply notice that we whenever we have to assign a value
  * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
  * output value for some key. The final value of the minimal perfect hash function is the number
  * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
- * number, we use a simple table-free ranking scheme, recording the number of nonzero pairs each
- * {@link #BITS_PER_BLOCK} bits and using {@link Long#bitCount(long)} to 
- * {@linkplain #countNonzeroPairs(long) count the number of nonzero pairs of bits in a word}.
+ * number, we use use in each chunk {@linkplain #countNonzeroPairs(long) broadword programming}.
+ * 
+ * Since the system must have &#8776;10% more variables than equations to be solvable,
+ * a {@link GOVMinimalPerfectHashFunction} on <var>n</var> keys requires 2.2<var>n</var>
+ * bits.
  * 
  * @author Sebastiano Vigna
  * @since 0.1
  */
 
-public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
+public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	public static final long serialVersionUID = 5L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger( GOVMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #edgeOffsetAndSeed}. */
@@ -178,7 +166,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return pairs;
 	}
 
-	/** A builder class for {@link MinimalPerfectHashFunction}. */
+	/** A builder class for {@link GOVMinimalPerfectHashFunction}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
@@ -208,7 +196,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			return this;
 		}
 		
-		/** Specifies that the resulting {@link MinimalPerfectHashFunction} should be signed using a given number of bits per key.
+		/** Specifies that the resulting {@link GOVMinimalPerfectHashFunction} should be signed using a given number of bits per key.
 		 * 
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
@@ -242,17 +230,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		
 		/** Builds a minimal perfect hash function.
 		 * 
-		 * @return a {@link MinimalPerfectHashFunction} instance with the specified parameters.
+		 * @return a {@link GOVMinimalPerfectHashFunction} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
-		public MinimalPerfectHashFunction<T> build() throws IOException {
+		public GOVMinimalPerfectHashFunction<T> build() throws IOException {
 			if ( built ) throw new IllegalStateException( "This builder has been already used" );
 			built = true;
 			if ( transform == null ) {
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new MinimalPerfectHashFunction<T>( keys, transform, signatureWidth, tempDir, chunkedHashStore );
+			return new GOVMinimalPerfectHashFunction<T>( keys, transform, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
@@ -268,7 +256,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 
-	/** A long containing the cumulating function of the chunk edges in the lower 56 bits, 
+	/** A long containing the cumulating function of the chunk edges (i.e., keys) in the lower 56 bits, 
 	 * and the local seed of each chunk in the upper 8 bits. The method {@link #vertexOffset(long)}
 	 * returns the chunk (i.e., vertex) cumulative value starting from the edge cumulative value. */
 	protected final long[] edgeOffsetAndSeed;
@@ -303,7 +291,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
+	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( keys, transform, null, null );
 	}
 
@@ -316,7 +304,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
+	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
 		this( keys, transform, tempDir, null );
 	}
 
@@ -328,7 +316,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
-	public MinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	public GOVMinimalPerfectHashFunction( final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this( null, transform, null, chunkedHashStore );
 	}
 	
@@ -342,7 +330,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this( keys, transform, null, chunkedHashStore );
 	}
 
@@ -357,7 +345,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @deprecated Please use the new {@linkplain Builder builder}.
 	 */
 	@Deprecated
-	public MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	public GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this( keys, transform, 0, tempDir, chunkedHashStore );
 	}
 
@@ -371,7 +359,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
-	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected GOVMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
@@ -413,19 +401,19 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			try {
 				int q = 0;
-				long undirectable = 0, unsolvable = 0;
+				long unorientable = 0, unsolvable = 0;
 				for ( ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
 
 					edgeOffsetAndSeed[ q + 1 ] = edgeOffsetAndSeed[ q ] + chunk.size();
 
 					long seed = 0;
 					final long off = vertexOffset( edgeOffsetAndSeed[ q ] );
-					final HypergraphSolver<BitVector> solver = 
-							new HypergraphSolver<BitVector>( (int)( vertexOffset( edgeOffsetAndSeed[ q + 1 ] ) - off ), chunk.size() );
+					final Linear3SystemSolver<BitVector> solver = 
+							new Linear3SystemSolver<BitVector>( (int)( vertexOffset( edgeOffsetAndSeed[ q + 1 ] ) - off ), chunk.size() );
 
 					for(;;) {
-						final boolean solved = solver.generateAndSolve( chunk, seed );
-						undirectable += solver.undirectable;
+						final boolean solved = solver.generateAndSolve( chunk, seed, null );
+						unorientable += solver.unorientable;
 						unsolvable += solver.unsolvable;
 						if ( solved ) break;
 						seed += SEED_STEP;
@@ -443,7 +431,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 						final IntOpenHashSet pos = new IntOpenHashSet();
 						final int[] e = new int[ 3 ];
 						for ( long[] triple : chunk ) {
-							HypergraphSolver.tripleToEdge( triple, seed, solver.numVertices, e );
+							Linear3SystemSolver.tripleToEquation( triple, seed, (int)( vertexOffset( edgeOffsetAndSeed[ q ] ) - off ), e );
 							
 							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] ) :
 								"<" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + ">: " + e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ];
@@ -451,8 +439,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 					}
 				}
 
-				LOGGER.info( "Undirectable graphs: " + undirectable + "/" + numChunks + " (" + Util.format( 100.0 * undirectable / numChunks ) + "%)");
-				LOGGER.info( "Unsolvable graphs: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				LOGGER.info( "Unorientable graphs: " + unorientable + "/" + numChunks + " (" + Util.format( 100.0 * unorientable / numChunks ) + "%)");
+				LOGGER.info( "Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
 				
 				pl.done();
 				break;
@@ -469,7 +457,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		globalSeed = chunkedHashStore.seed();
 
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per key: " + 2 * C + 64. / 512 );
+		LOGGER.debug( "Forecast bit cost per key: " + 2 * C + 64. / ( 1 << LOG2_CHUNK_SIZE ) );
 		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
 
 
@@ -507,27 +495,6 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return values.size64() * 2 + edgeOffsetAndSeed.length * (long)Long.SIZE;
 	}
 
-	/**
-	 * Creates a new minimal perfect hash by copying a given one; non-transient fields are (shallow)
-	 * copied.
-	 * 
-	 * @param mph the perfect hash to be copied.
-	 * @deprecated Unused.
-	 */
-	@Deprecated
-	protected MinimalPerfectHashFunction( final MinimalPerfectHashFunction<T> mph ) {
-		this.n = mph.n;
-		this.edgeOffsetAndSeed = mph.edgeOffsetAndSeed;
-		this.bitVector = mph.bitVector;
-		this.globalSeed = mph.globalSeed;
-		this.chunkShift = mph.chunkShift;
-		this.values = mph.values;
-		this.array = mph.array;
-		this.transform = mph.transform.copy();
-		this.signatureMask = mph.signatureMask;
-		this.signatures = mph.signatures;
-	}
-
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
@@ -537,11 +504,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
 		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( h, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
+		Linear3SystemSolver.tripleToEquation( h, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
 
@@ -560,11 +526,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
+		Linear3SystemSolver.tripleToEquation( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long result = ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
 
@@ -574,7 +539,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long edgeOffsetSeed = edgeOffsetAndSeed[ chunk ];
 		final long chunkOffset = vertexOffset( edgeOffsetSeed );
-		HypergraphSolver.tripleToEdge( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
+		Linear3SystemSolver.tripleToEquation( triple, edgeOffsetSeed & ~OFFSET_MASK, (int)( vertexOffset( edgeOffsetAndSeed[ chunk + 1 ] ) - chunkOffset ), e );
 		return ( edgeOffsetSeed & OFFSET_MASK ) + countNonzeroPairs( chunkOffset, chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ], array );
 	}
 
@@ -590,7 +555,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
+		final SimpleJSAP jsap = new SimpleJSAP( GOVMinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
 				new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
 				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
@@ -619,7 +584,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
 			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new MinimalPerfectHashFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, tempDir, null ), functionName );
+			BinIO.storeObject( new GOVMinimalPerfectHashFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, tempDir, null ), functionName );
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -633,12 +598,12 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			}
 			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 			final TransformationStrategy<CharSequence> transformationStrategy = iso 
-					? TransformationStrategies.iso() 
+					? TransformationStrategies.rawIso() 
 							: utf32 
-							? TransformationStrategies.utf32()
-									: TransformationStrategies.utf16();
+							? TransformationStrategies.rawUtf32()
+									: TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, tempDir, null ), functionName );
+			BinIO.storeObject( new GOVMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, tempDir, null ), functionName );
 		}
 		LOGGER.info( "Saved." );
 	}

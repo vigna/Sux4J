@@ -280,7 +280,7 @@ public class Modulo2SparseSystem {
 	 * equation indices must appear in nondecreasing order; an equation
 	 * may appear several times for a given variable, in which case the final coefficient 
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
-	 * when calling this method from a {@link HypergraphSolver}). Note that this array
+	 * when calling this method from a {@link Linear3SystemSolver}). Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
@@ -299,7 +299,7 @@ public class Modulo2SparseSystem {
 	 * equation indices must appear in nondecreasing order; an equation
 	 * may appear several times for a given variable, in which case the final coefficient 
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
-	 * when calling this method from a {@link HypergraphSolver}). The resulting system
+	 * when calling this method from a {@link Linear3SystemSolver}). The resulting system
 	 * must be identical to {@code system}. Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.

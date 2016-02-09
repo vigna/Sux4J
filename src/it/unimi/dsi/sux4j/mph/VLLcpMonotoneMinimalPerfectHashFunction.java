@@ -64,7 +64,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
- * longest common prefixes as distributors, and store their lengths using a {@link MinimalPerfectHashFunction}
+ * longest common prefixes as distributors, and store their lengths using a {@link GOVMinimalPerfectHashFunction}
  * indexing an {@link EliasFanoLongBigList}. In theory, this function should use less memory
  * than an {@link LcpMonotoneMinimalPerfectHashFunction} when the lengths of common prefixes vary
  * wildly, but in practice a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction} is often a better choice.
@@ -84,13 +84,13 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	/** The mask for {@link #log2BucketSize} bits. */
 	protected final int bucketSizeMask;
 	/** A function mapping each element to a distinct index. */
-	protected final MinimalPerfectHashFunction<BitVector> mph;
+	protected final GOVMinimalPerfectHashFunction<BitVector> mph;
 	/** A list, indexed by {@link #mph}, containing the offset of each element inside its bucket. */
 	protected final LongBigList offsets;
 	/** A list, indexed by {@link #mph}, containing for each element the length of the longest common prefix of its bucket. */
 	protected final EliasFanoLongBigList lcpLengths;
 	/** A function mapping each longest common prefix to its bucket. */
-	protected final MWHCFunction<BitVector> lcp2Bucket;
+	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	/** The seed to be used when converting keys to triples. */
@@ -199,7 +199,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.done();
 		
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new MWHCFunction.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
+		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
 		final int[][] lcpLength = IntBigArrays.newBigArray( lcps.size64() );
 		long p = 0;
 		for( LongArrayBitVector bv : lcps ) IntBigArrays.set( lcpLength, p++, (int)bv.length() );
@@ -219,7 +219,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build mph on elements.
-		mph = new MinimalPerfectHashFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).build();
+		mph = new GOVMinimalPerfectHashFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).build();
 		this.seed = chunkedHashStore.seed();
 		
 		// Build function assigning the lcp length and the bucketing data to each element.

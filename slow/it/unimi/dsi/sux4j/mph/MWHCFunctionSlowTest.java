@@ -14,7 +14,7 @@ public class MWHCFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final MWHCFunction<Long> f = new MWHCFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).values( new AbstractLongBigList() {
+		final GOV3Function<Long> f = new GOV3Function.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).values( new AbstractLongBigList() {
 
 			@Override
 			public long getLong( long index ) {

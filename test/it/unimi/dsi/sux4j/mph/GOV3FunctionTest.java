@@ -16,10 +16,10 @@ import java.util.List;
 
 import org.junit.Test;
 
-public class MWHCFunctionTest {
+public class GOV3FunctionTest {
 
 
-	private void check( int size, String[] s, MWHCFunction<CharSequence> mph, int signatureWidth ) {
+	private void check( int size, String[] s, GOV3Function<CharSequence> mph, int signatureWidth ) {
 		if ( signatureWidth < 0 ) for ( int i = s.length; i-- != 0; ) assertEquals( 1, mph.getLong( s[ i ] ) );
 		else for ( int i = s.length; i-- != 0; ) assertEquals( i, mph.getLong( s[ i ] ) );
 
@@ -39,14 +39,14 @@ public class MWHCFunctionTest {
 					for ( int i = s.length; i-- != 0; )
 						s[ i ] = Integer.toString( i );
 
-					MWHCFunction<CharSequence> mph = new MWHCFunction.Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
+					GOV3Function<CharSequence> mph = new GOV3Function.Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
 
 					check( size, s, mph, signatureWidth );
 
 					File temp = File.createTempFile( getClass().getSimpleName(), "test" );
 					temp.deleteOnExit();
 					BinIO.storeObject( mph, temp );
-					mph = (MWHCFunction<CharSequence>)BinIO.loadObject( temp );
+					mph = (GOV3Function<CharSequence>)BinIO.loadObject( temp );
 
 					check( size, s, mph, signatureWidth );
 					
@@ -54,7 +54,7 @@ public class MWHCFunctionTest {
 					ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<CharSequence>( TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null );
 					chunkedHashStore.addAll( Arrays.asList( s ).iterator() );
 					chunkedHashStore.checkAndRetry( Arrays.asList( s ) );
-					mph = new MWHCFunction.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
+					mph = new GOV3Function.Builder<CharSequence>().store( chunkedHashStore ).signed( signatureWidth ).build();
 					chunkedHashStore.close();
 
 					check( size, s, mph, signatureWidth );
@@ -66,17 +66,17 @@ public class MWHCFunctionTest {
 	@Test
 	public void testLongNumbers() throws IOException {
 		LongArrayList l = new LongArrayList( new long[] { 0x234904309830498L, 0xae049345e9eeeeeL, 0x23445234959234L, 0x239234eaeaeaeL } );
-		MWHCFunction<CharSequence> mph = new MWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
+		GOV3Function<CharSequence> mph = new GOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l ).build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
 		assertEquals( l.getLong( 3 ), mph.getLong( "d" ) );
-		mph = new MWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l, Long.SIZE ).build();
+		mph = new GOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l, Long.SIZE ).build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
 		assertEquals( l.getLong( 3 ), mph.getLong( "d" ) );
-		mph = new MWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l, Long.SIZE ).indirect().build();
+		mph = new GOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).values( l, Long.SIZE ).indirect().build();
 		assertEquals( l.getLong( 0 ), mph.getLong( "a" ) );
 		assertEquals( l.getLong( 1 ), mph.getLong( "b" ) );
 		assertEquals( l.getLong( 2 ), mph.getLong( "c" ) );
@@ -85,7 +85,7 @@ public class MWHCFunctionTest {
 
 	@Test
 	public void testDictionary() throws IOException {
-		MWHCFunction<CharSequence> mph = new MWHCFunction.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).dictionary( 8 ).build();
+		GOV3Function<CharSequence> mph = new GOV3Function.Builder<CharSequence>().keys( Arrays.asList( new String[] { "a", "b", "c", "d" } ) ).transform( TransformationStrategies.utf16() ).dictionary( 8 ).build();
 		assertEquals( 1, mph.getLong( "a" ) );
 		assertEquals( 1, mph.getLong( "b" ) );
 		assertEquals( 1, mph.getLong( "c" ) );
@@ -95,7 +95,7 @@ public class MWHCFunctionTest {
 
 	@Test
 	public void testDuplicates() throws IOException {
-		MWHCFunction<String> mph = new MWHCFunction.Builder<String>().keys(
+		GOV3Function<String> mph = new GOV3Function.Builder<String>().keys(
 				new Iterable<String>() {
 					int iteration;
 
@@ -112,11 +112,11 @@ public class MWHCFunctionTest {
 	@Test
 	public void testEmpty() throws IOException {
 		List<String> emptyList = Collections.emptyList();
-		MWHCFunction<String> mph = new MWHCFunction.Builder<String>().keys( emptyList ).transform( TransformationStrategies.utf16() ).build();
+		GOV3Function<String> mph = new GOV3Function.Builder<String>().keys( emptyList ).transform( TransformationStrategies.utf16() ).build();
 		assertEquals( -1, mph.getLong( "a" ) );
-		mph = new MWHCFunction.Builder<String>().keys( emptyList ).dictionary( 10 ).transform( TransformationStrategies.utf16() ).build();
+		mph = new GOV3Function.Builder<String>().keys( emptyList ).dictionary( 10 ).transform( TransformationStrategies.utf16() ).build();
 		assertEquals( 0, mph.getLong( "a" ) );
-		mph = new MWHCFunction.Builder<String>().keys( emptyList ).values( LongLists.EMPTY_LIST, 10 ).transform( TransformationStrategies.utf16() ).build();
+		mph = new GOV3Function.Builder<String>().keys( emptyList ).values( LongLists.EMPTY_LIST, 10 ).transform( TransformationStrategies.utf16() ).build();
 		assertEquals( -1, mph.getLong( "a" ) );
 		
 	}

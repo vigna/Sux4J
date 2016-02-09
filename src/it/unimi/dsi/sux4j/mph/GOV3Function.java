@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*		 
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2015 Sebastiano Vigna 
+ * Copyright (C) 2016 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -73,7 +73,7 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** An immutable function stored quasi-succinctly using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+/** An immutable function stored quasi-succinctly using the Genuzio-Ottaviano-Vigna {@linkplain Linear3SystemSolver 3-regular linear system technique}.
  * 
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
  * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
@@ -85,7 +85,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  * <h3>Signing</h3>
  * 
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an {@link MWHCFunction}.
+ * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a {@link GOV3Function}.
  * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
  * is no way to associate a key with its signature). A <var>w</var>-bit signature will
  * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
@@ -116,48 +116,49 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
  * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
  * 
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} is
  * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
  * 
  * <h2>Implementation Details</h2>
  * 
- * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges
- * to that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>,
- * never appeared before. We then assign to each vertex a value in such a way that for each 3-hyperedge the 
- * XOR of the three values associated to its vertices is the required value for the corresponding
- * element of the function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
+ * <p>The detail of the data structure
+ * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 3-regular linear system on <b>F</b><sub>2</sub>, where
+ * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key. 
+ * Then, we {@linkplain Linear4SystemSolver solve} it and store the solution. Since the system must have &#8776;10% more variables than equations to be solvable,
+ * an <var>r</var>-bit {@link GOV3Function} on <var>n</var> keys requires 1.1<var>rn</var>
+ * bits.  
  * 
- * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
- * in a separate array, using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
- * 
- * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> keys requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
- * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
- * the most space-efficient method.
- * 
+ * <p>Optionally, you may require a <em>{@linkplain Builder#compacted() compacted}</em> function, that is, a
+ * function storing nonzero values
+ * in a separate array and using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
+ * In this case, the function requires just (1.1 + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
+ * {@link Rank ranking structure}; the current implementation uses {@link Rank16}), but has slightly slower lookups.
+ *
+ * @see GOV4Function
  * @author Sebastiano Vigna
- * @since 0.2
+ * @since 4.0.0
  */
 
-public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-	private static final long serialVersionUID = 4L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( MWHCFunction.class );
+public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
+	private static final long serialVersionUID = 0L;
+	private static final Logger LOGGER = LoggerFactory.getLogger( GOV3Function.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 
-	/** The local seed is generated using this step, so to be easily embeddable in {@link #vertexOffsetAndSeed}. */
+	/** The local seed is generated using this step, so to be easily embeddable in {@link #offsetAndSeed}. */
 	private static final long SEED_STEP = 1L << 56;
-	/** The lowest 56 bits of {@link #vertexOffsetAndSeed} contain the number of keys stored up to the given chunk. */
+	/** The lowest 56 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given chunk. */
 	private static final long OFFSET_MASK = -1L >>> 8;
 
-	/** The ratio between vertices and hyperedges. */
-	private static double C = 1.09 + 0.01;
+	/** The ratio between variables and equations. */
+	public static double C = 1.09 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
 	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
 
-	/** A builder class for {@link MWHCFunction}. */
+	/** A builder class for {@link GOV3Function}. */
 	public static class Builder<T> {
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
@@ -181,7 +182,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 		
-		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}; the strategy can be {@linkplain TransformationStrategies raw}.
 		 * 
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 * @return this builder.
@@ -191,7 +192,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 		
-		/** Specifies that the resulting {@link MWHCFunction} should be signed using a given number of bits per element;
+		/** Specifies that the resulting {@link GOV3Function} should be signed using a given number of bits per element;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
 		 * 
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
@@ -202,8 +203,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 		
-		/** Specifies that the resulting {@link MWHCFunction} should be a dictionary: the output value will be a signature,
-		 * and {@link MWHCFunction#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
+		/** Specifies that the resulting {@link GOV3Function} should be a dictionary: the output value will be a signature,
+		 * and {@link GOV3Function#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
 		 * 
 		 * <p>Note that checking against a signature has the usual probability of a false positive.
@@ -304,10 +305,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 		
-		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(ChunkedHashStore) store} contains
-		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
-		 * 
-		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
+		/** Specifies that the function cmust be <em>compacted</em>.
 		 * 
 		 * @return this builder.
 		 */
@@ -319,17 +317,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		/** Builds a new function.
 		 * 
-		 * @return an {@link MWHCFunction} instance with the specified parameters.
+		 * @return an {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
-		public MWHCFunction<T> build() throws IOException {
+		public GOV3Function<T> build() throws IOException {
 			if ( built ) throw new IllegalStateException( "This builder has been already used" );
 			built = true;
 			if ( transform == null ) {
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new MWHCFunction<T>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect, compacted );
+			return new GOV3Function<T>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect, compacted );
 		}
 	}
 
@@ -339,14 +337,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	private final int chunkShift;
 	/** The number of keys. */
 	protected final long n;
-	/** The number of vertices of the intermediate hypergraph. */
+	/** The number of variables. */
 	protected final long m;
 	/** The data width. */
 	protected final int width;
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 	/** A long containing the start offset of each chunk in the lower 56 bits, and the local seed of each chunk in the upper 8 bits. */
-	protected final long[] vertexOffsetAndSeed;
+	protected final long[] offsetAndSeed;
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
 	protected final LongBigList data;
 	/** Optionally, a {@link #rank} structure built on this bit array is used to mark positions containing non-zero value; indexing in {@link #data} is
@@ -377,7 +375,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values. 
 	 */
-	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect, final boolean compacted ) throws IOException {
+	protected GOV3Function( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect, final boolean compacted ) throws IOException {
 		this.transform = transform;
 
 		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
@@ -405,7 +403,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			data = null;
 			marker = null;
 			rank = null;
-			vertexOffsetAndSeed = null;
+			offsetAndSeed = null;
 			signatureMask = 0;
 			signatures = null;
 			if ( ! givenChunkedHashStore ) chunkedHashStore.close();
@@ -418,7 +416,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		
 		LOGGER.debug( "Number of chunks: " + numChunks );
 		
-		vertexOffsetAndSeed = new long[ numChunks + 1 ];
+		offsetAndSeed = new long[ numChunks + 1 ];
 		
 		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
 
@@ -442,11 +440,12 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				long unsolvable = 0;
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
-					vertexOffsetAndSeed[ q + 1 ] = vertexOffsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
+					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
 
 					long seed = 0;
-					final HypergraphSolver<BitVector> solver = 
-							new HypergraphSolver<BitVector>( (int)( vertexOffsetAndSeed[ q + 1 ] - vertexOffsetAndSeed[ q ] ), chunk.size() );
+					final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
+					final Linear3SystemSolver<BitVector> solver = 
+							new Linear3SystemSolver<BitVector>( v, chunk.size() );
 
 					for(;;) {
 						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
@@ -468,10 +467,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
 					}
 
-					this.vertexOffsetAndSeed[ q ] |= seed;
+					this.offsetAndSeed[ q ] |= seed;
 
 					dataBitVector.fill( false );
-					data.size( solver.numVertices );
+					data.size( v );
 					q++;
 					
 					/* We assign values. */
@@ -482,7 +481,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					pl.update();
 				}
 
-				LOGGER.info( "Unsolvable graphs: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				LOGGER.info( "Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
 
 				pl.done();
 				break;
@@ -498,13 +497,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			}
 		}
 
-		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( vertexOffsetAndSeed ) );
+		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offsetAndSeed ) );
 
 		globalSeed = chunkedHashStore.seed();
 
 		// Check for compaction
 		long nonZero = 0;
-		m = vertexOffsetAndSeed[ vertexOffsetAndSeed.length - 1 ];
+		m = offsetAndSeed[ offsetAndSeed.length - 1 ];
 
 		{
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
@@ -514,7 +513,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			}
 			iterator.close();
 		}
-
+		
 		if ( compacted ) {
 			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
@@ -594,8 +593,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final long[] h = new long[ 3 ];
 		Hashes.spooky4( transform.toBitVector( (T)o ), globalSeed, h );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
-		HypergraphSolver.tripleToEdge( h, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
+		Linear3SystemSolver.tripleToEquation( h, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		
@@ -605,7 +604,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
 				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
 		if ( signatureMask == 0 ) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
@@ -623,8 +621,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if ( n == 0 ) return defRetValue;
 		final int[] e = new int[ 3 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = vertexOffsetAndSeed[ chunk ] & OFFSET_MASK;
-		HypergraphSolver.tripleToEdge( triple, vertexOffsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( vertexOffsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
+		Linear3SystemSolver.tripleToEquation( triple, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
 		if ( e0 == -1 ) return defRetValue;
 		final long result = rank == null ?
@@ -633,7 +631,6 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
 				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
 		if ( signatureMask == 0 ) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
 		if ( signatures != null ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
@@ -657,28 +654,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + vertexOffsetAndSeed.length * (long)Long.SIZE;
-	}
-
-	/** Creates a new function by copying a given one; non-transient fields are (shallow) copied.
-	 * 
-	 * @param function the function to be copied.
-	 * @deprecated Unused.
-	 */
-	@Deprecated
-	protected MWHCFunction( final MWHCFunction<T> function ) {
-		this.n = function.n;
-		this.m = function.m;
-		this.chunkShift = function.chunkShift;
-		this.globalSeed = function.globalSeed;
-		this.vertexOffsetAndSeed = function.vertexOffsetAndSeed;
-		this.width = function.width;
-		this.data = function.data;
-		this.rank = function.rank;
-		this.marker = function.marker;
-		this.transform = function.transform.copy();
-		this.signatureMask = function.signatureMask;
-		this.signatures = function.signatures;
+		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + offsetAndSeed.length * (long)Long.SIZE;
 	}
 	
 	public boolean containsKey( final Object o ) {
@@ -687,7 +663,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+		final SimpleJSAP jsap = new SimpleJSAP( GOV3Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
 			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
 			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
@@ -720,7 +696,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
 			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new MWHCFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );		
+			BinIO.storeObject( new GOV3Function<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );		
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -734,20 +710,20 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			}
 			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
-					? TransformationStrategies.iso() 
+					? TransformationStrategies.rawIso() 
 							: utf32 
-							? TransformationStrategies.utf32()
-									: TransformationStrategies.utf16();
+							? TransformationStrategies.rawUtf32()
+									: TransformationStrategies.rawUtf16();
 
 							if ( jsapResult.userSpecified( "values" ) ) {
 								final String values = jsapResult.getString( "values" );
 								int dataWidth = 0;
 								for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
 
-								BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false, compacted ), functionName );
+								BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false, compacted ), functionName );
 							}
 
-							else BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );
+							else BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false, compacted ), functionName );
 		}
 		LOGGER.info( "Completed." );
 	}
