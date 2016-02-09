@@ -552,7 +552,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 	public long numBits() {
-		return trie.length() + skips.numBits() + falseFollowsDetector.numBits() + balParen.numBits() + externalBehaviour.numBits() + transformationStrategy.numBits();
+		return ( trie == null ? 0 : trie.length() + skips.numBits() + falseFollowsDetector.numBits() + balParen.numBits() + externalBehaviour.numBits() ) + transformationStrategy.numBits();
 	}
 
 	public boolean containsKey( Object o ) {

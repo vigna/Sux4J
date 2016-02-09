@@ -65,12 +65,12 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 
-/** A function stored using two {@linkplain GOV3Function Majewski-Wormald-Havas-Czech functions}&mdash;one for
+/** A function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
  * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
  * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
  * 
  * <p>To create an instance, we perform a pre-scan of the values to be assigned. If possible, we finds the best possible
- * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link GOV3Function}
+ * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
  * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
  * values, which are stored in a separate function.
  * 
@@ -158,7 +158,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		
 		/** Builds a new function.
 		 * 
-		 * @return an {@link GOV3Function} instance with the specified parameters.
+		 * @return an {@link MWHCFunction} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public TwoStepsMWHCFunction<T> build() throws IOException {
@@ -179,10 +179,10 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	protected final TransformationStrategy<? super T> transform;
 	/** The first function, or {@code null}. The special output value {@link #escape} denotes that {@link #secondFunction} 
 	 * should be queried instead. */
-	protected final GOV3Function<T> firstFunction;
+	protected final MWHCFunction<T> firstFunction;
 	/** The second function. All queries for which {@link #firstFunction} returns
 	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is {@code null}) will be rerouted here. */
-	protected final GOV3Function<T> secondFunction;	
+	protected final MWHCFunction<T> secondFunction;	
 	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final long[] remap;
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
@@ -301,7 +301,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		for( int i = 0; i < escape; i++ ) map.put( remap[ i ], i );
 
 		if ( best != 0 ) {
-			firstFunction = new GOV3Function.Builder<T>().keys( keys ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+			firstFunction = new MWHCFunction.Builder<T>().keys( keys ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
 				public long getLong( long index ) {
 					long value = map.get( values.getLong( index ) );
 					return value == -1 ? escape : value;
@@ -322,7 +322,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			}
 		});
 		
-		secondFunction = new GOV3Function.Builder<T>().store( chunkedHashStore ).values( values, w ).indirect().build();
+		secondFunction = new MWHCFunction.Builder<T>().store( chunkedHashStore ).values( values, w ).indirect().build();
 
 		this.seed = chunkedHashStore.seed();
 		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
@@ -385,6 +385,8 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
+
+		LOGGER.warn( "This class is deprecated: please use TwoStepsGOV3Function" );
 
 		final String functionName = jsapResult.getString( "function" );
 		final String stringFile = jsapResult.getString( "stringFile" );

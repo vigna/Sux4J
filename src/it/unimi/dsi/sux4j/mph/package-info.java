@@ -110,11 +110,11 @@
  * 
  * <ul>
  * <li><strong>General functions</strong>; {@link  it.unimi.dsi.sux4j.mph.MWHCFunction MWHCFunction} and {@link it.unimi.dsi.sux4j.mph.TwoStepsMWHCFunction TwoStepsMWHCFunction}
- * are mainly of historical interest and for backward compatibility, as {@link it.unimi.dsi.sux4j.mph.GOV3Function GOV3Function}, {@link it.unimi.dsi.sux4j.mph.GOV4Function GOV4Function} and
+ * are deprecated: they are still around for historical interest and for backward compatibility, as {@link it.unimi.dsi.sux4j.mph.GOV3Function GOV3Function}, {@link it.unimi.dsi.sux4j.mph.GOV4Function GOV4Function} and
  * {@link it.unimi.dsi.sux4j.mph.TwoStepsGOV3Function TwoStepsGOV3Function} beat them under every respect (except for a slightly greater construction time).
  * 
  * <li><strong>Minimal perfect hash function</strong>; {@link it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction MinimalPerfectHashFunction}
- * is mainly of historical interest and for backward compatibility, as {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}
+ * is deprecated: it is still around for historical interest and for backward compatibility, as {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}
  * beats it under every respect (except for a slightly greater construction time). {@link it.unimi.dsi.sux4j.mph.CHDMinimalPerfectHashFunction CHDMinimalPerfectHashFunction}
  * is theoretically interesting as it can reach almost 2 bits per keys, with a 10% space gain with respect to
  * {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}, but at the cost of slower

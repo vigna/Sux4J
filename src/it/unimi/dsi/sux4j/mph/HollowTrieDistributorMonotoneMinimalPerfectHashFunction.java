@@ -134,7 +134,8 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		log2BucketSize =  Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) );
+		// TODO: there's a known problem when the distributor contains just one string
+		log2BucketSize = Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) ); 
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );

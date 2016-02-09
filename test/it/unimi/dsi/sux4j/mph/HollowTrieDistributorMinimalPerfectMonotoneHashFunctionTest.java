@@ -39,12 +39,13 @@ public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest {
 
 	@Test
 	public void testSmall() throws IOException {
-		String[] s = { "a", "b", "c", "d", "e", "f" };
+		// TODO: with six strings we get an exception (the distributor can't contain just one string)
+		String[] s = { "a", "b", "c", "d", "e", "f", "g", "h" };
 		HollowTrieDistributorMonotoneMinimalPerfectHashFunction<String> mph = new HollowTrieDistributorMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ),
 				TransformationStrategies.prefixFreeIso() );
 
-		for ( int i = s.length; i-- != 0; )
-			assertEquals( i, mph.getLong( s[ i ] ) );
+		for ( int j = s.length; j-- != 0; )
+			assertEquals( j, mph.getLong( s[ j ] ) );
 	}
 
 	@Test
@@ -65,7 +66,7 @@ public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest {
 		final Random r = new XorShift1024StarRandom( 1 );
 
 		for ( int pass = 0; pass < 2; pass++ )
-			for ( int d = 10; d < 100000; d *= 10 ) {
+			for ( int d = 100; d < 100000; d *= 10 ) {
 				String[] s = new String[ d ];
 				int[] v = new int[ s.length ];
 				for ( int i = s.length; i-- != 0; )

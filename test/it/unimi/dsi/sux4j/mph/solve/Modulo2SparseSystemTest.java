@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.solve;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
