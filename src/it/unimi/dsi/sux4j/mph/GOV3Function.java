@@ -137,7 +137,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * function storing nonzero values
  * in a separate array and using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
  * In this case, the function requires just (1.1 + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@link Rank ranking structure}; the current implementation uses {@link Rank16}), but has slightly slower lookups.
+ * {@linkplain Rank ranking structure}; the current implementation uses {@link Rank16}), but has slightly slower lookups.
  *
  * @see GOV4Function
  * @author Sebastiano Vigna

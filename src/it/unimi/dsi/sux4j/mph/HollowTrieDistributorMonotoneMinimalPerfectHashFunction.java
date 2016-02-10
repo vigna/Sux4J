@@ -80,7 +80,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
-		if ( size == 0 ) return defRetValue;
+		if ( size <= 1 ) return defRetValue;
 		final BitVector bv = transform.toBitVector( (T)o ).fast();
 		final long bucket = distributor.getLong( bv );
 		// TODO: could use offset's return value to return defRetValue.
@@ -110,7 +110,6 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
 
 		this.transform = transform;
-		defRetValue = -1; // For the very few cases in which we can decide
 
 		long maxLength = 0;
 		long totalLength = 0;
@@ -124,8 +123,9 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		
 		size = c;
+		defRetValue = size == 1 ? 0 : -1; // For the very few cases in which we can decide
 		
-		if ( size == 0 ) {
+		if ( size <= 1 ) {
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
@@ -134,8 +134,9 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
 		
-		// TODO: there's a known problem when the distributor contains just one string
-		log2BucketSize = Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) ); 
+		// The distributor cannot contain just one string
+		final int l = Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) );
+		log2BucketSize = size / (1 << l) <= 1 ? 0 : l; 
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );

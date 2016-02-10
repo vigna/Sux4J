@@ -131,7 +131,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> keys requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
  * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@link Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
+ * {@linkplain Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
  * the most space-efficient method.
  * 
  * @author Sebastiano Vigna
