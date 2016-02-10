@@ -300,7 +300,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		/** Builds a new function.
 		 * 
-		 * @return an {@link GOV4Function} instance with the specified parameters.
+		 * @return a {@link GOV4Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public GOV4Function<T> build() throws IOException {

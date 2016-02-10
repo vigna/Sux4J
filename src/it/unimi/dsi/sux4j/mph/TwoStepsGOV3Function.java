@@ -156,7 +156,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		
 		/** Builds a new function.
 		 * 
-		 * @return an {@link GOV3Function} instance with the specified parameters.
+		 * @return a {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public TwoStepsGOV3Function<T> build() throws IOException {

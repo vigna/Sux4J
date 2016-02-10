@@ -71,7 +71,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * longest common prefixes as distributors.
  * 
  * <p>See the {@linkplain it.unimi.dsi.sux4j.mph package overview} for a comparison with other implementations.
- * Similarly to an {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
+ * Similarly to a {@link GOV3Function}, an instance of this class may be <em>{@linkplain Builder#signed(int) signed}</em>.
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {

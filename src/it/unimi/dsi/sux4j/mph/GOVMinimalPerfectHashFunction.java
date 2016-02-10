@@ -115,7 +115,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * bits.
  * 
  * @author Sebastiano Vigna
- * @since 0.1
+ * @since 4.0.0
  */
 
 public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {

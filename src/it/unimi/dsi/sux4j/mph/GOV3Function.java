@@ -319,7 +319,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		/** Builds a new function.
 		 * 
-		 * @return an {@link GOV3Function} instance with the specified parameters.
+		 * @return a {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public GOV3Function<T> build() throws IOException {

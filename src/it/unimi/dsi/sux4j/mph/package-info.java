@@ -131,7 +131,7 @@
  * is the monotone minimal perfect hash function that uses less space.</li>
  * <li>{@link it.unimi.dsi.sux4j.mph.HollowTrieDistributorMonotoneMinimalPerfectHashFunction HollowTrieDistributorMonotoneMinimalPerfectHashFunction} is <em>very</em> slow, as it
  * uses a {@linkplain it.unimi.dsi.sux4j.mph.HollowTrieMonotoneMinimalPerfectHashFunction enriched hollow trie as a distributor}, but it 
- * has the (quite surprising) property of using 3.21 + 1.23 log log &#x2113; bits per element (note the double log). In practice,
+ * has the (quite surprising) property of using 3.05 + 1.03 log log &#x2113; bits per element (note the double log). In practice,
  * it will use less than a byte per element for strings of length up to a billion bits.</li>
  * <li>Variable-length versions (e.g., {@link it.unimi.dsi.sux4j.mph.VLLcpMonotoneMinimalPerfectHashFunction VLLcpMonotoneMinimalPerfectHashFunction} and
  * {@link it.unimi.dsi.sux4j.mph.VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction}) are structures whose size depends

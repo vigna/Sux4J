@@ -153,7 +153,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}, log2BucketSize ).build();
 
 		
-		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GOV3Function.C ) ) + Fast.log2( 4 + Fast.log2( averageLength ) + 1 + Fast.log2( Fast.log2( averageLength + 1 ) + 1 ) ) ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GOV3Function.C ) ) + Fast.log2( 2 + Fast.log2( averageLength + 1 ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 		
 	}
