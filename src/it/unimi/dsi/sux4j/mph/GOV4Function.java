@@ -45,7 +45,6 @@ import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
@@ -73,7 +72,8 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** An immutable function stored quasi-succinctly using the Genuzio-Ottaviano-Vigna {@linkplain Linear4SystemSolver 4-regular linear system technique}.
+/** An immutable function stored quasi-succinctly using the 
+ * {@linkplain Linear4SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
  * With respect to a {@link GOV3Function}, instances of this class have slightly slower lookups and are slightly slower to build, but use less space.
  * 
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
@@ -538,7 +538,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[ 4 ];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
 		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
-		Linear3SystemSolver.tripleToEquation( triple, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
+		Linear4SystemSolver.tripleToEquation( triple, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
 		
 		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );

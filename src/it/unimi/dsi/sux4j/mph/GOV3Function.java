@@ -48,7 +48,6 @@ import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
-import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 import java.io.File;
@@ -75,7 +74,8 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/** An immutable function stored quasi-succinctly using the Genuzio-Ottaviano-Vigna {@linkplain Linear3SystemSolver 3-regular linear system technique}.
+/** An immutable function stored quasi-succinctly using the
+ * {@linkplain Linear3SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
  * 
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
  * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
@@ -129,7 +129,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
  * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 3-regular linear system on <b>F</b><sub>2</sub>, where
  * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key. 
- * Then, we {@linkplain Linear4SystemSolver solve} it and store the solution. Since the system must have &#8776;10% more variables than equations to be solvable,
+ * Then, we {@linkplain Linear3SystemSolver solve} it and store the solution. Since the system must have &#8776;10% more variables than equations to be solvable,
  * an <var>r</var>-bit {@link GOV3Function} on <var>n</var> keys requires 1.1<var>rn</var>
  * bits.  
  * 

@@ -66,7 +66,8 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 /**
- * A minimal perfect hash function stored using the Genuzio-Ottaviano-Vigna {@linkplain Linear3SystemSolver 3-regular linear system technique}.
+ * A minimal perfect hash function stored using the 
+ * {@linkplain Linear3SystemSolver Genuzio-Ottaviano-Vigna 3-regular <b>F</b><sub>3</sub>-linear system technique}.
  * It is the fastest minimal perfect hash function available with space close to 2 bits per key.
  * 
  * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
