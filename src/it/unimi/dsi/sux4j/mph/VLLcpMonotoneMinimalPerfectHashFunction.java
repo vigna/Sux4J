@@ -233,7 +233,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			for( long[] quadruple: chunk ) {
 				final long index = mph.getLongByTriple( quadruple );
 				offsets.set( index, quadruple[ 3 ] & bucketSizeMask );
-				lcpLengthsTemp.set( index, IntBigArrays.get( lcpLength, (int)quadruple[ 3 ] >> log2BucketSize ) );
+				lcpLengthsTemp.set( index, IntBigArrays.get( lcpLength, (int)( quadruple[ 3 ] >> log2BucketSize ) ) );
 			}
 		}
 
