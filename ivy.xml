@@ -14,8 +14,7 @@
 		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release" />
 		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
-		<dependency org="emma" name="emma" rev="latest.release" conf="test"/>
-		<dependency org="emma" name="emma_ant" rev="latest.release" conf="test"/>
+		<dependency org="org.jacoco" name="org.jacoco.ant" rev="latest.release" conf="test"/>
 
 		<dependency org="ch.qos.logback" name="logback-classic" rev="latest.release"/>
 		<dependency org="commons-configuration" name="commons-configuration" rev="1.8"/>

@@ -127,7 +127,6 @@
 		<mkdir dir="${build}"/>
 		<mkdir dir="${reports}"/>
 		<mkdir dir="${coverage}"/>
-		<mkdir dir="${instrumented}"/>
 		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
 	</target>
 
@@ -177,26 +176,22 @@
 		</javadoc>
 	</target>
 	
-	<target name="junit" depends="instrument" description="Runs JUnit tests">
-
+	<target name="junit" depends="compile-tests" description="Runs JUnit tests">
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
 			<classpath>
 				<path refid="test.classpath" />
-				<pathelement location="${instrumented}/classes"/>
 				<pathelement location="${build}"/>
 				<pathelement location="${src}"/>
 				<pathelement location="${slow}"/>
 			</classpath>
 
-			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
-			<jvmarg value="-Demma.coverage.out.merge=true" />
-			<jvmarg value="-Xmx1G" />
+			<assertions><enable/></assertions>
 
 			<formatter type="xml"/>
 			<formatter type="plain"/>
 
 			<batchtest fork="yes" todir="${reports}">
-				<fileset dir="${instrumented}/classes">
+				<fileset dir="${build}">
 					<include name="**/*Test.class"/>
 					<exclude name="**/*SlowTest.class"/>
 					<exclude name="**/test/*.class"/>
@@ -210,51 +205,26 @@
 			</fileset>
 			<report todir="reports/html"/>
 		</junitreport>
-
-		<emma>
-			<report sourcepath="${src}" >
-				<fileset file="${coverage}/*a"/>
-				<html outfile="coverage.html" />
-				<xml outfile="${coverage}/coverage.xml" />
-			</report>
-		</emma>
 	</target>
 
-	<target name="instrument" depends="compile-tests" description="Generate instrumented classes">
-		<taskdef resource="emma_ant.properties" classpathref="test.classpath"/>
-		<emma>
-			<instr mode="fullcopy"
-				 outdir="${instrumented}"
-				 merge="no"
-				 metadatafile="${coverage}/metadata.emma"
-				 instrpath="${build}"
-			>
-				<filter excludes="*Test*"/>
-			</instr>
-		</emma>
-	</target>
-
-	<target name="junit-slow" depends="instrument" description="Runs JUnit slow tests">
+	<target name="junit-slow" depends="compile-tests" description="Runs JUnit slow tests">
 		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
 			<classpath>
 				<path refid="test.classpath" />
-				<pathelement location="${instrumented}/classes"/>
 				<pathelement location="${build}"/>
 				<pathelement location="${src}"/>
 				<pathelement location="${slow}"/>
 			</classpath>
 
-			<jvmarg value="-Demma.coverage.out.file=${coverage}/coverage.emma" />
-			<jvmarg value="-Demma.coverage.out.merge=true" />
+			<assertions><enable/></assertions>
 
 			<jvmarg value="-Xmx256G" />
-
 			<formatter type="xml"/>
 			<formatter type="plain"/>
 
 			<batchtest fork="yes" todir="${reports}">
-				<fileset dir="${instrumented}/classes">
-					<include name="**/HollowTrieMonotoneMini*SlowTest.class"/>
+				<fileset dir="${build}">
+					<include name="**/*SlowTest.class"/>
 				</fileset>
 			</batchtest>
 		</junit>
@@ -265,14 +235,6 @@
 			</fileset>
 			<report todir="reports/html"/>
 		</junitreport>
-
-		<emma>
-			<report sourcepath="${src}" >
-				<fileset file="${coverage}/*a"/>
-				<html outfile="coverage.html" />
-				<xml outfile="${coverage}/coverage.xml" />
-			</report>
-		</emma>
 	</target>
 
 	
@@ -282,7 +244,6 @@
 		<delete dir="${build}"/>
 		<delete dir="${reports}"/>
 		<delete dir="${coverage}"/>
-		<delete dir="${instrumented}"/>
 		<delete dir="${docs}"/>
 		<delete>
 			<fileset dir="." includes="*.jar"/>
