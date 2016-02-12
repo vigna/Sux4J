@@ -415,8 +415,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				long unsolvable = 0;
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
-					final int variables = ( C_TIMES_256 * chunk.size() >>> 8 );
-					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( variables < 100 ? variables + 1 : variables );
+					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + Math.max( ( C_TIMES_256 * chunk.size() >>> 8 ), chunk.size() + 1 );
 
 					long seed = 0;
 					final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );

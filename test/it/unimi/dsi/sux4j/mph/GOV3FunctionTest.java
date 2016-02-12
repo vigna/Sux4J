@@ -34,7 +34,7 @@ public class GOV3FunctionTest {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		for ( int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8 ) {
 			for ( int signatureWidth: new int[] { -32, 0, 32, 64 } ) {
-				for ( int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 64, 100, 1000, 10000, 100000 } ) {
+				for ( int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 64, 87, 88, 89, 90, 91, 92, 93, 100, 1000, 10000, 100000 } ) {
 					String[] s = new String[ size ];
 					for ( int i = s.length; i-- != 0; )
 						s[ i ] = Integer.toString( i );

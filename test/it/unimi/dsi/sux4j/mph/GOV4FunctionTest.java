@@ -34,11 +34,10 @@ public class GOV4FunctionTest {
 	public void testNumbers() throws IOException, ClassNotFoundException {
 		for ( int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8 ) {
 			for ( int signatureWidth: new int[] { -32, 0, 32, 64 } ) {
-				for ( int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 64, 100, 101, 1000, 10000, 100000 } ) {
+				for ( int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 64, 95, 96, 97, 98, 99, 100, 101, 1000, 10000, 100000 } ) {
 					String[] s = new String[ size ];
 					for ( int i = s.length; i-- != 0; )
 						s[ i ] = Integer.toString( i );
-					System.err.println(size);
 
 					GOV4Function<CharSequence> mph = new GOV4Function.Builder<CharSequence>().keys( Arrays.asList( s ) ).transform( TransformationStrategies.utf16() ).signed( signatureWidth ).build();
 

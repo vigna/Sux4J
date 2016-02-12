@@ -16,10 +16,11 @@
  * 
  * <h2>Usage</h2>
  * 
- * <p>Most functions in this package provide a {@linkplain it.unimi.dsi.sux4j.mph.GOV3Function.Builder builder}, rather than a constructor.
+ * <p>Most functions in this package provide a {@linkplain it.unimi.dsi.sux4j.mph.GOV3Function.Builder builder}, rather than a constructor,
+ * and feature an easy-to-use main method to build serialized functions from the command line.
  * Moreover, they implement the {@link it.unimi.dsi.fastutil.objects.Object2LongFunction Object2LongFunction} interface,
  * but the underlying machinery manipulates {@linkplain it.unimi.dsi.bits.BitVector bit vectors} only. To bring you own data
- * into the bit vector world, each function builder 
+ * into the bit-vector world, each function builder 
  * requires to specify a {@linkplain it.unimi.dsi.bits.TransformationStrategy transformation strategy}
  * that maps your objects into bit vectors. Many ready-made strategies can be found in {@link it.unimi.dsi.bits.TransformationStrategies TransformationStrategies}:
  * for example,
