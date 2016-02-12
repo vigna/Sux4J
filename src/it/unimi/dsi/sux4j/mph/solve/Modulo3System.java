@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph.solve;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2015 Sebastiano Vigna 
+ * Copyright (C) 2015-2016 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -32,7 +32,7 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Solver for <b>F</b><sub>3</sub> linear systems.
+/** Solver for linear systems on <b>F</b><sub>3</sub>.
  * 
  * @author Sebastiano Vigna
  */
@@ -41,7 +41,7 @@ public class Modulo3System {
 	private final static Logger LOGGER = LoggerFactory.getLogger( Modulo3System.class );
 		private final static boolean DEBUG = false;
 	
-	/** A modulo-3 equation. */
+	/** An equation on <b>F</b><sub>3</sub>. */
 	protected static class Modulo3Equation {
 		/** The vector representing the coefficients (two bits for each variable). */
 		protected final LongArrayBitVector bitVector;

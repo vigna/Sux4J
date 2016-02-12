@@ -36,6 +36,8 @@ import java.util.Arrays;
 public class Orient3Hypergraph {
 	private static final boolean ASSERTS = false;
 
+	private Orient3Hypergraph() {};
+	
 	private static void remove( final IntArrayList queue, final int v, final int[] posInQueue  ) {
 		final int position = posInQueue[ v ];
 		assert position < queue.size();

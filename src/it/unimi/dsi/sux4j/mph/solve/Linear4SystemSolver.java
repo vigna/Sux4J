@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph.solve;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2015 Sebastiano Vigna 
+ * Copyright (C) 2015-2016 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -35,7 +35,7 @@ import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** A class implementing solution of a random 4-regular linear systems on <b>F</b><sub>2</sub> 
+/** A class implementing generation and solution of a random 4-regular linear system on <b>F</b><sub>2</sub> 
  * using the techniques described by
  * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna in
  * &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, 2016. It

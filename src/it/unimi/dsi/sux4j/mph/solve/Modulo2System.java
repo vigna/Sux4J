@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph.solve;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2015 Sebastiano Vigna 
+ * Copyright (C) 2015-2016 Sebastiano Vigna 
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -31,10 +31,8 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Solver for <b>F</b><sub>2</sub> linear systems.
- * 
- * <p>The known terms can be in <b>F</b><sub>2</sub><sup><var>k</var></sup>, with
- * 0 &le; <var>k</var> &le; 64.
+/** Solver for linear systems on <b>F</b><sub>2</sub>.
+ * Variables are <sup>k</sup>-dimensional vectors on <b>F</b><sub>2</sub>, with 0 &le; <var>k</var> &le; 64.
  * 
  * @author Sebastiano Vigna
  */
@@ -43,7 +41,7 @@ public class Modulo2System {
 	private final static Logger LOGGER = LoggerFactory.getLogger( Modulo2System.class );
 	private final static boolean DEBUG = false;
 	
-	/** A modulo-2 equation. */
+	/** An equation on <b>F</b><sub>2</sub>. */
 	protected static class Modulo2Equation {
 		/** The vector representing the coefficients (one bit for each variable). */
 		protected final LongArrayBitVector bitVector;
