@@ -105,7 +105,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * {@linkplain Builder#loadFactor(int) load factor} and the parameter {@linkplain Builder#lambda(int) &lambda;} (see the
  * paper below for their exact meaning). 
  * 
- * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
+ * <P>For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  * 
@@ -246,15 +246,6 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 
-	/** The seed of the underlying 3-hypergraphs. */
-	protected final long[] seed;
-
-	/** The start offset of each chunk. */
-	protected final long[] offset;
-
-	/** The number of buckets of each chunk, stored cumulatively. */
-	protected final long[] numBuckets;
-
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
 	
@@ -269,6 +260,34 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	
 	/** The signatures. */
 	protected final LongBigList signatures;
+	
+	/** An array containing for each chunk three values: the chunk offset, the cumulative number of buckets, and the local chunk seed. */
+	private long[] offsetNumBucketsSeed;
+
+	private long offset( final int k ) {
+		return offsetNumBucketsSeed[ k * 3 ];
+	}
+
+	private void offset( final int k, final long value ) {
+		offsetNumBucketsSeed[ k * 3 ] = value;;
+	}
+
+	private long numBuckets( final int k ) {
+		return offsetNumBucketsSeed[ k * 3 + 1 ];
+	}
+
+	private void numBuckets( final int k, final long value ) {
+		offsetNumBucketsSeed[ k * 3 + 1 ] = value;
+	}
+
+	private long seed( final int k ) {
+		return offsetNumBucketsSeed[ k * 3 + 2 ];
+	}
+
+	private void seed( final int k, final long value ) {
+		offsetNumBucketsSeed[ k * 3 + 2 ] = value;
+	}
+
 
 	/**
 	 * Creates a new CHD minimal perfect hash function for the given keys.
@@ -308,9 +327,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		LOGGER.info( "Number of chunks: " + numChunks );
 		LOGGER.info( "Average chunk size: " + (double)n / numChunks );
 
-		seed = new long[ numChunks ];
-		offset = new long[ numChunks + 1 ];
-		numBuckets = new long[ numChunks + 1 ];
+		offsetNumBucketsSeed = new long[ ( numChunks + 1 ) * 3 + 2 ]; 
 		
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
@@ -360,7 +377,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					final boolean used[] = new boolean[ p ];
 	
 					final int numBuckets = ( chunk.size() + lambda - 1 ) / lambda;
-					this.numBuckets[ chunkNumber + 1 ] = this.numBuckets[ chunkNumber ] + numBuckets;
+					numBuckets( chunkNumber + 1, numBuckets( chunkNumber ) + numBuckets );
 					final int[] cc0 = new int[ numBuckets ];
 					final int[] cc1 = new int[ numBuckets ];
 					@SuppressWarnings("unchecked")
@@ -446,7 +463,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 								}
 							if ( ! bucketsToDo.isEmpty() ) continue tryChunk;
 							
-							this.seed[ chunkNumber ] = seed;							
+							seed( chunkNumber, seed );
 							i = j;
 						}
 						break;
@@ -459,7 +476,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						final long h[] = new long[ 3 ];
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
-							Hashes.spooky4( triple, seed[ chunkNumber ], h );
+							Hashes.spooky4( triple, seed( chunkNumber ), h );
 							h[ 0 ] = ( h[ 0 ] >>> 1 ) % numBuckets;
 							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
@@ -474,9 +491,9 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						coefficients.add( l );
 					}
 					
-					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset[ chunkNumber ] + i );
+					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset( chunkNumber ) + i );
 
-					offset[ chunkNumber + 1 ] = offset[ chunkNumber ] + p;
+					offset( chunkNumber + 1, offset( chunkNumber ) + p );
 					chunkNumber++;
 					pl.update();
 				}
@@ -493,7 +510,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			}
 		}
 
-		rank = new SparseRank( offset[ offset.length - 1 ], holes.size(), holes.iterator() );
+		rank = new SparseRank( offset( offsetNumBucketsSeed.length / 3 - 1 ), holes.size(), holes.iterator() );
 
 		globalSeed = chunkedHashStore.seed();
 
@@ -546,7 +563,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return seed.length * Long.SIZE + offset.length * Long.SIZE + coefficients.numBits() + numBuckets.length * Long.SIZE + rank.numBits();
+		return offsetNumBucketsSeed.length * Long.SIZE + coefficients.numBits() + rank.numBits();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -555,15 +572,16 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final long[] triple = new long[ 3 ];
 		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+		final long chunkOffset = offset( chunk );
+		final int p = (int)( offset( chunk + 1 ) - chunkOffset );
 
 		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, seed[ chunk ], h );
+		Hashes.spooky4( triple, seed( chunk ), h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long c = coefficients.getLong( numBuckets[ chunk ] + ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] ) );
+		final long numBuckets = numBuckets( chunk );
+		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( numBuckets( chunk + 1 ) - numBuckets ) );
 		
 		long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		result -= rank.rank( result );
@@ -577,15 +595,16 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		final int p = (int)( offset[ chunk + 1 ] - chunkOffset );
+		final long chunkOffset = offset( chunk );
+		final int p = (int)( offset( chunk + 1 ) - chunkOffset );
 		
 		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, seed[ chunk ], h );
+		Hashes.spooky4( triple, seed( chunk ), h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long c = coefficients.getLong( numBuckets[ chunk ] + ( h[ 0 ] >>> 1 ) % ( numBuckets[ chunk + 1 ] - numBuckets[ chunk ] ) );
+		final long numBuckets = numBuckets( chunk );
+		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( numBuckets( chunk + 1 ) - numBuckets ) );
 
 		final long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		return result - rank.rank( result );
