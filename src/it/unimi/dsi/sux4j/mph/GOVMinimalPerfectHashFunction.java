@@ -84,7 +84,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * containing the keys (associated with any value); however, if the store is rebuilt because of a
  * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  * 
- * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
+ * <P>For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  * 

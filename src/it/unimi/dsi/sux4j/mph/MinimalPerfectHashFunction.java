@@ -85,7 +85,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
  * occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
  * 
- * <P>As a commodity, this class provides a main method that reads from standard input a (possibly
+ * <P>For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  * 
