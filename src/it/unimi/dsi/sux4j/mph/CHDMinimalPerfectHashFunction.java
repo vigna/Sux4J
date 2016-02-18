@@ -324,8 +324,8 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.info( "Number of chunks: " + numChunks );
-		LOGGER.info( "Average chunk size: " + (double)n / numChunks );
+		LOGGER.debug( "Number of chunks: " + numChunks );
+		LOGGER.debug( "Average chunk size: " + (double)n / numChunks );
 
 		offsetNumBucketsSeed = new long[ ( numChunks + 1 ) * 3 + 2 ]; 
 		
@@ -525,7 +525,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			public long nextLong() {
 				return iterator.next().longValue();
 			}
-		}, 0 );
+		}, 0, true );
 		
 		coefficients.close();
 
@@ -572,16 +572,18 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final long[] triple = new long[ 3 ];
 		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, triple );
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset( chunk );
-		final int p = (int)( offset( chunk + 1 ) - chunkOffset );
+		final int index = chunk * 3;
+		final long[] offsetNumBucketsSeed = this.offsetNumBucketsSeed;
+		final long chunkOffset = offsetNumBucketsSeed[ index ];
+		final int p = (int)( offsetNumBucketsSeed[ index + 3 ] - chunkOffset );
 
 		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, seed( chunk ), h );
+		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long numBuckets = numBuckets( chunk );
-		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( numBuckets( chunk + 1 ) - numBuckets ) );
+		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
+		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( offsetNumBucketsSeed[ index + 4 ] - numBuckets ) );
 		
 		long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		result -= rank.rank( result );
@@ -595,16 +597,18 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */ 
 	private long getLongByTripleNoCheck( final long[] triple ) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset( chunk );
-		final int p = (int)( offset( chunk + 1 ) - chunkOffset );
+		final int index = chunk * 3;
+		final long[] offsetNumBucketsSeed = this.offsetNumBucketsSeed;
+		final long chunkOffset = offsetNumBucketsSeed[ index ];
+		final int p = (int)( offsetNumBucketsSeed[ index + 3 ] - chunkOffset );
 		
 		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, seed( chunk ), h );
+		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
 		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
 		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
 		
-		final long numBuckets = numBuckets( chunk );
-		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( numBuckets( chunk + 1 ) - numBuckets ) );
+		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
+		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( offsetNumBucketsSeed[ index + 4 ] - numBuckets ) );
 
 		final long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		return result - rank.rank( result );
