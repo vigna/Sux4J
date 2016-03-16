@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
 /** A class implementing generation and solution of a random 4-regular linear system on <b>F</b><sub>2</sub> 
  * using the techniques described by
  * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna in
- * &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, 2016. It
+ * &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;,
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, 
+ * Lecture Notes in Computer Science, Springer, 2016. It
  * can be seen as a generalization of the {@linkplain HypergraphSorter 3-hypergraph edge sorting procedure}
  * that is necessary for the Majewski-Wormald-Havas-Czech technique.
  * 

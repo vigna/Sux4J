@@ -127,7 +127,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>The detail of the data structure
  * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
- * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 3-regular linear system on <b>F</b><sub>2</sub>, where
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, 
+ * Lecture Notes in Computer Science, Springer, 2016. We generate a random 3-regular linear system on <b>F</b><sub>2</sub>, where
  * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key. 
  * Then, we {@linkplain Linear3SystemSolver solve} it and store the solution. Since the system must have &#8776;10% more variables than equations to be solvable,
  * an <var>r</var>-bit {@link GOV3Function} on <var>n</var> keys requires 1.1<var>rn</var>

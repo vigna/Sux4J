@@ -98,7 +98,9 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  * 
  * <p>The detail of the data structure
  * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
- * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna, 2016. We generate a random 3-regular hypergraph
+ * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, 
+ * Lecture Notes in Computer Science, Springer, 2016. We generate a random 3-regular hypergraph
  * and give it an {@linkplain Orient3Hypergraph orientation}. From the orientation, we generate
  * a random linear system on <b>F</b><sub>3</sub>, where the variables in the <var>k</var>-th equation
  * are the vertices of the <var>k</var>-th hyperedge, and
