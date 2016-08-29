@@ -13,6 +13,7 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class MinimalPerfectHashFunctionTest {
 
 	private void check( int size, String[] s, MinimalPerfectHashFunction<CharSequence> mph, int w ) {

@@ -16,8 +16,8 @@ import java.util.List;
 
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class MWHCFunctionTest {
-
 
 	private void check( int size, String[] s, MWHCFunction<CharSequence> mph, int signatureWidth ) {
 		if ( signatureWidth < 0 ) for ( int i = s.length; i-- != 0; ) assertEquals( 1, mph.getLong( s[ i ] ) );
