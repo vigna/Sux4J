@@ -105,7 +105,7 @@ import org.slf4j.LoggerFactory;
  * <P>Building and sorting a large 4-regular linear system is difficult, as
  * solving linear systems is superquadratic. This classes uses techniques introduced in the
  * paper quoted in the introduction (and in particular <em>broadword programming</em> and
- * <em>lazy Gaussian evaluation</em>) to speed up the process by orders of magnitudes.
+ * <em>lazy Gaussian elimination</em>) to speed up the process by orders of magnitudes.
  * 
  * <p>Note that we might generate non-solvable systems, in which case
  * one has to try again with a different seed.

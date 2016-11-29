@@ -34,7 +34,6 @@ import java.io.ObjectInputStream;
  */
 
 public class Rank12 extends AbstractRank implements Rank {
-	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 1L;
 	private static final int WORDS_PER_SUPERBLOCK = 64;
 
@@ -66,10 +65,11 @@ public class Rank12 extends AbstractRank implements Rank {
 			count[ pos ] = c;
 
 			for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
-				if ( j != 0 && j % 12 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( ( j - 1 ) / 12 );
+				if ( j != 0 && j % 12 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0xFFFL ) << 12 * ( ( j - 1 ) / 12 );
 				if ( i + j < numWords ) {
 					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
 					c += Long.bitCount( bits[ i + j ] );
+					assert c - count[pos] <= 4096 : c - count[pos];
 				}
 			}
 		}
@@ -81,15 +81,15 @@ public class Rank12 extends AbstractRank implements Rank {
 	
 	
 	public long rank( long pos ) {
-		if ( ASSERTS ) assert pos >= 0;
-		if ( ASSERTS ) assert pos <= bitVector.length();
+		assert pos >= 0;
+		assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
 		
 		int word = (int)( pos / Long.SIZE );
 		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
-        final int offset = word % WORDS_PER_SUPERBLOCK / 12 - 1;
-		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
+		final int offset = word % WORDS_PER_SUPERBLOCK / 12 - 1;
+		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0xFFF ) +
 				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
 		
 		for ( int todo = ( word % WORDS_PER_SUPERBLOCK ) % 12; todo-- != 0; ) result += Long.bitCount( bits[ --word ] );

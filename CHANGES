@@ -1,3 +1,14 @@
+4.1.0
+
+- We now use in all the new structures of the mph package modulo-free
+  range reduction (see
+  http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/).
+  This has improved lookup performance by 5-10% but it has made necessary
+  to bump the serial version UIDs.
+
+- Fixed wrong mask in Rank12. It could lead to unpredictable
+  errors.
+
 4.0.0
 
 - Complete revamp of the mph package. New algorithms provide

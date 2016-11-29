@@ -96,9 +96,7 @@ public class Rank12Test extends RankSelectTestCase {
 			LongArrayBitVector bitVector = LongArrayBitVector.getInstance( size );
 			for ( int i = 0; i < size; i++ )
 				bitVector.add( r.nextBoolean() );
-			Rank12 rank12;
-
-			rank12 = new Rank12( bitVector );
+			Rank12 rank12 = new Rank12( bitVector );
 			assertRank( rank12 );
 		}
 	}
