@@ -122,7 +122,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-	public static final long serialVersionUID = 5L;
+	public static final long serialVersionUID = 6L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOVMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
 

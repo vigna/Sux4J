@@ -1,5 +1,11 @@
 package it.unimi.dsi.sux4j.mph.solve;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -29,12 +35,6 @@ import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
-
-import java.util.Arrays;
-import java.util.Iterator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** A class implementing generation and solution of a random 3-regular linear system on <b>F</b><sub>2</sub> or  
  *  <b>F</b><sub>3</sub> using the techniques described by
@@ -219,9 +219,11 @@ public class Linear3SystemSolver<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.spooky4( triple, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		final int shift = Long.numberOfLeadingZeros(numVariables);
+		final long mask = (1L << shift) - 1;
+		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
+		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
+		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
 	}
 
 	/** Turns a bit vector into an equation.
@@ -240,9 +242,11 @@ public class Linear3SystemSolver<T> {
 		}
 		final long[] hash = new long[ 3 ];
 		Hashes.spooky4( bv, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		final int shift = Long.numberOfLeadingZeros(numVariables);
+		final long mask = (1L << shift) - 1;
+		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
+		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
+		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
 	}
 	
 	private String edge2String( final int e ) {

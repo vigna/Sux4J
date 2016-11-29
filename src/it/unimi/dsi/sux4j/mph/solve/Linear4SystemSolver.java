@@ -206,10 +206,12 @@ public class Linear4SystemSolver<T> {
 		}
 		final long[] hash = new long[ 4 ];
 		Hashes.spooky4( triple, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		final int shift = Long.numberOfLeadingZeros(numVariables);
+		final long mask = (1L << shift) - 1;
+		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
+		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
+		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
+		e[ 3 ] = (int)( ( ( hash[ 3 ] & mask ) * numVariables ) >>> shift );
 	}
 
 	/** Turns a bit vector into an equation.
@@ -228,10 +230,12 @@ public class Linear4SystemSolver<T> {
 		}
 		final long[] hash = new long[ 4 ];
 		Hashes.spooky4( bv, seed, hash );
-		e[ 0 ] = (int)( ( hash[ 0 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 1 ] = (int)( ( hash[ 1 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 2 ] = (int)( ( hash[ 2 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
-		e[ 3 ] = (int)( ( hash[ 3 ] & 0x7FFFFFFFFFFFFFFFL ) % numVariables );
+		final int shift = Long.numberOfLeadingZeros(numVariables);
+		final long mask = (1L << shift) - 1;
+		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
+		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
+		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
+		e[ 3 ] = (int)( ( ( hash[ 3 ] & mask ) * numVariables ) >>> shift );
 	}
 	
 	private String edge2String( final int e ) {

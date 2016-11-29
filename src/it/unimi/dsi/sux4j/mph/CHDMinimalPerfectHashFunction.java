@@ -132,7 +132,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	private static final Logger LOGGER = LoggerFactory.getLogger( CHDMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = true;
 
-	public static final long serialVersionUID = 5L;
+	public static final long serialVersionUID = 6L;
 
 	/** A builder class for {@link CHDMinimalPerfectHashFunction}. */
 	public static class Builder<T> {
@@ -264,6 +264,14 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** An array containing for each chunk three values: the chunk offset, the cumulative number of buckets, and the local chunk seed. */
 	private long[] offsetNumBucketsSeed;
 
+	private static long spread(long hash, long bound) {
+		final int shift = Long.numberOfLeadingZeros(bound);
+		final long value = ((hash & (1L << shift) - 1) * bound) >>> shift;
+		assert value >= 0 : value;
+		assert value < bound: value;
+		return value;
+	}
+
 	private long offset( final int k ) {
 		return offsetNumBucketsSeed[ k * 3 ];
 	}
@@ -301,6 +309,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
+	@SuppressWarnings("resource")
 	protected CHDMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 
@@ -332,7 +341,6 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
 		
-		@SuppressWarnings("resource")
 		final OfflineIterable<MutableLong, MutableLong> coefficients = 
 				new OfflineIterable<MutableLong, MutableLong>( new Serializer<MutableLong, MutableLong>() {
 
@@ -396,9 +404,9 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 							final long[] triple = iterator.next();
 							final long[] h = new long[ 3 ];
 							Hashes.spooky4( triple, seed, h );
-							final ArrayList<long[]> b = bucket[ (int)( ( h[ 0 ] >>> 1 ) % numBuckets ) ];
-							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
-							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
+							final ArrayList<long[]> b = bucket[ (int) spread(h[0], numBuckets) ];
+							h[ 1 ] = spread(h[1], p);
+							h[ 2 ] = spread(h[2], p - 1) + 1;
 
 							// All elements in a bucket must have either different h[ 1 ] or different h[ 2 ]
 							for( long[] t: b ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
@@ -477,9 +485,9 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						for( Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
 							final long[] triple = iterator.next();
 							Hashes.spooky4( triple, seed( chunkNumber ), h );
-							h[ 0 ] = ( h[ 0 ] >>> 1 ) % numBuckets;
-							h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
-							h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
+							h[ 0 ] = spread(h[0], numBuckets);
+							h[ 1 ] = spread(h[1], p);
+							h[ 2 ] = spread(h[2], p - 1) + 1;
 							//System.err.println( Arrays.toString(  e  ) );
 							assert pos.add( (int)( ( h[ 1 ] + cc0[ (int)( h[ 0 ] ) ] * h[ 2 ] + cc1[ (int)( h[ 0 ] ) ] ) % p ) );
 						}
@@ -579,11 +587,11 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		final long[] h = new long[ 3 ];
 		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
-		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
-		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
+		h[1] = spread(h[1], p);
+		h[2] = spread(h[2], p - 1) + 1;
 		
 		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
-		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( offsetNumBucketsSeed[ index + 4 ] - numBuckets ) );
+		final long c = coefficients.getLong( numBuckets + spread(h[0], offsetNumBucketsSeed[ index + 4 ] - numBuckets) );
 		
 		long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		result -= rank.rank( result );
@@ -604,11 +612,11 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		
 		final long[] h = new long[ 3 ];
 		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
-		h[ 1 ] = (int)( ( h[ 1 ] >>> 1 ) % p ); 
-		h[ 2 ] = (int)( ( h[ 2 ] >>> 1 ) % ( p - 1 ) ) + 1; 
+		h[1] = spread(h[1], p);
+		h[2] = spread(h[2], p - 1) + 1;
 		
 		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
-		final long c = coefficients.getLong( numBuckets + ( h[ 0 ] >>> 1 ) % ( offsetNumBucketsSeed[ index + 4 ] - numBuckets ) );
+		final long c = coefficients.getLong( numBuckets + spread(h[0], offsetNumBucketsSeed[ index + 4 ] - numBuckets) );
 
 		final long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
 		return result - rank.rank( result );

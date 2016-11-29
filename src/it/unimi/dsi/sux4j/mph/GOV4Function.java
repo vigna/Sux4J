@@ -140,7 +140,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-	private static final long serialVersionUID = 4L;
+	private static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV4Function.class );
 	private static final boolean DEBUG = false;
 

@@ -147,7 +147,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  */
 
 public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV3Function.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
