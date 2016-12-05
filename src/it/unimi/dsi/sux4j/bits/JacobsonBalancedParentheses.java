@@ -491,6 +491,11 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 								int matchingBlock = block;
 								while( count[ --matchingBlock ] == 0 );
 								countFarClosing--;
+								/* Note that we always consider the first far parenthesis in a block a
+								 * pioneer, so in principle we might add to the standard construction
+								 * one pioneer per block. However, this approach voids the need of
+								 * keeping track of the eccess at the start of each block.
+								 */
 								if ( --count[ matchingBlock ] == 0 || countFarClosing == 0 ) {
 									// This is a closing pioneer
 									if ( DEBUG ) System.err.println( "+) " + ( block * Long.SIZE + j ) + " " + Arrays.toString(  count ) );
@@ -537,6 +542,11 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 								int matchingBlock = block;
 								while( count[ ++matchingBlock ] == 0 );
 								countFarOpening--;
+								/* Note that we always consider the first far parenthesis in a block a
+								 * pioneer, so in principle we might add to the standard construction
+								 * one pioneer per block. However, this approach voids the need of
+								 * keeping track of the eccess at the start of each block.
+								 */
 								if ( --count[ matchingBlock ] == 0 || countFarOpening == 0 ) {
 									// This is an opening pioneer
 									if ( DEBUG ) System.err.println( "+( " + ( block * (long)Long.SIZE + j ) + " " + Arrays.toString(  count ) );

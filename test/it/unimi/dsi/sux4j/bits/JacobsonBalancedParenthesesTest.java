@@ -2,9 +2,10 @@ package it.unimi.dsi.sux4j.bits;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import it.unimi.dsi.bits.LongArrayBitVector;
 
 import org.junit.Test;
+
+import it.unimi.dsi.bits.LongArrayBitVector;
 
 public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase {
 
@@ -187,9 +188,12 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 
 		bp = new JacobsonBalancedParentheses( new long[] { 0xFFFFFFFFFFFFFFL, 0xFFFFFFL, 0xFFFFFFFFFFL, 0xFF00L }, Long.SIZE * 4 );
 		assertBalancedParentheses( bp );
+
+		bp = new JacobsonBalancedParentheses( new long[] { 0xFFFFFFFFFFFFFFFFL, 0x7FFFFFFFFFFFFFFFL, 0, 0 }, 256 - 2 );
+		assertBalancedParentheses( bp );
 	}
 
-	public void notestSimple() {
+	public void testSimple() {
 		LongArrayBitVector bv = LongArrayBitVector.of( 1, 0 );
 		JacobsonBalancedParentheses bp = new JacobsonBalancedParentheses( bv );
 		assertEquals( 1, bp.findClose( 0 ) );
