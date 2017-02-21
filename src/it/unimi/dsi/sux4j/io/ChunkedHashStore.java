@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
@@ -251,7 +252,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		byteBuffer = new ByteBuffer[DISK_CHUNKS];
 		// Create disk chunks
 		for( int i = 0; i < DISK_CHUNKS; i++ ) {
-			byteBuffer[i] = ByteBuffer.allocateDirect(16*1024);
+			byteBuffer[i] = ByteBuffer.allocateDirect(16*1024).order(ByteOrder.nativeOrder());
 			writableByteChannel[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ).getChannel();
 			file[ i ].deleteOnExit();
 		}
@@ -365,7 +366,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		if ( filteredSize == - 1 ) {
 			long c = 0;
 			final long[] triple = new long[ 3 ];
-			final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16384);
+			final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16*1024).order(ByteOrder.nativeOrder());
 			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				if ( filter == null ) c += count[ i ];
 				else {
@@ -729,7 +730,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		return new AbstractObjectIterator<Chunk>() {
 			private int chunk;
 			private ReadableByteChannel channel;
-			private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16384);
+			private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16*1024).order(ByteOrder.nativeOrder());
 			private int last;
 			private int chunkSize;
 			private final long[] buffer0 = new long[ maxCount ];
