@@ -1,5 +1,25 @@
 package it.unimi.dsi.sux4j.io;
 
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import it.unimi.dsi.Util;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -24,8 +44,6 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
-import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
@@ -36,24 +54,6 @@ import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.GOV3Function.Builder;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.SequenceInputStream;
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.collections.iterators.IteratorEnumeration;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** A temporary store of hash triples virtually divided into chunks.
  * 
@@ -179,8 +179,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private final long hashMask;
 	/** The temporary directory for this chunked hash store, or {@code null}. */
 	private final File tempDir;
-	/** The data output streams for the disk chunks. */
-	private DataOutputStream[] dos;
+	/** The file channels for the disk chunks. */
+	private WritableByteChannel[] writableByteChannel;
+	/** The file channels for the disk chunks. */
+	private ByteBuffer[] byteBuffer;
 	/** The number of disk chunks divided by {@link #diskChunkStep}. */
 	private int virtualDiskChunks;
 	/** If not {@code null}, a filter that will be used to select triples. */
@@ -189,6 +191,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	private boolean locked;
 	/** Whether this store has already been closed. */
 	private boolean closed;
+	private long wallTime;
 
 	/** Creates a chunked hash store with given transformation strategy.
 	 * 
@@ -244,10 +247,12 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		this.hashMask = hashWidth == 0 ? 0 : -1L >>> Long.SIZE - hashWidth;
 		
 		file = new File[ DISK_CHUNKS ];
-		dos = new DataOutputStream[ DISK_CHUNKS ];
+		writableByteChannel = new WritableByteChannel[ DISK_CHUNKS ];
+		byteBuffer = new ByteBuffer[DISK_CHUNKS];
 		// Create disk chunks
 		for( int i = 0; i < DISK_CHUNKS; i++ ) {
-			dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ), OUTPUT_BUFFER_SIZE ) );
+			byteBuffer[i] = ByteBuffer.allocateDirect(16*1024);
+			writableByteChannel[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ).getChannel();
 			file[ i ].deleteOnExit();
 		}
 
@@ -308,10 +313,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		count[ chunk ]++;
 		checkedForDuplicates = false;
 		if ( DEBUG ) System.err.println( "Adding " + Arrays.toString( triple ));
-		dos[ chunk ].writeLong( triple[ 0 ] );
-		dos[ chunk ].writeLong( triple[ 1 ] );
-		dos[ chunk ].writeLong( triple[ 2 ] );
-		if ( hashMask == 0 ) dos[ chunk ].writeLong( value );
+		writeLong(triple[0], byteBuffer[chunk], writableByteChannel[chunk]);
+		writeLong(triple[1], byteBuffer[chunk], writableByteChannel[chunk]);
+		writeLong(triple[2], byteBuffer[chunk], writableByteChannel[chunk]);
+		if ( hashMask == 0 ) writeLong(value, byteBuffer[chunk], writableByteChannel[chunk]);
 		if ( filteredSize != -1 && ( filter == null || filter.evaluate( triple ) ) ) filteredSize++;
 		size++;
 	}
@@ -344,6 +349,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		addAll( elements, null );
 	}
 
+	private void flushAll() throws IOException {
+		for(int i = 0; i < DISK_CHUNKS; i++) flush(byteBuffer[i], writableByteChannel[i]);
+	}
+	
 	/** Returns the size of this store. Note that if you set up 
 	 * a {@linkplain #filter(Predicate) filter}, the first call to
 	 * this method will require a scan to the whole store. 
@@ -356,19 +365,22 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		if ( filteredSize == - 1 ) {
 			long c = 0;
 			final long[] triple = new long[ 3 ];
+			final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16384);
 			for( int i = 0; i < DISK_CHUNKS; i++ ) {
 				if ( filter == null ) c += count[ i ];
 				else {
-					for( DataOutputStream d: dos ) d.flush();
-					final DataInputStream dis = new DataInputStream( new FastBufferedInputStream( new FileInputStream( file[ i ] ) ) );
+					flushAll();
+					@SuppressWarnings("resource")
+					final ReadableByteChannel channel = new FileInputStream(file[ i ]).getChannel();
+					byteBuffer.clear().flip();
 					for( int j = 0; j < count[ i ]; j++ ) {
-						triple[ 0 ] = dis.readLong();
-						triple[ 1 ] = dis.readLong();
-						triple[ 2 ] = dis.readLong();
-						if ( hashMask == 0 ) dis.readLong();
+						triple[ 0 ] = readLong(byteBuffer, channel);
+						triple[ 1 ] = readLong(byteBuffer, channel);
+						triple[ 2 ] = readLong(byteBuffer, channel);
+						if ( hashMask == 0 ) readLong(byteBuffer, channel);
 						if ( filter.evaluate( triple ) ) c++;
 					}
-					dis.close();
+					channel.close();
 				}
 			}
 
@@ -377,14 +389,65 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		return filteredSize;
 	}
 	
-	/** Clears this store. After a call to this method, the store can be reused.
-	 */
+	/** Clears this store. After a call to this method, the store can be reused. */
 	
-	public void clear() {
+	public void clear() throws IOException {
 		locked = false;
 		reset( 0 );
 	}
 	
+	public static void writeLong(final long value, final ByteBuffer byteBuffer, final WritableByteChannel channel) throws IOException {
+		if (!byteBuffer.hasRemaining()) flush(byteBuffer, channel);
+		byteBuffer.putLong(value);
+	}
+	
+	public static void flush(final ByteBuffer buffer, final WritableByteChannel channel) throws IOException {
+		buffer.flip();
+		channel.write( buffer );
+		buffer.clear();
+	}
+	
+	public static long readLong(final ByteBuffer byteBuffer, final ReadableByteChannel channel) throws IOException {
+		if (! byteBuffer.hasRemaining()) {
+			byteBuffer.clear();
+			final int result = channel.read(byteBuffer);
+			assert result != 0;
+			if (result == -1) throw new EOFException();
+            byteBuffer.flip();
+		}
+		return byteBuffer.getLong();
+	}
+
+	public static ReadableByteChannel concatenate(final ReadableByteChannel[] channel) {
+		return new ReadableByteChannel() {
+			private int curr = 0;
+			private boolean closed;
+
+			@Override
+			public boolean isOpen() {
+				return ! closed;
+			}
+			
+			@Override
+			public void close() throws IOException {
+				if (closed) return;
+				closed = true;
+				for(ReadableByteChannel c: channel) c.close();
+			}
+			
+			@Override
+			public int read(ByteBuffer dst) throws IOException {
+				if (!dst.hasRemaining()) return 0;
+				for(;;) {
+					if (curr == channel.length) return -1;
+					final int result = channel[curr].read(dst);
+					assert result != 0;
+					if (result > 0) return result;
+					if (result == -1) curr++;
+				}
+			}
+		};
+	}
 	
 	protected void finalize() throws Throwable {
 		try {
@@ -398,20 +461,12 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		}
 	}
 
-	/** Closes this store, disposing all associated resources.
-	 * 
-	 */
-	
-	public void close() {
+	/** Closes this store, disposing all associated resources. */
+	public void close() throws IOException {
 		if ( ! closed ) {
+			LOGGER.info("Wall clock for quicksort: " + Util.format(wallTime / 1E9));
 			closed = true;
-			for( DataOutputStream d: dos )
-				try {
-					d.close();
-				}
-			catch ( IOException e ) {
-				throw new RuntimeException( e );
-			}
+			for( WritableByteChannel channel: writableByteChannel ) channel.close();
 			for( File f: file ) f.delete();
 		}
 	}
@@ -421,20 +476,18 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param seed the new seed.
 	 * @throws IllegalStateException if this store was locked by a call to {@link #seed()}, and never {@linkplain #clear() cleared} thereafter.
 	 */
-	
-	public void reset( final long seed ) {
-		if ( locked ) throw new IllegalStateException();
-		if ( DEBUG ) System.err.println( "RESET(" + seed + ")" );
+
+	public void reset(final long seed) throws IOException {
+		if (locked) throw new IllegalStateException();
+		if (DEBUG) System.err.println("RESET(" + seed + ")");
 		filteredSize = 0;
 		this.seed = seed;
 		checkedForDuplicates = false;
-		Arrays.fill( count, 0 );
-		try {
-			for( DataOutputStream d: dos ) d.close();
-			for( int i = 0; i < DISK_CHUNKS; i++ ) dos[ i ] = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( file[ i ] ), OUTPUT_BUFFER_SIZE ) );
-		}
-		catch ( IOException e ) {
-			throw new RuntimeException( e );
+		Arrays.fill(count, 0);
+		for (int i = 0; i < DISK_CHUNKS; i++) {
+			writableByteChannel[i].close();
+			byteBuffer[i].clear();
+			writableByteChannel[i] = new FileOutputStream(file[i]).getChannel();
 		}
 	}
 
@@ -657,13 +710,12 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	public Iterator<Chunk> iterator() {
 		if ( closed ) throw new IllegalStateException( "This " + getClass().getSimpleName() + " has been closed " );
-		for( DataOutputStream d: dos )
-			try {
-				d.flush();
-			}
-			catch ( IOException e ) {
-				throw new RuntimeException( e );
-			}
+		try {
+			flushAll();
+		}
+		catch ( IOException e ) {
+			throw new RuntimeException( e );
+		}
 
 		int m = 0;
 		for( int i = 0; i < virtualDiskChunks; i++ ) {
@@ -676,7 +728,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		
 		return new AbstractObjectIterator<Chunk>() {
 			private int chunk;
-			private FastBufferedInputStream fbis;
+			private ReadableByteChannel channel;
+			private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16384);
 			private int last;
 			private int chunkSize;
 			private final long[] buffer0 = new long[ maxCount ];
@@ -688,7 +741,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				return chunk < chunks;
 			}
 			
-			@SuppressWarnings("unchecked")
 			public Chunk next() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
 				final long[] buffer0 = this.buffer0;
@@ -700,25 +752,25 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					chunkSize = 0;
 					try {
 						if ( diskChunkStep == 1 ) {
-							fbis = new FastBufferedInputStream( new FileInputStream( file[ diskChunk ] ) );
+							channel = new FileInputStream(file[ diskChunk ]).getChannel();
 							chunkSize = count[ diskChunk ];
 						}
 						else {
-							final FileInputStream[] fis = new FileInputStream[ diskChunkStep ];
-							for( int i = 0; i < fis.length; i++ ) {
-								fis[ i ] = new FileInputStream( file[ diskChunk * diskChunkStep + i ] );
+							final ReadableByteChannel[] subChannel = new ReadableByteChannel[ diskChunkStep ];
+							for( int i = 0; i < diskChunkStep; i++) {
+								subChannel[ i ] = new FileInputStream(file[ diskChunk * diskChunkStep + i ]).getChannel();
 								chunkSize += count[ diskChunk * diskChunkStep + i ];
 							}
-							fbis = new FastBufferedInputStream( new SequenceInputStream( new IteratorEnumeration( Arrays.asList( fis ).iterator() ) ) );
+							channel = concatenate(subChannel);
 						}
-						final DataInputStream dis = new DataInputStream( fbis );
 
+						byteBuffer.clear().flip();
 						final long triple[] = new long[ 3 ];
 						int count = 0;
 						for( int j = 0; j < chunkSize; j++ ) {
-							triple[ 0 ] = dis.readLong();
-							triple[ 1 ] = dis.readLong();
-							triple[ 2 ] = dis.readLong();
+							triple[ 0 ] = readLong(byteBuffer, channel);
+							triple[ 1 ] = readLong(byteBuffer, channel);
+							triple[ 2 ] = readLong(byteBuffer, channel);
 
 							if ( DEBUG ) System.err.println( "From disk: " + Arrays.toString( triple ) );
 							
@@ -726,19 +778,20 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 								buffer0[ count ] = triple[ 0 ]; 
 								buffer1[ count ] = triple[ 1 ]; 
 								buffer2[ count ] = triple[ 2 ]; 
-								if ( hashMask == 0 ) data[ count ] = dis.readLong();
+								if ( hashMask == 0 ) data[ count ] = readLong(byteBuffer, channel);
 								count++;
 							}
-							else if ( hashMask == 0 ) dis.readLong(); // Discard data
+							else if ( hashMask == 0 ) readLong(byteBuffer, channel); // Discard data
 						}
 						
 						chunkSize = count;
-						dis.close();
+						channel.close();
 					}
 					catch ( IOException e ) {
 						throw new RuntimeException( e );
 					}
 
+					long start = System.nanoTime();
 					it.unimi.dsi.fastutil.Arrays.parallelQuickSort( 0, chunkSize, new AbstractIntComparator() {
 						private static final long serialVersionUID = 0L;
 
@@ -766,7 +819,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 							}
 						}
 					});
-
+					wallTime += System.nanoTime() - start;
+					
 					if ( DEBUG ) {
 						for( int i = 0; i < chunkSize; i++ ) System.err.println( buffer0[ i ] + ", " + buffer1[ i ] + ", " + buffer2[ i ] );
 					}

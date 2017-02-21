@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -475,6 +476,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final Iterator<Chunk> iterator = chunkedHashStore.iterator();
 				final MutableInt qq = new MutableInt(0);
 				final MutableInt activeThreads = new MutableInt(numberOfThreads);
+				final MutableLong tot = new MutableLong();
 				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
@@ -489,7 +491,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								}
 								q = qq.intValue();
 								qq.increment();
+								long start = System.nanoTime();
 								chunk = new Chunk(iterator.next());
+								tot.add(System.nanoTime() - start);
 								v = C_TIMES_256 * chunk.size() >>> 8;								
 								offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + v;
 							}
@@ -538,6 +542,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 					throw new RuntimeException(cause);
 				}
 				executorService.shutdown();
+				LOGGER.info("Wall clock for chunks: " + Util.format( tot.longValue() / 1E9 ) + "s");
 				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
 
 				pl.done();
