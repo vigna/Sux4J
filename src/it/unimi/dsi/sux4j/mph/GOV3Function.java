@@ -457,7 +457,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 1024);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
-				
+
 				executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
@@ -494,7 +494,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								long start = System.nanoTime();
 								chunk = new Chunk(iterator.next());
 								tot.add(System.nanoTime() - start);
-								v = C_TIMES_256 * chunk.size() >>> 8;								
+								v = C_TIMES_256 * chunk.size() >>> 8;
 								offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + v;
 							}
 							long seed = 0;
