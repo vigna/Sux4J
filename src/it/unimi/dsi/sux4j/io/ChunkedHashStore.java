@@ -739,7 +739,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 						throw new RuntimeException( e );
 					}
 
-					it.unimi.dsi.fastutil.Arrays.quickSort( 0, chunkSize, new AbstractIntComparator() {
+					it.unimi.dsi.fastutil.Arrays.parallelQuickSort( 0, chunkSize, new AbstractIntComparator() {
 						private static final long serialVersionUID = 0L;
 
 						public int compare( final int x, final int y ) {

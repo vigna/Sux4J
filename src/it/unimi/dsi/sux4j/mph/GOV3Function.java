@@ -453,7 +453,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
-				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 1024);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 				
