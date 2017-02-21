@@ -20,6 +20,40 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
 import it.unimi.dsi.Util;
 import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
@@ -47,32 +81,11 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /** An immutable function stored quasi-succinctly using the
  * {@linkplain Linear3SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
@@ -148,6 +161,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
+	private static final LongArrayBitVector END_OF_QUEUE = LongArrayBitVector.getInstance();
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV3Function.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -380,6 +394,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * or values, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
 	 */
+	@SuppressWarnings("resource")
 	protected GOV3Function( final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final boolean indirect , final boolean compacted , final File tempDir , ChunkedHashStore<T> chunkedHashStore  ) throws IOException {
 		this.transform = transform;
 
@@ -404,7 +419,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default resturn value.
 
 		if ( n == 0 ) {
-			m = this.globalSeed = chunkShift = this.width = 0;
+			m = globalSeed = chunkShift = width = 0;
 			data = null;
 			marker = null;
 			rank = null;
@@ -423,75 +438,114 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		
 		offsetAndSeed = new long[ numChunks + 1 ];
 		
-		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
+		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
-		@SuppressWarnings("resource")
 		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 
 		int duplicates = 0;
 		
 		for(;;) {
-			LOGGER.debug( "Generating GOV function with " + this.width + " output bits..." );
+			LOGGER.debug( "Generating GOV function with " + width + " output bits..." );
 
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start( "Analysing chunks... " );
+			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
-				int q = 0;
-				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-				final LongBigList data = dataBitVector.asLongBigList( this.width );
-				long unsolvable = 0;
-				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<LongArrayBitVector>(numberOfThreads * 32);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<Void>( executorService );
 
-					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
-
-					long seed = 0;
-					final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
-					final Linear3SystemSolver<BitVector> solver = 
-							new Linear3SystemSolver<BitVector>( v, chunk.size() );
-
-					for(;;) {
-						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
-							private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
-
-							@Override
-							public long size64() {
-								return chunk.size();
-							}
-
-							@Override
-							public long getLong( final long index ) {
-								return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
-							}
-						});
-						unsolvable += solver.unsolvable;
-						if ( solved ) break;
-						seed += SEED_STEP;
-						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+				final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setPriority( Thread.MAX_PRIORITY ).build());
+				final Future<Void> queueFuture = singleThreadExecutor.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						for(;;) {
+							final LongArrayBitVector result = queue.take();
+							if (result == END_OF_QUEUE) return null;
+							offlineData.add(result);
+						}
 					}
+				});
 
-					this.offsetAndSeed[ q ] |= seed;
+				final Iterator<Chunk> iterator = chunkedHashStore.iterator();
+				final MutableInt qq = new MutableInt(0);
+				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+						final LongBigList data = dataBitVector.asLongBigList( width );
+						for(;;) {
+							final Chunk chunk;
+							final int q;
+							synchronized(iterator) {
+								if (! iterator.hasNext()) return null;
+								chunk = iterator.next();
+								q = qq.intValue();
+								qq.increment();
+							}
+							offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
+							long seed = 0;
+							final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
+							final Linear3SystemSolver<BitVector> solver = 
+									new Linear3SystemSolver<BitVector>( v, chunk.size() );
 
-					dataBitVector.fill( false );
-					data.size( v );
-					q++;
-					
-					/* We assign values. */
-					final long[] solution = solver.solution;
-					for( int i = 0; i < solution.length; i++ ) data.set( i, solution[ i ] );
+							for(;;) {
+								final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
+									private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 
-					offlineData.add( dataBitVector );
-					pl.update();
+									@Override
+									public long size64() {
+										return chunk.size();
+									}
+
+									@Override
+									public long getLong( final long index ) {
+										return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
+									}
+								});
+								unsolvable.addAndGet(solver.unsolvable);
+								if ( solved ) break;
+								seed += SEED_STEP;
+								if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+							}
+
+							offsetAndSeed[ q ] |= seed;
+
+							dataBitVector.fill( false );
+							data.size( v );
+
+							/* We assign values. */
+							final long[] solution = solver.solution;
+							for( int i = 0; i < solution.length; i++ ) data.set( i, solution[ i ] );
+
+							queue.put(dataBitVector.copy(), q);
+							synchronized(pl) {
+								pl.update();
+							}
+						}
+					}
+				});
+
+				try {
+					for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.take().get();
+					queue.put(END_OF_QUEUE, qq.intValue());
+					queueFuture.get();
+					executorService.shutdown();
+					singleThreadExecutor.shutdown();
+				} catch (InterruptedException | ExecutionException e) {
+					if (e.getCause() instanceof DuplicateException) throw (DuplicateException)e.getCause();
+					throw new RuntimeException(e.getMessage());
 				}
-
-				LOGGER.info( "Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
 
 				pl.done();
 				break;
 			}
-			catch( ChunkedHashStore.DuplicateException e ) {
+			catch( DuplicateException e ) {
 				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
@@ -513,7 +567,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		{
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 			while( iterator.hasNext() ) {
-				final LongBigList data = iterator.next().asLongBigList( this.width );
+				final LongBigList data = iterator.next().asLongBigList( width );
 				for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 			}
 			iterator.close();
@@ -522,14 +576,14 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( compacted ) {
 			LOGGER.info( "Compacting..." );
 			marker = LongArrayBitVector.ofLength( m );
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
+			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( width );
 			newData.size( nonZero );
 			nonZero = 0;
 
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 			long j = 0;
 			while( iterator.hasNext() ) {
-				final LongBigList data = iterator.next().asLongBigList( this.width );
+				final LongBigList data = iterator.next().asLongBigList( width );
 				for( long i = 0; i < data.size64(); i++, j++ ) {
 					final long value = data.getLong( i ); 
 					if ( value != 0 ) {
@@ -546,7 +600,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final OfflineIterator<BitVector, LongArrayBitVector> iterator2 = offlineData.iterator();
 				long k = 0;
 				while( iterator2.hasNext() ) {
-					final LongBigList data = iterator2.next().asLongBigList( this.width );
+					final LongBigList data = iterator2.next().asLongBigList( width );
 					for( long i = 0; i < data.size64(); i++, k++ ) {
 						final long value = data.getLong( i ); 
 						assert ( value != 0 ) == marker.getBoolean( k );
@@ -558,8 +612,8 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.data = newData;
 		}
 		else {
-			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
-			this.data = dataBitVector.asLongBigList( this.width );
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * width );
+			this.data = dataBitVector.asLongBigList( width );
 			
 			OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 			while( iterator.hasNext() ) dataBitVector.append( iterator.next() );
@@ -572,7 +626,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		offlineData.close();
 		
 		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ? C * this.width : C + this.width + 0.126 ) );
+		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ? C * width : C + width + 0.126 ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 
 		if ( signatureWidth > 0 ) {

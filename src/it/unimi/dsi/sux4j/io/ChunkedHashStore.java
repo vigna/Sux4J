@@ -571,6 +571,20 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			this.buffer2 = buffer2;
 		}
 		
+		/** Copy constructor for multi-threaded chunk analysis.
+		 *
+		 * @param chunk a chunk to be copied.
+		 */
+		public Chunk(Chunk chunk) {
+			hashMask = chunk.hashMask;
+			start = 0;
+			end = chunk.end - chunk.start;
+			buffer0 = Arrays.copyOfRange(chunk.buffer0, chunk.start, chunk.end);
+			buffer1 = Arrays.copyOfRange(chunk.buffer1, chunk.start, chunk.end);
+			buffer2 = Arrays.copyOfRange(chunk.buffer2, chunk.start, chunk.end);
+			data = chunk.data == null ? null : Arrays.copyOfRange(chunk.data, chunk.start, chunk.end);
+		}
+
 		/** The number of triples in this chunk.
 		 * 
 		 * @return the number of triples in this chunk.
@@ -633,9 +647,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	/** Returns an iterator over the chunks of this chunked hash store.
 	 *
+	 * <p>Note that at each iteration part of the state of this chunked hash store
+	 * is reused. Thus, after each call to {@code next()} the previously returned
+	 * {@link Chunk} will be no longer valid. Please use the provided
+	 * {@linkplain Chunk#Chunk(Chunk) copy constructor} if you need to process
+	 * in parallel several chunks.
+	 *
 	 * @return an iterator over the chunks of this chunked hash store.
 	 */
-	
 	public Iterator<Chunk> iterator() {
 		if ( closed ) throw new IllegalStateException( "This " + getClass().getSimpleName() + " has been closed " );
 		for( DataOutputStream d: dos )

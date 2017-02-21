@@ -1,11 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongLists;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +10,12 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Test;
+
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongLists;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 public class GOV3FunctionTest {
 
@@ -94,7 +95,7 @@ public class GOV3FunctionTest {
 	}
 
 	@Test
-	public void testDuplicates() throws IOException {
+	public void testFakeDuplicates() throws IOException {
 		GOV3Function<String> mph = new GOV3Function.Builder<String>().keys(
 				new Iterable<String>() {
 					int iteration;
@@ -109,6 +110,16 @@ public class GOV3FunctionTest {
 		assertEquals( 2, mph.getLong( "c" ) );
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testRealDuplicates() throws IOException {
+		new GOV3Function.Builder<String>().keys(
+				new Iterable<String>() {
+					public Iterator<String> iterator() {
+						return Arrays.asList( new String[] { "a", "b", "a" } ).iterator();
+					}
+				} ).transform( TransformationStrategies.utf16() ).build();
+	}
+
 	@Test
 	public void testEmpty() throws IOException {
 		List<String> emptyList = Collections.emptyList();
