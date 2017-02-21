@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
@@ -42,7 +41,6 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -161,7 +159,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
-	private static final LongArrayBitVector END_OF_QUEUE = LongArrayBitVector.getInstance();
+	private static final long[] END_OF_QUEUE = new long[0];
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV3Function.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -455,41 +453,47 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
-				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<LongArrayBitVector>(numberOfThreads * 32);
-				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
-				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<Void>( executorService );
-
-				final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setPriority( Thread.MAX_PRIORITY ).build());
-				final Future<Void> queueFuture = singleThreadExecutor.submit(new Callable<Void>() {
+				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
+				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
+				
+				executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
+						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+						final LongBigList data = dataBitVector.asLongBigList( width );
 						for(;;) {
-							final LongArrayBitVector result = queue.take();
-							if (result == END_OF_QUEUE) return null;
-							offlineData.add(result);
+							final long[] solution = queue.take();
+							if (solution == END_OF_QUEUE) return null;
+							data.size(0);
+							for(long l : solution) data.add(l);
+							offlineData.add(dataBitVector);
 						}
 					}
 				});
 
 				final Iterator<Chunk> iterator = chunkedHashStore.iterator();
 				final MutableInt qq = new MutableInt(0);
+				final MutableInt activeThreads = new MutableInt(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
-						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-						final LongBigList data = dataBitVector.asLongBigList( width );
 						for(;;) {
 							final Chunk chunk;
-							final int q;
+							final int q, v;
 							synchronized(iterator) {
-								if (! iterator.hasNext()) return null;
-								chunk = iterator.next();
+								if (! iterator.hasNext()) {
+									activeThreads.decrement();
+									if (activeThreads.intValue() == 0) queue.put(END_OF_QUEUE, qq.intValue());
+									return null;
+								}
 								q = qq.intValue();
 								qq.increment();
+								chunk = new Chunk(iterator.next());
+								v = C_TIMES_256 * chunk.size() >>> 8;								
+								offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + v;
 							}
-							offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + ( C_TIMES_256 * chunk.size() >>> 8 );
 							long seed = 0;
-							final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
 							final Linear3SystemSolver<BitVector> solver = 
 									new Linear3SystemSolver<BitVector>( v, chunk.size() );
 
@@ -514,15 +518,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 							}
 
 							offsetAndSeed[ q ] |= seed;
-
-							dataBitVector.fill( false );
-							data.size( v );
-
-							/* We assign values. */
-							final long[] solution = solver.solution;
-							for( int i = 0; i < solution.length; i++ ) data.set( i, solution[ i ] );
-
-							queue.put(dataBitVector.copy(), q);
+							queue.put(solver.solution, q);
 							synchronized(pl) {
 								pl.update();
 							}
@@ -531,15 +527,17 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				});
 
 				try {
-					for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.take().get();
-					queue.put(END_OF_QUEUE, qq.intValue());
-					queueFuture.get();
-					executorService.shutdown();
-					singleThreadExecutor.shutdown();
-				} catch (InterruptedException | ExecutionException e) {
-					if (e.getCause() instanceof DuplicateException) throw (DuplicateException)e.getCause();
-					throw new RuntimeException(e.getMessage());
+					for(int i = numberOfThreads + 1; i-- != 0; )
+						executorCompletionService.take().get();
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (ExecutionException e) {
+					final Throwable cause = e.getCause();
+					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
+					if (cause instanceof IOException) throw (IOException)cause;
+					throw new RuntimeException(cause);
 				}
+				executorService.shutdown();
 				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
 
 				pl.done();
