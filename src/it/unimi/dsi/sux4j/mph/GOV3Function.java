@@ -482,7 +482,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 						final Iterator<Chunk> iterator = chs.iterator();
 						for(int i = 0; iterator.hasNext(); i++) {
 							Chunk chunk = new Chunk(iterator.next());
-							offsetAndSeed[ i + 1 ] = (offsetAndSeed[ i ] & OFFSET_MASK) + (C_TIMES_256 * chunk.size() >>> 8);
+							assert i == chunk.index();
+							final int chunkLength = C_TIMES_256 * chunk.size() >>> 8;
+							synchronized(offsetAndSeed) {
+								offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkLength;
+							}
 							chunkQueue.put(chunk);
 						}
 						for(int i = numberOfThreads; i-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
@@ -530,7 +534,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
 							}
 
-							offsetAndSeed[ chunk.index() ] |= seed;
+							synchronized (offsetAndSeed) {
+								offsetAndSeed[ chunk.index() ] |= seed;
+							}
 							start = System.nanoTime();
 							queue.put(solver.solution, chunk.index());
 							outputTime += System.nanoTime() - start;
@@ -542,7 +548,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				});
 
 				try {
-					for(int i = numberOfThreads + 1; i-- != 0; )
+					for(int i = numberOfThreads + 2; i-- != 0; )
 						executorCompletionService.take().get();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
