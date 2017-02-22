@@ -832,9 +832,21 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				}
 
 				final int start = last;
-				while( last < chunkSize && ( chunkShift == Long.SIZE ? 0 : buffer0[ last ] >>> chunkShift ) == chunk ) last++;
-				chunk++;
+				if (chunkShift < Long.SIZE) {
+					// Exponential search for the next chunk
+					int incr;
+					for(incr = 1; last + incr < chunkSize && buffer0[last + incr] >>> chunkShift == chunk; incr <<= 1);
+					int to = Math.min(chunkSize, last + incr);
+					last += incr >>> 1;
+					while(last < to) {
+						final int mid = (last + to) >>> 1;
+						if (buffer0[mid] >>> chunkShift == chunk) last = mid + 1;
+						else to = mid;
+					}
+				}
+				else last = chunkSize;
 
+				chunk++;
 				return new Chunk( buffer0, buffer1, buffer2, data, hashMask, start, last );
 			}
 		};

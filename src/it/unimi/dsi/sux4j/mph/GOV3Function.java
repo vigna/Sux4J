@@ -453,7 +453,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
-				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+				final int numberOfThreads = Runtime.getRuntime().availableProcessors() / 2;
 				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 1024);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
@@ -476,16 +476,20 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final Iterator<Chunk> iterator = chunkedHashStore.iterator();
 				final MutableInt qq = new MutableInt(0);
 				final MutableInt activeThreads = new MutableInt(numberOfThreads);
-				final MutableLong tot = new MutableLong();
 				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
+						long waitingTime = 0, queueTime = 0, chunkTime = 0;
 						for(;;) {
 							final Chunk chunk;
 							final int q, v;
+							final long startWait = System.nanoTime();
 							synchronized(iterator) {
 								if (! iterator.hasNext()) {
 									activeThreads.decrement();
+									LOGGER.error("Waiting time: " + Util.format(waitingTime / 1E9) + "s");
+									LOGGER.error("Queue time: " + Util.format(queueTime / 1E9) + "s");
+									LOGGER.error("Chunk time: " + Util.format(chunkTime / 1E9) + "s");
 									if (activeThreads.intValue() == 0) queue.put(END_OF_QUEUE, qq.intValue());
 									return null;
 								}
@@ -493,10 +497,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								qq.increment();
 								long start = System.nanoTime();
 								chunk = new Chunk(iterator.next());
-								tot.add(System.nanoTime() - start);
+								chunkTime += System.nanoTime() - start;
 								v = C_TIMES_256 * chunk.size() >>> 8;
 								offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + v;
 							}
+							waitingTime += System.nanoTime() - startWait;
 							long seed = 0;
 							final Linear3SystemSolver<BitVector> solver = 
 									new Linear3SystemSolver<BitVector>( v, chunk.size() );
@@ -522,7 +527,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 							}
 
 							offsetAndSeed[ q ] |= seed;
+							long start = System.nanoTime();
 							queue.put(solver.solution, q);
+							queueTime += System.nanoTime() - start;
 							synchronized(pl) {
 								pl.update();
 							}
@@ -542,7 +549,6 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 					throw new RuntimeException(cause);
 				}
 				executorService.shutdown();
-				LOGGER.info("Wall clock for chunks: " + Util.format( tot.longValue() / 1E9 ) + "s");
 				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
 
 				pl.done();
