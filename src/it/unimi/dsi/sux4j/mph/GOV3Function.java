@@ -479,17 +479,21 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
-						final Iterator<Chunk> iterator = chs.iterator();
-						for(int i = 0; iterator.hasNext(); i++) {
-							Chunk chunk = new Chunk(iterator.next());
-							assert i == chunk.index();
-							final int chunkLength = C_TIMES_256 * chunk.size() >>> 8;
-							synchronized(offsetAndSeed) {
-								offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkLength;
+						try {
+							final Iterator<Chunk> iterator = chs.iterator();
+							for(int i = 0; iterator.hasNext(); i++) {
+								Chunk chunk = new Chunk(iterator.next());
+								assert i == chunk.index();
+								final int chunkLength = C_TIMES_256 * chunk.size() >>> 8;
+								synchronized(offsetAndSeed) {
+									offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkLength;
+								}
+								chunkQueue.put(chunk);
 							}
-							chunkQueue.put(chunk);
 						}
-						for(int i = numberOfThreads; i-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+						finally { 
+							for(int i = numberOfThreads; i-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+						}
 						return null;
 					}
 				});
@@ -558,7 +562,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 					if (cause instanceof IOException) throw (IOException)cause;
 					throw new RuntimeException(cause);
 				}
-				executorService.shutdown();
+				finally { 
+					executorService.shutdown();
+				}
 				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
 
 				pl.done();
