@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.lang.mutable.MutableInt;
-import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -453,7 +452,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
-				final int numberOfThreads = Runtime.getRuntime().availableProcessors() / 2;
+				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
 				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 1024);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
