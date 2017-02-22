@@ -486,7 +486,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		for (int i = 0; i < DISK_CHUNKS; i++) {
 			writableByteChannel[i].close();
 			byteBuffer[i].clear();
-			file[i].delete();
 			writableByteChannel[i] = new FileOutputStream(file[i]).getChannel();
 		}
 	}
@@ -849,9 +848,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 						for( int i = 0; i < chunkSize; i++ ) System.err.println( buffer0[ i ] + ", " + buffer1[ i ] + ", " + buffer2[ i ] );
 					}
 					
-					if ( ! checkedForDuplicates && chunkSize > 1 )
-						for( int i = chunkSize - 1; i-- != 0; ) if ( buffer0[ i ] == buffer0[ i + 1 ] && buffer1[ i ] == buffer1[ i + 1 ] && buffer2[ i ] == buffer2[ i + 1 ] ) throw new ChunkedHashStore.DuplicateException();
-					if ( chunk == chunks - 1 ) checkedForDuplicates = true;
 					last = 0;
 				}
 
@@ -870,7 +866,14 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				}
 				else last = chunkSize;
 
-				return new Chunk( chunk++, buffer0, buffer1, buffer2, data, hashMask, start, last );
+				if (!checkedForDuplicates && start < last)
+					for (int i = start + 1; i < last; i++)
+						if (buffer0[i - 1] == buffer0[i] && buffer1[i - 1] == buffer1[i] && buffer2[i - 1] == buffer2[i])
+							throw new ChunkedHashStore.DuplicateException();
+				if (chunk == chunks - 1 && last == chunkSize)
+					checkedForDuplicates = true;
+
+				return new Chunk(chunk++, buffer0, buffer1, buffer2, data, hashMask, start, last);
 			}
 		};
 	}
