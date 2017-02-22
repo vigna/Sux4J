@@ -28,15 +28,16 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,7 +160,8 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
-	private static final long[] END_OF_QUEUE = new long[0];
+	private static final long[] END_OF_SOLUTION_QUEUE = new long[0];
+	private static final Chunk END_OF_CHUNK_QUEUE = new Chunk();
 	private static final Logger LOGGER = LoggerFactory.getLogger( GOV3Function.class );
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
@@ -453,8 +455,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 			try {
 				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
-				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 1024);
-				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
+				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 128);
+				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
 				executorCompletionService.submit(new Callable<Void>() {
@@ -464,7 +467,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 						final LongBigList data = dataBitVector.asLongBigList( width );
 						for(;;) {
 							final long[] solution = queue.take();
-							if (solution == END_OF_QUEUE) return null;
+							if (solution == END_OF_SOLUTION_QUEUE) return null;
 							data.size(0);
 							for(long l : solution) data.add(l);
 							offlineData.add(dataBitVector);
@@ -472,38 +475,40 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 					}
 				});
 
-				final Iterator<Chunk> iterator = chunkedHashStore.iterator();
-				final MutableInt qq = new MutableInt(0);
-				final MutableInt activeThreads = new MutableInt(numberOfThreads);
+				final ChunkedHashStore<T> chs = chunkedHashStore;
+				executorCompletionService.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						final Iterator<Chunk> iterator = chs.iterator();
+						for(int i = 0; iterator.hasNext(); i++) {
+							Chunk chunk = new Chunk(iterator.next());
+							offsetAndSeed[ i + 1 ] = (offsetAndSeed[ i ] & OFFSET_MASK) + (C_TIMES_256 * chunk.size() >>> 8);
+							chunkQueue.put(chunk);
+						}
+						for(int i = numberOfThreads; i-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+						return null;
+					}
+				});
+
+				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
 					@Override
 					public Void call() throws Exception {
-						long waitingTime = 0, queueTime = 0, chunkTime = 0;
+						Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+						long chunkTime = 0, outputTime = 0;
 						for(;;) {
-							final Chunk chunk;
-							final int q, v;
-							final long startWait = System.nanoTime();
-							synchronized(iterator) {
-								if (! iterator.hasNext()) {
-									activeThreads.decrement();
-									LOGGER.error("Waiting time: " + Util.format(waitingTime / 1E9) + "s");
-									LOGGER.error("Queue time: " + Util.format(queueTime / 1E9) + "s");
-									LOGGER.error("Chunk time: " + Util.format(chunkTime / 1E9) + "s");
-									if (activeThreads.intValue() == 0) queue.put(END_OF_QUEUE, qq.intValue());
-									return null;
-								}
-								q = qq.intValue();
-								qq.increment();
-								long start = System.nanoTime();
-								chunk = new Chunk(iterator.next());
-								chunkTime += System.nanoTime() - start;
-								v = C_TIMES_256 * chunk.size() >>> 8;
-								offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + v;
+							long start = System.nanoTime();
+							final Chunk chunk = chunkQueue.take();
+							chunkTime += System.nanoTime() - start;
+							if (chunk == END_OF_CHUNK_QUEUE) {
+								if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
+								LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+								LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+								return null;
 							}
-							waitingTime += System.nanoTime() - startWait;
 							long seed = 0;
 							final Linear3SystemSolver<BitVector> solver = 
-									new Linear3SystemSolver<BitVector>( v, chunk.size() );
+									new Linear3SystemSolver<BitVector>(C_TIMES_256 * chunk.size() >>> 8, chunk.size());
 
 							for(;;) {
 								final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
@@ -525,10 +530,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
 							}
 
-							offsetAndSeed[ q ] |= seed;
-							long start = System.nanoTime();
-							queue.put(solver.solution, q);
-							queueTime += System.nanoTime() - start;
+							offsetAndSeed[ chunk.index() ] |= seed;
+							start = System.nanoTime();
+							queue.put(solver.solution, chunk.index());
+							outputTime += System.nanoTime() - start;
 							synchronized(pl) {
 								pl.update();
 							}

@@ -604,6 +604,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	/** A chunk returned by a {@link ChunkedHashStore}. */
 	public final static class Chunk implements Iterable<long[]> {
+		/** The index of this chunk (the ordinal position in the chunk enumeration). */
+		private final int index;
 		/** The start position of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
 		private final int start;
 		/** The final position (excluded) of this chunk in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
@@ -614,7 +616,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		private final long[] data;
 		private final long hashMask;
 		
-		private Chunk( final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end ) {
+		private Chunk( final int index, final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end ) {
+			this.index = index;
 			this.start = start;
 			this.end = end;
 			this.data = data;
@@ -629,6 +632,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 * @param chunk a chunk to be copied.
 		 */
 		public Chunk(Chunk chunk) {
+			index = chunk.index;
 			hashMask = chunk.hashMask;
 			start = 0;
 			end = chunk.end - chunk.start;
@@ -638,12 +642,32 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			data = chunk.data == null ? null : Arrays.copyOfRange(chunk.data, chunk.start, chunk.end);
 		}
 
+		/** Creates a chunk with all field set to zero or null. Mainly useful to create marker objects. */
+		public Chunk() {
+			this.index = 0;
+			this.start = 0;
+			this.end = 0;
+			this.data = null;
+			this.hashMask = 0;
+			this.buffer0 = null;
+			this.buffer1 = null;
+			this.buffer2 = null;
+		}
+
 		/** The number of triples in this chunk.
 		 * 
 		 * @return the number of triples in this chunk.
 		 */
 		public int size() {
 			return end - start;
+		}
+
+		/** The index of this chunk. 
+		 * 
+		 * @return the index of this chunk.  
+		 */
+		public int index() {
+			return index;
 		}
 		
 		/** Returns the data of the <code>k</code>-th triple returned by this chunk.
@@ -846,8 +870,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				}
 				else last = chunkSize;
 
-				chunk++;
-				return new Chunk( buffer0, buffer1, buffer2, data, hashMask, start, last );
+				return new Chunk( chunk++, buffer0, buffer1, buffer2, data, hashMask, start, last );
 			}
 		};
 	}
