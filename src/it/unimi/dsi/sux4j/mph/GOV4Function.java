@@ -152,7 +152,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	/** The ratio between variables and equations. */
 	public static double C = 1.02 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
-	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
+	private static long C_TIMES_256 = (long)Math.floor( C * 256 );
 
 	/** A builder class for {@link GOV4Function}. */
 	public static class Builder<T> {
@@ -417,12 +417,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				long unsolvable = 0;
 				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
 
-					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + Math.max( ( C_TIMES_256 * chunk.size() >>> 8 ), chunk.size() + 1 );
+					final long chunkDataSize = Math.max(C_TIMES_256 * chunk.size() >>> 8, chunk.size() + 1);
+					assert chunkDataSize <= Integer.MAX_VALUE;
+					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + chunkDataSize;
 
 					long seed = 0;
-					final int v = (int)( offsetAndSeed[ q + 1 ] - offsetAndSeed[ q ] );
 					final Linear4SystemSolver<BitVector> solver = 
-							new Linear4SystemSolver<BitVector>( v, chunk.size() );
+							new Linear4SystemSolver<BitVector>( (int) chunkDataSize, chunk.size() );
 
 					for(;;) {
 						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
@@ -447,7 +448,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 					this.offsetAndSeed[ q ] |= seed;
 
 					dataBitVector.fill( false );
-					data.size( v );
+					data.size(chunkDataSize);
 					q++;
 					
 					/* We assign values. */

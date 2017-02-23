@@ -174,7 +174,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	/** The ratio between variables and equations. */
 	public static double C = 1.09 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
-	private static int C_TIMES_256 = (int)Math.floor( C * 256 );
+	private static long C_TIMES_256 = (long)Math.floor( C * 256 );
 
 	/** A builder class for {@link GOV3Function}. */
 	public static class Builder<T> {
@@ -484,9 +484,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 							for(int i = 0; iterator.hasNext(); i++) {
 								Chunk chunk = new Chunk(iterator.next());
 								assert i == chunk.index();
-								final int chunkLength = C_TIMES_256 * chunk.size() >>> 8;
+								final long chunkDataSize = C_TIMES_256 * chunk.size() >>> 8;
+								assert chunkDataSize <= Integer.MAX_VALUE;
 								synchronized(offsetAndSeed) {
-									offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkLength;
+									offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkDataSize;
+									assert offsetAndSeed[i + 1] <= OFFSET_MASK + 1;
 								}
 								chunkQueue.put(chunk);
 							}
@@ -516,7 +518,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 							}
 							long seed = 0;
 							final Linear3SystemSolver<BitVector> solver = 
-									new Linear3SystemSolver<BitVector>(C_TIMES_256 * chunk.size() >>> 8, chunk.size());
+									new Linear3SystemSolver<BitVector>((int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK), chunk.size());
 
 							for(;;) {
 								final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
@@ -588,26 +590,23 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		// Check for compaction
 		long nonZero = 0;
 		m = offsetAndSeed[ offsetAndSeed.length - 1 ];
+		OfflineIterator<BitVector, LongArrayBitVector> iterator;
 
-		{
-			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-			while( iterator.hasNext() ) {
+		if ( compacted ) {
+			LOGGER.info( "Compacting..." );
+			for(iterator = offlineData.iterator(); iterator.hasNext(); ) {
 				final LongBigList data = iterator.next().asLongBigList( width );
 				for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
 			}
 			iterator.close();
-		}
-		
-		if ( compacted ) {
-			LOGGER.info( "Compacting..." );
+
 			marker = LongArrayBitVector.ofLength( m );
 			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( width );
 			newData.size( nonZero );
 			nonZero = 0;
 
-			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 			long j = 0;
-			while( iterator.hasNext() ) {
+			for(iterator = offlineData.iterator(); iterator.hasNext(); ) {
 				final LongBigList data = iterator.next().asLongBigList( width );
 				for( long i = 0; i < data.size64(); i++, j++ ) {
 					final long value = data.getLong( i ); 
@@ -622,26 +621,23 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			rank = new Rank16( marker );
 
 			if ( ASSERTS ) {
-				final OfflineIterator<BitVector, LongArrayBitVector> iterator2 = offlineData.iterator();
 				long k = 0;
-				while( iterator2.hasNext() ) {
-					final LongBigList data = iterator2.next().asLongBigList( width );
+				for(iterator = offlineData.iterator(); iterator.hasNext(); ) {
+					final LongBigList data = iterator.next().asLongBigList( width );
 					for( long i = 0; i < data.size64(); i++, k++ ) {
 						final long value = data.getLong( i ); 
 						assert ( value != 0 ) == marker.getBoolean( k );
 						if ( value != 0 ) assert value == newData.getLong( rank.rank( k ) ) : value + " != " + newData.getLong( rank.rank( k ) );
 					}
 				}
-				iterator2.close();
+				iterator.close();
 			}
 			this.data = newData;
 		}
 		else {
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * width );
 			this.data = dataBitVector.asLongBigList( width );
-			
-			OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-			while( iterator.hasNext() ) dataBitVector.append( iterator.next() );
+			for(iterator = offlineData.iterator(); iterator.hasNext(); ) dataBitVector.append( iterator.next() );
 			iterator.close();
 
 			marker = null;

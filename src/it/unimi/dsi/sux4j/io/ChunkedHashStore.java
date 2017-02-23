@@ -752,6 +752,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		return new AbstractObjectIterator<Chunk>() {
 			private int chunk;
 			private ReadableByteChannel channel;
+			@SuppressWarnings("hiding")
 			private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			private int last;
 			private int chunkSize;

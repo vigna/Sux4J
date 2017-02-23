@@ -114,6 +114,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param tempDir the directory where temporary files will be created, or <code>for the default directory</code>.
 	 */
+	@SuppressWarnings("resource")
 	public HollowTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final File tempDir ) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		final int bucketSize = 1 << log2BucketSize;
@@ -174,9 +175,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		long sumOfSkipLengths = 0;
 		
 		if ( intermediateTrie.size64() > 0 ) {
-			@SuppressWarnings("resource")
 			final OutputBitStream externalKeys = new OutputBitStream( externalKeysFile );
-			@SuppressWarnings("resource")
 			final OutputBitStream falseFollowsKeys = new OutputBitStream( falseFollowsKeyFile );
 
 			Iterator<? extends T> iterator = elements.iterator();
