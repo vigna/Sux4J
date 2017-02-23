@@ -869,9 +869,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				if (!checkedForDuplicates && start < last)
 					for (int i = start + 1; i < last; i++)
 						if (buffer0[i - 1] == buffer0[i] && buffer1[i - 1] == buffer1[i] && buffer2[i - 1] == buffer2[i])
-							throw new ChunkedHashStore.DuplicateException();
-				if (chunk == chunks - 1 && last == chunkSize)
-					checkedForDuplicates = true;
+							throw new DuplicateException();
+				if (chunk == chunks - 1 && last == chunkSize) checkedForDuplicates = true;
 
 				return new Chunk(chunk++, buffer0, buffer1, buffer2, data, hashMask, start, last);
 			}
