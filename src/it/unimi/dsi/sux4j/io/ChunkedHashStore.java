@@ -752,8 +752,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		return new AbstractObjectIterator<Chunk>() {
 			private int chunk;
 			private ReadableByteChannel channel;
-			@SuppressWarnings("hiding")
-			private ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
+			private ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			private int last;
 			private int chunkSize;
 			private final long[] buffer0 = new long[ maxCount ];
@@ -788,13 +787,13 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 							channel = concatenate(subChannel);
 						}
 
-						byteBuffer.clear().flip();
+						iteratorByteBuffer.clear().flip();
 						final long triple[] = new long[ 3 ];
 						int count = 0;
 						for( int j = 0; j < chunkSize; j++ ) {
-							triple[ 0 ] = readLong(byteBuffer, channel);
-							triple[ 1 ] = readLong(byteBuffer, channel);
-							triple[ 2 ] = readLong(byteBuffer, channel);
+							triple[ 0 ] = readLong(iteratorByteBuffer, channel);
+							triple[ 1 ] = readLong(iteratorByteBuffer, channel);
+							triple[ 2 ] = readLong(iteratorByteBuffer, channel);
 
 							if ( DEBUG ) System.err.println( "From disk: " + Arrays.toString( triple ) );
 							
@@ -802,10 +801,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 								buffer0[ count ] = triple[ 0 ]; 
 								buffer1[ count ] = triple[ 1 ]; 
 								buffer2[ count ] = triple[ 2 ]; 
-								if ( hashMask == 0 ) data[ count ] = readLong(byteBuffer, channel);
+								if ( hashMask == 0 ) data[ count ] = readLong(iteratorByteBuffer, channel);
 								count++;
 							}
-							else if ( hashMask == 0 ) readLong(byteBuffer, channel); // Discard data
+							else if ( hashMask == 0 ) readLong(iteratorByteBuffer, channel); // Discard data
 						}
 						
 						chunkSize = count;

@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 import static org.junit.Assert.assertTrue;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
-import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import java.util.Arrays;
 
@@ -44,7 +44,7 @@ public class HypergraphSolverTest {
 
 	@Test
 	public void randomTest() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int n : new int[] { 5, 10, 100, 1000 } ) {
 			for( int count = 0; count < 10; count++ ) {
 				final int size = (int)( .9 * n );

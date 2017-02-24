@@ -8,7 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem.Modulo2Equation;
-import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import java.util.Arrays;
 
@@ -86,7 +86,7 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testRandom() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 1000 } ) {
 			Modulo2SparseSystem system = new Modulo2SparseSystem( size );
 			// Few equations
@@ -102,7 +102,7 @@ public class Modulo2SparseSystemTest {
 	
 	@Test
 	public void testRandom2() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 10, 100, 1000, 10000 } ) {
 			Modulo2SparseSystem system = new Modulo2SparseSystem( size );
 

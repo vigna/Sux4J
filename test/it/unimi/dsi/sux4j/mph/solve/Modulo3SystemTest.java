@@ -11,7 +11,7 @@ import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.sux4j.mph.solve.Modulo3System;
 import it.unimi.dsi.sux4j.mph.solve.Modulo3System.Modulo3Equation;
-import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import org.junit.Test;
 
@@ -127,7 +127,7 @@ public class Modulo3SystemTest {
 
 	@Test
 	public void testRandom() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 10, 100, 1000 } ) {
 			Modulo3System system = new Modulo3System( size );
 			// Few equations
@@ -143,7 +143,7 @@ public class Modulo3SystemTest {
 
 	@Test
 	public void testRandom2() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 10, 100, 1000, 10000 } ) {
 			Modulo3System system = new Modulo3System( size );
 

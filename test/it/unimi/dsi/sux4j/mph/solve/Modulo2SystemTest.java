@@ -11,7 +11,7 @@ import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2System;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2System.Modulo2Equation;
-import it.unimi.dsi.util.XorShift128PlusRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import org.junit.Test;
 
@@ -87,7 +87,7 @@ public class Modulo2SystemTest {
 
 	@Test
 	public void testRandom() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 1000 } ) {
 			Modulo2System system = new Modulo2System( size );
 			// Few equations
@@ -103,12 +103,12 @@ public class Modulo2SystemTest {
 	
 	@Test
 	public void testRandom2() {
-		XorShift128PlusRandomGenerator random = new XorShift128PlusRandomGenerator( 1 );
+		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 1 );
 		for( int size: new int[] { 10, 100, 1000, 10000 } ) {
 			Modulo2System system = new Modulo2System( size );
 
-			IntOpenHashSet edge[] = new IntOpenHashSet[ size ];
 			
+			IntOpenHashSet edge[] = new IntOpenHashSet[ size ];
 			int x, v, w;
 			for ( int i = 0; i < 2 * size / 3; i++ ) {
 				boolean alreadySeen;
