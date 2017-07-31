@@ -401,7 +401,7 @@ public class Hashes {
 		return c;
 	}
 
-	/** SpookyHash 64-bit hashing (all three values produced) for a triple of longs.
+	/** Jenkins 64-bit hashing (all three values produced) for a triple of longs.
 	 *
 	 * @param triple three longs.
 	 * @param seed a seed for the hash.

@@ -26,7 +26,6 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
@@ -168,7 +167,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new TwoStepsMWHCFunction<T>( keys, transform, values, tempDir, chunkedHashStore);
+			return new TwoStepsMWHCFunction<>( keys, transform, values, tempDir, chunkedHashStore);
 		}
 	}
 
@@ -215,7 +214,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( ! givenChunkedHashStore ) {
 			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
-			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore = new ChunkedHashStore<>( transform, pl );
 			chunkedHashStore.reset( random.nextLong() );
 			chunkedHashStore.addAll( keys.iterator() );
 		}
@@ -249,12 +248,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		// Sort keys by reverse frequency
 		final long[] keysArray = counts.keySet().toLongArray( new long[ m ] );
-		LongArrays.quickSort( keysArray, 0, keysArray.length, new AbstractLongComparator() {
-			private static final long serialVersionUID = 1L;
-			public int compare( final long a, final long b ) {
-				return Long.signum( counts.get( b ) - counts.get( a ) );
-			}
-		});
+		LongArrays.quickSort( keysArray, 0, keysArray.length, (a, b) -> Long.compare(counts.get( b ), counts.get( a )));
 
 		long mean = 0;
 		for( int i = 0; i < keysArray.length; i++ ) mean += i * counts.get( keysArray[ i ] );
@@ -302,11 +296,13 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 
 		if ( best != 0 ) {
 			firstFunction = new MWHCFunction.Builder<T>().keys( keys ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+				@Override
 				public long getLong( long index ) {
 					long value = map.get( values.getLong( index ) );
 					return value == -1 ? escape : value;
 				}
 
+				@Override
 				public long size64() {
 					return n;
 				}
@@ -316,11 +312,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		}
 		else firstFunction = null;
 
-		chunkedHashStore.filter( new Predicate() {
-			public boolean evaluate( Object triple ) {
-				return firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape;
-			}
-		});
+		chunkedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape);
 		
 		secondFunction = new MWHCFunction.Builder<T>().store( chunkedHashStore ).values( values, w ).indirect().build();
 
@@ -335,6 +327,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	}
 
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
@@ -357,6 +350,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLongByTriple( triple );
 	}
 	
+	@Override
 	public long size64() {
 		return n;
 	}

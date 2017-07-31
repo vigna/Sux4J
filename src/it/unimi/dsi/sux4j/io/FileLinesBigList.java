@@ -20,18 +20,6 @@ package it.unimi.dsi.sux4j.io;
  *
  */
 
-import it.unimi.dsi.big.io.FileLinesCollection;
-import it.unimi.dsi.fastutil.BigList;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.objects.AbstractObjectBigList;
-import it.unimi.dsi.fastutil.objects.AbstractObjectBigListIterator;
-import it.unimi.dsi.io.SafelyCloseable;
-import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-
 import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -44,6 +32,18 @@ import java.nio.charset.CharsetDecoder;
 import java.util.EnumSet;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
+
+import it.unimi.dsi.big.io.FileLinesCollection;
+import it.unimi.dsi.fastutil.BigList;
+import it.unimi.dsi.fastutil.bytes.ByteArrays;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.objects.AbstractObjectBigList;
+import it.unimi.dsi.fastutil.objects.ObjectBigListIterator;
+import it.unimi.dsi.io.SafelyCloseable;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
 /** A wrapper exhibiting the lines of a file as a {@linkplain BigList big list}.
  * 
@@ -61,7 +61,7 @@ import java.util.RandomAccess;
  * file lines separated by the string associated to the system property <code>line.separator</code>.
  * 
  * <p><strong>Warning</strong>: this class is not synchronised. Separate iterators use separate input
- * streams, and can be accessed concurrently, but all calls to {@link #get(int)} refer to the
+ * streams, and can be accessed concurrently, but all calls to {@link #get(long)} refer to the
  * same input stream.
  * 
  * <h2>Implementation details</h2>
@@ -130,7 +130,7 @@ public class FileLinesBigList extends AbstractObjectBigList<MutableString> imple
 		charBuffer = CharBuffer.wrap( new char[ array.length ] );
 		
 		inputStream.position( 0 );
-		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new AbstractLongIterator() {
+		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new LongIterator() {
 			long pos = 0;
 			byte[] buffer = byteBuffer.array();
 			
@@ -205,7 +205,7 @@ public class FileLinesBigList extends AbstractObjectBigList<MutableString> imple
 	 * closing an instance is impossible.
 	 */
 
-	public static final class FileLinesIterator extends AbstractObjectBigListIterator<MutableString> implements SafelyCloseable {
+	public static final class FileLinesIterator implements ObjectBigListIterator<MutableString>, SafelyCloseable {
 		/** An fast buffered input stream used exclusively by this iterator. */
 		private FastBufferedInputStream inputStream;
 		/** A byte buffer used exclusively by this iterator. */

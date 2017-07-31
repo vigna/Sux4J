@@ -1,12 +1,5 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.Util;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
-import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
-import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -29,6 +22,13 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
+import it.unimi.dsi.Util;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
+import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
+import it.unimi.dsi.fastutil.objects.Object2LongFunction;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 public class ByteArrayFunctionSpeedTest {
 
@@ -76,7 +76,7 @@ public class ByteArrayFunctionSpeedTest {
 				catch ( IOException e ) {
 					throw new RuntimeException( e.getMessage(), e );
 				}
-				return new AbstractObjectIterator<byte[]>() {
+				return new ObjectIterator<byte[]>() {
 					boolean toRead = true;
 					int read;
 

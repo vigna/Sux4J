@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.mph.solve;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
@@ -115,7 +116,7 @@ public class Modulo3System {
 		 */
 		public int[] variables() {
 			IntArrayList variables = new IntArrayList();
-			for( int i = 0; i < list.size(); i++ ) if ( list.getLong( i ) != 0 ) variables.add( i );
+			for( int i = 0; i < list.size64(); i++ ) if ( list.getLong( i ) != 0 ) variables.add( i );
 			return variables.toIntArray();
 		}
 
@@ -128,7 +129,7 @@ public class Modulo3System {
 		 */
 		public int[] coefficients() {
 			IntArrayList coefficients = new IntArrayList();
-			for( int i = 0, c; i < list.size(); i++ ) if ( ( c = (int)list.getLong( i ) ) != 0 ) coefficients.add( c );
+			for( int i = 0, c; i < list.size64(); i++ ) if ( ( c = (int)list.getLong( i ) ) != 0 ) coefficients.add( c );
 			return coefficients.toIntArray();
 		}
 		
@@ -244,6 +245,11 @@ public class Modulo3System {
 		}
 		
 		@Override
+		public int hashCode() {
+			return HashCommon.murmurHash3(c ^ bitVector.hashCode());
+		}
+
+		@Override
 		public boolean equals( Object o ) {
 			if ( ! ( o instanceof Modulo3Equation ) ) return false;
 			final Modulo3Equation equation = (Modulo3Equation)o;
@@ -283,7 +289,7 @@ public class Modulo3System {
 		public String toString() {
 			StringBuilder b = new StringBuilder();
 			boolean someNonZero = false;
-			for( int i = 0; i < list.size(); i++ ) {
+			for( int i = 0; i < list.size64(); i++ ) {
 				final long coeff = list.getLong( i );
 				if ( coeff != 0 ) {
 					if ( someNonZero ) b.append( " + " );
@@ -326,7 +332,7 @@ public class Modulo3System {
 	 * @param equation an equation with the same number of variables of the system.
 	 */
 	public void add( Modulo3Equation equation ) {
-		if ( equation.list.size() != numVars ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size() + ") does not match the number of variables of the system (" + numVars + ")" );
+		if ( equation.list.size64() != numVars ) throw new IllegalArgumentException( "The number of variables in the equation (" + equation.list.size64() + ") does not match the number of variables of the system (" + numVars + ")" );
 		equations.add( equation );
 	}
 
@@ -445,7 +451,7 @@ public class Modulo3System {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
 		for( final Modulo3Equation equation: equations ) 
-			for( int v = equation.list.size(); v-- != 0; ) 
+			for( int v = (int) equation.list.size64(); v-- != 0; ) 
 				if ( equation.list.getLong( v ) != 0 ) d[ v ]++; 
 		
 		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
@@ -454,7 +460,7 @@ public class Modulo3System {
 		for( int e = 0; e < equations.size(); e++ ) {
 			c[ e ] = equations.get( e ).c;
 			LongBigList list = equations.get( e ).list;
-			for( int v = list.size(); v-- != 0; ) 
+			for( int v = (int) list.size64(); v-- != 0; ) 
 				if ( list.getLong( v ) != 0 ) var2Eq[ v ][ d[ v ]++ ] = e;
 		}
 		

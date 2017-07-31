@@ -44,11 +44,11 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Swapper;
-import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
+import it.unimi.dsi.fastutil.ints.IntComparator;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.mph.GOV3Function;
@@ -689,7 +689,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 */
 		
 		public Iterator<long[]> iterator() {
-			return new AbstractObjectIterator<long[]>() {
+			return new ObjectIterator<long[]>() {
 				private int pos = start;
 				private long[] quadruple = new long[ 4 ];
 
@@ -749,7 +749,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 		final int maxCount = m;
 		
-		return new AbstractObjectIterator<Chunk>() {
+		return new ObjectIterator<Chunk>() {
 			private int chunk;
 			private ReadableByteChannel channel;
 			private ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
@@ -815,9 +815,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					}
 
 					long start = System.nanoTime();
-					it.unimi.dsi.fastutil.Arrays.parallelQuickSort( 0, chunkSize, new AbstractIntComparator() {
-						private static final long serialVersionUID = 0L;
-
+					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, chunkSize, new IntComparator() {
 						public int compare( final int x, final int y ) {
 							int t = Long.signum( buffer0[ x ] - buffer0[ y ] );
 							if ( t != 0 ) return t;

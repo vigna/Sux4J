@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.mph.solve;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -130,6 +131,11 @@ public class Modulo2System {
 
 		public boolean isIdentity() {
 			return isEmpty && c == 0;
+		}
+
+		@Override
+		public int hashCode() {
+			return (int) HashCommon.murmurHash3(c ^ bitVector.hashCode());
 		}
 		
 		@Override

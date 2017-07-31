@@ -1,52 +1,5 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
- * Sux4J: Succinct data structures for Java
- *
- * Copyright (C) 2014-2016 Sebastiano Vigna 
- *
- *  This library is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- */
-
-import it.unimi.dsi.Util;
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
-import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntArrays;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.io.OfflineIterable;
-import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
-import it.unimi.dsi.io.OfflineIterable.Serializer;
-import it.unimi.dsi.lang.MutableString;
-import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.bits.SparseRank;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
@@ -78,6 +31,52 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
+/*		 
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2014-2016 Sebastiano Vigna 
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+import it.unimi.dsi.Util;
+import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
+import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrays;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.io.OfflineIterable;
+import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
+import it.unimi.dsi.io.OfflineIterable.Serializer;
+import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.sux4j.bits.SparseRank;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 
 /**
  * A minimal perfect hash function implemented using the &ldquo;hash, displace and compress&rdquo; technique.
@@ -230,7 +229,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new CHDMinimalPerfectHashFunction<T>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
+			return new CHDMinimalPerfectHashFunction<>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
 		}
 	}
 	
@@ -321,7 +320,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if ( !givenChunkedHashStore ) {
-			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, pl );
+			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, pl );
 			chunkedHashStore.reset( r.nextLong() );
 			chunkedHashStore.addAll( keys.iterator() );
 		}
@@ -342,7 +341,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final LongArrayList holes = new LongArrayList();
 		
 		final OfflineIterable<MutableLong, MutableLong> coefficients = 
-				new OfflineIterable<MutableLong, MutableLong>( new Serializer<MutableLong, MutableLong>() {
+				new OfflineIterable<>( new Serializer<MutableLong, MutableLong>() {
 
 					@Override
 					public void write( final MutableLong a, final DataOutput dos ) throws IOException {
@@ -388,9 +387,9 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					numBuckets( chunkNumber + 1, numBuckets( chunkNumber ) + numBuckets );
 					final int[] cc0 = new int[ numBuckets ];
 					final int[] cc1 = new int[ numBuckets ];
-					@SuppressWarnings("unchecked")
-					final ArrayList<long[]>[] bucket = new ArrayList[ numBuckets ];
-					for( int i = bucket.length; i-- != 0; ) bucket[ i ] = new ArrayList<long[]>();
+					@SuppressWarnings({ "unchecked", "cast" })
+					final ArrayList<long[]>[] bucket = (ArrayList<long[]>[])new ArrayList[ numBuckets ];
+					for( int i = bucket.length; i-- != 0; ) bucket[ i ] = new ArrayList<>();
 					
 					tryChunk: for(;;) {
 						for( ArrayList<long[]> b : bucket ) b.clear();
@@ -417,17 +416,10 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						}
 
 						final int[] perm = Util.identity( bucket.length );
-						IntArrays.quickSort( perm, new AbstractIntComparator() {
-							private static final long serialVersionUID = 1L;
-
-							@Override
-							public int compare( int a0, int a1 ) {
-								return Integer.compare( bucket[ a1 ].size(), bucket[ a0 ].size() );
-							}
-						} );
+						IntArrays.quickSort(perm, (a0, a1) -> Integer.compare( bucket[ a1 ].size(), bucket[ a0 ].size()));
 
 						for( int i = 0; i < perm.length; ) {
-							final LinkedList<Integer> bucketsToDo = new LinkedList<Integer>();
+							final LinkedList<Integer> bucketsToDo = new LinkedList<>();
 							final int size = bucket[ perm[ i ] ].size();
 							//System.err.println( "Bucket size: " + size );
 							int j;
@@ -522,7 +514,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		globalSeed = chunkedHashStore.seed();
 
-		this.coefficients = new EliasFanoLongBigList( new AbstractLongIterator() {
+		this.coefficients = new EliasFanoLongBigList( new LongIterator() {
 			final OfflineIterator<MutableLong, MutableLong> iterator = coefficients.iterator();
 			
 			@Override
@@ -530,6 +522,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				return iterator.hasNext();
 			}
 			
+			@Override
 			public long nextLong() {
 				return iterator.next().longValue();
 			}
@@ -574,6 +567,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return offsetNumBucketsSeed.length * Long.SIZE + coefficients.numBits() + rank.numBits();
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object key ) {
 		if ( n == 0 ) return defRetValue;
@@ -622,6 +616,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return result - rank.rank( result );
 	}
 
+	@Override
 	public long size64() {
 		return n;
 	}
@@ -666,7 +661,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
 			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new CHDMinimalPerfectHashFunction<byte[]>( collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
+			BinIO.storeObject( new CHDMinimalPerfectHashFunction<>( collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
 		}
 		else {
 			final Collection<MutableString> collection;

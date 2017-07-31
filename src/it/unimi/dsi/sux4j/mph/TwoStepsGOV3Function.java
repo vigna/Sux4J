@@ -1,5 +1,29 @@
 package it.unimi.dsi.sux4j.mph;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -26,7 +50,6 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.fastutil.longs.AbstractLongComparator;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
@@ -39,30 +62,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 
 /** A function stored using two {@linkplain GOV3Function}s&mdash;one for
@@ -246,13 +245,8 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		LOGGER.debug( "Generating two-steps GOV3 function with " + w + " output bits..." );
 
 		// Sort keys by reverse frequency
-		final long[] keysArray = counts.keySet().toLongArray( new long[ m ] );
-		LongArrays.quickSort( keysArray, 0, keysArray.length, new AbstractLongComparator() {
-			private static final long serialVersionUID = 1L;
-			public int compare( final long a, final long b ) {
-				return Long.signum( counts.get( b ) - counts.get( a ) );
-			}
-		});
+		final long[] keysArray = counts.keySet().toArray( new long[ m ] );
+		LongArrays.quickSort( keysArray, 0, keysArray.length, (a, b) -> Long.signum(counts.get( b ) - counts.get( a )));
 
 		long mean = 0;
 		for( int i = 0; i < keysArray.length; i++ ) mean += i * counts.get( keysArray[ i ] );

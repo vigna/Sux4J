@@ -1,10 +1,10 @@
 package it.unimi.dsi.sux4j.mph;
 
-import it.unimi.dsi.fastutil.Size64;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import it.unimi.dsi.fastutil.Size64;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 final class LargeLongCollection implements Iterable<Long>, Size64 {
 	
@@ -20,7 +20,7 @@ final class LargeLongCollection implements Iterable<Long>, Size64 {
 	
 	@Override
 	public Iterator<Long> iterator() {
-		return new AbstractObjectIterator<Long>() {
+		return new ObjectIterator<Long>() {
 			long curr = 0;
 			@Override
 			public boolean hasNext() {

@@ -2,7 +2,7 @@ package it.unimi.dsi.sux4j.scratch;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -12,7 +12,7 @@ import java.util.NoSuchElementException;
  *  {@link MergedBitVectorIterator} will do the same. Duplicates will be eliminated.
  */
 
-public class MergedBitVectorIterator<T> extends AbstractObjectIterator<BitVector> {
+public class MergedBitVectorIterator<T> implements ObjectIterator<BitVector> {
 	/** The first component iterator. */
 	private final Iterator<? extends BitVector> it0;
 	/** The second component iterator. */

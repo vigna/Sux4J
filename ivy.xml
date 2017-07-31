@@ -17,7 +17,7 @@
 		<dependency org="org.jacoco" name="org.jacoco.ant" rev="latest.release" conf="test"/>
 
 		<dependency org="ch.qos.logback" name="logback-classic" rev="latest.release"/>
-		<dependency org="commons-configuration" name="commons-configuration" rev="1.8"/>
+		<dependency org="commons-configuration" name="commons-configuration" rev="latest.release"/>
 		<dependency org="commons-io" name="commons-io" rev="latest.release"/>
 		<dependency org="commons-lang" name="commons-lang" rev="latest.release"/>
 		<dependency org="commons-collections" name="commons-collections" rev="latest.release"/>

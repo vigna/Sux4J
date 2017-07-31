@@ -1,5 +1,19 @@
 package it.unimi.dsi.sux4j.io;
 
+import java.io.Closeable;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.RandomAccess;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -23,27 +37,13 @@ package it.unimi.dsi.sux4j.io;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectList;
-import it.unimi.dsi.fastutil.objects.AbstractObjectListIterator;
+import it.unimi.dsi.fastutil.objects.ObjectListIterator;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-
-import java.io.Closeable;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.RandomAccess;
 
 /** A wrapper exhibiting the lines of a file as a {@linkplain List list}.
  * 
@@ -129,7 +129,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 		charBuffer = CharBuffer.wrap( new char[ array.length ] );
 		
 		inputStream.position( 0 );
-		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new AbstractLongIterator() {
+		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new LongIterator() {
 			long pos = 0;
 			byte[] buffer = byteBuffer.array();
 			
@@ -199,7 +199,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	 * closing an instance is impossible.
 	 */
 
-	public static final class FileLinesIterator extends AbstractObjectListIterator<MutableString> implements SafelyCloseable {
+	public static final class FileLinesIterator implements ObjectListIterator<MutableString>, SafelyCloseable {
 		/** An fast buffered input stream used exclusively by this iterator. */
 		private FastBufferedInputStream inputStream;
 		/** A byte buffer used exclusively by this iterator. */

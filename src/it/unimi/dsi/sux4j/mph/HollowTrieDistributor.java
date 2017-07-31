@@ -1,5 +1,13 @@
 package it.unimi.dsi.sux4j.mph;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -30,22 +38,14 @@ import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.fastutil.objects.AbstractObjectIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** A distributor based on a hollow trie.
  * 
@@ -131,7 +131,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
 		final long[] count = new long[ 1 ];
 		
-		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new AbstractObjectIterator<T>() {
+		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new ObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
 			boolean toAdvance = true;
 			private T curr;
@@ -407,7 +407,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			public Iterator<BitVector> iterator() {
 				try {
 					ibs.position( 0 );
-					return new AbstractObjectIterator<BitVector>() {
+					return new ObjectIterator<BitVector>() {
 						private long pos = 0;
 
 						public boolean hasNext() {

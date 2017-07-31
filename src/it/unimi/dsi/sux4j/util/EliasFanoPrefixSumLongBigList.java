@@ -1,5 +1,7 @@
 package it.unimi.dsi.sux4j.util;
 
+import java.util.NoSuchElementException;
+
 /*		 
  * Sux4J: Succinct data structures for Java
  *
@@ -24,13 +26,10 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
-import it.unimi.dsi.fastutil.longs.AbstractLongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
-
-import java.util.NoSuchElementException;
 
 /** A compressed big list of longs providing prefix sums; an element occupies a number of bits bounded by two plus the logarithm of the average value.
  * 
@@ -58,7 +57,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		}
 
 		public LongIterator iterator() {
-			return new AbstractLongIterator() {
+			return new LongIterator() {
 				private final LongIterator iterator = iterable.iterator();
 				private long prefixSum = 0;
 				private boolean lastToDo = true;

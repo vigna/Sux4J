@@ -1,3 +1,9 @@
+4.2.0
+
+- Java 8-only.
+
+- Parallel construction of GOV3Function and GOV4Function.
+
 4.1.0
 
 - We now use in all the new structures of the mph package modulo-free
