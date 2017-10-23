@@ -43,7 +43,7 @@ public class Modulo2System {
 	private final static boolean DEBUG = false;
 	
 	/** An equation on <b>F</b><sub>2</sub>. */
-	protected static class Modulo2Equation {
+	public static class Modulo2Equation {
 		/** The vector representing the coefficients (one bit for each variable). */
 		protected final LongArrayBitVector bitVector;
 		/** The {@link LongArrayBitVector#bits() bv.bits()}, cached. */
@@ -291,7 +291,7 @@ public class Modulo2System {
 	 * @param solution an array where the solution will be written. 
 	 * @return true if the system is solvable.
 	 */
-	protected boolean lazyGaussianElimination( final long[] solution ) {
+	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
 		for( final Modulo2Equation equation: equations ) 
