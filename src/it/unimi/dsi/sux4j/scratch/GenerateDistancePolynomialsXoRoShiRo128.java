@@ -44,8 +44,8 @@ public class GenerateDistancePolynomialsXoRoShiRo128 {
 		for(int i = 0; i < 63; i++) {
 			final Modulo2System system = new Modulo2System(BITS);
 			for(int b = 0; b < BITS; b++) {
-				Modulo2Equation eq = new Modulo2Equation((v0[b] & 1L << i) != 0 ? 1 : 0, BITS);
-				for(int v = 0; v < BITS; v++) if ((v0[b+v] & 1L << i + 1) != 0) eq.add(v);
+				Modulo2Equation eq = new Modulo2Equation((v0[b] & 1L << i + 1) != 0 ? 1 : 0, BITS);
+				for(int v = 0; v < BITS; v++) if ((v0[b+v] & 1L << i) != 0) eq.add(v);
 				system.add(eq);
 			}
 
