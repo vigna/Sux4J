@@ -75,7 +75,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * With respect to a {@link GOV3Function}, instances of this class have slightly slower lookups and are slightly slower to build, but use less space.
  *
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
- * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
+ * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do not specify
  * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
  *
  * <P>For convenience, this class provides a main method that reads from

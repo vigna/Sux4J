@@ -73,6 +73,67 @@ import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
+
+/** An immutable function stored in a compressed form.
+ *
+ * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
+ * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do not specify
+ * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
+ *
+ * <p>The values must have a sweked distribution: some values must be much more frequent than others. In that case, this
+ * data structure uses much less space than, say, a {@link GOV4Function} because it is able to use, for each key, a number
+ * of bits close to the empirical entropy of the value list (with an additional &#8776;3%). It is slower than a {@link GV3CompressedFunction},
+ * and it takes more time to build, but it uses less space.
+ *
+ * <P>For convenience, this class provides a main method that reads from
+ * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
+ * writes a serialised function mapping each element of the list to its position, or to a given list of values.
+ *
+ * <h2>Building a function</h2>
+ *
+ * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
+ * To exploit the various possibilities, you must understand some details of the construction.
+ *
+ * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
+ * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
+ * the store will associate with each hash the corresponding value.
+ *
+ * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
+ * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
+ * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
+ * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
+ * Storing values in the {@link ChunkedHashStore}
+ * is extremely scalable because the values must just be a {@link LongIterable} that
+ * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
+ * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
+ * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store.
+ *
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} is
+ * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
+ * Note that it is your responsibility to pass a correct store.
+ *
+ * <h2>Implementation Details</h2>
+ *
+ * <p>The detail of the data structure
+ * can be found in &ldquo;Engineering Compressed Functions&rdquo;, by
+ * Marco Genuzio and Sebastiano Vigna, 2017. The theoretical basis for the construction is described by
+ * J&oacute;hannes B. Hreinsson, Morten Kr&oslash;yer, and Rasmus Pagh
+ * in &ldquo;Storing a compressed function with constant time access&rdquo;, <i>
+ * Algorithms - ESA 2009, 17th Annual European Symposium</i>, 2009, pages 730&minus;741.
+ *
+ * Each output value is represented by a codeword from a prefix-free code
+ * (by default, a length-limited {@linkplain Huffman Huffman} code).
+ * We generate a random 4-regular linear system on <b>F</b><sub>2</sub>, where
+ * the known term of the <var>k</var>-th equation is a bit in a bit array. When we read the
+ * bit array at four suitable positions depending on an input key, we can recover the codeword representing the output value.
+ *
+ * @see GV3CompressedFunction
+ * @author Sebastiano Vigna
+ * @author Marco Genuzio
+ * @since 4.2.0
+ */
+
 public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV4CompressedFunction.class);
