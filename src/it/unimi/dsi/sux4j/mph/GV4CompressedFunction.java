@@ -539,7 +539,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 					executorService.shutdown();
 				}
 
-				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable.get() / numChunks) + "%)");
+				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numChunks)) + "%)");
 //				LOGGER.info("Mean node peeled for solved systems: " + Util.format((double) peeledSumSolved / totalNodesSolvable * 100) + "%");
 
 //				if (unsolvable == 0) {

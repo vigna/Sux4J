@@ -553,7 +553,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				finally {
 					executorService.shutdown();
 				}
-				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format(100.0 * unsolvable.get() / numChunks) + "%)");
+				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numChunks)) + "%)");
 
 				pl.done();
 				break;
