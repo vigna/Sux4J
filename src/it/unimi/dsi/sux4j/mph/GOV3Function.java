@@ -132,6 +132,12 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
  *
+ * <h2>Multithreading</h2>
+ *
+ * <p>This implementation is multithreaded: each chunk returned by the {@link ChunkedHashStore} is processed independently. By
+ * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 16. If you wish to
+ * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
+ *
  * <h2>Implementation Details</h2>
  *
  * <p>The detail of the data structure
@@ -172,6 +178,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	public static double C = 1.09 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
 	private static long C_TIMES_256 = (long)Math.floor(C * 256);
+
+	/** The system property used to set the number of parallel threads. */
+	public static final String NUMBER_OF_THREADS_PROPERTY = "it.unimi.dsi.sux4j.mph.threads";
 
 	/** A builder class for {@link GOV3Function}. */
 	public static class Builder<T> {
@@ -451,7 +460,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
-				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
 				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
 				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);

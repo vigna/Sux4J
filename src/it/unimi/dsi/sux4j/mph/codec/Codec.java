@@ -24,7 +24,6 @@ import java.io.Serializable;
 
 import com.google.common.primitives.Longs;
 
-import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.fastutil.longs.Long2IntMap;
 import it.unimi.dsi.fastutil.longs.Long2IntMaps;
@@ -511,8 +510,7 @@ public interface Codec {
 					if (accumulatedOverallLength / (double)overallLength > entropyThreshold) break;
 				}
 
-				// TODO: log this better
-				System.err.println("Length: " + length.length + " Cutpoint: " + cutpoint + " Depth: " + d + " Codeword length: " + length[cutpoint - 1] + " Accumulated length: " + accumulatedOverallLength + " (" + Util.format(100. * accumulatedOverallLength / overallLength) + "%)");
+				// System.err.println("Length: " + length.length + " Cutpoint: " + cutpoint + " Depth: " + d + " Codeword length: " + length[cutpoint - 1] + " Accumulated length: " + accumulatedOverallLength + " (" + Util.format(100. * accumulatedOverallLength / overallLength) + "%)");
 
 				if (cutpoint >= size - 2) break; // No need for a second pass.
 			}
