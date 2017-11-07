@@ -5,18 +5,20 @@ import java.util.Scanner;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2System;
 import it.unimi.dsi.sux4j.mph.solve.Modulo2System.Modulo2Equation;
 
-public class GenerateDistancePolynomialsXoRoShiRo128 {
-	public static int BITS = 128;
+public class GenerateDistancePolynomialsXoShiRo256 {
+	public static int BITS = 256;
 
-	private static long s0 = -1, s1;
-	private static int A, B, C;
+	private static long s0 = -1, s1, s2, s3;
+	private static int A, B;
 
 	private static void next() {
-		final long t0 = s0;
-		long t1 = s1;
-		t1 ^= t0;
-		s0 = Long.rotateLeft(t0, A) ^ t1 ^ t1 << B;
-		s1 = Long.rotateLeft(t1, C);
+		final long t = s1 << A;
+		s2 ^= s0;
+		s3 ^= s1;
+		s1 ^= s2;
+		s0 ^= s3;
+		s2 ^= t;
+		s3 = Long.rotateLeft(s3, B);
 	}
 
 	public static void main(String[] args) {
@@ -26,7 +28,7 @@ public class GenerateDistancePolynomialsXoRoShiRo128 {
 		final String[] shifts = scanner.next().split("-");
 		A = Integer.parseInt(shifts[0]);
 		B = Integer.parseInt(shifts[1]);
-		C = Integer.parseInt(shifts[2]);
+
 		scanner.next();
 		final String polynomial = scanner.nextLine();
 
@@ -37,7 +39,7 @@ public class GenerateDistancePolynomialsXoRoShiRo128 {
 			next();
 		}
 
-		System.out.println("F.<x> = FiniteField(2^128, modulus=" + polynomial + ")");
+		System.out.println("F.<x> = FiniteField(2^256, modulus=" + polynomial + ")");
 		System.out.println("@parallel");
 		System.out.println("def parlog(dummy,p): return (p).log(x)");
 		System.out.println("for v in sorted(list(parlog([");
