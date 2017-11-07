@@ -1,9 +1,31 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -39,31 +61,9 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-
-/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
+/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses
  * longest common prefixes as distributors, and store their lengths using a {@link GOVMinimalPerfectHashFunction}
  * indexing an {@link EliasFanoLongBigList}. In theory, this function should use less memory
  * than an {@link LcpMonotoneMinimalPerfectHashFunction} when the lengths of common prefixes vary
@@ -74,7 +74,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
     public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( VLLcpMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean DEBUG = false;
-	
+
 	/** The number of elements. */
 	protected final long n;
 	/** The size of a bucket. */
@@ -95,7 +95,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	protected final TransformationStrategy<? super T> transform;
 	/** The seed to be used when converting keys to triples. */
 	private long seed;
-	
+
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
@@ -104,7 +105,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		Hashes.spooky4( transform.toBitVector( (T)o ), seed, triple );
 		final long index = mph.getLongByTriple( triple );
 		if ( index == -1 ) return defRetValue;
-		final long prefix = lcpLengths.getLong( index ); 
+		final long prefix = lcpLengths.getLong( index );
 		if ( prefix == -1 || prefix > bitVector.length() ) return defRetValue;
 		return ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + offsets.getLong( index );
 	}
@@ -112,7 +113,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( iterable, -1, transform );
 	}
-	
+
 	@SuppressWarnings("unused")
 	public VLLcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> iterable, final int numElements, final TransformationStrategy<? super T> transform ) throws IOException {
 
@@ -120,19 +121,19 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		this.transform = transform;
-		final RandomGenerator r = new XorShift1024StarRandomGenerator();
+		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 
 		if ( numElements == -1 ) {
 			if ( iterable instanceof Size64 ) n = ((Size64)iterable).size64();
 			else if ( iterable instanceof Collection ) n = ((Collection<?>)iterable).size();
 			else {
 				long c = 0;
-				for( T dummy: iterable ) c++;
+				for( final T dummy: iterable ) c++;
 				n = c;
 			}
 		}
 		else n = numElements;
-		
+
 		if ( n == 0 ) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
@@ -144,28 +145,29 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
+		final int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
 		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
-		
+
 		final long numBuckets = ( n + bucketSize - 1 ) / bucketSize;
-		
-		LongArrayBitVector prev = LongArrayBitVector.getInstance();
-		LongArrayBitVector curr = LongArrayBitVector.getInstance();
+
+		final LongArrayBitVector prev = LongArrayBitVector.getInstance();
+		final LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		int maxLcp = 0, minLcp = Integer.MAX_VALUE;
 		long maxLength = 0, totalLength = 0;
 
 		@SuppressWarnings("resource")
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity(), pl );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>( TransformationStrategies.identity(), pl );
 		chunkedHashStore.reset( r.nextLong() );
 		@SuppressWarnings("resource")
-		OfflineIterable<BitVector,LongArrayBitVector> lcps = new OfflineIterable<BitVector,LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final
+		OfflineIterable<BitVector,LongArrayBitVector> lcps = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 		pl.expectedUpdates = n;
 		pl.start( "Scanning collection..." );
-		
-		Iterator<? extends T> iterator = iterable.iterator();
+
+		final Iterator<? extends T> iterator = iterable.iterator();
 		for( long b = 0; b < numBuckets; b++ ) {
 			prev.replace( transform.toBitVector( iterator.next() ) );
 			chunkedHashStore.add( prev );
@@ -174,7 +176,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			totalLength += Fast.length( 1 + prev.length() );
 			currLcp = (int)prev.length();
 			final int currBucketSize = (int)Math.min( bucketSize, n - b * bucketSize );
-			
+
 			for( int i = 0; i < currBucketSize - 1; i++ ) {
 				curr.replace( transform.toBitVector( iterator.next() ) );
 				chunkedHashStore.add( curr );
@@ -183,10 +185,10 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
 				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
 				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
-				
+
 				currLcp = Math.min( prefix, currLcp );
 				prev.replace( curr );
-				
+
 				maxLength = Math.max( maxLength, prev.length() );
 				totalLength += Fast.length ( 1 + prev.length() );
 			}
@@ -195,18 +197,18 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			maxLcp = Math.max( maxLcp, currLcp );
 			minLcp = Math.min( minLcp, currLcp );
 		}
-		
+
 		pl.done();
-		
+
 		// Build function assigning each lcp to its bucket.
 		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).build();
 		final int[][] lcpLength = IntBigArrays.newBigArray( lcps.size64() );
 		long p = 0;
-		for( LongArrayBitVector bv : lcps ) IntBigArrays.set( lcpLength, p++, (int)bv.length() );
-		
+		for( final LongArrayBitVector bv : lcps ) IntBigArrays.set( lcpLength, p++, (int)bv.length() );
+
 		if ( DEBUG ) {
-			for( BitVector v: lcps ) System.err.println( v  + " " + v.length() );
-			for( BitVector v: lcps ) {
+			for( final BitVector v: lcps ) System.err.println( v  + " " + v.length() );
+			for( final BitVector v: lcps ) {
 				final long value = lcp2Bucket.getLong( v );
 				if ( p++ != value ) {
 					System.err.println( "p: " + (p-1) + "  value: " + value + " key:" + v );
@@ -216,21 +218,21 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		}
 
 		lcps.close();
-		
+
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( iterable, transform );
 		// Build mph on elements.
 		mph = new GOVMinimalPerfectHashFunction.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).build();
 		this.seed = chunkedHashStore.seed();
-		
+
 		// Build function assigning the lcp length and the bucketing data to each element.
 		( offsets = LongArrayBitVector.getInstance().asLongBigList( log2BucketSize ) ).size( n );
-		LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) );
+		final LongBigList lcpLengthsTemp = LongArrayBitVector.getInstance().asLongBigList( Fast.length( maxLcp ) );
 		lcpLengthsTemp.size( n );
 
 		LOGGER.info( "Generating data tables..." );
-		
-		for( ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-			for( long[] quadruple: chunk ) {
+
+		for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+			for( final long[] quadruple: chunk ) {
 				final long index = mph.getLongByTriple( quadruple );
 				offsets.set( index, quadruple[ 3 ] & bucketSizeMask );
 				lcpLengthsTemp.set( index, IntBigArrays.get( lcpLength, (int)( quadruple[ 3 ] >> log2BucketSize ) ) );
@@ -240,38 +242,39 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		chunkedHashStore.close();
 
 		lcpLengths = new EliasFanoLongBigList( lcpLengthsTemp.iterator(), minLcp, true );
-		
+
 		if ( DEBUG ) {
 			p = 0;
-			for( T key: iterable ) {
-				BitVector bv = transform.toBitVector( key );
-				long index = mph.getLong( bv ); 
+			for( final T key: iterable ) {
+				final BitVector bv = transform.toBitVector( key );
+				final long index = mph.getLong( bv );
 				if ( p++ != lcp2Bucket.getLong( bv.subVector( 0, lcpLengths.getLong( index ) ) ) * bucketSize + offsets.getLong( index ) ) {
-					System.err.println( "p: " + ( p - 1 ) 
-							+ "  Key: " + key 
-							+ " bucket size: " + bucketSize 
+					System.err.println( "p: " + ( p - 1 )
+							+ "  Key: " + key
+							+ " bucket size: " + bucketSize
 							+ " lcp " + transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( index ) )
-							+ " lcp length: " + lcpLengths.getLong( index ) 
-							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( index ) ) ) 
+							+ " lcp length: " + lcpLengths.getLong( index )
+							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, lcpLengths.getLong( index ) ) )
 							+ " offset: " + offsets.getLong( index ) );
 					throw new AssertionError();
 				}
 			}
 		}
-		
+
 		LOGGER.debug( "Bucket size: " + bucketSize );
 		final double avgLength = (double)totalLength / n;
-		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * GOV3Function.C + 2 + avgLength + Fast.log2( avgLength ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) ); 
+		LOGGER.debug( "Forecast bit cost per element: " + ( 2 * GOV3Function.C + 2 + avgLength + Fast.log2( avgLength ) + Fast.log2( Math.E ) - Fast.log2( Fast.log2( Math.E ) ) + Fast.log2( 1 + Fast.log2( n ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
 	}
 
 
+	@Override
 	public long size64() {
 		return n;
 	}
 
 	/** Returns the number of bits used by this structure.
-	 * 
+	 *
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
@@ -293,7 +296,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
@@ -314,10 +317,10 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
 				? new HuTuckerTransformationStrategy( collection, true )
 				: iso
-					? TransformationStrategies.prefixFreeIso() 
+					? TransformationStrategies.prefixFreeIso()
 					: utf32
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();

@@ -1,9 +1,12 @@
 package it.unimi.dsi.sux4j.bits;
 
-/*		 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -26,11 +29,8 @@ import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /** A <code>select9</code> implementation.
- * 
+ *
  *  <p><code>select9</code> is based on an underlying <code>{@linkplain Rank9 rank9}</code> instance
  *  and uses 25%-37.5% additional space (beside the 25% due to <code>rank9</code>), depending on density. It guarantees practical
  *  constant time evaluation.
@@ -49,7 +49,7 @@ public class Select9 implements Select {
 	private final static int LOG2_ONES_PER_INVENTORY = 9;
 	private final static int ONES_PER_INVENTORY = 1 << LOG2_ONES_PER_INVENTORY;
 	private final static int INVENTORY_MASK = ONES_PER_INVENTORY - 1;
-	
+
 	private final long[] inventory;
 	private final long[] subinventory;
 	private transient LongBigList subinventoryAsShorts;
@@ -59,14 +59,14 @@ public class Select9 implements Select {
 	private transient long[] bits;
 	private final long[] count;
 	private final Rank9 rank9;
-	
+
 	public Select9( final Rank9 rank9 ) {
 		this.rank9 = rank9;
 		numOnes = rank9.numOnes;
 		numWords = rank9.numWords;
 		bits = rank9.bits;
 		count = rank9.count;
-		
+
 		final int inventorySize = (int)( ( numOnes + ONES_PER_INVENTORY - 1 ) / ONES_PER_INVENTORY );
 
 		inventory = new long[ inventorySize + 1 ];
@@ -80,12 +80,12 @@ public class Select9 implements Select {
 					d++;
 				}
 
-		
+
 		inventory[ inventorySize ] = ( ( numWords + 3 ) & ~3L ) * Long.SIZE;
 
 		d = 0;
-		int state = 0; 
-		long firstBit = 0; 
+		int state = 0;
+		long firstBit = 0;
 		int index, span, subinventoryPosition = 0;
 		int blockSpan, blockLeft;
 		long countsAtStart;
@@ -158,16 +158,16 @@ public class Select9 implements Select {
 					}
 
 					switch( state ) {
-					case 0: 
+					case 0:
 						if ( ASSERTS ) assert subinventory[ subinventoryPosition + (int)( d & INVENTORY_MASK ) ] == 0;
 						subinventory[ subinventoryPosition + (int)( d & INVENTORY_MASK ) ] = i * 64L + j;
 						break;
-					case 1: 
+					case 1:
 						if ( ASSERTS ) assert subinventoryasInts.getLong( subinventoryPosition * 2 + ( d & INVENTORY_MASK ) ) == 0;
 						if ( ASSERTS ) assert i * 64L + j - firstBit < (1L << 32);
 						subinventoryasInts.set(  subinventoryPosition * 2 + ( d & INVENTORY_MASK ), i * 64L + j - firstBit );
 						break;
-					case 2: 
+					case 2:
 						if ( ASSERTS ) assert subinventoryAsShorts.getLong( subinventoryPosition * 4 + ( d & INVENTORY_MASK ) ) == 0;
 						if ( ASSERTS ) assert i * 64L + j - firstBit < (1 << 16);
 						subinventoryAsShorts.set( subinventoryPosition * 4 + ( d & INVENTORY_MASK ), i * 64L + j - firstBit );
@@ -178,6 +178,7 @@ public class Select9 implements Select {
 				}
 	}
 
+	@Override
 	public long select( long rank ) {
 		if ( rank >= numOnes ) return -1;
 
@@ -190,7 +191,7 @@ public class Select9 implements Select {
 		final long span = blockRight / 4 - blockLeft / 4;
 		int countLeft, rankInBlock;
 		final long count[] = this.count;
-		
+
 		if ( span < 2 ) {
 			blockLeft &= ~7;
 			countLeft = blockLeft / 4 & ~1;
@@ -205,16 +206,16 @@ public class Select9 implements Select {
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
 			final long first = subinventory[ subinventoryIndex ], second = subinventory[ subinventoryIndex + 1 ];
-			
-			final int where = (int)( ( 
+
+			final int where = (int)( (
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( first & ~MSBS_STEP_16 ) ) | ( first ^ rankInSuperblockStep16 ) ) ^ ( first & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 ) +
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( second & ~MSBS_STEP_16 ) ) | ( second ^ rankInSuperblockStep16 ) ) ^ ( second & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 )
 			) * ONES_STEP_16 >>> 47 );
 
-			
+
 			if ( ASSERTS ) assert where >= 0;
 			if ( ASSERTS ) assert where <= 16;
-			
+
 			blockLeft += where * 4;
 			countLeft += where;
 			rankInBlock = (int)( rank - count[ countLeft ] );
@@ -229,13 +230,13 @@ public class Select9 implements Select {
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
 			final long first = subinventory[ subinventoryIndex ], second = subinventory[ subinventoryIndex + 1 ];
-			final int where0 = (int)( ( 
+			final int where0 = (int)( (
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( first & ~MSBS_STEP_16 ) ) | ( first ^ rankInSuperblockStep16 ) ) ^ ( first & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 ) +
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( second & ~MSBS_STEP_16 ) ) | ( second ^ rankInSuperblockStep16 ) ) ^ ( second & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 )
 			) * ONES_STEP_16 >>> 47 );
 			if ( ASSERTS ) assert where0 <= 16;
 			final long first_bis = subinventory[ subinventoryIndex + where0 + 2 ], second_bis = subinventory[ subinventoryIndex + where0 + 2 + 1 ];
-			final int where1 = where0 * 8 + (int)( ( 
+			final int where1 = where0 * 8 + (int)( (
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( first_bis & ~MSBS_STEP_16 ) ) | ( first_bis ^ rankInSuperblockStep16 ) ) ^ ( first_bis & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 ) +
 					( ( ( ( ( ( rankInSuperblockStep16 | MSBS_STEP_16 ) - ( second_bis & ~MSBS_STEP_16 ) ) | ( second_bis ^ rankInSuperblockStep16 ) ) ^ ( second_bis & ~rankInSuperblockStep16 ) ) & MSBS_STEP_16 ) >>> 15 )
 			) * ONES_STEP_16 >>> 47 );
@@ -271,6 +272,7 @@ public class Select9 implements Select {
 		return word * 64L + Fast.select( bits[ word ], rankInWord );
 	}
 
+	@Override
 	public long numBits() {
 		return rank9.numBits() + inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE;
 	}
@@ -283,6 +285,7 @@ public class Select9 implements Select {
 		subinventoryasInts = v.asLongBigList( Integer.SIZE );
 	}
 
+	@Override
 	public BitVector bitVector() {
 		return rank9.bitVector();
 	}

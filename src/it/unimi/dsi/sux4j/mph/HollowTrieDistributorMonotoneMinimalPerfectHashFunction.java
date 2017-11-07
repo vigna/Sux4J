@@ -1,9 +1,31 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.zip.GZIPInputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -34,37 +56,15 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.zip.GZIPInputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-
-/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses 
+/** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses
  * a {@linkplain HollowTrieDistributor hollow trie} as a distributor.
- * 
+ *
  */
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class );
-	
+
 	/** The number of elements. */
 	private final long size;
 	/** The size of a bucket. */
@@ -77,7 +77,8 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	private final HollowTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final GOV3Function<BitVector> offset;
-	
+
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( size <= 1 ) return defRetValue;
@@ -86,10 +87,10 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		// TODO: could use offset's return value to return defRetValue.
 		return ( bucket << log2BucketSize ) + offset.getLong( bv );
 	}
-	
+
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements and transformation strategy, using the default temporary directory. 
-	 * 
+	 * elements and transformation strategy, using the default temporary directory.
+	 *
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
@@ -97,15 +98,15 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform ) throws IOException {
 		this( elements, transform, null );
 	}
-	
+
 	/** Creates a new hollow-trie-based monotone minimal perfect hash function using the given
-	 * elements, transformation strategy, and temporary directory. 
-	 * 
+	 * elements, transformation strategy, and temporary directory.
+	 *
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
-	 * @param tempDir a directory for the temporary files created during construction 
-	 * by the {@link HollowTrieDistributor}, or {@code null} for the default temporary directory. 
+	 * @param tempDir a directory for the temporary files created during construction
+	 * by the {@link HollowTrieDistributor}, or {@code null} for the default temporary directory.
 	 */
 	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir ) throws IOException {
 
@@ -115,16 +116,16 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		long totalLength = 0;
 		long c = 0;
 		BitVector bv;
-		for( T s: elements ) {
+		for( final T s: elements ) {
 			bv = transform.toBitVector( s );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 			c++;
 		}
-		
+
 		size = c;
 		defRetValue = size == 1 ? 0 : -1; // For the very few cases in which we can decide
-		
+
 		if ( size <= 1 ) {
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
@@ -133,39 +134,42 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
-		
+
 		// The distributor cannot contain just one string
 		final int l = Fast.ceilLog2( Math.round( (long)( ( Math.log( averageLength ) + 2 ) * Math.log( 2 ) / GOV3Function.C ) ) );
-		log2BucketSize = size / (1 << l) <= 1 ? 0 : l; 
+		log2BucketSize = size / (1 << l) <= 1 ? 0 : l;
 		bucketSize = 1 << log2BucketSize;
 		final int bucketMask = bucketSize - 1;
 		LOGGER.debug( "Bucket size: " + bucketSize );
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( elements, transform );
-		distributor = new HollowTrieDistributor<BitVector>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
+		distributor = new HollowTrieDistributor<>( bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir );
 		offset = new GOV3Function.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).values( new AbstractLongBigList() {
+			@Override
 			public long getLong( long index ) {
-				return index & bucketMask; 
+				return index & bucketMask;
 			}
+			@Override
 			public long size64() {
 				return size;
 			}
 		}, log2BucketSize ).build();
 
-		
+
 		LOGGER.debug( "Forecast bit cost per element: " + ( GOV3Function.C * ( 1 / Math.log( 2 ) + 2 + Fast.log2( Math.log( 2 ) / GOV3Function.C ) ) + Fast.log2( 2 + Fast.log2( averageLength + 1 ) ) ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
-		
+
 	}
 
+	@Override
 	public long size64() {
 		return size;
 	}
-	
+
 	public long numBits() {
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
-	
+
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( HollowTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a hollow trie as a distributor reading a newline-separated list of strings.",
@@ -180,7 +184,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
@@ -202,10 +206,10 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
 				? new HuTuckerTransformationStrategy( collection, true )
 				: iso
-					? TransformationStrategies.prefixFreeIso() 
+					? TransformationStrategies.prefixFreeIso()
 					: utf32
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();

@@ -1,9 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.io.BinIO;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,11 +8,15 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.io.BinIO;
+
 public class VLLcpMonotoneMinimalPerfectHashFunctionTest {
 
 
 	public static String binary( int l ) {
-		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString( l );
+		final String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString( l );
 		return s.substring( s.length() - 32 );
 	}
 
@@ -23,12 +24,12 @@ public class VLLcpMonotoneMinimalPerfectHashFunctionTest {
 	@Test
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 
-		String[] s = new String[ 1000 ];
-		int[] v = new int[ s.length ];
+		final String[] s = new String[ 1000 ];
+		final int[] v = new int[ s.length ];
 		for ( int i = s.length; i-- != 0; )
 			s[ v[ i ] = i ] = binary( i );
 
-		VLLcpMonotoneMinimalPerfectHashFunction<String> mph = new VLLcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
+		VLLcpMonotoneMinimalPerfectHashFunction<String> mph = new VLLcpMonotoneMinimalPerfectHashFunction<>( Arrays.asList( s ), TransformationStrategies.prefixFreeUtf16() );
 
 		for ( int i = s.length; i-- != 0; )
 			assertEquals( i, mph.getLong( s[ i ] ) );
@@ -45,7 +46,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunctionTest {
 			assertEquals( i, mph.getLong( s[ i ] ) );
 
 
-		mph = new VLLcpMonotoneMinimalPerfectHashFunction<String>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
+		mph = new VLLcpMonotoneMinimalPerfectHashFunction<>( Arrays.asList( s ), new HuTuckerTransformationStrategy( Arrays.asList( s ), true ) );
 
 		for ( int i = s.length; i-- != 0; )
 			assertEquals( i, mph.getLong( s[ i ] ) );

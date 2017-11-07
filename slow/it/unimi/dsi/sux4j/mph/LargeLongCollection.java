@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+ package it.unimi.dsi.sux4j.mph;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -7,17 +7,17 @@ import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 final class LargeLongCollection implements Iterable<Long>, Size64 {
-	
+
 	public final static long SIZE = 3000000005L; // An odd number is essential to catch problems in the computation of the last bucket.
 	private final static long INCREMENT = ( ( 1L << 62 ) / SIZE );
 
 	private LargeLongCollection() {}
 	private final static LargeLongCollection INSTANCE = new LargeLongCollection();
-	
+
 	public static LargeLongCollection getInstance() {
 		return INSTANCE;
 	}
-	
+
 	@Override
 	public Iterator<Long> iterator() {
 		return new ObjectIterator<Long>() {

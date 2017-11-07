@@ -1,17 +1,18 @@
 package it.unimi.dsi.sux4j.util;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
-import it.unimi.dsi.fastutil.longs.LongIterators;
-import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import org.junit.Test;
+
+import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
+import it.unimi.dsi.fastutil.longs.LongIterators;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class EliasFanoLongBigListTest {
 
 	@Test
 	public void testSmall() {
-		for ( boolean offline : new boolean[] { false, true } ) {
+		for ( final boolean offline : new boolean[] { false, true } ) {
 			LongBigArrayBigList l;
 			l = new LongBigArrayBigList( new long[][] { { 0, 0, 0 } } );
 			assertEquals( l, new EliasFanoLongBigList( l.iterator(), 0, offline ) );
@@ -29,11 +30,11 @@ public class EliasFanoLongBigListTest {
 			assertEquals( l, new EliasFanoLongBigList( l.iterator(), 0, offline ) );
 		}
 	}
-	
+
 	@Test
 	public void testBulk() {
-		final XorShift1024StarRandom random = new XorShift1024StarRandom();
-		for( int base: new int[] { 0, 1, 10 } ) {
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom();
+		for( final int base: new int[] { 0, 1, 10 } ) {
 			final long[] s = new long[ 100000 ];
 			for( int i = s.length; i-- != 0; ) s[ i ] = random.nextInt( 100 ) + base;
 			final EliasFanoLongBigList ef = new EliasFanoLongBigList( LongIterators.wrap( s ) );

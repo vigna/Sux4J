@@ -1,9 +1,12 @@
 package it.unimi.dsi.sux4j.util;
 
-/*		 
+import java.io.Serializable;
+import java.util.Arrays;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -33,21 +36,18 @@ import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.sux4j.bits.Rank9;
 
-import java.io.Serializable;
-import java.util.Arrays;
-
 /** A compressed big list of longs; small elements and large elements are stored separately, using two different, optimally chosen bit sizes.
- * 
+ *
  * <p>Instances of this class store in a compacted form a list of natural numbers. Values are provided either through an {@linkplain Iterable iterable object}.
  * You will obtain a reduction in size only if the distribution of the values of the list is skewed towards small values.
- * 
+ *
  * <h2>Implementation details</h2>
- * 
+ *
  * <p>Instances of this class store elements in two different {@link LongArrayBitVector}-based lists&mdash;one
  * for large values and one for small values. The threshold between large and small is established by
  * measuring at construction time the most proficuous choice. A ranking structure built on a marker array (recording
  * which elements are stored in the large list) provides access of the correct element in each array.
- * 
+ *
  */
 public class TwoSizesLongBigList extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 2L;
@@ -64,63 +64,51 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	private final Rank9 rank;
 	/** The number of bits used by this structure. */
 	private final long numBits;
-	
+
 	/** Builds a new two-sizes long big list using a given iterable object.
-	 * 
+	 *
 	 * @param elements an iterable object.
 	 */
 	public TwoSizesLongBigList( final IntIterable elements ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( elements.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
 	}
-	
+
 	/** Builds a new two-sizes long big list using a given iterable object.
-	 * 
+	 *
 	 * @param elements an iterable object.
 	 */
 	public TwoSizesLongBigList( final ShortIterable elements ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( elements.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
 	}
-	
+
 	/** Builds a new two-sizes long big list using a given iterable object.
-	 * 
+	 *
 	 * @param elements an iterable object.
 	 */
 	public TwoSizesLongBigList( final ByteIterable elements ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( elements.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
 	}
-	
+
 	/** Builds a new two-sizes long big list using a given iterable object.
-	 * 
+	 *
 	 * @param elements an iterable object.
 	 */
 	public TwoSizesLongBigList( final LongIterable elements ) {
 		long l = 0;
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		int width = 0;
-		for( LongIterator i = elements.iterator(); i.hasNext(); ) {
+		for( final LongIterator i = elements.iterator(); i.hasNext(); ) {
 			final long value = i.nextLong();
 			width = Math.max( width, Fast.mostSignificantBit( value ) + 1 );
 			counts.put( value, counts.get( value ) + 1 );
 			l++;
 		}
-		
+
 		length = l;
-		
+
 		final long[] keys = counts.keySet().toLongArray();
 		Arrays.sort( keys );
-		
+
 		long costSmall = 0;
 		long costLarge = length * width;
 		int minIndex = width;
@@ -128,13 +116,13 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		long minCostSmall = costSmall;
 		long k;
 		int j = 0;
-		
+
 		// Find the best cutpoint
 		for( int i = 1; i < width; i++ ) {
 			if ( ASSERTS ) assert costSmall % i == 0;
 			if ( i != 1 ) costSmall = ( costSmall / i ) * ( i + 1 );
 			while( j < keys.length && ( k = keys[ j ] ) < ( 1 << i ) ) {
-				final long c = counts.get( k ); 
+				final long c = counts.get( k );
 				costLarge -= c * width;
 				costSmall += c * ( i + 1 );
 				j++;
@@ -143,10 +131,10 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 			if ( costLarge + costSmall < minCostLarge + minCostSmall ) {
 				minIndex = i;
 				minCostLarge = costLarge;
-				minCostSmall = costSmall; 
+				minCostSmall = costSmall;
 			}
 		}
-		
+
 		if ( ASSERTS ) assert minCostSmall / ( minIndex + 1 ) + minCostLarge / width == length;
 		//System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
 		//System.err.println( numSmall );
@@ -162,9 +150,9 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 			marker = null;
 			large = null;
 		}
-		
+
 		final int maxSmall = ( 1 << minIndex );
-		
+
 		final LongIterator iterator = elements.iterator();
 		for( long i = 0, p = 0, q = 0; i < length; i++ ) {
 			final long value = iterator.nextLong();
@@ -182,21 +170,23 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 			final LongIterator t = elements.iterator();
 			for( int i = 0; i < length; i++ ) {
 				final long value = t.nextLong();
-				assert value == getLong( i ) : "At " + i + ": " + value + " != " + getLong( i ); 
+				assert value == getLong( i ) : "At " + i + ": " + value + " != " + getLong( i );
 			}
 		}
 	}
 
+	@Override
 	public long getLong( long index ) {
 		if ( marker == null ) return small.getLong( index );
 		if ( marker.getBoolean( index ) ) return large.getLong( rank.rank( index ) );
 		return small.getLong( index - rank.rank( index ) );
 	}
 
+	@Override
 	public long size64() {
 		return length;
 	}
-	
+
 	public long numBits() {
 		return numBits;
 	}

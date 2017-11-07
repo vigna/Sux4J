@@ -37,7 +37,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -208,11 +208,11 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final RandomGenerator random = new XorShift1024StarRandomGenerator();
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if ( ! givenChunkedHashStore ) {
+		if ( chunkedHashStore == null) {
 			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
 			chunkedHashStore = new ChunkedHashStore<>( transform, pl );
 			chunkedHashStore.reset( random.nextLong() );

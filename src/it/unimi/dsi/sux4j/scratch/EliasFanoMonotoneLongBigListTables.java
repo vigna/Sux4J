@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.scratch;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -23,6 +23,9 @@ package it.unimi.dsi.sux4j.scratch;
 import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
+
+import java.io.Serializable;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -38,10 +41,8 @@ import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 
-import java.io.Serializable;
-
 /** An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies a number of bits bounded by two plus the logarithm of the average gap.
- * 
+ *
  * <p>This implementation uses tables recording the position of one each 2<sup>{@value #LOG_2_QUANTUM}</sup>
  * ones and zeroes.
  */
@@ -49,7 +50,7 @@ import java.io.Serializable;
 public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 3L;
 	public final static int LOG_2_QUANTUM = 9;
-	
+
 	/** The length of the sequence. */
 	protected final long length;
 	/** The number of lower bits. */
@@ -68,7 +69,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 	protected final int quantum;
 	/** The base-2 logarithm of {@link #quantum}. */
 	protected final int log2Quantum;
-	
+
 	protected EliasFanoMonotoneLongBigListTables( final long length, final int l, final long skipToOne[], final long[] skipToZero, final long[] upperBits, final long[] lowerBits ) {
 		this.length = length;
 		this.l = l;
@@ -82,43 +83,31 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigListTables( final IntIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigListTables( final ShortIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigListTables( final ByteIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
-	
+
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 
@@ -127,8 +116,8 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 	}
 
 	/** Computes the number of elements and the last element returned by the given iterator.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param iterator an iterator.
 	 * @return a two-element array of longs containing the number of elements returned by
 	 * the iterator and the last returned element, respectively.
@@ -143,16 +132,16 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		}
 		return new long[] { c, v };
 	}
-	
+
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -162,12 +151,12 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -177,12 +166,12 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -192,12 +181,12 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -207,10 +196,10 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 
 	/**  Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is used only internally, to work around the usual problems
 	 * caused by the obligation to call <code>this()</code> before anything else.
-	 * 
+	 *
 	 * @param a an array containing the number of elements returned by <code>iterator</code> and
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
@@ -237,7 +226,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 			upperBitVector.set( ( v >>> l ) + i );
 			last = v;
 		}
-		
+
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
 		this.lowerBits = lowerBitVector.bits();
 		this.upperBits = upperBitVector.bits();
@@ -249,7 +238,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 			skipToZero = new long[ (int)( ( upperBound >>> l ) >>> log2Quantum ) ];
 			skipToOne = new long[ (int)( length - 1 >>> log2Quantum ) ];
 		}
-		
+
 		int po = 0, pz = 0;
 		for( long i = 0, cz = 0, co=0; i < upperBitVector.length(); i++ ) {
 			final boolean bit = upperBitVector.getBoolean( i );
@@ -262,21 +251,22 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 				cz++;
 			}
 		}
-		
+
 		assert po == skipToOne.length : po + " != " + skipToOne.length;
 		assert pz == skipToZero.length: pz + " != " + skipToZero.length;;
 	}
-	
-	
+
+
 	public long numBits() {
 		return ( (long)upperBits.length + lowerBits.length + ( skipToOne != null ? skipToOne.length : 0 ) + ( skipToZero != null ? skipToZero.length : 0 ) ) * Long.SIZE;
 	}
-	
+
+	@Override
 	public long getLong( final long index ) {
 		long delta = index;
 		int curr = 0;
 		long window;
-		
+
 		if ( index >= quantum ) {
 			final long block = index >>> log2Quantum;
 			assert block > 0;
@@ -289,7 +279,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 
 		for( int bitCount; ( bitCount = Long.bitCount( window ) ) <= delta; delta -= bitCount )
 			window = upperBits[ ++curr ];
-		
+
 		assert window != 0;
 		final int select;
 		/* This appears to be faster than != 0 (WTF?!). Note that for delta == 1 the following code is a NOP. */
@@ -313,10 +303,10 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		else select = Long.numberOfTrailingZeros( window );
 
 		final long upperBits = curr * Long.SIZE + select - index << l;
-		
+
 		if ( l == 0 ) return upperBits;
-		
-		final long position = index * l; 
+
+		final long position = index * l;
 		final int startWord = (int)( position / Long.SIZE );
 		final int startBit = (int)( position % Long.SIZE );
 		final int totalOffset = startBit + l;
@@ -324,6 +314,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		return upperBits | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & mask;
 	}
 
+	@Override
 	public long size64() {
 		return length;
 	}

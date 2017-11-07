@@ -1,13 +1,5 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
-import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
-import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;
-import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
 import com.martiansoftware.jsap.JSAPException;
@@ -15,6 +7,14 @@ import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
+
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
+import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoPrefixSumLongBigList;
+import it.unimi.dsi.sux4j.util.TwoSizesLongBigList;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class TwoSizesLongBigListSpeedTest {
 
@@ -26,20 +26,20 @@ public class TwoSizesLongBigListSpeedTest {
 					new UnflaggedOption( "density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density." ),
 					new FlaggedOption( "numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test" ),
 		});
-		
+
 		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
-		
+
 		final int numElements = jsapResult.getInt( "numElements" );
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
 
-		final XorShift1024StarRandomGenerator random = new XorShift1024StarRandomGenerator( 0 );
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 0 );
 		final LongArrayList list = new LongArrayList( numElements );
 		for( long i = numElements; i-- != 0; ) list.add( random.nextDouble() < density ? 0 : 100 );
-		
+
 		final int[] position = new int[ numPos ];
-		
+
 		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % numElements;
 		final TwoSizesLongBigList twoSizes = new TwoSizesLongBigList( list );
 		final EliasFanoLongBigList eliasFano = new EliasFanoLongBigList( list );

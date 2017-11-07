@@ -1,9 +1,5 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
 import org.apache.commons.math3.random.RandomGenerator;
 
 import com.martiansoftware.jsap.FlaggedOption;
@@ -13,6 +9,10 @@ import com.martiansoftware.jsap.JSAPResult;
 import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
+
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class SelectSpeedTest {
 
@@ -28,33 +28,33 @@ public class SelectSpeedTest {
 					//new FlaggedOption( "termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'o', "offline", "Read terms from this file (without loading them into core memory) instead of standard input." ),
 					//new UnflaggedOption( "trie", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised hollow trie." )
 		});
-		
-		JSAPResult jsapResult = jsap.parse( arg );
+
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
-		
+
 		final long numBits = jsapResult.getLong( "numBits" );
 		final double density = jsapResult.getDouble( "density" );
 		final int numPos = jsapResult.getInt( "numPos" );
 
-		RandomGenerator random = new XorShift1024StarRandomGenerator( 42 );
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 42 );
 		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length( numBits );
 		long c = 0;
-		for( long i = numBits; i-- != 0; ) 
+		for( long i = numBits; i-- != 0; )
 			if ( random.nextDouble() < density ) {
 				bitVector.set( i );
 				c++;
 			}
-		
+
 		final long[] rankPosition = new long[ numPos ];
 		final long[] selectPosition = new long[ numPos ];
-		
+
 		for( int i = numPos; i-- != 0; ) {
 			rankPosition[ i ] = ( random.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % numBits;
 			selectPosition[ i ] = ( random.nextLong() & 0x7FFFFFFFFFFFFFFFL ) % c;
 		}
 
 		long time;
-		SimpleSelect simpleSelect = new SimpleSelect( bitVector );
+		final SimpleSelect simpleSelect = new SimpleSelect( bitVector );
 		for( int k = 1000; k-- != 0; ) {
 
 			System.out.println( "=== Simple ===");

@@ -1,9 +1,9 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2016 Sebastiano Vigna 
+ * Copyright (C) 2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -83,43 +82,43 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /** An immutable function stored quasi-succinctly using the
  * {@linkplain Linear3SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
- * 
+ *
  * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
  * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
- * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero). 
- * 
+ * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
+ *
  * <P>For convenience, this class provides a main method that reads from
  * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
  * writes a serialised function mapping each element of the list to its position, or to a given list of values.
  *
  * <h3>Signing</h3>
- * 
+ *
  * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a {@link GOV3Function}.
  * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
  * is no way to associate a key with its signature). A <var>w</var>-bit signature will
  * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
  * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
- * 
+ *
  * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
  * you can {@linkplain Builder#dictionary(int) turn the function into a dictionary}. In this case, the value associated
  * by the function with a key is exactly its signature, which means that the only space used by the function is
  * that occupied by signatures: this is one of the fastest and most compact way of storing a static dictionary.
  * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
- *  
+ *
  * <h2>Building a function</h2>
- * 
+ *
  * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
  * To exploit the various possibilities, you must understand some details of the construction.
- * 
+ *
  * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
  * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
- * the store will associate with each hash the corresponding value. 
- * 
+ * the store will associate with each hash the corresponding value.
+ *
  * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
  * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
  * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
@@ -128,25 +127,25 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * is extremely scalable because the values must just be a {@link LongIterable} that
  * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
  * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
- * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store. 
- * 
+ * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store.
+ *
  * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException}),
  * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} is
  * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
- * 
+ *
  * <h2>Implementation Details</h2>
- * 
+ *
  * <p>The detail of the data structure
  * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
  * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
- * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, 
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>,
  * Lecture Notes in Computer Science, Springer, 2016. We generate a random 3-regular linear system on <b>F</b><sub>2</sub>, where
- * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key. 
+ * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key.
  * Then, we {@linkplain Linear3SystemSolver solve} it and store the solution. Since the system must have &#8776;10% more variables than equations to be solvable,
  * an <var>r</var>-bit {@link GOV3Function} on <var>n</var> keys requires 1.1<var>rn</var>
- * bits.  
- * 
+ * bits.
+ *
  * <p>Optionally, you may require a <em>{@linkplain Builder#compacted() compacted}</em> function, that is, a
  * function storing nonzero values
  * in a separate array and using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
@@ -191,7 +190,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		protected boolean built;
 
 		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
-		 * 
+		 *
 		 * @param keys the keys of the function.
 		 * @return this builder.
 		 */
@@ -199,9 +198,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.keys = keys;
 			return this;
 		}
-		
+
 		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}; the strategy can be {@linkplain TransformationStrategies raw}.
-		 * 
+		 *
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 * @return this builder.
 		 */
@@ -209,10 +208,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.transform = transform;
 			return this;
 		}
-		
+
 		/** Specifies that the resulting {@link GOV3Function} should be signed using a given number of bits per element;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
-		 * 
+		 *
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
 		 * @return this builder.
 		 */
@@ -220,13 +219,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
-		
+
 		/** Specifies that the resulting {@link GOV3Function} should be a dictionary: the output value will be a signature,
 		 * and {@link GOV3Function#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
-		 * 
+		 *
 		 * <p>Note that checking against a signature has the usual probability of a false positive.
-		 * 
+		 *
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #signed(int)} with the opposite argument).
 		 * @return this builder.
 		 */
@@ -234,9 +233,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.signatureWidth = - signatureWidth;
 			return this;
 		}
-		
+
 		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
-		 * 
+		 *
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
@@ -244,15 +243,15 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.tempDir = tempDir;
 			return this;
 		}
-		
+
 		/** Specifies a chunked hash store containing the keys.
-		 * 
+		 *
 		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks if you
-		 * do not specify {@linkplain #values(LongIterable,int) values} or if you use the {@linkplain #indirect() indirect} feature, values otherwise. 
-		 * 
+		 * do not specify {@linkplain #values(LongIterable,int) values} or if you use the {@linkplain #indirect() indirect} feature, values otherwise.
+		 *
 		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
 		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
@@ -261,13 +260,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		}
 
 		/** Specifies a chunked hash store containing keys and values, and an output width.
-		 * 
-		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks 
-		 * if you use the {@linkplain #indirect() indirect} feature, values representable in at most the specified number of bits otherwise. 
-		 * 
+		 *
+		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks
+		 * if you use the {@linkplain #indirect() indirect} feature, values representable in at most the specified number of bits otherwise.
+		 *
 		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all values contained in the store.
 		 * @return this builder.
 		 */
@@ -278,10 +277,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		}
 
 		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}.
-		 * 
+		 *
 		 * <p>Contrarily to {@link #values(LongIterable)}, this method does not require a complete scan of the value
-		 * to determine the output width. 
-		 * 
+		 * to determine the output width.
+		 *
 		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
 		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all {@code values}.
 		 * @return this builder.
@@ -292,13 +291,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.outputWidth = outputWidth;
 			return this;
 		}
-		
+
 		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the function will
 		 * be the minimum width needed to represent all values.
-		 * 
+		 *
 		 * <p>Contrarily to {@link #values(LongIterable, int)}, this method requires a complete scan of the value
-		 * to determine the output width.  
-		 * 
+		 * to determine the output width.
+		 *
 		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
 		 * @return this builder.
 		 * @see #values(LongIterable,int)
@@ -306,35 +305,35 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		public Builder<T> values( final LongIterable values ) {
 			this.values = values;
 			int outputWidth = 0;
-			for( LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
+			for( final LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
 			this.outputWidth = outputWidth;
 			return this;
 		}
-		
+
 		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(ChunkedHashStore) store} contains
 		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
-		 * 
+		 *
 		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
-		 * 
+		 *
 		 * @return this builder.
 		 */
 		public Builder<T> indirect() {
 			this.indirect = true;
 			return this;
 		}
-		
+
 		/** Specifies that the function must be <em>compacted</em>.
-		 * 
+		 *
 		 * @return this builder.
 		 */
 		public Builder<T> compacted() {
 			this.compacted = true;
 			return this;
 		}
-		
+
 
 		/** Builds a new function.
-		 * 
+		 *
 		 * @return a {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
@@ -345,7 +344,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new GOV3Function<T>( keys, transform, signatureWidth, values, outputWidth, indirect, compacted, tempDir, chunkedHashStore );
+			return new GOV3Function<>( keys, transform, signatureWidth, values, outputWidth, indirect, compacted, tempDir, chunkedHashStore );
 		}
 	}
 
@@ -379,7 +378,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 
 	/** Creates a new function for the given keys and values.
-	 * 
+	 *
 	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
@@ -388,11 +387,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values.
-	 * @param compacted if true, the coefficients will be compacted. 
+	 * @param compacted if true, the coefficients will be compacted.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
 	 * or values, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
 	protected GOV3Function( final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final boolean indirect , final boolean compacted , final File tempDir , ChunkedHashStore<T> chunkedHashStore  ) throws IOException {
@@ -400,20 +399,20 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
 		if ( signatureWidth != 0 && dataWidth != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
-		
+
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final RandomGenerator r = new XorShift1024StarRandomGenerator();
+		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if ( ! givenChunkedHashStore ) {
+		if ( chunkedHashStore == null) {
 			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
-			chunkedHashStore = new ChunkedHashStore<T>( transform, tempDir, - Math.min( signatureWidth, 0 ), pl );
+			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, - Math.min( signatureWidth, 0 ), pl );
 			chunkedHashStore.reset( r.nextLong() );
 			if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-			else chunkedHashStore.addAll( keys.iterator(), values != null ? values.iterator() : null );
+			else chunkedHashStore.addAll( keys.iterator(), values.iterator() );
 		}
 		n = chunkedHashStore.size();
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default resturn value.
@@ -430,21 +429,21 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			return;
 		}
 
-		int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
+		final int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
 		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
 		final int numChunks = 1 << log2NumChunks;
-		
+
 		LOGGER.debug( "Number of chunks: " + numChunks );
-		
+
 		offsetAndSeed = new long[ numChunks + 1 ];
-		
+
 		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
-		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<BitVector, LongArrayBitVector>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
 
 		int duplicates = 0;
-		
+
 		for(;;) {
 			LOGGER.debug( "Generating GOV function with " + width + " output bits..." );
 
@@ -460,95 +459,86 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
-				executorCompletionService.submit(new Callable<Void>() {
-					@Override
-					public Void call() throws Exception {
-						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-						final LongBigList data = dataBitVector.asLongBigList( width );
-						for(;;) {
-							final long[] solution = queue.take();
-							if (solution == END_OF_SOLUTION_QUEUE) return null;
-							data.size(0);
-							for(long l : solution) data.add(l);
-							offlineData.add(dataBitVector);
-						}
+				executorCompletionService.submit(() -> {
+					final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+					final LongBigList data = dataBitVector.asLongBigList( width );
+					for(;;) {
+						final long[] solution = queue.take();
+						if (solution == END_OF_SOLUTION_QUEUE) return null;
+						data.size(0);
+						for(final long l : solution) data.add(l);
+						offlineData.add(dataBitVector);
 					}
 				});
 
 				final ChunkedHashStore<T> chs = chunkedHashStore;
-				executorCompletionService.submit(new Callable<Void>() {
-					@Override
-					public Void call() throws Exception {
-						try {
-							final Iterator<Chunk> iterator = chs.iterator();
-							for(int i = 0; iterator.hasNext(); i++) {
-								Chunk chunk = new Chunk(iterator.next());
-								assert i == chunk.index();
-								final long chunkDataSize = C_TIMES_256 * chunk.size() >>> 8;
-								assert chunkDataSize <= Integer.MAX_VALUE;
-								synchronized(offsetAndSeed) {
-									offsetAndSeed[ i + 1 ] = offsetAndSeed[ i ] + chunkDataSize;
-									assert offsetAndSeed[i + 1] <= OFFSET_MASK + 1;
-								}
-								chunkQueue.put(chunk);
+				executorCompletionService.submit(() -> {
+					try {
+						final Iterator<Chunk> iterator = chs.iterator();
+						for(int i1 = 0; iterator.hasNext(); i1++) {
+							final Chunk chunk = new Chunk(iterator.next());
+							assert i1 == chunk.index();
+							final long chunkDataSize = C_TIMES_256 * chunk.size() >>> 8;
+							assert chunkDataSize <= Integer.MAX_VALUE;
+							synchronized(offsetAndSeed) {
+								offsetAndSeed[ i1 + 1 ] = offsetAndSeed[ i1 ] + chunkDataSize;
+								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
+							chunkQueue.put(chunk);
 						}
-						finally { 
-							for(int i = numberOfThreads; i-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
-						}
-						return null;
 					}
+					finally {
+						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+					}
+					return null;
 				});
 
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
-				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(new Callable<Void>() {
-					@Override
-					public Void call() throws Exception {
-						Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-						long chunkTime = 0, outputTime = 0;
+				for(int i = numberOfThreads; i-- != 0; ) executorCompletionService.submit(() -> {
+					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+					long chunkTime = 0, outputTime = 0;
+					for(;;) {
+						long start = System.nanoTime();
+						final Chunk chunk = chunkQueue.take();
+						chunkTime += System.nanoTime() - start;
+						if (chunk == END_OF_CHUNK_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
+							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							return null;
+						}
+						long seed = 0;
+						final Linear3SystemSolver solver =
+								new Linear3SystemSolver((int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK), chunk.size());
+
 						for(;;) {
-							long start = System.nanoTime();
-							final Chunk chunk = chunkQueue.take();
-							chunkTime += System.nanoTime() - start;
-							if (chunk == END_OF_CHUNK_QUEUE) {
-								if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-								LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
-								LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
-								return null;
-							}
-							long seed = 0;
-							final Linear3SystemSolver<BitVector> solver = 
-									new Linear3SystemSolver<BitVector>((int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK), chunk.size());
+							final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
+								private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
 
-							for(;;) {
-								final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
-									private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
+								@Override
+								public long size64() {
+									return chunk.size();
+								}
 
-									@Override
-									public long size64() {
-										return chunk.size();
-									}
+								@Override
+								public long getLong( final long index ) {
+									return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
+								}
+							});
+							unsolvable.addAndGet(solver.unsolvable);
+							if ( solved ) break;
+							seed += SEED_STEP;
+							if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+						}
 
-									@Override
-									public long getLong( final long index ) {
-										return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
-									}
-								});
-								unsolvable.addAndGet(solver.unsolvable);
-								if ( solved ) break;
-								seed += SEED_STEP;
-								if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
-							}
-
-							synchronized (offsetAndSeed) {
-								offsetAndSeed[ chunk.index() ] |= seed;
-							}
-							start = System.nanoTime();
-							queue.put(solver.solution, chunk.index());
-							outputTime += System.nanoTime() - start;
-							synchronized(pl) {
-								pl.update();
-							}
+						synchronized (offsetAndSeed) {
+							offsetAndSeed[ chunk.index() ] |= seed;
+						}
+						start = System.nanoTime();
+						queue.put(solver.solution, chunk.index());
+						outputTime += System.nanoTime() - start;
+						synchronized(pl) {
+							pl.update();
 						}
 					}
 				});
@@ -556,15 +546,15 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				try {
 					for(int i = numberOfThreads + 2; i-- != 0; )
 						executorCompletionService.take().get();
-				} catch (InterruptedException e) {
+				} catch (final InterruptedException e) {
 					throw new RuntimeException(e);
-				} catch (ExecutionException e) {
+				} catch (final ExecutionException e) {
 					final Throwable cause = e.getCause();
 					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
 					if (cause instanceof IOException) throw (IOException)cause;
 					throw new RuntimeException(cause);
 				}
-				finally { 
+				finally {
 					executorService.shutdown();
 				}
 				LOGGER.info( "Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable.get() / numChunks ) + "%)");
@@ -572,14 +562,14 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.done();
 				break;
 			}
-			catch( DuplicateException e ) {
+			catch( final DuplicateException e ) {
 				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
 				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
 				LOGGER.warn( "Found duplicate. Recomputing triples..." );
 				chunkedHashStore.reset( r.nextLong() );
 				pl.itemsName = "keys";
 				if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-				else chunkedHashStore.addAll( keys.iterator(), values != null ? values.iterator() : null );
+				else chunkedHashStore.addAll( keys.iterator(), values.iterator() );
 			}
 		}
 
@@ -609,7 +599,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			for(iterator = offlineData.iterator(); iterator.hasNext(); ) {
 				final LongBigList data = iterator.next().asLongBigList( width );
 				for( long i = 0; i < data.size64(); i++, j++ ) {
-					final long value = data.getLong( i ); 
+					final long value = data.getLong( i );
 					if ( value != 0 ) {
 						marker.set( j );
 						newData.set( nonZero++, value );
@@ -625,7 +615,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				for(iterator = offlineData.iterator(); iterator.hasNext(); ) {
 					final LongBigList data = iterator.next().asLongBigList( width );
 					for( long i = 0; i < data.size64(); i++, k++ ) {
-						final long value = data.getLong( i ); 
+						final long value = data.getLong( i );
 						assert ( value != 0 ) == marker.getBoolean( k );
 						if ( value != 0 ) assert value == newData.getLong( rank.rank( k ) ) : value + " != " + newData.getLong( rank.rank( k ) );
 					}
@@ -643,9 +633,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			marker = null;
 			rank = null;
 		}
-		
+
 		offlineData.close();
-		
+
 		LOGGER.info( "Completed." );
 		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ? C * width : C + width + 0.126 ) );
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
@@ -663,9 +653,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			signatures = null;
 		}
 
-		if ( ! givenChunkedHashStore ) chunkedHashStore.close();		
+		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
@@ -677,7 +668,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		Linear3SystemSolver.tripleToEquation( h, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
 		if ( e[ 0 ] == -1 ) return defRetValue;
 		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
-		
+
 		final long result = rank == null ?
 				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
 				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
@@ -687,11 +678,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
 		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
-	
+
 	/** Low-level access to the output of this function.
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method 
+	 * then retrieve the resulting values by generating a single triple of hashes. The method
 	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
@@ -714,29 +705,32 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		if ( signatures != null ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
 		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
 	}
-	
+
 	/** Returns the number of keys in the function domain.
 	 *
 	 * @return the number of the keys in the function domain.
 	 */
+	@Override
 	public long size64() {
 		return n;
 	}
 
+	@Override
 	@Deprecated
 	public int size() {
 		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
 	/** Returns the number of bits used by this structure.
-	 * 
+	 *
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
 		if ( n == 0 ) return 0;
 		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + offsetAndSeed.length * (long)Long.SIZE;
 	}
-	
+
+	@Override
 	public boolean containsKey( final Object o ) {
 		return true;
 	}
@@ -758,7 +752,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
@@ -770,13 +764,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean compacted = jsapResult.getBoolean( "compacted" );
 		final boolean iso = jsapResult.getBoolean( "iso" );
 		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 ); 
+		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
 
 		if ( byteArray ) {
 			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
 			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new GOV3Function<byte[]>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, false, compacted, tempDir, null ), functionName );		
+			BinIO.storeObject( new GOV3Function<>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, false, compacted, tempDir, null ), functionName );
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -790,15 +784,15 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			}
 			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
-					? TransformationStrategies.rawIso() 
-							: utf32 
+					? TransformationStrategies.rawIso()
+							: utf32
 							? TransformationStrategies.rawUtf32()
 									: TransformationStrategies.rawUtf16();
 
 							if ( jsapResult.userSpecified( "values" ) ) {
 								final String values = jsapResult.getString( "values" );
 								int dataWidth = 0;
-								for( LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
+								for( final LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
 
 								BinIO.storeObject( new GOV3Function<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, false, compacted, tempDir, null ), functionName );
 							}

@@ -1,10 +1,13 @@
 package it.unimi.dsi.sux4j.bits;
 
 
-/*		 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -25,11 +28,8 @@ package it.unimi.dsi.sux4j.bits;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /** A hinted binary-search select implementation.
- * 
+ *
  * <p>Instances of this class perform selection
  * using a hinted binary search over an underlying {@link Rank9} instance. We use
  * 12.5% additional space for a small inventory.
@@ -58,7 +58,7 @@ public class HintedBsearchSelect implements Select {
 		numWords = rank9.numWords;
 		bits = rank9.bits;
 		count = rank9.count;
-		
+
 		log2OnesPerInventory = rank9.bitVector.length() == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + rank9.bitVector.length() - 1 ) / rank9.bitVector.length() );
 		onesPerInventory = 1 << log2OnesPerInventory;
 		final int inventorySize = (int)( ( numOnes + onesPerInventory - 1 ) / onesPerInventory );
@@ -75,10 +75,11 @@ public class HintedBsearchSelect implements Select {
 
 		inventory[ inventorySize ] = ( numWords / 8 ) * 2;
 	}
-	
+
+	@Override
 	public long select( long rank ) {
 		if ( rank >= numOnes ) return -1;
-		
+
 		final long[] count = this.count;
 		final int[] inventory = this.inventory;
 		final int inventoryIndexLeft = (int)( rank >>> log2OnesPerInventory );
@@ -98,28 +99,30 @@ public class HintedBsearchSelect implements Select {
 			}
 		}
 
-		final long rankInBlock = rank - count[ blockLeft ];     
+		final long rankInBlock = rank - count[ blockLeft ];
 
 		final long rankInBlockStep9 = rankInBlock * ONES_STEP_9;
 		final long subcounts = count[ blockLeft + 1 ];
 		final long offsetInBlock = ( ( ( ( ( ( ( rankInBlockStep9 | MSBS_STEP_9 ) - ( subcounts & ~MSBS_STEP_9 ) ) | ( subcounts ^ rankInBlockStep9 ) ) ^ ( subcounts & ~rankInBlockStep9 ) ) & MSBS_STEP_9 ) >>> 8 ) * ONES_STEP_9 >>> 54 & 0x7 );
-		
+
 		final long word = blockLeft * 4 + offsetInBlock;
 		final long rankInWord = rankInBlock - ( subcounts >>> ( offsetInBlock - 1 & 7 ) * 9 & 0x1FF );
 
         return word * 64L + Fast.select( bits[ (int)word ], (int)rankInWord );
 	}
 
+	@Override
 	public long numBits() {
 		return rank9.numBits() + inventory.length * (long)Integer.SIZE;
 	}
 
-	
+
 	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		bits = rank9.bitVector.bits();
 	}
 
+	@Override
 	public BitVector bitVector() {
 		return rank9.bitVector();
 	}

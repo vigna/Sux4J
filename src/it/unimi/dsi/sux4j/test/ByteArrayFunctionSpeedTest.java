@@ -26,7 +26,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
-import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
@@ -65,17 +64,16 @@ public class ByteArrayFunctionSpeedTest {
 		@SuppressWarnings("unchecked")
 		final Object2LongFunction<byte[]> function = (Object2LongFunction<byte[]>)BinIO.loadObject( functionName );
 		@SuppressWarnings("resource")
-		final FastBufferedInputStream fbis = new FastBufferedInputStream( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ) ); 
 		final Collection<byte[]> lines = new AbstractCollection<byte[]>() {
 			@Override
 			public Iterator<byte[]> iterator() {
-				final byte[] buffer = new byte[ 16384 ];
+				FastBufferedInputStream fbis;
 				try {
-					fbis.position( 0 );
-				}
-				catch ( IOException e ) {
+					fbis = new FastBufferedInputStream( zipped ? new GZIPInputStream( new FileInputStream( termFile ) ) : new FileInputStream( termFile ) );
+				} catch (Exception e) {
 					throw new RuntimeException( e.getMessage(), e );
-				}
+				} 
+				final byte[] buffer = new byte[ 16384 ];
 				return new ObjectIterator<byte[]>() {
 					boolean toRead = true;
 					int read;
@@ -129,25 +127,24 @@ public class ByteArrayFunctionSpeedTest {
 				ps.close();
 			}
 
-			FastByteArrayOutputStream fbaos = new FastByteArrayOutputStream();
-			for( byte[] s: test ) {
-				fbaos.write( s );
-				fbaos.write( 10 );
+			final int[] length = new int[n];
+			int totalLength = 0;
+			for(int i = 0; i < n; i++) totalLength += (length[i] = test[i].length);
+			final byte[] a = new byte[totalLength];
+			for(int i = 0, s = 0; i < n; i++) {
+				System.arraycopy(test[i], 0, a, s, length[i]);
+				s += length[i];
 			}
-			fbaos.close();
-			test = null;
 
+			test = null;
 			System.gc();
 			System.gc();
 	
-			byte[] buffer = new byte[ 16384 ];
 			long total = 0, t = -1;
 			for( int k = 13; k-- != 0; ) {
-				fbis.position( 0 );
 				long time = -System.nanoTime();
-				for( int i = 0; i < n; i++ ) {
-					final int read = fbis.readLine( buffer );
-					t ^= function.getLong( Arrays.copyOf( buffer, read ) );
+				for( int i = 0, s = 0; i < n; i++ ) {
+					t ^= function.getLong( Arrays.copyOfRange( a, s, s += length[i] ) );
 					if ( ( i % 0xFFFFF ) == 0 ) System.err.print('.');
 				}
 				System.err.println();

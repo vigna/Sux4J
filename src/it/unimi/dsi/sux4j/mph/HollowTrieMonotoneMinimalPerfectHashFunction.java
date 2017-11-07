@@ -21,10 +21,10 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -65,7 +65,7 @@ import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 /** A hollow trie, that is, a compacted trie recording just the length of the paths associated to the
  * internal nodes.
- * 
+ *
  * <p>Instances of this class can be used to compute a monotone minimal perfect hashing of the keys. */
 
 public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
@@ -99,12 +99,15 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	}
 
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object object ) {
 		// System.err.println( "Hashing " + object + "..." );
 		if ( size <= 1 ) return size - 1;
 		final BitVector bitVector = transform.toBitVector( (T)object ).fast();
-		long p = 1, length = bitVector.length(), index = 0;
+		long p = 1;
+		final long length = bitVector.length();
+		long index = 0;
 		long s = 0, r = 0;
 
 		for ( ;; ) {
@@ -147,7 +150,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 		Node root = null, node, parent;
 		int prefix;
 
-		ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 
@@ -158,7 +161,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			// The index of the last valid element on the stack
 			int last = -1;
 			// The stack of nodes forming the right border of the current trie
-			final ObjectArrayList<Node> stack = new ObjectArrayList<Node>();
+			final ObjectArrayList<Node> stack = new ObjectArrayList<>();
 			// The length of the path compacted in the trie up to the corresponding node in stack,
 			// included
 			final IntArrayList len = new IntArrayList();
@@ -293,34 +296,32 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 
 		final Node finalRoot = root;
 
-		final LongIterable skipIterable = new LongIterable() {
-			public LongIterator iterator() {
-				return new LongIterator() {
-					Node curr = finalRoot;
-					long currElem = -1;
+		final LongIterable skipIterable = () -> new LongIterator() {
+			Node curr = finalRoot;
+			long currElem = -1;
 
-					public long nextLong() {
-						if ( currElem == -1 ) {
-							currElem++;
-							return curr.skip;
-						}
-						else {
-							if ( currElem < curr.skips.size64() ) return curr.skips.getInt( currElem++ );
-							curr = curr.right;
-							currElem = 0;
-							return curr.skip;
-						}
-					}
+			@Override
+			public long nextLong() {
+				if ( currElem == -1 ) {
+					currElem++;
+					return curr.skip;
+				}
+				else {
+					if ( currElem < curr.skips.size64() ) return curr.skips.getInt( currElem++ );
+					curr = curr.right;
+					currElem = 0;
+					return curr.skip;
+				}
+			}
 
-					public boolean hasNext() {
-						return curr != null && ( currElem < curr.skips.size64() || currElem == curr.skips.size64() && curr.right != null );
-					}
-				};
+			@Override
+			public boolean hasNext() {
+				return curr != null && ( currElem < curr.skips.size64() || currElem == curr.skips.size64() && curr.right != null );
 			}
 		};
 
 		long maxSkip = 0, minSkip = Long.MAX_VALUE, s;
-		for ( LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
+		for ( final LongIterator i = skipIterable.iterator(); i.hasNext(); ) {
 			s = i.nextLong();
 			maxSkip = Math.max( s, maxSkip );
 			minSkip = Math.min( s, minSkip );
@@ -353,6 +354,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 	}
 
 
+	@Override
 	public long size64() {
 		return size;
 	}
@@ -375,7 +377,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 								"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 				} );
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String trieName = jsapResult.getString( "trie" );
@@ -396,10 +398,10 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
 				? new HuTuckerTransformationStrategy( collection, true )
 				: iso
-					? TransformationStrategies.prefixFreeIso() 
+					? TransformationStrategies.prefixFreeIso()
 					: utf32
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();

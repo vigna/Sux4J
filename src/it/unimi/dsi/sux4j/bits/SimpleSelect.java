@@ -1,9 +1,12 @@
 package it.unimi.dsi.sux4j.bits;
 
-/*		 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,15 +30,12 @@ import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /** A simple select implementation based on a two-level inventory, a spill list and broadword bit search.
- *  
+ *
  * <p>This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
  * under the same conditions, provide very fast selects. For very unevenly distributed arrays
- * the space occupancy will grow significantly, and access time might vary wildly. 
- * 
+ * the space occupancy will grow significantly, and access time might vary wildly.
+ *
  * <p>An additional {@linkplain #select(long, long[], int, int) bulk method} makes it possible
  * to select several consecutive bits at high speed, if the array is reasonably uniform. This is
  * the typical case when this structure is backing an {@link EliasFanoMonotoneLongBigList}.
@@ -58,10 +58,10 @@ public class SimpleSelect implements Select {
 	private final long numOnes;
 	/** The number of words in {@link #bitVector}. */
 	private final int numWords;
-	/** The cached result of {@link BitVector#bits() bitVector.bits()}. */ 
+	/** The cached result of {@link BitVector#bits() bitVector.bits()}. */
 	private transient long[] bits;
 	/** The first-level inventory containing information about one bit each {@link #onesPerInventory}.
-	 * If the entry is nonnegative, it is the rank of the bit and subsequent information is recorded in {@link #subinventory16} 
+	 * If the entry is nonnegative, it is the rank of the bit and subsequent information is recorded in {@link #subinventory16}
 	 * as offsets of one bit each {@link #onesPerSub16} (then, sequential search is necessary). Otherwise, a negative value
 	 * means that offsets are too large and they have been recorded as 64-bit values. If {@link #onesPerSub64} is 1, then offsets are directly stored
 	 * into {@link #subinventory}. Otherwise, the first {@link #subinventory} entry is actually a pointer to {@link #exactSpill},
@@ -93,16 +93,16 @@ public class SimpleSelect implements Select {
 	private final long[] exactSpill;
 
 	/** Creates a new selection structure using a bit vector specified by an array of longs and a number of bits.
-	 * 
+	 *
 	 * @param bits an array of longs representing a bit array.
 	 * @param length the number of bits to use from <code>bits</code>.
 	 */
 	public SimpleSelect( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
-		
-	/** Creates a new selection structure using the specified bit vector. 
-	 * 
+
+	/** Creates a new selection structure using the specified bit vector.
+	 *
 	 * @param bitVector a bit vector.
 	 */
 	public SimpleSelect( final BitVector bitVector ) {
@@ -111,7 +111,7 @@ public class SimpleSelect implements Select {
 		final long length = bitVector.length();
 
 		numWords = (int)( ( length + 63 ) / 64 );
-		
+
 		// We compute quickly the number of ones (possibly counting spurious bits in the last word).
 		long d = 0;
 		for( int i = numWords; i-- != 0; ) d += Long.bitCount( bits[ i ] );
@@ -220,6 +220,7 @@ public class SimpleSelect implements Select {
 
 	}
 
+	@Override
 	public long select( long rank ) {
 		if ( rank >= numOnes ) return -1;
 
@@ -227,7 +228,7 @@ public class SimpleSelect implements Select {
 
 		final long inventoryRank = inventory[ inventoryIndex ];
 		final int subrank = (int)( rank & onesPerInventoryMask );
-		
+
 		if ( subrank == 0 ) return inventoryRank & ~(1L<<63);
 
 		long start;
@@ -253,13 +254,13 @@ public class SimpleSelect implements Select {
 			if ( residual < bitCount ) break;
 			word = bits[ ++wordIndex ];
 			residual -= bitCount;
-		} 
+		}
 
-		return wordIndex * 64L + Fast.select( word, residual );		
+		return wordIndex * 64L + Fast.select( word, residual );
 	}
-	
+
 	/** Performs a bulk select of consecutive ranks into a given array fragment.
-	 * 
+	 *
 	 * @param rank the first rank to select.
 	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive bits starting at position {@code offset}.
 	 * @param offset the first bit position written in {@code dest}.
@@ -269,24 +270,24 @@ public class SimpleSelect implements Select {
 	 */
 	public long[] select( long rank, long[] dest, final int offset, final int length ) {
 		if ( length == 0 ) return dest;
-		long s = select( rank );
+		final long s = select( rank );
 		dest[ offset ] = s;
 		int curr = (int)( s / Long.SIZE );
 
 		long window = bits[ curr ] & -1L << s;
 		window &= window - 1;
-		
+
 		for( int i = 1; i < length; i++ ) {
 			while( window == 0 ) window = bits[ ++curr ];
 			dest[ offset + i ] = curr * Long.SIZE + Long.numberOfTrailingZeros( window );
 			window &= window - 1;
 		}
-		
+
 		return dest;
 	}
 
 	/** Performs a bulk select of consecutive ranks into a given array.
-	 * 
+	 *
 	 * @param rank the first rank to select.
 	 * @param dest the destination array; it will be filled with position of consecutive bits.
 	 * @return {@code dest}
@@ -301,11 +302,13 @@ public class SimpleSelect implements Select {
 		subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
 		bits = bitVector.bits();
 	}
-	
+
+	@Override
 	public long numBits() {
 		return inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE + exactSpill.length * (long)Long.SIZE;
 	}
 
+	@Override
 	public BitVector bitVector() {
 		return bitVector;
 	}

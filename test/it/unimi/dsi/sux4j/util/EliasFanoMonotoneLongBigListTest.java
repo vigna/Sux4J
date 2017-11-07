@@ -1,14 +1,14 @@
 package it.unimi.dsi.sux4j.util;
 
 import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
-import it.unimi.dsi.util.XorShift1024StarRandom;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import org.junit.Test;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class EliasFanoMonotoneLongBigListTest {
 
@@ -62,8 +62,8 @@ public class EliasFanoMonotoneLongBigListTest {
 	@Test
 	public void testRandom() {
 		// Weird skips
-		LongBigArrayBigList l = new LongBigArrayBigList();
-		XorShift1024StarRandomGenerator random = new XorShift1024StarRandomGenerator( 0 );
+		final LongBigArrayBigList l = new LongBigArrayBigList();
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom( 0 );
 		for( long i = 10000000, c = 0; i-- != 0;) {
 			c += Long.numberOfTrailingZeros( random.nextLong() );
 			l.add( c );
@@ -73,9 +73,9 @@ public class EliasFanoMonotoneLongBigListTest {
 
 	@Test
 	public void testBulk() {
-		final XorShift1024StarRandom random = new XorShift1024StarRandom();
-		for( int base: new int[] { 0, 1, 10 } ) {
-			for( int jump : new int[] { 1, 10, 100 } ) {
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom();
+		for( final int base: new int[] { 0, 1, 10 } ) {
+			for( final int jump : new int[] { 1, 10, 100 } ) {
 				final long[] s = new long[ 100000 ];
 				for( int i = 1; i < s.length; i++ ) s[ i ] = s[ i - 1 ] + random.nextInt( jump ) + base;
 				final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList( LongArrayList.wrap( s ) );

@@ -1,12 +1,6 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.util.XorShift1024StarRandom;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,18 +9,25 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
+
 public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 
 	public static ObjectArrayList<BitVector> listOf( final int[]... bit ) {
-		ObjectArrayList<BitVector> vectors = new ObjectArrayList<BitVector>();
-		for ( int[] v : bit )
+		final ObjectArrayList<BitVector> vectors = new ObjectArrayList<>();
+		for ( final int[] v : bit )
 			vectors.add( LongArrayBitVector.of( v ) );
 		return vectors;
 	}
 
 	@Test
 	public void testEmpty() {
-		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>( listOf( new int[][] {} ), TransformationStrategies.identity() );
+		final HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>( listOf( new int[][] {} ), TransformationStrategies.identity() );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
 		assertEquals( -1, hollowTrie.getLong( LongArrayBitVector.of( 1 ) ) );
 		assertEquals( 0, hollowTrie.size64() );
@@ -34,7 +35,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 
 	@Test
 	public void testSingleton() {
-		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>(
+		final HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>(
 				listOf( new int[][] { { 0 } } ).iterator(), TransformationStrategies.identity() );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -43,7 +44,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 
 	@Test
 	public void testSimple() {
-		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>(
+		HollowTrieMonotoneMinimalPerfectHashFunction<BitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>(
 				listOf( new int[][] { { 0 }, { 1, 0, 0, 0, 0 }, { 1, 0, 0, 0, 1 }, { 1, 0, 0, 1 } } ).iterator(), TransformationStrategies.identity() );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0 ) ) );
@@ -53,7 +54,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 		assertEquals( 4, hollowTrie.size64() );
 
 
-		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<BitVector>(
+		hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>(
 				listOf( new int[][] { { 0, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 }, { 0, 1, 0, 1, 0, 0 }, { 0, 1, 0, 1, 0, 1 }, { 0, 1, 1, 1, 0 } } ).iterator(), TransformationStrategies.identity() );
 
 		assertEquals( 0, hollowTrie.getLong( LongArrayBitVector.of( 0, 0, 0, 0, 0 ) ) );
@@ -67,7 +68,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testRandom() throws IOException, ClassNotFoundException {
-		Random r = new XorShift1024StarRandom( 3 );
+		final Random r = new XoRoShiRo128PlusRandom( 3 );
 		final int n = 10;
 		final LongArrayBitVector[] bitVector = new LongArrayBitVector[ n ];
 		for ( int i = 0; i < n; i++ ) {
@@ -80,7 +81,7 @@ public class HollowTrieMonotoneMinimalPerfectHashFunctionTest {
 		// Sort lexicographically
 		Arrays.sort( bitVector );
 
-		HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector>( Arrays.asList( bitVector ),
+		HollowTrieMonotoneMinimalPerfectHashFunction<LongArrayBitVector> hollowTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>( Arrays.asList( bitVector ),
 				TransformationStrategies.identity() );
 
 		for ( int i = 0; i < n; i++ )

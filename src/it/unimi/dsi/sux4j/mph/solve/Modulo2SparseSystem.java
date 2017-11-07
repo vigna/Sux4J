@@ -1,9 +1,13 @@
 package it.unimi.dsi.sux4j.mph.solve;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2015-2016 Sebastiano Vigna 
+ * Copyright (C) 2015-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -25,10 +29,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntListIterator;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-
 public class Modulo2SparseSystem {
 
 	public static class Modulo2Equation {
@@ -38,39 +38,39 @@ public class Modulo2SparseSystem {
 		public int c;
 
 		/** Creates a new equation.
-		 * 
+		 *
 		 * @param c the constant term.
 		 */
 		public Modulo2Equation( final int c ) {
 			variables = new IntArrayList();
 			this.c = c;
 		}
-			
+
 		public Modulo2Equation add( int variable ){
 			if ( ! variables.isEmpty() && variable < variables.getInt( variables.size() - 1 ) ) throw new IllegalArgumentException();
 			variables.add( variable );
 			return this;
 		}
-		
+
 		protected Modulo2Equation( Modulo2Equation equation ) {
 			this.variables = equation.variables.clone();
 			this.c = equation.c;
 		}
 
 		public void eliminate( final Modulo2Equation equation ) {
-			assert this.variables.getInt( 0 ) == equation.variables.getInt( 0 ) : this.variables.getInt( 0 ) + " != " + equation.variables.getInt( 0 ); 
+			assert this.variables.getInt( 0 ) == equation.variables.getInt( 0 ) : this.variables.getInt( 0 ) + " != " + equation.variables.getInt( 0 );
 			add( equation );
 		}
 
 		public int firstVar() {
 			return variables.size() != 0 ? variables.getInt( 0 ) : Integer.MAX_VALUE;
 		}
-		
+
 		/** Adds the provided equation to this equation.
-		 * 
+		 *
 		 * @param equation an equation.
 		 */
-		
+
 		public void add( final Modulo2Equation equation ) {
 			int i = 0, j = 0, k = 0;
 			final int s = variables.size(), t = equation.variables.size();
@@ -114,11 +114,12 @@ public class Modulo2SparseSystem {
 		public Modulo2Equation copy() {
 			return new Modulo2Equation( this );
 		}
-		
+
+		@Override
 		public String toString() {
-			StringBuilder b = new StringBuilder();
+			final StringBuilder b = new StringBuilder();
 			boolean someNonZero = false;
-			for( IntIterator iterator = variables.iterator(); iterator.hasNext(); ) {
+			for( final IntIterator iterator = variables.iterator(); iterator.hasNext(); ) {
 				final int v = iterator.nextInt();
 				if ( someNonZero ) b.append( " + " );
 				someNonZero = true;
@@ -127,15 +128,15 @@ public class Modulo2SparseSystem {
 			if ( ! someNonZero ) b.append( '0' );
 			return b.append( " = " ).append( c ).toString();
 		}
-		
-		
+
+
 		/** Returns the modulo-2 scalar product of the two provided bit vectors.
-		 * 
+		 *
 		 * @return the modulo-2 scalar product of {@code e} and {code f}.
 		 */
 		public static long scalarProduct( final Modulo2Equation e, long[] solution ) {
 			long sum = 0;
-			for( IntListIterator iterator = e.variables.iterator(); iterator.hasNext(); )
+			for( final IntListIterator iterator = e.variables.iterator(); iterator.hasNext(); )
 				sum ^= solution[ iterator.nextInt() ];
 			return sum;
 		}
@@ -149,7 +150,7 @@ public class Modulo2SparseSystem {
 
 	public Modulo2SparseSystem( int numVars ) {
 		this.numVars = numVars;
-		equations = new ArrayList<Modulo2Equation>();
+		equations = new ArrayList<>();
 	}
 
 	protected Modulo2SparseSystem( int numVars, ArrayList<Modulo2Equation> system ) {
@@ -169,15 +170,15 @@ public class Modulo2SparseSystem {
 	public boolean solve( final int[] solution ) {
 		if ( ! echelonForm() ) return false;
 		for ( int i = equations.size(); i-- != 0; ) {
-			Modulo2Equation equation = equations.get( i );
+			final Modulo2Equation equation = equations.get( i );
 			if ( equation.variables.isEmpty() ) continue;
 
 			int count = equation.variables.size();
-			int c = equation.c;
+			final int c = equation.c;
 			final int size = equation.variables.size();
 			for( int j = size / 2; j-- != 0; )
 				Collections.swap( equation.variables, j, size - j - 1 );
-			IntListIterator iterator = equation.variables.iterator();
+			final IntListIterator iterator = equation.variables.iterator();
 			while( iterator.hasNext()  ) {
 				final int e = iterator.nextInt();
 				if ( count == 1 ) {
@@ -187,9 +188,9 @@ public class Modulo2SparseSystem {
 				count--;
 			}
 		}
-		
+
 		return true;
-	}	
+	}
 
 
 	public int size() {
@@ -197,15 +198,15 @@ public class Modulo2SparseSystem {
 	}
 
 	public Modulo2SparseSystem copy() {
-		Modulo2SparseSystem s = new Modulo2SparseSystem( numVars );
-		for ( Modulo2Equation e: equations ) s.add( e.copy() );
+		final Modulo2SparseSystem s = new Modulo2SparseSystem( numVars );
+		for ( final Modulo2Equation e: equations ) s.add( e.copy() );
 		return s;
 	}
-	
+
 	public boolean check( final long solution[] ) {
-		for( Modulo2Equation equation: equations ) {
+		for( final Modulo2Equation equation: equations ) {
 			int sum = 0;
-			for( IntListIterator i = equation.variables.iterator(); i.hasNext(); ) {
+			for( final IntListIterator i = equation.variables.iterator(); i.hasNext(); ) {
 				final int e = i.nextInt();
 				sum ^= solution[ e ];
 			}
@@ -221,11 +222,11 @@ public class Modulo2SparseSystem {
 	private boolean echelonForm() {
 		main: for ( int i = 0; i < equations.size() - 1; i++ ) {
 			assert equations.get( i ).firstVar() != Integer.MAX_VALUE;
-			
+
 			for ( int j = i + 1; j < equations.size(); j++ ) {
 				// Note that because of exchanges we cannot extract the first assignment
-				Modulo2Equation eqJ = equations.get( j );
-				Modulo2Equation eqI = equations.get( i );
+				final Modulo2Equation eqJ = equations.get( j );
+				final Modulo2Equation eqI = equations.get( i );
 
 				assert eqI.firstVar() != Integer.MAX_VALUE;
 				assert eqJ.firstVar() != Integer.MAX_VALUE;
@@ -261,69 +262,69 @@ public class Modulo2SparseSystem {
 		return true;
 	}
 
-	/** Solves the system using lazy Gaussian elimination. 
-	 * 
+	/** Solves the system using lazy Gaussian elimination.
+	 *
 	 * <p><strong>Warning</strong>: this method is very inefficient, as it
 	 * scans linearly the equations, builds from scratch the {@code var2Eq}
 	 * parameter of {@link #lazyGaussianElimination(Modulo2SparseSystem, int[][], long[], int[], long[])},
 	 * and finally calls it. It should be used mainly to write unit tests.
-	 * 
-	 * @param solution an array where the solution will be written. 
+	 *
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
-		for( final Modulo2Equation equation: equations ) 
-			for( IntListIterator iterator = equation.variables.iterator(); iterator.hasNext(); ) 
-				d[ iterator.nextInt() ]++; 
-		
+		for( final Modulo2Equation equation: equations )
+			for( final IntListIterator iterator = equation.variables.iterator(); iterator.hasNext(); )
+				d[ iterator.nextInt() ]++;
+
 		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
 		Arrays.fill( d, 0 );
 		final long[] c = new long[ equations.size() ];
 		for( int e = 0; e < equations.size(); e++ ) {
 			c[ e ] = equations.get( e ).c;
-			for( IntListIterator iterator = equations.get( e ).variables.iterator(); iterator.hasNext(); ) {
+			for( final IntListIterator iterator = equations.get( e ).variables.iterator(); iterator.hasNext(); ) {
 				final int v = iterator.nextInt();
 				var2Eq[ v ][ d[ v ]++ ] = e;
 			}
 		}
-		
+
 		return lazyGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	/** Solves a system using lazy Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination.
 	 *
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
 	 * equation indices must appear in nondecreasing order; an equation
-	 * may appear several times for a given variable, in which case the final coefficient 
+	 * may appear several times for a given variable, in which case the final coefficient
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
 	 * when calling this method from a {@link Linear3SystemSolver}). Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
-	 * (variables not appearing in this array will be simply assigned zero).  
-	 * @param solution an array where the solution will be written. 
+	 * (variables not appearing in this array will be simply assigned zero).
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public static boolean lazyGaussianElimination( final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
 		return lazyGaussianElimination( null, var2Eq, c, variable, solution );
 	}
-	
-	/** Solves a system using lazy Gaussian elimination. 
+
+	/** Solves a system using lazy Gaussian elimination.
 	 *
 	 * @param system a modulo-3 system.
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
 	 * equation indices must appear in nondecreasing order; an equation
-	 * may appear several times for a given variable, in which case the final coefficient 
+	 * may appear several times for a given variable, in which case the final coefficient
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
 	 * when calling this method from a {@link Linear3SystemSolver}). The resulting system
 	 * must be identical to {@code system}. Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
-	 * (variables not appearing in this array will be simply assigned zero).  
-	 * @param solution an array where the solution will be written. 
+	 * (variables not appearing in this array will be simply assigned zero).
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public static boolean lazyGaussianElimination( Modulo2SparseSystem system, final int var2Eq[][], final long[] c, final int[] variable, final long[] solution ) {
@@ -339,9 +340,9 @@ public class Modulo2SparseSystem {
 			system = new Modulo2SparseSystem( numVars );
 			for( int i = 0; i < c.length; i++ ) system.add( new Modulo2Equation( (int)c[ i ] ) );
 		}
-				
-		/* The weight of each variable, that is, the number of equations still 
-		 * in the queue in which the variable appears. We use zero to 
+
+		/* The weight of each variable, that is, the number of equations still
+		 * in the queue in which the variable appears. We use zero to
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[ numVars ];
 
@@ -351,7 +352,7 @@ public class Modulo2SparseSystem {
 		for( final int v : variable ) {
 			final int[] eq = var2Eq[ v ];
 			if ( eq.length == 0 ) continue;
-			
+
 			int currEq = eq[ 0 ];
 			boolean currCoeff = true;
 			int j = 0;
@@ -374,25 +375,25 @@ public class Modulo2SparseSystem {
 				}
 				else currCoeff = ! currCoeff;
 			}
-		
+
 			if ( currCoeff ) {
 				if ( buildSystem ) system.equations.get( currEq ).add( v );
 				weight[ v ]++;
 				priority[ currEq ]++;
 				eq[ j++ ] = currEq;
 			}
-			
+
 			// In case we found duplicates, we replace the array with a uniquified one.
 			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
-		}		
-		
+		}
+
 		if ( DEBUG ) {
 			System.err.println();
 			System.err.println( "===== Going to solve... ======" );
 			System.err.println();
 			System.err.println( system );
 		}
-			
+
 
 		// All variables in a stack returning heavier variables first.
 		final IntArrayList variables;
@@ -405,16 +406,16 @@ public class Modulo2SparseSystem {
 			for( int i = t.length; i-- != 0; ) u[ --count[ weight[ t[ i ] ] ] ] = t[ i ];
 			variables = IntArrayList.wrap( u );
 		}
-		
+
 		// The equations that are neither dense, nor solved, and have weight <= 1.
 		final IntArrayList equationList = new IntArrayList();
 		for( int i = priority.length; i-- != 0; ) if ( priority[ i ] <= 1 ) equationList.add( i );
 		// The equations that are part of the dense system (entirely made of heavy variables).
-		ArrayList<Modulo2Equation> dense = new ArrayList<Modulo2Equation>();
+		final ArrayList<Modulo2Equation> dense = new ArrayList<>();
 		// The equations that define a light variable in term of heavy variables.
-		ArrayList<Modulo2Equation> solved = new ArrayList<Modulo2Equation>();
+		final ArrayList<Modulo2Equation> solved = new ArrayList<>();
 		// The light variable corresponding to each solved equation.
-		IntArrayList pivots = new IntArrayList();
+		final IntArrayList pivots = new IntArrayList();
 
 		final ArrayList<Modulo2Equation> equations = system.equations;
 		// A bit vector containing a 1 in correspondence of each light variable.
@@ -445,13 +446,13 @@ public class Modulo2SparseSystem {
 					dense.add( equation );
 				}
 				else if ( priority[ first ] == 1 ) {
-					/* This is solved (in terms of the heavy variables). Let's find the pivot, that is, 
+					/* This is solved (in terms of the heavy variables). Let's find the pivot, that is,
 					 * the only idle variable. Note that we do not need to update varEquation[] of any variable, as they
 					 * are all either heavy (the non-pivot), or appearing only in this equation (the pivot). */
 					int pivot = -1;
-					for( IntIterator iterator = equation.variables.iterator(); iterator.hasNext(); )
+					for( final IntIterator iterator = equation.variables.iterator(); iterator.hasNext(); )
 						if ( idle[ pivot = iterator.nextInt() ] ) break;
-					
+
 					// Record the light variable and the equation for computing it later.
 					if ( DEBUG ) System.err.println( "Adding to solved variables x_" + pivot + " by equation " + equation );
 					pivots.add( pivot );
@@ -471,7 +472,7 @@ public class Modulo2SparseSystem {
 			}
 		}
 
-		Modulo2SparseSystem denseSystem = new Modulo2SparseSystem( numVars, dense );
+		final Modulo2SparseSystem denseSystem = new Modulo2SparseSystem( numVars, dense );
 		if ( ! denseSystem.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
 
 		if ( DEBUG ) System.err.println( "Solution (dense): " + Arrays.toString( solution ) );
@@ -498,11 +499,11 @@ public class Modulo2SparseSystem {
 
 		final Modulo2SparseSystem system = new Modulo2SparseSystem( numVars );
 		for( int i = 0; i < c.length; i++ ) system.add( new Modulo2Equation( (int)c[ i ] ) );
-				
+
 		for( final int v : variable ) {
 			final int[] eq = var2Eq[ v ];
 			if ( eq.length == 0 ) continue;
-			
+
 			int currEq = eq[ 0 ];
 			boolean currCoeff = true;
 			int j = 0;
@@ -523,16 +524,16 @@ public class Modulo2SparseSystem {
 				}
 				else currCoeff = ! currCoeff;
 			}
-		
+
 			if ( currCoeff ) {
 				system.equations.get( currEq ).add( v );
 				eq[ j++ ] = currEq;
 			}
-			
+
 			// In case we found duplicates, we replace the array with a uniquified one.
 			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
-		}		
-		
+		}
+
 		if ( ! system.gaussianElimination( solution ) ) return false;  // numVars >= denseSystem.numVars
 
 		return true;

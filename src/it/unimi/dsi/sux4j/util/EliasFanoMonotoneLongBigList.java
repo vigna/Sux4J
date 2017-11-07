@@ -1,9 +1,11 @@
 package it.unimi.dsi.sux4j.util;
 
-/*		 
+import java.io.Serializable;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -36,21 +38,19 @@ import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
-import java.io.Serializable;
-
 /** An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies a number of bits bounded by two plus the logarithm of the average gap.
- * 
+ *
  * <p>Instances of this class represent in a highly compacted form a nondecreasing sequence of natural numbers. Instances
  * are built by providing either an iterator returning the (nondecreasing) sequence, or an {@linkplain Iterable iterable object} that
  * provides such an iterator. In the first case, you must also provide in advance the number of elements that will be returned and an upper bound to their
- * values (see below), and at the end of the construction the iterator will be exhausted. 
- *  
+ * values (see below), and at the end of the construction the iterator will be exhausted.
+ *
  * <p>An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible
  * to extract several consecutive entries at high speed.
  *
  * <h2>Implementation details</h2>
- * 
- * <p>Given a (nondecreasing) monotone sequence 
+ *
+ * <p>Given a (nondecreasing) monotone sequence
  * <var>x</var><sub>0</sub>, <var>x</var><sub>1</sub>,&hellip; , <var>x</var><sub><var>n</var> &minus; 1</sub>
  * of natural numbers smaller than <var>u</var>,
  * the Elias&ndash;Fano representation makes it possible to store it using
@@ -58,12 +58,12 @@ import java.io.Serializable;
  * to the information-theoretical lower bound &#x2248; log <i>e</i> + log(<var>u</var>/<var>n</var>). A typical example
  * is a list of pointer into records of a large file: instead of using, for each pointer, a number of bit sufficient to express the length of
  * the file, the Elias&ndash;Fano representation makes it possible to use, for each pointer, a number of bits roughly equal to
- * the logarithm of the average length of a record. The representation was introduced in Peter Elias, 
+ * the logarithm of the average length of a record. The representation was introduced in Peter Elias,
  * &ldquo;Efficient storage and retrieval by content and address of static files&rdquo;, <i>J. Assoc. Comput. Mach.</i>, 21(2):246&minus;260, 1974,
  * and also independently by Robert Fano, &ldquo;On the number of bits required to implement an associative memory&rdquo;,
- *  Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge, Mass., n.d., 1971. 
- * 
- * <p>The elements of the sequence are recorded by storing separately 
+ *  Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge, Mass., n.d., 1971.
+ *
+ * <p>The elements of the sequence are recorded by storing separately
  * the lower <var>s</var> = &lfloor;log(<var>u</var>/<var>n</var>)&rfloor; bits and the remaining upper bits.
  * The lower bits are stored contiguously, whereas the upper bits are stored in an array
  * of <var>n</var> + <var>x</var><sub><var>n</var> &minus; 1</sub> / 2<sup><var>s</var></sup> bits by setting,
@@ -71,7 +71,7 @@ import java.io.Serializable;
  * the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> + <var>i</var>; the value can then be recovered
  * by selecting the <var>i</var>-th bit of the resulting bit array and subtracting <var>i</var> (note that this will
  * work because the upper bits are nondecreasing).
- * 
+ *
  * <p>This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array, and
  * exploits {@link SimpleSelect#select(long, long[], int, int)} to implement
  * {@link #get(long, long[], int, int)}.
@@ -79,18 +79,18 @@ import java.io.Serializable;
 
 public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 4L;
-	
+
 	/** The length of the sequence. */
 	protected final long length;
 	/** The number of lower bits. */
 	protected final int l;
 	/** The list of lower bits of each element, stored explicitly. */
 	protected final long[] lowerBits;
-	/** The select structure used to extract the upper bits. */ 
+	/** The select structure used to extract the upper bits. */
 	protected final SimpleSelect selectUpper;
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
-	
+
 	protected EliasFanoMonotoneLongBigList( final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
 		this.length = length;
 		this.l = l;
@@ -100,43 +100,31 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigList( final IntIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigList( final ShortIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 	public EliasFanoMonotoneLongBigList( final ByteIterable list ) {
-		this( new LongIterable() {
-			public LongIterator iterator() {
-				return LongIterators.wrap( list.iterator() );
-			}
-		});
+		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
 	}
-	
+
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
-	 * 
+	 *
 	 * @param list an iterable object.
 	 */
 
@@ -145,8 +133,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	/** Computes the number of elements and the last element returned by the given iterator.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param iterator an iterator.
 	 * @return a two-element array of longs containing the number of elements returned by
 	 * the iterator and the last returned element, respectively.
@@ -159,19 +147,19 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			prev = v;
 			c++;
 		}
-		
+
 		return new long[] { c, v };
 	}
-	
+
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -181,12 +169,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -196,12 +184,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -211,12 +199,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
 	 * some sequential source.
-	 * 
+	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be 
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
@@ -226,10 +214,10 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/**  Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
 	 * the overall number of elements and an upper bound are provided, too.
-	 * 
+	 *
 	 * <p>This constructor is used only internally, to work around the usual problems
 	 * caused by the obligation to call <code>this()</code> before anything else.
-	 * 
+	 *
 	 * @param a an array containing the number of elements returned by <code>iterator</code> and
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
@@ -254,23 +242,24 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			upperBits.set( ( v >>> l ) + i );
 			last = v;
 		}
-		
+
 		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
 		this.lowerBits = lowerBitsVector.bits();
 		selectUpper = new SimpleSelect( upperBits );
 	}
-	
-	
+
+
 	public long numBits() {
 		return selectUpper.numBits() + selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE;
 	}
 
+	@Override
 	public long getLong( final long index ) {
 		final int l = this.l;
-		final long upperBits = selectUpper.select( index ) - index; 
+		final long upperBits = selectUpper.select( index ) - index;
 		if ( l == 0 ) return upperBits;
-		
-		final long position = index * l; 
+
+		final long position = index * l;
 		final int startWord = (int)( position / Long.SIZE );
 		final int startBit = (int)( position % Long.SIZE );
 		final int totalOffset = startBit + l;
@@ -280,7 +269,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 
 	/** Extracts a number of consecutive entries into a given array fragment.
-	 * 
+	 *
 	 * @param index the index of the first entry returned.
 	 * @param dest the destination array; it will be filled with {@code length} consecutive entries starting at position {@code offset}.
 	 * @param offset the first position written in {@code dest}.
@@ -302,12 +291,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 				position += l;
 			}
 		}
-		
+
 		return dest;
 	}
 
 	/** Extracts a number of consecutive entries into a given array.
-	 * 
+	 *
 	 * @param index the index of the first entry returned.
 	 * @param dest the destination array; it will be filled with consecutive entries.
 	 * @return {@code dest}
@@ -317,6 +306,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		return get( index, dest, 0, dest.length );
 	}
 
+	@Override
 	public long size64() {
 		return length;
 	}

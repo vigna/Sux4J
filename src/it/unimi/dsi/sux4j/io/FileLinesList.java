@@ -14,10 +14,10 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -46,30 +46,30 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
 /** A wrapper exhibiting the lines of a file as a {@linkplain List list}.
- * 
+ *
  * <P>An instance of this class allows to access the lines of a file as a
- * {@link List}. Contrarily to a {@link FileLinesCollection}, {@linkplain #get(int) direct access} 
+ * {@link List}. Contrarily to a {@link FileLinesCollection}, {@linkplain #get(int) direct access}
  * is possible and reasonably efficient, in particular when accessing nearby lines, and
  * all returned {@linkplain MutableString mutable strings} are separate, independent instances.
- * 
- * <p>Similarly to {@link FileLinesCollection}, instead, {@link #iterator()} can be 
+ *
+ * <p>Similarly to {@link FileLinesCollection}, instead, {@link #iterator()} can be
  * called any number of times, as it opens an independent input stream at each call. For the
  * same reason, the returned iterator type ({@link FileLinesList.FileLinesIterator})
  * is {@link java.io.Closeable}, and should be closed after usage.
- * 
+ *
  * <p>Note that {@link #toString()} will return a single string containing all
  * file lines separated by the string associated to the system property <code>line.separator</code>.
- * 
+ *
  * <p><strong>Warning</strong>: this class is not synchronised. Separate iterators use separate input
  * streams, and can be accessed concurrently, but all calls to {@link #get(int)} refer to the
  * same input stream.
- * 
+ *
  * <h2>Implementation details</h2>
- * 
+ *
  * <p>Instances of this class perform a full scan of the specified file at construction time, representing
- * the list of pointers to the start of each line using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}. 
+ * the list of pointers to the start of each line using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}.
  * The memory occupation per line is thus bounded by 2 + log &#x2113; bits, where &#x2113; is the average line length.
- * 
+ *
  * @author Sebastiano Vigna
  * @since 1.1
  */
@@ -95,19 +95,19 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	private final CharsetDecoder decoder;
 	/** The charset specified at construction time. */
 	private final Charset charset;
-	
+
 	/** Creates a file-lines collection for the specified filename with the specified encoding, buffer size and terminator set.
-	 * 
+	 *
 	 * @param filename a filename.
 	 * @param encoding an encoding.
 	 * @param bufferSize the buffer size for {@link FastBufferedInputStream}.
 	 * @param terminators a set of line terminators.
-	 */		
+	 */
 	public FileLinesList( final CharSequence filename, final String encoding, final int bufferSize, final EnumSet<FastBufferedInputStream.LineTerminator> terminators ) throws IOException {
 		this.bufferSize = bufferSize;
 		this.terminators = terminators;
 		this.filename = filename.toString();
-		
+
 		inputStream = new FastBufferedInputStream( new FileInputStream( this.filename ), bufferSize );
 		decoder = ( charset = Charset.forName( encoding ) ).newDecoder();
 		byte[] array = new byte[ 16 ];
@@ -119,24 +119,26 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 				start += len;
 				array = ByteArrays.grow( array, array.length + 1 );
 			};
-			
+
 			if ( len != -1 ) count++;
 			else break;
 		}
-		
+
 		size = count;
 		byteBuffer = ByteBuffer.wrap( array );
 		charBuffer = CharBuffer.wrap( new char[ array.length ] );
-		
+
 		inputStream.position( 0 );
 		borders = new EliasFanoMonotoneLongBigList( count, inputStream.length(), new LongIterator() {
 			long pos = 0;
 			byte[] buffer = byteBuffer.array();
-			
+
+			@Override
 			public boolean hasNext() {
 				return pos < size;
 			}
-			
+
+			@Override
 			public long nextLong() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
 				pos++;
@@ -145,7 +147,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 					inputStream.readLine( buffer, terminators );
 					return result;
 				}
-				catch ( IOException e ) {
+				catch ( final IOException e ) {
 					throw new RuntimeException( e );
 				}
 			}
@@ -153,32 +155,34 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 	}
 
 	/** Creates a file-lines collection for the specified filename with the specified encoding, buffer size and with all terminators.
-	 * 
+	 *
 	 * @param filename a filename.
 	 * @param encoding an encoding.
 	 * @param bufferSize the buffer size for {@link FastBufferedInputStream}.
-	 */		
+	 */
 	public FileLinesList( final CharSequence filename, final String encoding, final int bufferSize ) throws IOException {
 		this( filename, encoding, bufferSize, FastBufferedInputStream.ALL_TERMINATORS );
 	}
-		
+
 	/** Creates a file-lines collection for the specified filename with the specified encoding, default buffer size and with all terminators.
-	 * 
+	 *
 	 * @param filename a filename.
 	 * @param encoding an encoding.
-	 */		
+	 */
 	public FileLinesList( final CharSequence filename, final String encoding ) throws IOException {
 		this( filename, encoding, FastBufferedInputStream.DEFAULT_BUFFER_SIZE );
 	}
-		
+
+	@Override
 	public int size() {
 		return size;
 	}
-		
+
+	@Override
 	public MutableString get( final int index ) {
 		return get( index, inputStream, byteBuffer, charBuffer, decoder );
 	}
-	
+
 	public MutableString get( final int index, final FastBufferedInputStream fastBufferedInputStream, final ByteBuffer byteBuffer, final CharBuffer charBuffer, final CharsetDecoder decoder ) {
 		try {
 			fastBufferedInputStream.position( borders.getLong( index ) );
@@ -188,7 +192,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			decoder.decode( byteBuffer, charBuffer, true );
 			return new MutableString( charBuffer.array(), 0, charBuffer.position() );
 		}
-		catch ( IOException e ) {
+		catch ( final IOException e ) {
 			throw new RuntimeException( e );
 		}
 	}
@@ -222,45 +226,53 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			pos = index;
 		}
 
+		@Override
 		public boolean hasNext() {
 			return pos < fileLinesList.size;
 		}
 
+		@Override
 		public boolean hasPrevious() {
 			return pos > 0;
 		}
 
+		@Override
 		public MutableString next() {
 			if ( !hasNext() ) throw new NoSuchElementException();
 			return fileLinesList.get( pos++, inputStream, byteBuffer, charBuffer, decoder );
 		}
 
+		@Override
 		public MutableString previous() {
 			if ( !hasPrevious() ) throw new NoSuchElementException();
 			return fileLinesList.get( --pos, inputStream, byteBuffer, charBuffer, decoder );
 		}
 
+		@Override
 		public int nextIndex() {
 			return pos;
 		}
 
+		@Override
 		public int previousIndex() {
 			return pos - 1;
 		}
 
+		@Override
 		public synchronized void close() {
 			if ( inputStream == null ) throw new IllegalStateException();
 			try {
 				inputStream.close();
 			}
-			catch ( IOException e ) {
+			catch ( final IOException e ) {
 				throw new RuntimeException( e );
 			}
 			finally {
 				inputStream = null;
 			}
 		}
-		
+
+		@Override
 		protected synchronized void finalize() throws Throwable {
 			try {
 				if ( inputStream != null ) close();
@@ -270,20 +282,22 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			}
 		}
 	}
-	
+
+	@Override
 	public FileLinesIterator listIterator( final int index ) {
 		try {
 			return new FileLinesIterator( this, index, new FastBufferedInputStream( new FileInputStream( filename ), bufferSize ), charset.newDecoder(), ByteBuffer.wrap( new byte[ byteBuffer.array().length ] ), CharBuffer.wrap( new char[ charBuffer.array().length ] ) );
 		}
-		catch ( FileNotFoundException e ) {
+		catch ( final FileNotFoundException e ) {
 			throw new RuntimeException( e );
 		}
 	}
 
+	@Override
 	public String toString() {
 		final MutableString separator = new MutableString( System.getProperty( "line.separator" ) );
 		final MutableString s = new MutableString();
-		for( MutableString l: this ) s.append( l ).append( separator );
+		for( final MutableString l: this ) s.append( l ).append( separator );
 		return s.toString();
 	}
 }

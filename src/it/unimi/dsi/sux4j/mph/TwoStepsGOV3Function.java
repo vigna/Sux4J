@@ -24,10 +24,10 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -61,22 +61,22 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 
 /** A function stored using two {@linkplain GOV3Function}s&mdash;one for
  * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
  * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
- * 
+ *
  * <p>To create an instance, we perform a pre-scan of the values to be assigned. If possible, we finds the best possible
  * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link GOV3Function}
  * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
  * values, which are stored in a separate function.
- * 
+ *
  * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
  * will be set on the {@link ChunkedHashStore} used to store the keys. If you are {@linkplain Builder#store(ChunkedHashStore) passing a store},
  * you will have to reset it to its previous state.
- * 
+ *
  * @author Sebastiano Vigna
  * @since 4.0
  */
@@ -84,7 +84,7 @@ import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
 public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
     public static final long serialVersionUID = 0L;
     private static final Logger LOGGER = LoggerFactory.getLogger( TwoStepsGOV3Function.class );
-		
+
     private final static boolean ASSERTS = false;
 
 	/** A builder class for {@link TwoStepsGOV3Function}. */
@@ -98,7 +98,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		protected boolean built;
 
 		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
-		 * 
+		 *
 		 * @param keys the keys of the function.
 		 * @return this builder.
 		 */
@@ -106,9 +106,9 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			this.keys = keys;
 			return this;
 		}
-		
+
 		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
-		 * 
+		 *
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 * @return this builder.
 		 */
@@ -116,9 +116,9 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			this.transform = transform;
 			return this;
 		}
-		
+
 		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
-		 * 
+		 *
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
@@ -126,25 +126,25 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			this.tempDir = tempDir;
 			return this;
 		}
-		
+
 		/** Specifies a chunked hash store containing the keys associated with their rank.
-		 * 
+		 *
 		 * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
 		 * will be set on the specified {@link ChunkedHashStore}. You will have to reset it to its previous state.
-		 * 
+		 *
 		 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown). 
+		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
 		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
-		
+
 		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the function will
 		 * be the minimum width needed to represent all values.
-		 * 
+		 *
 		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
 		 * @return this builder.
 		 */
@@ -152,9 +152,9 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			this.values = values;
 			return this;
 		}
-		
+
 		/** Builds a new function.
-		 * 
+		 *
 		 * @return a {@link GOV3Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
 		 */
@@ -165,21 +165,21 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
 			}
-			return new TwoStepsGOV3Function<T>( keys, transform, values, tempDir, chunkedHashStore);
+			return new TwoStepsGOV3Function<>( keys, transform, values, tempDir, chunkedHashStore);
 		}
 	}
 
-    
+
 	/** The number of keys. */
 	protected final long n;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	protected final TransformationStrategy<? super T> transform;
-	/** The first function, or {@code null}. The special output value {@link #escape} denotes that {@link #secondFunction} 
+	/** The first function, or {@code null}. The special output value {@link #escape} denotes that {@link #secondFunction}
 	 * should be queried instead. */
 	protected final GOV3Function<T> firstFunction;
 	/** The second function. All queries for which {@link #firstFunction} returns
 	 * {@link #escape} (or simply all queries, if {@link #firstFunction} is {@code null}) will be rerouted here. */
-	protected final GOV3Function<T> secondFunction;	
+	protected final GOV3Function<T> secondFunction;
 	/** A mapping from values of the first function to actual values, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final long[] remap;
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
@@ -192,33 +192,33 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	protected final double rankMean;
 
 	/** Creates a new two-step function for the given keys and values.
-	 * 
+	 *
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
 	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the the ordinal number of each key.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}. 
+	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	protected TwoStepsGOV3Function( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final RandomGenerator random = new XorShift1024StarRandomGenerator();
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if ( ! givenChunkedHashStore ) {
+		if ( chunkedHashStore == null) {
 			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
-			chunkedHashStore = new ChunkedHashStore<T>( transform, pl );
+			chunkedHashStore = new ChunkedHashStore<>( transform, pl );
 			chunkedHashStore.reset( random.nextLong() );
 			chunkedHashStore.addAll( keys.iterator() );
 		}
 		n = chunkedHashStore.size();
 		defRetValue = -1; // For the very few cases in which we can decide
-		
+
 		if ( n == 0 ) {
 			rankMean = escape = width = 0;
 			firstFunction = secondFunction = null;
@@ -232,16 +232,16 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		long v;
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		counts.defaultReturnValue( -1 );
-		for( LongIterator i = values.iterator(); i.hasNext(); ) {
+		for( final LongIterator i = values.iterator(); i.hasNext(); ) {
 			v = i.nextLong();
 			counts.put( v, counts.get( v ) + 1 );
 			size = Fast.length( v );
 			if ( size > w ) w = size;
 		}
-		
+
 		this.width = w;
 		final int m = counts.size();
-		
+
 		LOGGER.debug( "Generating two-steps GOV3 function with " + w + " output bits..." );
 
 		// Sort keys by reverse frequency
@@ -255,36 +255,36 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		// Analyze data and choose a threshold
 		long post = n, bestCost = Long.MAX_VALUE;
 		int pos = 0, best = -1;
-		
+
 		// Examine every possible choice for r. Note that r = 0 implies one function, so we do not need to test the case r == w.
 		for( int r = 0; r < w && pos < m; r++ ) {
 
-			/* This cost function is dependent on the implementation of GOV3Function. 
+			/* This cost function is dependent on the implementation of GOV3Function.
 			 * Note that for r = 0 we are actually computing the cost of a single function (the first one). */
 			final long cost = (long)Math.min( GOV3Function.C * n * 1.126 + n * r, GOV3Function.C * n * r ) +
 					(long)Math.min( GOV3Function.C * post * 1.126 + post * w, GOV3Function.C * post * w ) +
 					pos * Long.SIZE;
 
-			if ( cost < bestCost ) { 
+			if ( cost < bestCost ) {
 				best = r;
 				bestCost = cost;
 			}
 
 			/* We add to pre and subtract from post the counts of keys from position (1<<r)-1 to position (1<<r+1)-1. */
 			for( int j = 0; j < ( 1 << r ) && pos < m; j++ ) {
-				final long c = counts.get( keysArray[ pos++ ] ); 
+				final long c = counts.get( keysArray[ pos++ ] );
 				post -= c;
-			}	
+			}
 		}
 
 		if ( ASSERTS ) assert pos == m;
-		
+
 		counts.clear();
 		counts.trim();
-		
+
 		// We must keep the remap array small.
 		if ( best >= Integer.SIZE ) best = Integer.SIZE - 1;
-		
+
 		LOGGER.debug( "Best threshold: " + best );
 		escape = ( 1 << best ) - 1;
 		System.arraycopy( keysArray, 0, remap = new long[ escape ], 0, remap.length );
@@ -294,11 +294,13 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 
 		if ( best != 0 ) {
 			firstFunction = new GOV3Function.Builder<T>().keys( keys ).transform( transform ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+				@Override
 				public long getLong( long index ) {
-					long value = map.get( values.getLong( index ) );
+					final long value = map.get( values.getLong( index ) );
 					return value == -1 ? escape : value;
 				}
 
+				@Override
 				public long size64() {
 					return n;
 				}
@@ -308,17 +310,13 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		else firstFunction = null;
 
-		chunkedHashStore.filter( new Predicate() {
-			public boolean evaluate( Object triple ) {
-				return firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape;
-			}
-		});
-		
+		chunkedHashStore.filter( triple -> firstFunction == null || firstFunction.getLongByTriple( (long[])triple ) == escape);
+
 		secondFunction = new GOV3Function.Builder<T>().store( chunkedHashStore ).values( values, w ).indirect().build();
 
 		this.seed = chunkedHashStore.seed();
 		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
-		
+
 		LOGGER.debug( "Actual bit cost per key of second function: " + (double)secondFunction.numBits() / n );
 
 		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
@@ -327,6 +325,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	}
 
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( n == 0 ) return defRetValue;
@@ -339,7 +338,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		return secondFunction.getLongByTriple( triple );
 	}
-	
+
 	public long getLongByTriple( final long[] triple ) {
 		if ( firstFunction != null ) {
 			final int firstValue = (int)firstFunction.getLongByTriple( triple );
@@ -348,13 +347,14 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		return secondFunction.getLongByTriple( triple );
 	}
-	
+
+	@Override
 	public long size64() {
 		return n;
 	}
 
 	/** Returns the number of bits used by this structure.
-	 * 
+	 *
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
@@ -375,7 +375,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
@@ -397,8 +397,8 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
-				? TransformationStrategies.rawIso() 
-				: utf32 
+				? TransformationStrategies.rawIso()
+				: utf32
 					? TransformationStrategies.rawUtf32()
 					: TransformationStrategies.rawUtf16();
 

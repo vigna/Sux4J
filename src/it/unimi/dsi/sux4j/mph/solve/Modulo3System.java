@@ -1,9 +1,16 @@
 package it.unimi.dsi.sux4j.mph.solve;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2015-2016 Sebastiano Vigna 
+ * Copyright (C) 2015-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -26,22 +33,15 @@ import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /** Solver for linear systems on <b>F</b><sub>3</sub>.
- * 
+ *
  * @author Sebastiano Vigna
  */
 
 public class Modulo3System {
 	private final static Logger LOGGER = LoggerFactory.getLogger( Modulo3System.class );
 		private final static boolean DEBUG = false;
-	
+
 	/** An equation on <b>F</b><sub>3</sub>. */
 	protected static class Modulo3Equation {
 		/** The vector representing the coefficients (two bits for each variable). */
@@ -52,7 +52,7 @@ public class Modulo3System {
 		protected final LongBigList list;
 		/** The constant term. */
 		protected int c;
-		/** The first variable. It is {@link Integer#MAX_VALUE} if the 
+		/** The first variable. It is {@link Integer#MAX_VALUE} if the
 		 * first variable is not known. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstVar;
 		/** The first coefficient. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
@@ -61,7 +61,7 @@ public class Modulo3System {
 		private boolean isEmpty;
 
 		/** Creates a new equation.
-		 * 
+		 *
 		 * @param c the constant term.
 		 * @param numVars the number of variables.
 		 */
@@ -73,7 +73,7 @@ public class Modulo3System {
 			this.firstVar = Integer.MAX_VALUE;
 			this.isEmpty = true;
 		}
-		
+
 		protected Modulo3Equation( final Modulo3Equation equation ){
 			this.c = equation.c;
 			this.bitVector = equation.bitVector.copy();
@@ -83,9 +83,9 @@ public class Modulo3System {
 			this.firstCoeff = equation.firstCoeff;
 			this.isEmpty = equation.isEmpty;
 		}
-		
+
 		/** Adds a new variable with given coefficient.
-		 * 
+		 *
 		 * @param variable a variable.
 		 * @param coefficient its coefficient.
 		 * @return this equation.
@@ -97,47 +97,47 @@ public class Modulo3System {
 			isEmpty = false;
 			return this;
 		}
-		
+
 		/** Adds a new variable with coefficient equal to one.
-		 * 
+		 *
 		 * @param variable a variable.
 		 * @return this equation.
 		 */
 		public Modulo3Equation add( final int variable ) {
 			return add( variable, 1 );
 		}
-		
+
 		/** Returns an array containing the variables in increasing order.
-		 * 
+		 *
 		 * <p>Mainly for debugging purposes.
-		 * 
+		 *
 		 * @return an array containing the variables in increasing order.
 		 * @see #coefficients()
 		 */
 		public int[] variables() {
-			IntArrayList variables = new IntArrayList();
+			final IntArrayList variables = new IntArrayList();
 			for( int i = 0; i < list.size64(); i++ ) if ( list.getLong( i ) != 0 ) variables.add( i );
 			return variables.toIntArray();
 		}
 
 		/** Returns an array containing the coefficients in variable increasing order.
-		 * 
+		 *
 		 * <p>Mainly for debugging purposes.
-		 * 
+		 *
 		 * @return an array, parallel to that returned by {@link #variables()}, containing the coefficients in variable increasing order.
 		 * @see #variables()
 		 */
 		public int[] coefficients() {
-			IntArrayList coefficients = new IntArrayList();
+			final IntArrayList coefficients = new IntArrayList();
 			for( int i = 0, c; i < list.size64(); i++ ) if ( ( c = (int)list.getLong( i ) ) != 0 ) coefficients.add( c );
 			return coefficients.toIntArray();
 		}
-		
+
 		/** Eliminates the given variable from this equation, using the provided equation, by subtracting it multiplied by a suitable constant.
-		 * 
+		 *
 		 * @param var a variable.
-		 * @param equation an equation in which {@code var} appears. 
-		 * 
+		 * @param equation an equation in which {@code var} appears.
+		 *
 		 * @return this equation.
 		 */
 		public Modulo3Equation eliminate( final int var , final Modulo3Equation equation  ) {
@@ -149,7 +149,7 @@ public class Modulo3System {
 		}
 
 		/** Subtract from this equation another equation multiplied by a provided constant.
-		 * 
+		 *
 		 * @param equation the subtrahend.
 		 * @param mul a multiplier that will be applied to the subtrahend.
 		 */
@@ -165,10 +165,10 @@ public class Modulo3System {
 		}
 
 		/** Adds two 64-bit words made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
-		 * 
+		 *
 		 * @param x a 64-bit word made of modulo-3 2-bit fields.
 		 * @param y a 64-bit word made of modulo-3 2-bit fields.
-		 * @return the field-by-field mod 3 sum of {@code x} and {@code y}. 
+		 * @return the field-by-field mod 3 sum of {@code x} and {@code y}.
 		 */
 		protected final static long addMod3( final long x, final long y ) {
 		    final long xy = x | y;
@@ -182,10 +182,10 @@ public class Modulo3System {
 	    }
 
 		/** Subtracts two 64-bit words made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
-		 * 
+		 *
 		 * @param x a 64-bit word made of modulo-3 2-bit fields.
 		 * @param y a 64-bit word made of modulo-3 2-bit fields.
-		 * @return the field-by-field mod 3 difference of {@code x} and {@code y}. 
+		 * @return the field-by-field mod 3 difference of {@code x} and {@code y}.
 		 */
 		protected final static long subMod3( final long x, long y ) {
 		    // y = 3 - y
@@ -198,29 +198,29 @@ public class Modulo3System {
 		    mask |= mask >>> 1;
 		    return x + y - mask;
 		}
-		
+
 
 		/** Adds to the left side of this equation a bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
-		 * 
+		 *
 		 * @param y a bit vector made of modulo-3 2-bit fields.
 		 */
 		private final void addMod3( final long[] y ) {
 			final long[] x = this.bits;
 			long isNotEmpty = 0;
-			for( int i = x.length; i-- != 0; ) 
+			for( int i = x.length; i-- != 0; )
 				isNotEmpty |= ( x[ i ] = addMod3( x[ i ], y[ i ] ) );
 			isEmpty = isNotEmpty == 0;
 		}
-		
+
 		/** Subtracts from the left side of this equation a bit vectors made of 2-bit fields containing 00, 01 or 10, interpreted as values mod 3.
-		 * 
+		 *
 		 * @param y a bit vector made of modulo-3 2-bit fields.
 		 */
 		private final void subMod3( final long[] y ) {
 			final long[] x = this.bits;
 			long isNotEmpty = 0;
-			for( int i = x.length; i-- != 0; ) 
-				isNotEmpty |= ( x[ i ] = subMod3( x[ i ], y[ i ] ) ); 
+			for( int i = x.length; i-- != 0; )
+				isNotEmpty |= ( x[ i ] = subMod3( x[ i ], y[ i ] ) );
 			isEmpty = isNotEmpty == 0;
 		}
 
@@ -243,7 +243,7 @@ public class Modulo3System {
 		public boolean isIdentity() {
 			return isEmpty && c == 0;
 		}
-		
+
 		@Override
 		public int hashCode() {
 			return HashCommon.murmurHash3(c ^ bitVector.hashCode());
@@ -257,7 +257,7 @@ public class Modulo3System {
 		}
 
 		/** Writes in the provided array a normalized (all coefficients turned into ones) version of the {@linkplain #bits bit vector representing the equation}.
-		 * 
+		 *
 		 * @param result an array where the result will be stored; must be long at least as {@link #bits}.
 		 */
 		public void normalized( final long[] result ) {
@@ -267,7 +267,7 @@ public class Modulo3System {
 		}
 
 		/** Returns the modulo-3 scalar product of the two provided bit vectors.
-		 * 
+		 *
 		 * @param x a bit vector represented as an array of longs.
 		 * @param y a bit vector represented as an array of longs.
 		 * @return the modulo-3 scalar product of {@code x} and {code y}.
@@ -286,8 +286,9 @@ public class Modulo3System {
 			return sum;
 		}
 
+		@Override
 		public String toString() {
-			StringBuilder b = new StringBuilder();
+			final StringBuilder b = new StringBuilder();
 			boolean someNonZero = false;
 			for( int i = 0; i < list.size64(); i++ ) {
 				final long coeff = list.getLong( i );
@@ -300,7 +301,7 @@ public class Modulo3System {
 			if ( ! someNonZero ) b.append( '0' );
 			return b.append( " = " ).append( c ).toString();
 		}
-		
+
 		public Modulo3Equation copy() {
 			return new Modulo3Equation( this );
 		}
@@ -310,9 +311,9 @@ public class Modulo3System {
 	private final int numVars;
 	/** The equations. */
 	private final ArrayList<Modulo3Equation> equations;
-	
+
 	public Modulo3System( final int numVars ) {
-		equations = new ArrayList<Modulo3Equation>();
+		equations = new ArrayList<>();
 		this.numVars = numVars;
 	}
 
@@ -320,15 +321,15 @@ public class Modulo3System {
 		this.equations = system;
 		this.numVars = numVars;
 	}
-	
+
 	public Modulo3System copy() {
-		ArrayList<Modulo3Equation> list = new ArrayList<Modulo3System.Modulo3Equation>( equations.size() );
-		for( Modulo3Equation equation: equations ) list.add( equation.copy() );
+		final ArrayList<Modulo3Equation> list = new ArrayList<>( equations.size() );
+		for( final Modulo3Equation equation: equations ) list.add( equation.copy() );
 		return new Modulo3System( numVars, list );
 	}
 
 	/** Adds an equation to the system.
-	 * 
+	 *
 	 * @param equation an equation with the same number of variables of the system.
 	 */
 	public void add( Modulo3Equation equation ) {
@@ -338,7 +339,7 @@ public class Modulo3System {
 
 	@Override
 	public String toString() {
-		StringBuilder b = new StringBuilder();
+		final StringBuilder b = new StringBuilder();
 		for ( int i = 0; i < equations.size(); i++ ) b.append( equations.get( i ) ).append( '\n' );
 		return b.toString();
 	}
@@ -356,7 +357,7 @@ public class Modulo3System {
 	public boolean check( final LongArrayBitVector solutions ) {
 		assert solutions.length() == numVars * 2;
 		final long[] solutionBits = solutions.bits();
-		for( Modulo3Equation equation: equations )
+		for( final Modulo3Equation equation: equations )
 			if ( equation.c != Modulo3Equation.scalarProduct( equation.bits, solutionBits ) % 3 ) return false;
 		return true;
 	}
@@ -365,11 +366,11 @@ public class Modulo3System {
 	private boolean echelonForm() {
 		main: for ( int i = 0; i < equations.size() - 1; i++ ) {
 			assert equations.get( i ).firstVar != Integer.MAX_VALUE;
-			
+
 			for ( int j = i + 1; j < equations.size(); j++ ) {
 				// Note that because of exchanges we cannot extract the first assignment
-				Modulo3Equation eqJ = equations.get( j );
-				Modulo3Equation eqI = equations.get( i );
+				final Modulo3Equation eqJ = equations.get( j );
+				final Modulo3Equation eqI = equations.get( i );
 
 				assert eqI.firstVar != Integer.MAX_VALUE;
 				assert eqJ.firstVar != Integer.MAX_VALUE;
@@ -386,20 +387,20 @@ public class Modulo3System {
 				if ( eqI.firstVar > eqJ.firstVar ) Collections.swap( equations, i, j );
 			}
 		}
-	
+
 		return true;
 	}
 
 
 	/** Solves the system using Gaussian elimination and write the solution
-	 * in an array of longs (mainly for testing purposes). 
-	 * 
-	 * @param solution an array where the solution will be written. 
+	 * in an array of longs (mainly for testing purposes).
+	 *
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public boolean gaussianElimination( final long[] solution ) {
 		assert solution.length == numVars;
-		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
+		final LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
 		if ( ! gaussianElimination( solutions ) ) return false;
 		final LongBigList list = solutions.asLongBigList( 2 );
 		for( int i = solution.length; i-- != 0; ) solution[ i ] = list.getLong( i );
@@ -408,15 +409,15 @@ public class Modulo3System {
 
 
 	/** Solves the system using Gaussian elimination and write the solution
-	 * in a bit vector. 
-	 * 
-	 * @param solution a bit vector where the solution will be written using 
-	 * two bits per value. 
+	 * in a bit vector.
+	 *
+	 * @param solution a bit vector where the solution will be written using
+	 * two bits per value.
 	 * @return true if the system is solvable.
 	 */
 	public boolean gaussianElimination( final LongArrayBitVector solution ) {
 		assert solution.length() == numVars * 2;
-		for ( Modulo3Equation equation: equations ) equation.updateFirstVar();
+		for ( final Modulo3Equation equation: equations ) equation.updateFirstVar();
 
 		if ( ! echelonForm() ) return false;
 
@@ -437,69 +438,69 @@ public class Modulo3System {
 
 		return true;
 	}
-	/** Solves the system using lazy Gaussian elimination. 
-	 * 
+	/** Solves the system using lazy Gaussian elimination.
+	 *
 	 * <p><strong>Warning</strong>: this method is very inefficient, as it
 	 * scans linearly the equations, builds from scratch the {@code var2Eq}
 	 * parameter of {@link #lazyGaussianElimination(Modulo3System, int[][], int[], int[], long[])}
 	 * and finally calls it. It should be used mainly to write unit tests.
-	 * 
-	 * @param solution an array where the solution will be written. 
+	 *
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public boolean lazyGaussianElimination( final long[] solution ) {
 		final int[][] var2Eq = new int[ numVars ][];
 		final int[] d = new int[ numVars ];
-		for( final Modulo3Equation equation: equations ) 
-			for( int v = (int) equation.list.size64(); v-- != 0; ) 
-				if ( equation.list.getLong( v ) != 0 ) d[ v ]++; 
-		
+		for( final Modulo3Equation equation: equations )
+			for( int v = (int) equation.list.size64(); v-- != 0; )
+				if ( equation.list.getLong( v ) != 0 ) d[ v ]++;
+
 		for( int v = numVars; v-- != 0; ) var2Eq[ v ] = new int[ d[ v ] ];
 		Arrays.fill( d, 0 );
 		final int[] c = new int[ equations.size() ];
 		for( int e = 0; e < equations.size(); e++ ) {
 			c[ e ] = equations.get( e ).c;
-			LongBigList list = equations.get( e ).list;
-			for( int v = (int) list.size64(); v-- != 0; ) 
+			final LongBigList list = equations.get( e ).list;
+			for( int v = (int) list.size64(); v-- != 0; )
 				if ( list.getLong( v ) != 0 ) var2Eq[ v ][ d[ v ]++ ] = e;
 		}
-		
+
 		return lazyGaussianElimination( this, var2Eq, c, Util.identity( numVars ), solution );
 	}
 
-	/** Solves a system using lazy Gaussian elimination. 
+	/** Solves a system using lazy Gaussian elimination.
 	 *
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
 	 * equation indices must appear in nondecreasing order; an equation
-	 * may appear several times for a given variable, in which case the final coefficient 
+	 * may appear several times for a given variable, in which case the final coefficient
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
 	 * when calling this method from a {@link Linear3SystemSolver}). Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
-	 * (variables not appearing in this array will be simply assigned zero).  
-	 * @param solution an array where the solution will be written. 
+	 * (variables not appearing in this array will be simply assigned zero).
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public static boolean lazyGaussianElimination( final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
 		return lazyGaussianElimination( null, var2Eq, c, variable, solution );
 	}
-	
-	/** Solves a system using lazy Gaussian elimination. 
+
+	/** Solves a system using lazy Gaussian elimination.
 	 *
 	 * @param system a modulo-3 system, or {@code null}, in which case the system will be rebuilt
 	 * from the other variables.
-	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears; 
+	 * @param var2Eq an array of arrays describing, for each variable, in which equation it appears;
 	 * equation indices must appear in nondecreasing order; an equation
-	 * may appear several times for a given variable, in which case the final coefficient 
+	 * may appear several times for a given variable, in which case the final coefficient
 	 * of the variable in the equation is given by the number of appearances modulo 3 (this weird format is useful
 	 * when calling this method from a {@link Linear3SystemSolver}). The resulting system
 	 * must be identical to {@code system}. Note that this array
 	 * will be altered if some equation appears multiple time associated with a variable.
 	 * @param c the array of known terms, one for each equation.
 	 * @param variable the variables with respect to which the system should be solved
-	 * (variables not appearing in this array will be simply assigned zero).  
-	 * @param solution an array where the solution will be written. 
+	 * (variables not appearing in this array will be simply assigned zero).
+	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
 	public static boolean lazyGaussianElimination( Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution ) {
@@ -510,14 +511,14 @@ public class Modulo3System {
 		assert solution.length == numVars;
 
 		final boolean buildSystem = system == null;
-		
+
 		if ( buildSystem ) {
 			system = new Modulo3System( numVars );
 			for( int i = 0; i < c.length; i++ ) system.add( new Modulo3Equation( c[ i ], numVars ) );
 		}
-		
-		/* The weight of each variable, that is, the number of equations still 
-		 * in the queue in which the variable appears. We use zero to 
+
+		/* The weight of each variable, that is, the number of equations still
+		 * in the queue in which the variable appears. We use zero to
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[ numVars ];
 
@@ -527,7 +528,7 @@ public class Modulo3System {
 		for( final int v : variable ) {
 			final int[] eq = var2Eq[ v ];
 			if ( eq.length == 0 ) continue;
-			
+
 			int currEq = eq[ 0 ];
 			int currCoeff = 1;
 			int j = 0;
@@ -551,25 +552,25 @@ public class Modulo3System {
 				}
 				else currCoeff++;
 			}
-		
+
 			if ( currCoeff != 3 ) {
 				if ( buildSystem ) system.equations.get( currEq ).add( v, currCoeff );
 				weight[ v ]++;
 				priority[ currEq ]++;
 				eq[ j++ ] = currEq;
 			}
-			
+
 			// In case we found duplicates, we replace the array with a uniquified one.
 			if ( j != eq.length ) var2Eq[ v ] = Arrays.copyOf( var2Eq[ v ], j );
 		}
-		
+
 		if ( DEBUG ) {
 			System.err.println();
 			System.err.println( "===== Going to solve... ======" );
 			System.err.println();
 			System.err.println( system );
 		}
-			
+
 		// All variables in a stack returning heavier variables first.
 		final IntArrayList variables;
 		{
@@ -580,16 +581,16 @@ public class Modulo3System {
 			for( int i = variable.length; i-- != 0; ) u[ --count[ weight[ variable[ i ] ] ] ] = variable[ i ];
 			variables = IntArrayList.wrap( u );
 		}
-		
+
 		// The equations that are not dense and have weight <= 1.
 		final IntArrayList equationList = new IntArrayList();
 		for( int i = priority.length; i-- != 0; ) if ( priority[ i ] <= 1 ) equationList.add( i );
 		// The equations that are part of the dense system (entirely made of active variables).
-		ArrayList<Modulo3Equation> dense = new ArrayList<Modulo3Equation>();
+		final ArrayList<Modulo3Equation> dense = new ArrayList<>();
 		// The equations that define a solved variable in term of active variables.
-		ArrayList<Modulo3Equation> solved = new ArrayList<Modulo3Equation>();
+		final ArrayList<Modulo3Equation> solved = new ArrayList<>();
 		// The solved variables (parallel to solved).
-		IntArrayList pivots = new IntArrayList();
+		final IntArrayList pivots = new IntArrayList();
 
 		final ArrayList<Modulo3Equation> equations = system.equations;
 		final long[] normalized = new long[ equations.get( 0 ).bits.length ];
@@ -624,13 +625,13 @@ public class Modulo3System {
 					dense.add( equation );
 				}
 				else if ( priority[ first ] == 1 ) {
-					/* This is solved (in terms of the active variables). Let's find the pivot, that is, 
+					/* This is solved (in terms of the active variables). Let's find the pivot, that is,
 					 * the only idle variable. Note that we do not need to update varEquation[] of any variable, as they
 					 * are all either active (the non-pivot), or appearing only in this equation (the pivot). */
 					equation.normalized( normalized );
 					int wordIndex = 0;
 					while( ( normalized[ wordIndex ] & idleNormalized[ wordIndex ] ) == 0 ) wordIndex++;
-					final int pivot = wordIndex * 32 + Long.numberOfTrailingZeros( normalized[ wordIndex ] & idleNormalized[ wordIndex ] ) / 2; 
+					final int pivot = wordIndex * 32 + Long.numberOfTrailingZeros( normalized[ wordIndex ] & idleNormalized[ wordIndex ] ) / 2;
 
 					// Record the idle variable and the equation for computing it later.
 					if ( DEBUG ) System.err.println( "Adding to solved variables x_" + pivot + " by equation " + equation );
@@ -659,8 +660,8 @@ public class Modulo3System {
 			System.err.println( "Pivots: " + pivots );
 		}
 
-		Modulo3System denseSystem = new Modulo3System( numVars, dense );
-		LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 ); 
+		final Modulo3System denseSystem = new Modulo3System( numVars, dense );
+		final LongArrayBitVector solutions = LongArrayBitVector.ofLength( numVars * 2 );
 		if ( ! denseSystem.gaussianElimination( solutions ) ) return false;  // numVars >= denseSystem.numVars
 
 		final long[] solutionBits = solutions.bits();
@@ -685,7 +686,7 @@ public class Modulo3System {
 		if ( DEBUG ) System.err.println( "Solution (all): " + solutionList );
 
 		assert system.check( solutions );
-		
+
 		// TODO: this could be significantly faster
 		for( int i = 0; i < solution.length; i++ ) solution[ i ] = solutionList.getLong( i );
 		return true;

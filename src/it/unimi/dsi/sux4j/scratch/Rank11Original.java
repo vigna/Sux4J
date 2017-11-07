@@ -1,9 +1,12 @@
 package it.unimi.dsi.sux4j.scratch;
 
-/*		 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2014 Sebastiano Vigna 
+ * Copyright (C) 2014 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,11 +30,8 @@ import it.unimi.dsi.sux4j.bits.AbstractRank;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank9;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
-/** A <code>rank11</code> implementation. 
- * 
+/** A <code>rank11</code> implementation.
+ *
  * <p><code>rank11</code> is a ranking structure using 6.25% additional space and providing very fast ranking.
  * It was proposed by Simon Gog and Matthias Petri in &ldquo;Optimized succinct data structures for massive data&rdquo;,
  * <i>Softw. Pract. Exper.</i>, 2014. The only difference between this implementation and their
@@ -49,7 +49,7 @@ public class Rank11Original extends AbstractRank implements Rank {
 	protected final int numWords;
 	protected final long numOnes;
 	protected final long lastOne;
-	
+
 	public Rank11Original( long[] bits, long length ) {
 		this( LongArrayBitVector.wrap( bits, length ) );
 	}
@@ -58,7 +58,7 @@ public class Rank11Original extends AbstractRank implements Rank {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
-		
+
 		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
 
 		final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
@@ -78,37 +78,41 @@ public class Rank11Original extends AbstractRank implements Rank {
 				}
 			}
 		}
-		
+
 		numOnes = c;
 		lastOne = l;
 		count[ numCounts ] = c;
 	}
-	
-	
+
+
+	@Override
 	public long rank( long pos ) {
 		if ( ASSERTS ) assert pos >= 0;
 		if ( ASSERTS ) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if ( pos > lastOne ) return numOnes;
-		
+
 		int word = (int)( pos / Long.SIZE );
 		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
         final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 );
 		long result = count[ block ] + ( count[ block + 1 ] >> ( 60 - 12 * offset ) & 0x7FF ) +
-				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 ); 
-		
+				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 );
+
 		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += Long.bitCount( bits[ --word ] );
         return result;
 	}
 
+	@Override
 	public long numBits() {
 		return count.length * (long)Long.SIZE;
 	}
 
+	@Override
 	public long count() {
 		return numOnes;
 	}
 
+	@Override
 	public long rank( long from, long to ) {
 		return rank( to ) - rank( from );
 	}
@@ -122,6 +126,7 @@ public class Rank11Original extends AbstractRank implements Rank {
 		bits = bitVector.bits();
 	}
 
+	@Override
 	public BitVector bitVector() {
 		return bitVector;
 	}

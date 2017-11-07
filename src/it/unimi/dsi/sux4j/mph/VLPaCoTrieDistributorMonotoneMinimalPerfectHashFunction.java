@@ -1,9 +1,30 @@
 package it.unimi.dsi.sux4j.mph;
 
-/*		 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -36,32 +57,11 @@ import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.util.XorShift1024StarRandomGenerator;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /** A version of a {@link PaCoTrieDistributorMonotoneMinimalPerfectHashFunction} whose space usage depends on the <em>average</em>
  * string length, rather than on the <em>maximum string length</em>; mainly of theoretical interest.
- * 
+ *
  * @author Sebastiano Vigna
  */
 
@@ -69,7 +69,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
     public static final long serialVersionUID = 3L;
 	private static final Logger LOGGER = LoggerFactory.getLogger( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class );
 	private static final boolean ASSERTS = false;
-	
+
 	/** The number of elements. */
 	private final long size;
 	/** The size of a bucket. */
@@ -83,7 +83,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	/** The offset of each element into his bucket. */
 	private final GOV3Function<BitVector> offset;
 	private SparseSelect select;
-	
+
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return defRetValue;
@@ -93,8 +94,8 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	}
 
 	/** Creates a new PaCo-trie-based monotone minimal perfect hash function using the given
-	 * elements and transformation strategy. 
-	 * 
+	 * elements and transformation strategy.
+	 *
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param transform a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, prefix-free, lexicographically increasing (in iteration order) bit vectors.
@@ -107,27 +108,27 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		long maxLength = 0;
 		long totalLength = 0;
 		BitVector bv;
-		final RandomGenerator random = new XorShift1024StarRandomGenerator();
-		ProgressLogger pl = new ProgressLogger( LOGGER );
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator();
+		final ProgressLogger pl = new ProgressLogger( LOGGER );
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
-		
+
 		pl.start( "Creating chunked hash store..." );
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<BitVector>( TransformationStrategies.identity() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>( TransformationStrategies.identity() );
 		chunkedHashStore.reset( random.nextLong() );
-		for( T s: elements ) {
+		for( final T s: elements ) {
 			bv = transform.toBitVector( s );
 			chunkedHashStore.add( bv );
 			maxLength = Math.max( maxLength, bv.length() );
 			totalLength += bv.length();
 			pl.lightUpdate();
 		}
-		
+
 		pl.done();
-		
+
 		size = chunkedHashStore.size();
-		
+
 		if ( size == 0 )	{
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
@@ -137,28 +138,28 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 
 		final long averageLength = ( totalLength + size - 1 ) / size;
-		
-		int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( size ) - Math.log( averageLength - Math.log( size ) ) - 1 ) );
+
+		final int t = Fast.mostSignificantBit( (int)Math.floor( averageLength - Math.log( size ) - Math.log( averageLength - Math.log( size ) ) - 1 ) );
 		final int firstbucketSize = 1 << t;
 		LOGGER.debug( "First bucket size estimate: " +  firstbucketSize );
-		
+
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(  elements, transform );
-		
-		VLPaCoTrieDistributor<BitVector> firstDistributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
+
+		VLPaCoTrieDistributor<BitVector> firstDistributor = new VLPaCoTrieDistributor<>( bitVectors, size, firstbucketSize, TransformationStrategies.identity() );
 
 		if ( firstDistributor.numBits() == 0 || firstbucketSize >= size ) log2BucketSize = t;
 		else {
 			// Reassign bucket size based on empirical estimation
 			log2BucketSize = t - Fast.mostSignificantBit( (int)Math.ceil( size / ( firstDistributor.numBits() * Math.log( 2 ) ) ) );
 		}
-		
+
 		bucketSize = 1 << log2BucketSize;
 		LOGGER.debug( "Second bucket size estimate: " + bucketSize );
 
 		if ( firstbucketSize == bucketSize ) distributor = firstDistributor;
 		else {
 			firstDistributor = null;
-			distributor = new VLPaCoTrieDistributor<BitVector>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
+			distributor = new VLPaCoTrieDistributor<>( bitVectors, size, bucketSize, TransformationStrategies.identity() );
 		}
 
 		LOGGER.info( "Bucket size: " + bucketSize );
@@ -168,7 +169,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			sparseRank = new SparseRank( distributor.offset.getLong( distributor.offset.size64() - 1 ) + 1, distributor.offset.size64(), distributor.offset.iterator() );
 			if ( ASSERTS ) {
 				long i = 0;
-				for( BitVector b: bitVectors ) {
+				for( final BitVector b: bitVectors ) {
 					final long d = distributor.getLong( b );
 					assert sparseRank.rank( i ) == d : "At " + i + ": " + sparseRank.rank( i ) + " != " + d;
 					i++;
@@ -181,17 +182,19 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			sparseRank = null;
 			select = null;
 		}
-		
+
 		if ( size > 0 ) {
 			offset = new GOV3Function.Builder<BitVector>().keys( bitVectors ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+				@Override
 				public long getLong( long index ) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank( index );
 					if ( ASSERTS ) {
 						assert rank == 0 || distributor.offset.getLong( rank - 1 ) <= index : distributor.offset.getLong( rank - 1 )  + " >= " + index + "(rank=" + rank + ")";
 						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset.getLong( rank - 1 ) < bucketSize * 2;
 					}
-					return rank == 0 ? index : index - distributor.offset.getLong( rank - 1 ); 
+					return rank == 0 ? index : index - distributor.offset.getLong( rank - 1 );
 				}
+				@Override
 				public long size64() {
 					return size;
 				}
@@ -208,6 +211,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
 	}
 
+	@Override
 	public long size64() {
 		return size;
 	}
@@ -215,7 +219,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	public long numBits() {
 		return distributor.numBits() + ( offset == null ? 0 : offset.numBits() ) + transform.numBits() + ( select == null ? 0 : select.numBits() );
 	}
-	
+
 	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
 
 		final SimpleJSAP jsap = new SimpleJSAP( VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a variable-length PaCo trie-based monotone minimal perfect hash function reading a newline-separated list of strings.",
@@ -229,7 +233,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
 		});
 
-		JSAPResult jsapResult = jsap.parse( arg );
+		final JSAPResult jsapResult = jsap.parse( arg );
 		if ( jsap.messagePrinted() ) return;
 
 		final String functionName = jsapResult.getString( "function" );
@@ -250,10 +254,10 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			pl.done();
 		}
 		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker 
+		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
 				? new HuTuckerTransformationStrategy( collection, true )
 				: iso
-					? TransformationStrategies.prefixFreeIso() 
+					? TransformationStrategies.prefixFreeIso()
 					: utf32
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();

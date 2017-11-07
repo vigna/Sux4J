@@ -1,11 +1,11 @@
 package it.unimi.dsi.sux4j.bits;
 
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.util.XorShift1024StarRandom;
-
 import java.util.Random;
 
 import org.junit.Test;
+
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class Rank11Test extends RankSelectTestCase {
 
@@ -92,8 +92,8 @@ public class Rank11Test extends RankSelectTestCase {
 	public void testRandom() {
 		for ( int size = 10; size <= 100000000; size *= 10 ) {
 			System.err.println( size );
-			Random r = new XorShift1024StarRandom( 1 );
-			LongArrayBitVector bitVector = LongArrayBitVector.getInstance( size );
+			final Random r = new XoRoShiRo128PlusRandom( 1 );
+			final LongArrayBitVector bitVector = LongArrayBitVector.getInstance( size );
 			for ( int i = 0; i < size; i++ )
 				bitVector.add( r.nextBoolean() );
 			Rank11 rank11b;

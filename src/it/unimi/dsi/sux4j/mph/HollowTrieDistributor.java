@@ -8,10 +8,10 @@ import java.util.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*		 
+/*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna 
+ * Copyright (C) 2008-2016 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -48,15 +48,15 @@ import it.unimi.dsi.sux4j.bits.BalancedParentheses;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 
 /** A distributor based on a hollow trie.
- * 
+ *
  * <h2>Implementation details</h2>
- * 
+ *
  * <p>This class implements a distributor on top of a hollow trie. First, a compacted trie is built from the delimiter set.
  * Then, for each key we compute the node of the trie in which the bucket of the key is established. This gives us,
  * for each node of the trie, a set of paths to which we must associate an action (exit on the left,
  * go through, exit on the right). Overall, the number of such paths is equal to the number of keys plus the number of delimiters, so
  * the mapping from each pair node/path to the respective action takes linear space. Now, from the compacted trie we just
- * retain a hollow trie, as the path-length information is sufficient to rebuild the keys of the above mapping. 
+ * retain a hollow trie, as the path-length information is sufficient to rebuild the keys of the above mapping.
  * By sizing the bucket size around the logarithm of the average length, we obtain a distributor that occupies linear space.
  */
 
@@ -72,7 +72,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	private final static int RIGHT = 1;
 	/** An integer representing the follow-the-try behaviour. */
 	private final static int FOLLOW = 2;
-	
+
 	/** The transformation used to map object to bit vectors. */
 	private final TransformationStrategy<? super T> transformationStrategy;
 	/** The bitstream representing the hollow trie. */
@@ -94,9 +94,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	Object2LongFunction<BitVector> externalTestFunction;
 	/** A debug function used to store explicitly the false follow detector. */
 	Object2LongFunction<BitVector> falseFollows;
-		
+
 	/** Creates a partial compacted trie using given elements, bucket size and transformation strategy.
-	 * 
+	 *
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
@@ -107,7 +107,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 	/** Creates a hollow trie distributor.
-	 * 
+	 *
 	 * @param elements the elements among which the trie must be able to rank.
 	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
@@ -130,12 +130,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 		if ( DEBUG ) System.err.println( "Bucket size: " + bucketSize );
 		final long[] count = new long[ 1 ];
-		
-		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<T>( new ObjectIterator<T>() {
+
+		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>( new ObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
 			boolean toAdvance = true;
 			private T curr;
 
+			@Override
 			public boolean hasNext() {
 				if ( toAdvance ) {
 					toAdvance = false;
@@ -149,6 +150,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				return curr != null;
 			}
 
+			@Override
 			public T next() {
 				if ( ! hasNext() ) throw new NoSuchElementException();
 				toAdvance = true;
@@ -159,9 +161,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		size = count[ 0 ];
 
 		if ( ASSERTS ) {
-			externalTestFunction = new Object2LongOpenHashMap<BitVector>();
+			externalTestFunction = new Object2LongOpenHashMap<>();
 			externalTestFunction.defaultReturnValue( -1 );
-			falseFollows = new Object2LongOpenHashMap<BitVector>();
+			falseFollows = new Object2LongOpenHashMap<>();
 			falseFollows.defaultReturnValue( -1 );
 		}
 
@@ -173,13 +175,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		falseFollowsValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
 		long sumOfSkipLengths = 0;
-		
+
 		if ( intermediateTrie.size64() > 0 ) {
 			final OutputBitStream externalKeys = new OutputBitStream( externalKeysFile );
 			final OutputBitStream falseFollowsKeys = new OutputBitStream( falseFollowsKeyFile );
 
-			Iterator<? extends T> iterator = elements.iterator();
-			LongArrayBitVector bucketKey[] = new LongArrayBitVector[ bucketSize ];
+			final Iterator<? extends T> iterator = elements.iterator();
+			final LongArrayBitVector bucketKey[] = new LongArrayBitVector[ bucketSize ];
 
 			LongArrayBitVector leftDelimiter, rightDelimiter = null;
 			long delimiterLcp = -1;
@@ -187,14 +189,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			trie = intermediateTrie.trie;
 			skips = intermediateTrie.skips;
 			balParen = intermediateTrie.balParen;
-			LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size64() );
+			final LongArrayBitVector emitted = LongArrayBitVector.ofLength( intermediateTrie.size64() );
 
-			ProgressLogger pl = new ProgressLogger( LOGGER );
+			final ProgressLogger pl = new ProgressLogger( LOGGER );
 			pl.displayLocalSpeed = true;
 			pl.displayFreeMemory = true;
 			pl.expectedUpdates = size;
 			pl.start( "Computing function keys..." );
-			
+
 			while( iterator.hasNext() ) {
 
 				int realBucketSize;
@@ -207,14 +209,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				leftDelimiter = rightDelimiter;
 				rightDelimiter = realBucketSize == bucketSize ? bucketKey[ bucketSize - 1 ] : null;
 				delimiterLcp = ( rightDelimiter != null && leftDelimiter != null ) ? rightDelimiter.longestCommonPrefixLength( leftDelimiter ) : -1;
-				
+
 				long stackP[] = new long[ 1024 ];
 				long stackR[] = new long[ 1024 ];
 				int stackS[] = new int[ 1024 ];
 				long stackIndex[] = new long[ 1024 ];
 				stackP[ 0 ] = 1;
 				int depth = 0;
-				
+
 				int pathLength;
 				long lastNode = -1;
 				BitVector lastPath = null;
@@ -225,14 +227,16 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 					curr = bucketKey[ j ];
 					if ( DEBUG ) System.err.println( curr );
 
-					long p = 1, length = curr.length(), index = 0, r = 0;
+					long p = 1;
+					final long length = curr.length();
+					long index = 0, r = 0;
 					int s = 0, skip = 0;
 					boolean isInternal;
 					int startPath = -1, endPath = -1;
 					boolean exitLeft = false;
 					if ( DEBUG ) System.err.println( "Distributing " + curr + "\ntrie:" + trie );
-					long maxDescentLength; 
-					
+					long maxDescentLength;
+
 					if ( prev != null )  {
 						final int prefix = (int)curr.longestCommonPrefixLength( prev );
 						if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
@@ -256,14 +260,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 						exitLeft = false;
 					}
 					else maxDescentLength = ( exitLeft = curr.getBoolean( delimiterLcp ) ) ? rightDelimiter.longestCommonPrefixLength( curr  ) + 1 : leftDelimiter.longestCommonPrefixLength( curr ) + 1;
-					
+
 					for(;;) {
 						isInternal = trie.getBoolean( p );
-						if ( isInternal ) skip = (int)skips.getLong( r );	
+						if ( isInternal ) skip = (int)skips.getLong( r );
 						if ( DEBUG ) {
 							final int usedLength = (int)( isInternal ? Math.min( length, s + skip ) : length - s );
 							final BitVector usedPath = curr.subVector( s, s + usedLength );
-							System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) + ", [" + usedLength + ", " + Integer.toHexString( usedPath.hashCode() ) + "] " + usedPath + "> " + ( isInternal ? "" : "(skip: " + skip + ")" ) ); 
+							System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) + ", [" + usedLength + ", " + Integer.toHexString( usedPath.hashCode() ) + "] " + usedPath + "> " + ( isInternal ? "" : "(skip: " + skip + ")" ) );
 						}
 
 						if ( isInternal && s + skip < maxDescentLength && ! emitted.getBoolean( r ) ) {
@@ -272,16 +276,16 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							falseFollowsValues.add( 0 );
 							falseFollowsKeys.writeLong( p - 1, Long.SIZE );
 							falseFollowsKeys.writeDelta( skip );
-							for( int i = 0; i < skip; i += Long.SIZE ) 
+							for( int i = 0; i < skip; i += Long.SIZE )
 								falseFollowsKeys.writeLong( curr.getLong( s + i, Math.min( s + i + Long.SIZE, s + skip ) ), Math.min( Long.SIZE, skip - i ) );
 
 							if ( DEBUG ) System.err.println( "Adding true follow at " + ( p - 1 ) + " [" + skip + ", " + Integer.toHexString( curr.subVector( s, s + skip ).hashCode() ) + "] " + curr.subVector( s, s + skip ) );
 
 							if ( ASSERTS ) {
-								long key[] = new long[ ( skip + Long.SIZE - 1 ) / Long.SIZE + 1 ];
+								final long key[] = new long[ ( skip + Long.SIZE - 1 ) / Long.SIZE + 1 ];
 								key[ 0 ] = p - 1;
 								for( int i = 0; i < skip; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = curr.getLong( s + i, Math.min( s + i + Long.SIZE, s + skip ) );
-								long result = falseFollows.put( LongArrayBitVector.wrap( key, skip + Long.SIZE ), 0 );
+								final long result = falseFollows.put( LongArrayBitVector.wrap( key, skip + Long.SIZE ), 0 );
 								assert result == -1 : result + " != " + -1;
 								if ( DEBUG ) System.err.println( falseFollows );
 							}
@@ -312,14 +316,14 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							stackS = IntArrays.grow( stackS, depth + 1 );
 							stackIndex = LongArrays.grow(  stackIndex, depth + 1 );
 						}
-						
+
 						stackP[ depth ] = p;
 						stackR[ depth ] = r;
 						stackS[ depth ] = s;
 						stackIndex[ depth ] = index;
 					}
 
-					
+
 					if ( isInternal ) {
 						startPath = s - skip;
 						endPath = (int)Math.min( length, s );
@@ -339,13 +343,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 						externalKeys.writeLong( p - 1, Long.SIZE );
 						externalKeys.writeDelta( pathLength );
-						for( int i = 0; i < pathLength; i += Long.SIZE ) 
+						for( int i = 0; i < pathLength; i += Long.SIZE )
 							externalKeys.writeLong( curr.getLong( startPath + i, Math.min( startPath + i + Long.SIZE, endPath ) ), Math.min( Long.SIZE, endPath - i - startPath ) );
 
 						if ( DEBUG ) System.err.println( "Computed " + ( isInternal ? "" : "leaf " ) + "mapping <" + ( p - 1 ) + ", [" + pathLength + ", " + Integer.toHexString( curr.subVector( startPath, endPath ).hashCode() ) + "] " + curr.subVector( startPath, endPath ) + "> -> " + ( exitLeft ? "left" : "right" ) );
 
 						if ( ASSERTS ) {
-							long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
+							final long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
 							key[ 0 ] = p - 1;
 							for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = curr.getLong( startPath + i, Math.min( startPath + i + Long.SIZE, endPath ) );
 							assert externalTestFunction.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), exitLeft ? LEFT : RIGHT ) == -1;
@@ -360,11 +364,11 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							falseFollowsValues.add( 1 );
 							falseFollowsKeys.writeLong( p - 1, Long.SIZE );
 							falseFollowsKeys.writeDelta( pathLength );
-							for( int i = 0; i < pathLength; i += Long.SIZE ) 
+							for( int i = 0; i < pathLength; i += Long.SIZE )
 								falseFollowsKeys.writeLong( curr.getLong( startPath + i, Math.min( startPath + i + Long.SIZE, endPath ) ), Math.min( Long.SIZE, endPath - i - startPath ) );
 
 							if ( ASSERTS ) {
-								long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
+								final long key[] = new long[ ( pathLength + Long.SIZE - 1 ) / Long.SIZE + 1 ];
 								key[ 0 ] = p - 1;
 								for( int i = 0; i < pathLength; i += Long.SIZE ) key[ i / Long.SIZE + 1 ] = curr.getLong( startPath + i, Math.min( startPath + i + Long.SIZE, endPath ) );
 								assert falseFollows.put( LongArrayBitVector.wrap( key, pathLength + Long.SIZE ), 1 ) == -1;
@@ -382,20 +386,20 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			falseFollowsKeys.close();
 		}
 		else {
-			trie = null; 
+			trie = null;
 			balParen = null;
 			skips = null;
 			falseFollowsDetector = null;
 			externalBehaviour = null;
 			return;
 		}
-		
+
 		/** A class iterating over the temporary files produced by the intermediate trie. */
 		class IterableStream implements Iterable<BitVector> {
-			private InputBitStream ibs;
-			private long n;
-			private Object2LongFunction<BitVector> test;
-			private LongBigList values;
+			private final InputBitStream ibs;
+			private final long n;
+			private final Object2LongFunction<BitVector> test;
+			private final LongBigList values;
 
 			public IterableStream( final InputBitStream ibs, final Object2LongFunction<BitVector> testFunction, final LongBigList testValues ) {
 				this.ibs = ibs;
@@ -404,16 +408,19 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				this.values = testValues;
 			}
 
+			@Override
 			public Iterator<BitVector> iterator() {
 				try {
 					ibs.position( 0 );
 					return new ObjectIterator<BitVector>() {
 						private long pos = 0;
 
+						@Override
 						public boolean hasNext() {
 							return pos < n;
 						}
 
+						@Override
 						public BitVector next() {
 							if ( ! hasNext() ) throw new NoSuchElementException();
 							try {
@@ -434,13 +441,13 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 								pos++;
 								return LongArrayBitVector.wrap( key, pathLength + Long.SIZE );
 							}
-							catch ( IOException e ) {
+							catch ( final IOException e ) {
 								throw new RuntimeException( e );
 							}
 						}
 					};
 				}
-				catch ( IOException e ) {
+				catch ( final IOException e ) {
 					throw new RuntimeException( e );
 				}
 			}
@@ -453,7 +460,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			assert externalBehaviour.size64() == externalTestFunction.size();
 			assert falseFollowsDetector.size64() == falseFollows.size();
 		}
-		
+
 		LOGGER.debug( "False positives: " + ( falseFollowsDetector.size64() - intermediateTrie.size64() ) );
 
 		externalKeysFile.delete();
@@ -461,13 +468,16 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong( final Object o ) {
 		if ( size == 0 ) return 0;
 		final BitVector bitVector = transformationStrategy.toBitVector( (T)o ).fast();
-		LongArrayBitVector key = LongArrayBitVector.getInstance();
+		final LongArrayBitVector key = LongArrayBitVector.getInstance();
 		BitVector fragment = null;
-		long p = 1, length = bitVector.length(), index = 0, r = 0;
+		long p = 1;
+		final long length = bitVector.length();
+		long index = 0, r = 0;
 		int s = 0, skip = 0, behaviour;
 		long lastLeftTurn = 0;
 		long lastLeftTurnIndex = 0;
@@ -481,9 +491,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			if ( DEBUG ) {
 				final int usedLength = (int)( isInternal ? Math.min( length, s + skip ) : length - s );
 				final BitVector usedPath = bitVector.subVector( s, s + usedLength );
-				System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) + 
-					", [" + Math.min( length, s + skip ) + ", " 
-					+ Integer.toHexString( usedPath.hashCode() ) + "] " + 
+				System.err.println( "Interrogating" + ( isInternal ? "" : " leaf" ) + " <" + ( p - 1 ) +
+					", [" + Math.min( length, s + skip ) + ", "
+					+ Integer.toHexString( usedPath.hashCode() ) + "] " +
 					usedPath + "> " + ( isInternal ? "" : "(skip: " + skip + ")" ) );
 			}
 
@@ -493,9 +503,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			if ( ASSERTS ) {
 				assert ! isInternal || falseFollows.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) != -1;
 				if ( behaviour != FOLLOW ) {
-					assert ! isInternal || falseFollows.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) == 1;				
-					final long result; 
-					result = externalTestFunction.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( isInternal ? fragment : bitVector.subVector( s, length ) ) ); 
+					assert ! isInternal || falseFollows.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( fragment ) ) == 1;
+					final long result;
+					result = externalTestFunction.getLong( key.length( 0 ).append( p - 1, Long.SIZE ).append( isInternal ? fragment : bitVector.subVector( s, length ) ) );
 					assert result != -1 : isInternal ? "Missing internal node" : "Missing leaf"; // Only if you don't test with non-keys
 					if ( result != -1 ) assert result == behaviour : result + " != " + behaviour;
 				}
@@ -532,20 +542,20 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 		if ( behaviour == LEFT ) {
 			if ( DEBUG ) System.err.println( "Returning (on the left) " + index );
-			return index;	
+			return index;
 		}
 		else {
 			if ( isInternal ) {
 				final long q = balParen.findClose( lastLeftTurn );
 				//System.err.println( p + ", " + q + " ," + lastLeftTurn + ", " +lastLeftTurnIndex);;
-				index = ( q - lastLeftTurn + 1 ) / 2 + lastLeftTurnIndex;			
+				index = ( q - lastLeftTurn + 1 ) / 2 + lastLeftTurnIndex;
 				if ( DEBUG ) System.err.println( "Returning (on the right, internal) " + index );
 			}
 			else {
 				index++;
 				if ( DEBUG ) System.err.println( "Returning (on the right, external) " + index );
 			}
-			return index;	
+			return index;
 		}
 
 	}
@@ -554,14 +564,17 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		return ( trie == null ? 0 : trie.length() + skips.numBits() + falseFollowsDetector.numBits() + balParen.numBits() + externalBehaviour.numBits() ) + transformationStrategy.numBits();
 	}
 
+	@Override
 	public boolean containsKey( Object o ) {
 		return true;
 	}
 
+	@Override
 	public long size64() {
 		return size;
 	}
-	
+
+	@Override
 	@Deprecated
 	public int size() {
 		return (int)Math.min(  size, Integer.MAX_VALUE );
