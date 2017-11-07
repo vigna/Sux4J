@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
@@ -70,6 +71,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
+import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /**
  * A minimal perfect hash function stored using the
@@ -136,6 +138,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	public static final long serialVersionUID = 6L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(GOVMinimalPerfectHashFunction.class);
+	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
 	private static final Chunk END_OF_CHUNK_QUEUE = new Chunk();
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #edgeOffsetAndSeed}. */
@@ -287,7 +290,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** The bit vector underlying {@link #values}. */
 	protected final LongArrayBitVector bitVector;
 
-	/** The bit array supporting {@link #values}. */
+	/** The bit array supporting {@link #bitVector}. */
 	protected transient long[] array;
 
 	/** The transformation strategy. */
@@ -340,9 +343,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		edgeOffsetAndSeed = new long[numChunks + 1];
 
-		bitVector = LongArrayBitVector.getInstance();
-		(values = bitVector.asLongBigList(2)).size(n * C_TIMES_256 >> 8);
-		array = bitVector.bits();
+		bitVector = LongArrayBitVector.getInstance(2 * (n * C_TIMES_256 >> 8));
 
 		int duplicates = 0;
 
@@ -357,8 +358,17 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			try {
 				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
 				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
-				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
+				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
+
+				executorCompletionService.submit(() -> {
+					for(;;) {
+						final LongArrayBitVector data = queue.take();
+						if (data == END_OF_SOLUTION_QUEUE) return null;
+						bitVector.append(data);
+					}
+				});
 
 				final ChunkedHashStore<T> chs = chunkedHashStore;
 				executorCompletionService.submit(() -> {
@@ -380,6 +390,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					return null;
 				});
 
+				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 					long chunkTime = 0;
@@ -389,6 +400,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						final Chunk chunk = chunkQueue.take();
 						chunkTime += System.nanoTime() - start;
 						if (chunk == END_OF_CHUNK_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
 							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
 							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
@@ -412,15 +424,20 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 							edgeOffsetAndSeed[chunk.index()] |= seed;
 						}
 
-						synchronized(values) {
-							final long[] solution = solver.solution;
-							for(int j = 0; j < solution.length; j++) values.set(j + off, solution[j]);
+						final long[] solution = solver.solution;
+						final LongArrayBitVector dataBitVector = LongArrayBitVector.ofLength(solution.length * 2);
+						final LongBigList dataList = dataBitVector.asLongBigList(2);
+						for(int j = 0; j < solution.length; j++) dataList.set(j, solution[j]);
+						queue.put(dataBitVector, chunk.index());
+
+						synchronized(pl) {
+							pl.update();
 						}
 					}
 				});
 
 				try {
-					for(int i = numberOfThreads + 1; i-- != 0;)
+					for(int i = numberOfThreads + 2; i-- != 0;)
 						executorCompletionService.take().get();
 				} catch (final InterruptedException e) {
 					throw new RuntimeException(e);
@@ -450,6 +467,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		}
 
 		globalSeed = chunkedHashStore.seed();
+		values = bitVector.asLongBigList(2);
+		array = bitVector.bits();
 
 		LOGGER.info("Completed.");
 		LOGGER.debug("Forecast bit cost per key: " + 2 * C + 64. / (1 << LOG2_CHUNK_SIZE));
