@@ -28,9 +28,18 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,10 +77,13 @@ import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.codec.Codec;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
+import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /** An immutable function stored in a compressed form.
  *
@@ -135,6 +147,8 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
+	private static final long[] END_OF_SOLUTION_QUEUE = new long[0];
+	private static final Pair<Chunk, Integer> END_OF_CHUNK_QUEUE = new Pair<>(new Chunk(), Integer.valueOf(0));
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV3CompressedFunction.class);
 	private static final boolean DEBUG = false;
 	protected static final int SEED_BITS = 10;
@@ -142,11 +156,11 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 	/**
 	 * The local seed is generated using this step, so to be easily embeddable
-	 * in {@link #offsetSeed}.
+	 * in {@link #offsetAndSeed}.
 	 */
 	private static final long SEED_STEP = 1L << Long.SIZE - SEED_BITS;
 	/**
-	 * The lowest 54 bits of {@link #offsetSeed} contain the number of
+	 * The lowest 54 bits of {@link #offsetAndSeed} contain the number of
 	 * keys stored up to the given chunk.
 	 */
 	private static final long OFFSET_MASK = -1L >>> SEED_BITS;
@@ -317,7 +331,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 * {@link #data} of the bits associated with the chunk.
 	 * </ul>
 	 */
-	protected final long[] offsetSeed;
+	protected final long[] offsetAndSeed;
 
 	protected final LongArrayBitVector data;
 	/**
@@ -374,7 +388,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		if (n == 0) {
 			this.globalSeed = chunkShift = globalMaxCodewordLength = 0;
 			data = null;
-			offsetSeed = null;
+			offsetAndSeed = null;
 			decoder = null;
 			if (!givenChunkedHashStore) chunkedHashStore.close();
 			return;
@@ -394,79 +408,133 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 		LOGGER.debug("Number of chunks: " + numChunks);
-		offsetSeed = new long[numChunks + 1];
-		int unsolvable = 0;
-		final int[] failedcodeword = new int[64];
-		final int[] totalcodeword = new int[64];
+		offsetAndSeed = new long[numChunks + 1];
+
 		final OfflineIterable<BitVector, LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
+
 		int duplicates = 0;
+
 		for (;;) {
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start("Analysing chunks... ");
+			final AtomicLong unsolvable = new AtomicLong();
+
 			try {
-				int q = 0;
-				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-				long peeledSumUnsolvable = 0;
-				long totalNodesUnsolvable = 0;
-				long totalNodesSolvable = 0;
-				long peeledSumSolved = 0;
-				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
-					long seed = 0;
-					Linear3SystemSolver solver = null;
+				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+				// TODO: * 128?!
+				final ArrayBlockingQueue<Pair<Chunk, Integer>> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 128);
+				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
+				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
-					int sumOfLengths = 0;
-					int longestInChunkCodeword = 0;
-					for(final long[] t : chunk) {
-						final int l = coder.codewordLength(t[3]);
-						sumOfLengths += l;
-						longestInChunkCodeword = Math.max(longestInChunkCodeword, l);
+				executorCompletionService.submit(() -> {
+					final LongArrayBitVector data = LongArrayBitVector.getInstance();
+					for(;;) {
+						final long[] solution = queue.take();
+						if (solution == END_OF_SOLUTION_QUEUE) return null;
+						data.length(solution.length);
+						data.fill(false);
+						for (int i = 0; i < solution.length; i++) data.set(i, (int)solution[i]);
+						offlineData.add(data);
 					}
+				});
 
-					final int numEquations = sumOfLengths;
-					final int numVariables = (numEquations * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
-					for (;;) {
-						totalcodeword[longestInChunkCodeword]++;
-						// We add the length of the longest keyword to avoid wrapping up indices
-						solver = new Linear3SystemSolver(numVariables, numEquations);
-						final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength, DELTA >= 1.23);
+				final ChunkedHashStore<T> chs = chunkedHashStore;
+				executorCompletionService.submit(() -> {
+					try {
+						final Iterator<Chunk> iterator = chs.iterator();
+						for(int i1 = 0; iterator.hasNext(); i1++) {
+							final Chunk chunk = new Chunk(iterator.next());
+							assert i1 == chunk.index();
+							final LongBigList valueList = chunk.valueList(indirect ? values : null);
+							long sumOfLengths = 0;
+							for(int i = 0; i < chunk.size(); i++)
+								sumOfLengths += coder.codewordLength(valueList.getLong(i));
 
-						if (solved) {
-							offsetSeed[q + 1] = offsetSeed[q] + numVariables;
-							peeledSumSolved += solver.numPeeled;
-							totalNodesSolvable += numVariables;
-							break;
+							// We add the length of the longest keyword to avoid wrapping up indices
+							assert (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength <= Integer.MAX_VALUE;
+							synchronized(offsetAndSeed) {
+								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
+								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
+							}
+							chunkQueue.put(new Pair<>(chunk, Integer.valueOf((int)sumOfLengths)));
 						}
-						failedcodeword[longestInChunkCodeword]++;
-						peeledSumUnsolvable += solver.numPeeled;
-						totalNodesUnsolvable += numVariables;
-						unsolvable += solver.unsolvable;
-						seed += SEED_STEP;
-						if (seed == 0) throw new AssertionError("Exhausted local seeds");
 					}
-					assert numVariables == (offsetSeed[q + 1] & OFFSET_MASK) - (offsetSeed[q] & OFFSET_MASK);
-					this.offsetSeed[q] |= seed;
-					dataBitVector.fill(false);
-					dataBitVector.length(numVariables);
-					q++;
-					/* We assign values. */
-					final long[] solution = solver.solution;
-					for (int i = 0; i < solution.length; i++) dataBitVector.set(i, (int)solution[i]);
-					offlineData.add(dataBitVector);
-					pl.update();
-				}
-				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable / numChunks) + "%)");
-				LOGGER.info("Mean node peeled for solved systems: " + Util.format((double) peeledSumSolved / totalNodesSolvable * 100) + "%");
+					finally {
+						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+					}
+					return null;
+				});
 
-				if (unsolvable == 0) {
-					LOGGER.info("Mean node peeled for unsolved systems: " + 0 + "%");
-				} else {
-					LOGGER.info("Mean node peeled for unsolved systems: " + Util.format((double) peeledSumUnsolvable / totalNodesUnsolvable * 100) + "%");
+				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
+				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
+					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+					// long chunkTime = 0, outputTime = 0;
+					for(;;) {
+						//long start = System.nanoTime();
+						final Pair<Chunk, Integer> chunkLength = chunkQueue.take();
+						// chunkTime += System.nanoTime() - start;
+						if (chunkLength == END_OF_CHUNK_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
+							//LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							//LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							return null;
+						}
+						final Chunk chunk = chunkLength.getFirst();
+						final int numEquations = chunkLength.getSecond().intValue();
+						final int numVariables = (int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK);
+						long seed = 0;
+						final Linear3SystemSolver solver = new Linear3SystemSolver(numVariables, numEquations);
 
+						for(;;) {
+							final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength, DELTA >= 1.23);
+							unsolvable.addAndGet(solver.unsolvable);
+							if (solved) break;
+							seed += SEED_STEP;
+							if (seed == 0) throw new AssertionError("Exhausted local seeds");
+						}
+
+						synchronized (offsetAndSeed) {
+							offsetAndSeed[chunk.index()] |= seed;
+						}
+						// start = System.nanoTime();
+						queue.put(solver.solution, chunk.index());
+						//outputTime += System.nanoTime() - start;
+						synchronized(pl) {
+							pl.update();
+						}
+					}
+				});
+
+				try {
+					for(int i = numberOfThreads + 2; i-- != 0;)
+						executorCompletionService.take().get();
+				} catch (final InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (final ExecutionException e) {
+					final Throwable cause = e.getCause();
+					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
+					if (cause instanceof IOException) throw (IOException)cause;
+					throw new RuntimeException(cause);
 				}
+				finally {
+					executorService.shutdown();
+				}
+
+				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable.get() / numChunks) + "%)");
+//				LOGGER.info("Mean node peeled for solved systems: " + Util.format((double) peeledSumSolved / totalNodesSolvable * 100) + "%");
+
+//				if (unsolvable == 0) {
+//					LOGGER.info("Mean node peeled for unsolved systems: " + 0 + "%");
+//				} else {
+//					LOGGER.info("Mean node peeled for unsolved systems: " + Util.format((double) peeledSumUnsolvable / totalNodesUnsolvable * 100) + "%");
+//
+//				}
 				pl.done();
 				break;
-			} catch (final ChunkedHashStore.DuplicateException e) {
+			}
+			catch (final ChunkedHashStore.DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
@@ -479,7 +547,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		if (DEBUG) {
 			System.out.println("MaxCodeword: " + globalMaxCodewordLength);
-			System.out.println("Offsets: " + Arrays.toString(offsetSeed));
+			System.out.println("Offsets: " + Arrays.toString(offsetAndSeed));
 		}
 		globalSeed = chunkedHashStore.seed();
 		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
@@ -503,9 +571,9 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final long[] h = new long[3];
 		Hashes.spooky4(transform.toBitVector((T) o), globalSeed, h);
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int) (h[0] >>> chunkShift);
-		final long olc = offsetSeed[chunk];
+		final long olc = offsetAndSeed[chunk];
 		final long chunkOffset = olc & OFFSET_MASK;
-		final long nextChunkOffset = offsetSeed[chunk + 1] & OFFSET_MASK;
+		final long nextChunkOffset = offsetAndSeed[chunk + 1] & OFFSET_MASK;
 		final long chunkSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
 		Linear3SystemSolver.tripleToEquation(h, chunkSeed, (int)(nextChunkOffset - chunkOffset - w), e);
@@ -537,7 +605,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 */
 	public long numBits() {
 		if (n == 0) return 0;
-		return data.size64() + offsetSeed.length * (long) Long.SIZE + decoder.numBits();
+		return data.size64() + offsetAndSeed.length * (long) Long.SIZE + decoder.numBits();
 	}
 
 	@Override
