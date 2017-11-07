@@ -147,7 +147,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
-	private static final long[] END_OF_SOLUTION_QUEUE = new long[0];
+	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
 	private static final Pair<Chunk, Integer> END_OF_CHUNK_QUEUE = new Pair<>(new Chunk(), Integer.valueOf(0));
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV3CompressedFunction.class);
 	private static final boolean DEBUG = false;
@@ -339,6 +339,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 * bit vectors.
 	 */
 	protected final TransformationStrategy<? super T> transform;
+	/** The decoder that will be used to yield output values. */
 	protected final Codec.Decoder decoder;
 
 	/**
@@ -422,20 +423,15 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 			try {
 				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
-				// TODO: * 128?!
-				final ArrayBlockingQueue<Pair<Chunk, Integer>> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 128);
-				final ReorderingBlockingQueue<long[]> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ArrayBlockingQueue<Pair<Chunk, Integer>> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads);
+				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
 				executorCompletionService.submit(() -> {
-					final LongArrayBitVector data = LongArrayBitVector.getInstance();
 					for(;;) {
-						final long[] solution = queue.take();
-						if (solution == END_OF_SOLUTION_QUEUE) return null;
-						data.length(solution.length);
-						data.fill(false);
-						for (int i = 0; i < solution.length; i++) data.set(i, (int)solution[i]);
+						final LongArrayBitVector data = queue.take();
+						if (data == END_OF_SOLUTION_QUEUE) return null;
 						offlineData.add(data);
 					}
 				});
@@ -470,15 +466,16 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-					// long chunkTime = 0, outputTime = 0;
+					long chunkTime = 0;
+					long outputTime = 0;
 					for(;;) {
-						//long start = System.nanoTime();
+						long start = System.nanoTime();
 						final Pair<Chunk, Integer> chunkLength = chunkQueue.take();
-						// chunkTime += System.nanoTime() - start;
+						chunkTime += System.nanoTime() - start;
 						if (chunkLength == END_OF_CHUNK_QUEUE) {
 							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							//LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
-							//LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
 						final Chunk chunk = chunkLength.getFirst();
@@ -498,9 +495,15 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						synchronized (offsetAndSeed) {
 							offsetAndSeed[chunk.index()] |= seed;
 						}
-						// start = System.nanoTime();
-						queue.put(solver.solution, chunk.index());
-						//outputTime += System.nanoTime() - start;
+
+						final LongArrayBitVector data = LongArrayBitVector.getInstance();
+						final long[] solution = solver.solution;
+						data.length(solution.length);
+						for (int j = 0; j < solution.length; j++) data.set(j, (int)solution[j]);
+
+						start = System.nanoTime();
+						queue.put(data, chunk.index());
+						outputTime += System.nanoTime() - start;
 						synchronized(pl) {
 							pl.update();
 						}

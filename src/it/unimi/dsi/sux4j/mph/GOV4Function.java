@@ -27,6 +27,14 @@ import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -67,8 +75,11 @@ import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
+import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /** An immutable function stored quasi-succinctly using the
  * {@linkplain Linear4SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
@@ -139,6 +150,8 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 5L;
+	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
+	private static final Chunk END_OF_CHUNK_QUEUE = new Chunk();
 	private static final Logger LOGGER = LoggerFactory.getLogger(GOV4Function.class);
 	private static final boolean DEBUG = false;
 
@@ -402,55 +415,113 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		int duplicates = 0;
 
 		for(;;) {
-			LOGGER.debug("Generating GOV function with " + this.width + " output bits...");
+			LOGGER.debug("Generating GOV function with " + width + " output bits...");
 
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start("Analysing chunks... ");
+			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
-				int q = 0;
-				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-				final LongBigList data = dataBitVector.asLongBigList(this.width);
-				long unsolvable = 0;
-				for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
+				final int numberOfThreads = Runtime.getRuntime().availableProcessors();
+				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
+				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
+				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
-					final long chunkDataSize = Math.max(C_TIMES_256 * chunk.size() >>> 8, chunk.size() + 1);
-					assert chunkDataSize <= Integer.MAX_VALUE;
-					offsetAndSeed[q + 1] = offsetAndSeed[q] + chunkDataSize;
-
-					long seed = 0;
-					final Linear4SystemSolver solver =
-							new Linear4SystemSolver((int) chunkDataSize, chunk.size());
-
+				executorCompletionService.submit(() -> {
 					for(;;) {
-						final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null));
-						unsolvable += solver.unsolvable;
-						if (solved) break;
-						seed += SEED_STEP;
-						if (seed == 0) throw new AssertionError("Exhausted local seeds");
+						final LongArrayBitVector data = queue.take();
+						if (data == END_OF_SOLUTION_QUEUE) return null;
+						offlineData.add(data);
 					}
+				});
 
-					this.offsetAndSeed[q] |= seed;
+				final ChunkedHashStore<T> chs = chunkedHashStore;
+				executorCompletionService.submit(() -> {
+					try {
+						final Iterator<Chunk> iterator = chs.iterator();
+						for(int i1 = 0; iterator.hasNext(); i1++) {
+							final Chunk chunk = new Chunk(iterator.next());
+							assert i1 == chunk.index();
+							final long chunkDataSize = Math.max(C_TIMES_256 * chunk.size() >>> 8, chunk.size() + 1);
+							assert chunkDataSize <= Integer.MAX_VALUE;
+							synchronized(offsetAndSeed) {
+								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + chunkDataSize;
+								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
+							}
+							chunkQueue.put(chunk);
+						}
+					}
+					finally {
+						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+					}
+					return null;
+				});
 
-					dataBitVector.fill(false);
-					data.size(chunkDataSize);
-					q++;
+				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
+				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
+					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+					long chunkTime = 0, outputTime = 0;
+					for(;;) {
+						long start = System.nanoTime();
+						final Chunk chunk = chunkQueue.take();
+						chunkTime += System.nanoTime() - start;
+						if (chunk == END_OF_CHUNK_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
+							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							return null;
+						}
+						long seed = 0;
+						final Linear4SystemSolver solver =
+								new Linear4SystemSolver((int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK), chunk.size());
 
-					/* We assign values. */
-					final long[] solution = solver.solution;
-					for(int i = 0; i < solution.length; i++) data.set(i, solution[i]);
+						for(;;) {
+							final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null));
+							unsolvable.addAndGet(solver.unsolvable);
+							if (solved) break;
+							seed += SEED_STEP;
+							if (seed == 0) throw new AssertionError("Exhausted local seeds");
+						}
 
-					offlineData.add(dataBitVector);
-					pl.update();
+						synchronized (offsetAndSeed) {
+							offsetAndSeed[chunk.index()] |= seed;
+						}
+
+						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+						final LongBigList data = dataBitVector.asLongBigList(width);
+						for(final long l : solver.solution) data.add(l);
+
+						start = System.nanoTime();
+						queue.put(dataBitVector, chunk.index());
+						outputTime += System.nanoTime() - start;
+						synchronized(pl) {
+							pl.update();
+						}
+					}
+				});
+
+				try {
+					for(int i = numberOfThreads + 2; i-- != 0;)
+						executorCompletionService.take().get();
+				} catch (final InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (final ExecutionException e) {
+					final Throwable cause = e.getCause();
+					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
+					if (cause instanceof IOException) throw (IOException)cause;
+					throw new RuntimeException(cause);
 				}
-
-				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable / numChunks) + "%)");
+				finally {
+					executorService.shutdown();
+				}
+				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + numChunks + " (" + Util.format(100.0 * unsolvable.get() / numChunks) + "%)");
 
 				pl.done();
 				break;
 			}
-			catch(final ChunkedHashStore.DuplicateException e) {
+			catch(final DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");

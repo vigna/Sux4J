@@ -30,8 +30,6 @@ public class GV3CompressedFunctionTest {
 		for (int i = 0; i < 100; i++) mph.getLong("DEAD" + size + i);
 	}
 
-
-
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGammaValues() throws IOException, ClassNotFoundException {
