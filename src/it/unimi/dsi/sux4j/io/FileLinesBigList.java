@@ -89,9 +89,9 @@ public class FileLinesBigList extends AbstractObjectBigList<MutableString> imple
 	private final CharBuffer charBuffer;
 	/** A sparse selection structure keeping track of the start of each line in the file. */
 	private final EliasFanoMonotoneLongBigList borders;
-	/** The fast buffered input stream used by {@link #get(int)}. */
+	/** The fast buffered input stream used by {@link #get(long)}. */
 	private final FastBufferedInputStream inputStream;
-	/** A decoder used by {@link #get(int)}. */
+	/** A decoder used by {@link #get(long)}. */
 	private final CharsetDecoder decoder;
 	/** The charset specified at construction time. */
 	private final Charset charset;

@@ -1,14 +1,15 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.codec;
 
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.sux4j.mph.Codec.Binary;
-import it.unimi.dsi.sux4j.mph.Codec.Coder;
-import it.unimi.dsi.sux4j.mph.Codec.Decoder;
-import it.unimi.dsi.sux4j.mph.Codec.Huffman;
+import it.unimi.dsi.sux4j.mph.codec.Codec;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Binary;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Coder;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Decoder;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 
 public class CodecTest {
 

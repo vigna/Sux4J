@@ -32,10 +32,10 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.sux4j.mph.Codec;
 import it.unimi.dsi.sux4j.mph.GOV4Function;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
+import it.unimi.dsi.sux4j.mph.codec.Codec;
 
 /** A class implementing generation and solution of a random 4-regular linear system on <b>F</b><sub>2</sub>
  * using the techniques described by

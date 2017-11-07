@@ -1,4 +1,4 @@
-package it.unimi.dsi.sux4j.mph;
+package it.unimi.dsi.sux4j.mph.codec;
 
 /*
  * Sux4J: Succinct data structures for Java
@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.longs.Long2IntMaps;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.sux4j.mph.GV3CompressedFunction;
 
 /** A class representing a specific instantaneous code for {@linkplain GV3CompressedFunction compressed functions}.
  * The logic of this code is quite tightly coupled with such functions, and it is unlikely to be resusable elsewhere easily.

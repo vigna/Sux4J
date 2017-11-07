@@ -16,7 +16,8 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongLists;
-import it.unimi.dsi.sux4j.mph.Codec.Unary;
+import it.unimi.dsi.sux4j.mph.codec.Codec;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Unary;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 

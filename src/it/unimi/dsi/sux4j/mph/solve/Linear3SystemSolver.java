@@ -32,11 +32,11 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.sux4j.mph.Codec;
 import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.sux4j.mph.HypergraphSorter;
+import it.unimi.dsi.sux4j.mph.codec.Codec;
 
 /** A class implementing generation and solution of a random 3-regular linear system on <b>F</b><sub>2</sub> or
  *  <b>F</b><sub>3</sub> using the techniques described by

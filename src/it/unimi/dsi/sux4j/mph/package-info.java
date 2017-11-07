@@ -78,6 +78,13 @@
  * {@link it.unimi.dsi.sux4j.mph.GOV4Function} (slightly slower, smaller space) and {@link it.unimi.dsi.sux4j.mph.TwoStepsGOV3Function}
  * (slower, but uses less space if the distribution of the output values is skewed, i.e., some values are very frequent).
  *
+ * <li><strong>Compressed functions</strong>. As above, but static functions of this type
+ * are targeted at functions whose output is not evenly
+ * distributed (i.e., some values are much more frequent than others).
+ * The space usage per key is proportional to the empirical 0-th order entropy of the output values,
+ * rather than to the number of bits that are necessary to express the larger value.
+ * Out of this class we suggest as a workhorse {@link it.unimi.dsi.sux4j.mph.GV3CompressedFunction}.
+ *
  * <li><strong>Minimal perfect hash function</strong>; they map a set
  * of <var>n</var> object bijectively to the set <var>n</var> = { 0, 1,&hellip; <var>n</var> &minus; 1 }.
  * Out of this class we suggest as a workhorse {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction},
