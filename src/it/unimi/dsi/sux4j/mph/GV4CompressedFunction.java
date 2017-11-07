@@ -488,8 +488,8 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						chunkTime += System.nanoTime() - start;
 						if (chunkLength == END_OF_CHUNK_QUEUE) {
 							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
-							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
 						final Chunk chunk = chunkLength.getFirst();

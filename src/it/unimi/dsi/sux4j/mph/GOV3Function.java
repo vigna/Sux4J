@@ -506,8 +506,8 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 						chunkTime += System.nanoTime() - start;
 						if (chunk == END_OF_CHUNK_QUEUE) {
 							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
-							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
 						long seed = 0;

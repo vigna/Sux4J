@@ -500,7 +500,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	@Override
 	public void close() throws IOException {
 		if (! closed) {
-			LOGGER.info("Wall clock for quicksort: " + Util.format(quickSortWallTime / 1E9) + "s");
+			LOGGER.debug("Wall clock for quicksort: " + Util.format(quickSortWallTime / 1E9) + "s");
 			closed = true;
 			for(final WritableByteChannel channel: writableByteChannel) channel.close();
 			for(final File f: file) f.delete();
