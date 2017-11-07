@@ -69,28 +69,9 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.codec.Codec;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
-
-/*
- * Sux4J: Succinct data structures for Java
- *
- * Copyright (C) 2016-2017 Sebastiano Vigna
- *
- *  This library is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- */
 
 public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
@@ -98,14 +79,13 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	private static final boolean DEBUG = false;
 	protected static final int SEED_BITS = 10;
 	protected static final int OFFSET_BITS = Long.SIZE - SEED_BITS;
-	//private static final long[] INVERSE = new long[] { 0, 4294967296L, 2147483648L, 1431655766, 1073741824, 858993460, 715827886, 613566760, 536870912, 477218592, 429496735, 390451576, 357913945, 330382108, 306783382, 286331154, 268435456, 252645136, 238609298, 226050916, 214748380, 204522256, 195225790, 186737720, 178956986, 171798712, 165191071, 159072884, 153391693, 148102336, 143165592, 138547336, 134217728, 130150528, 126322585, 122713362, 119304651, 116080204, 113025461, 110127388, 107374198, 104755336, 102261130, 99882976, 97612897, 95443748, 93368866, 91382324, 89478501, 87652432, 85899391, 84215046, 82595572, 81037160, 79536453, 78090340, 76695876, 75350328, 74051176, 72796106, 71582804, 70409356, 69273670, 68174088 };
 	/**
 	 * The local seed is generated using this step, so to be easily embeddable
 	 * in {@link #offsetSeed}.
 	 */
 	private static final long SEED_STEP = 1L << Long.SIZE - SEED_BITS;
 	/**
-	 * The lowest 48 bits of {@link #offsetSeed} contain the number of
+	 * The lowest 54 bits of {@link #offsetSeed} contain the number of
 	 * keys stored up to the given chunk.
 	 */
 	private static final long OFFSET_MASK = -1L >>> SEED_BITS;
@@ -225,7 +205,15 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			return this;
 		}
 
-		public Builder<T> codec(Codec codec) {
+		/**
+		 * Specifies a {@linkplain Codec codec} that will be used to encode the function
+		 * output values. The default is a {@linkplain Huffman} codec with default parameters.
+		 *
+		 * @param codec a codec that will be used to encode the function
+		 * output values
+		 * @return this builder.
+		 */
+		public Builder<T> codec(final Codec codec) {
 			this.codec = codec;
 			return this;
 		}
@@ -240,6 +228,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		 */
 		public GV4CompressedFunction<T> build() throws IOException {
 			if (built) throw new IllegalStateException("This builder has been already used");
+			if (codec == null) codec = new Codec.Huffman();
 			built = true;
 			if (transform == null) {
 				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
@@ -334,7 +323,13 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			return;
 		}
 
-		final Long2LongOpenHashMap frequencies = chunkedHashStore.value2FrequencyMap();
+		final Long2LongOpenHashMap frequencies;
+		if (indirect) {
+			frequencies = new Long2LongOpenHashMap();
+			for(final long v : values) frequencies.addTo(v, 1);
+		}
+		else frequencies = chunkedHashStore.value2FrequencyMap();
+
 		final Codec.Coder coder = codec.getCoder(frequencies);
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
@@ -369,7 +364,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 					final int numVariables = (numEquations * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
 					for (;;) {
 						solver = new Linear4SystemSolver(numVariables, numEquations);
-						final boolean solved = solver.generateAndSolve(chunk, seed, coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength);
+						final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength);
 
 						if (solved) {
 							offsetSeed[q + 1] = offsetSeed[q] + numVariables;

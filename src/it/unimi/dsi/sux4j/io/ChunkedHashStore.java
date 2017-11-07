@@ -43,10 +43,13 @@ import it.unimi.dsi.Util;
 
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -746,6 +749,30 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 					return quadruple;
 				}
 
+			};
+		}
+
+		/** Commodity methods that exposes transparently either the data contained in the chunk,
+		 * or the data obtained by using the chunk to index a list.
+		 *
+		 * @param values a list of values. Must be either an instance of {@link LongList}, or an instance of {@link LongBigList}. If it
+		 * is not {@code null}, the data in the chunk is used to index this list and return a value. Otherwise, the data in the chunk
+		 * is returned directly.
+		 * @return a big list of longs representing the values associated with each element in the chunk.
+		 */
+		public LongBigList valueList(final LongIterable values) {
+			return new AbstractLongBigList() {
+				private final LongBigList valueList = values == null ? null : (values instanceof LongList ? LongBigLists.asBigList((LongList)values) : (LongBigList)values);
+
+				@Override
+				public long size64() {
+					return Chunk.this.size();
+				}
+
+				@Override
+				public long getLong(final long index) {
+					return valueList == null ? Chunk.this.data(index) : valueList.getLong(Chunk.this.data(index));
+				}
 			};
 		}
 	}

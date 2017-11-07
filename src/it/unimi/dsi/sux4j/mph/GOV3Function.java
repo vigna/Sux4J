@@ -62,9 +62,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -496,15 +494,15 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-					long chunkTime = 0, outputTime = 0;
+					// long chunkTime = 0, outputTime = 0;
 					for(;;) {
-						long start = System.nanoTime();
+						//long start = System.nanoTime();
 						final Chunk chunk = chunkQueue.take();
-						chunkTime += System.nanoTime() - start;
+						// chunkTime += System.nanoTime() - start;
 						if (chunk == END_OF_CHUNK_QUEUE) {
 							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
-							LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							//LOGGER.info("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							//LOGGER.info("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
 						long seed = 0;
@@ -512,19 +510,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 								new Linear3SystemSolver((int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK), chunk.size());
 
 						for(;;) {
-							final boolean solved = solver.generateAndSolve(chunk, seed, new AbstractLongBigList() {
-								private final LongBigList valueList = indirect ? (values instanceof LongList ? LongBigLists.asBigList((LongList)values) : (LongBigList)values) : null;
-
-								@Override
-								public long size64() {
-									return chunk.size();
-								}
-
-								@Override
-								public long getLong(final long index) {
-									return indirect ? valueList.getLong(chunk.data(index)) : chunk.data(index);
-								}
-							});
+							final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null));
 							unsolvable.addAndGet(solver.unsolvable);
 							if (solved) break;
 							seed += SEED_STEP;
@@ -534,9 +520,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 						synchronized (offsetAndSeed) {
 							offsetAndSeed[chunk.index()] |= seed;
 						}
-						start = System.nanoTime();
+						// start = System.nanoTime();
 						queue.put(solver.solution, chunk.index());
-						outputTime += System.nanoTime() - start;
+						//outputTime += System.nanoTime() - start;
 						synchronized(pl) {
 							pl.update();
 						}

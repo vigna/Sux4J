@@ -226,4 +226,25 @@ public class GV4CompressedFunctionTest {
 		assertEquals(2, mph.getLong("b"));
 		assertEquals(0, mph.getLong("c"));
 	}
+
+	@Test
+	public void testLongNumbers() throws IOException {
+		final LongArrayList l = new LongArrayList(new long[] { 0x234904309830498L, 0xae049345e9eeeeeL, 0x23445234959234L, 0x239234eaeaeaeL });
+		GV4CompressedFunction<CharSequence> mph = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l).build();
+		assertEquals(l.getLong(0), mph.getLong("a"));
+		assertEquals(l.getLong(1), mph.getLong("b"));
+		assertEquals(l.getLong(2), mph.getLong("c"));
+		assertEquals(l.getLong(3), mph.getLong("d"));
+		mph = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l).build();
+		assertEquals(l.getLong(0), mph.getLong("a"));
+		assertEquals(l.getLong(1), mph.getLong("b"));
+		assertEquals(l.getLong(2), mph.getLong("c"));
+		assertEquals(l.getLong(3), mph.getLong("d"));
+		mph = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l).indirect().build();
+		assertEquals(l.getLong(0), mph.getLong("a"));
+		assertEquals(l.getLong(1), mph.getLong("b"));
+		assertEquals(l.getLong(2), mph.getLong("c"));
+		assertEquals(l.getLong(3), mph.getLong("d"));
+	}
+
 }

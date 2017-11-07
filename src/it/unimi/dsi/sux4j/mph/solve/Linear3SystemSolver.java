@@ -499,11 +499,11 @@ public class Linear3SystemSolver {
 		}
 	}
 
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, Codec.Coder coder, int m, int w) {
-		return generateAndSolve(triples, seed, coder, m, w);
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, Codec.Coder coder, int m, int w) {
+		return generateAndSolve(triples, seed, valueList, coder, m, w);
 	}
 
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, Codec.Coder coder, int m, int w, boolean peelOnly) {
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, Codec.Coder coder, int m, int w, boolean peelOnly) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] edge2Vertex0 = edge2Vertex[0],
@@ -513,19 +513,20 @@ public class Linear3SystemSolver {
 		/* We build the edge list and compute the degree of each vertex. */
 		final int[] e = new int[3];
 		final LongArrayBitVector convertedValues = LongArrayBitVector.getInstance();
-		int j = 0;
+		int j = 0, i = 0;
 		final Iterator<long[]> iterator = triples.iterator();
 		while (iterator.hasNext()) {
 			final long[] next = iterator.next();
-			final long convertedLong = coder.encode(next[3]);
-			final int lenCodeword = coder.codewordLength(next[3]);
+			final long v = valueList.getLong(i++);
+			final long convertedLong = coder.encode(v);
+			final int lenCodeword = coder.codewordLength(v);
 			convertedValues.append(convertedLong, lenCodeword);
 
 			tripleToEquation(next, seed, m, e);
 
 			if (DEBUG) {
-				System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "> = " + "chiave " + next[3]);
-				System.err.println("hash(bv) = " + next[3]);
+				System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "> = " + "chiave " + v);
+				System.err.println("hash(bv) = " + v);
 			}
 			for (int l = 0; l < lenCodeword; l++) {
 				if (DEBUG) System.err.println("	 [" + (e[0] + l) + "," + (e[1] + l) + "," + (e[2] + l) + "] = " + Long.toBinaryString(convertedLong));

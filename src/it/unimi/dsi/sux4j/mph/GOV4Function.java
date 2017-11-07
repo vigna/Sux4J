@@ -54,9 +54,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.fastutil.longs.LongBigLists;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -426,19 +424,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 							new Linear4SystemSolver((int) chunkDataSize, chunk.size());
 
 					for(;;) {
-						final boolean solved = solver.generateAndSolve(chunk, seed, new AbstractLongBigList() {
-							private final LongBigList valueList = indirect ? (values instanceof LongList ? LongBigLists.asBigList((LongList)values) : (LongBigList)values) : null;
-
-							@Override
-							public long size64() {
-								return chunk.size();
-							}
-
-							@Override
-							public long getLong(final long index) {
-								return indirect ? valueList.getLong(chunk.data(index)) : chunk.data(index);
-							}
-						});
+						final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null));
 						unsolvable += solver.unsolvable;
 						if (solved) break;
 						seed += SEED_STEP;
