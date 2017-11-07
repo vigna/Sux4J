@@ -10,7 +10,7 @@ import java.util.Iterator;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -75,9 +75,9 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	/** The position of the initial bit of each element, plus a final marker for the end of the bit array. */
 	private EliasFanoMonotoneLongBigList borders;
 
-	private static long findMin( final LongIterator iterator ) {
+	private static long findMin(final LongIterator iterator) {
 		long lowerBound = Long.MAX_VALUE;
-		while( iterator.hasNext() ) lowerBound = Math.min( lowerBound, iterator.nextLong() );
+		while(iterator.hasNext()) lowerBound = Math.min(lowerBound, iterator.nextLong());
 		return lowerBound;
 	}
 
@@ -85,64 +85,64 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoLongBigList( final LongIterable elements ) {
-		this( elements.iterator(), findMin( elements.iterator() ) );
+	public EliasFanoLongBigList(final LongIterable elements) {
+		this(elements.iterator(), findMin(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoLongBigList( final IntIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoLongBigList(final IntIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoLongBigList( final ShortIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoLongBigList(final ShortIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoLongBigList( final ByteIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoLongBigList(final ByteIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param iterator an iterator returning natural numbers.
 	 */
-	public EliasFanoLongBigList( final LongIterator iterator ) {
-		this( iterator, 0 );
+	public EliasFanoLongBigList(final LongIterator iterator) {
+		this(iterator, 0);
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param iterator an iterator returning natural numbers.
 	 */
-	public EliasFanoLongBigList( final IntIterator iterator ) {
-		this( LongIterators.wrap( iterator ) );
+	public EliasFanoLongBigList(final IntIterator iterator) {
+		this(LongIterators.wrap(iterator));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param iterator an iterator returning natural numbers.
 	 */
-	public EliasFanoLongBigList( final ShortIterator iterator ) {
-		this( LongIterators.wrap( iterator ) );
+	public EliasFanoLongBigList(final ShortIterator iterator) {
+		this(LongIterators.wrap(iterator));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
 	 *
 	 * @param iterator an iterator returning natural numbers.
 	 */
-	public EliasFanoLongBigList( final ByteIterator iterator ) {
-		this( LongIterators.wrap( iterator ) );
+	public EliasFanoLongBigList(final ByteIterator iterator) {
+		this(LongIterators.wrap(iterator));
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
@@ -150,8 +150,8 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
-	public EliasFanoLongBigList( final IntIterator iterator, final int lowerBound ) {
-		this( LongIterators.wrap( iterator ), lowerBound );
+	public EliasFanoLongBigList(final IntIterator iterator, final int lowerBound) {
+		this(LongIterators.wrap(iterator), lowerBound);
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
@@ -159,8 +159,8 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
-	public EliasFanoLongBigList( final ShortIterator iterator, final short lowerBound ) {
-		this( LongIterators.wrap( iterator ), lowerBound );
+	public EliasFanoLongBigList(final ShortIterator iterator, final short lowerBound) {
+		this(LongIterators.wrap(iterator), lowerBound);
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
@@ -168,8 +168,8 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
-	public EliasFanoLongBigList( final ByteIterator iterator, final byte lowerBound ) {
-		this( LongIterators.wrap( iterator ), lowerBound );
+	public EliasFanoLongBigList(final ByteIterator iterator, final byte lowerBound) {
+		this(LongIterators.wrap(iterator), lowerBound);
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list.
@@ -179,8 +179,8 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
-	public EliasFanoLongBigList( final LongIterator iterator, long lowerBound ) {
-		this( iterator, lowerBound, false );
+	public EliasFanoLongBigList(final LongIterator iterator, long lowerBound) {
+		this(iterator, lowerBound, false);
 	}
 
 	/** Creates a new Elias&ndash;Fano long big list with low memory requirements.
@@ -191,55 +191,55 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 * @param offline if true, the construction uses offline memory.
 	 */
-	public EliasFanoLongBigList( final LongIterator iterator, long lowerBound, boolean offline ) {
+	public EliasFanoLongBigList(final LongIterator iterator, long lowerBound, boolean offline) {
 		this.offset = -lowerBound + 1;
 		bits = LongArrayBitVector.getInstance();
 		LongArrayList borders = null;
 		File tempFile = null;
 		DataOutputStream dos = null;
 		try {
-			if ( offline ) {
-				tempFile = File.createTempFile( EliasFanoLongBigList.class.getSimpleName(), "borders" );
+			if (offline) {
+				tempFile = File.createTempFile(EliasFanoLongBigList.class.getSimpleName(), "borders");
 				tempFile.deleteOnExit();
-				dos = new DataOutputStream( new FastBufferedOutputStream( new FileOutputStream( tempFile ) ) );
+				dos = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(tempFile)));
 			}
 			else borders = new LongArrayList();
 
-			if ( offline ) dos.writeLong( 0 );
-			else borders.add( 0 );
+			if (offline) dos.writeLong(0);
+			else borders.add(0);
 
 			long lastBorder = 0, maxBorder = 0;
 			long v;
 			long c = 0;
 			int msb;
-			while( iterator.hasNext() ) {
+			while(iterator.hasNext()) {
 				v = iterator.nextLong();
-				if ( v < lowerBound ) throw new IllegalArgumentException( v + " < " + lowerBound );
+				if (v < lowerBound) throw new IllegalArgumentException(v + " < " + lowerBound);
 				v -= lowerBound;
 				v++;
-				msb = Fast.mostSignificantBit( v );
+				msb = Fast.mostSignificantBit(v);
 				lastBorder += msb;
-				if ( offline ) dos.writeLong( lastBorder );
-				else borders.add( lastBorder );
-				if ( maxBorder < lastBorder ) maxBorder = lastBorder;
-				bits.append( v & ( 1L << msb ) - 1, msb );
+				if (offline) dos.writeLong(lastBorder);
+				else borders.add(lastBorder);
+				if (maxBorder < lastBorder) maxBorder = lastBorder;
+				bits.append(v & (1L << msb) - 1, msb);
 				c++;
 			}
 			this.length = c;
-			if ( offline ) dos.close();
-			this.borders = new EliasFanoMonotoneLongBigList( c + 1, maxBorder + 1, offline ? BinIO.asLongIterator( tempFile ) : borders.iterator() );
-			if ( offline ) tempFile.delete();
+			if (offline) dos.close();
+			this.borders = new EliasFanoMonotoneLongBigList(c + 1, maxBorder + 1, offline ? BinIO.asLongIterator(tempFile) : borders.iterator());
+			if (offline) tempFile.delete();
 			this.bits.trim();
 		}
-		catch( final IOException e ) {
-			throw new RuntimeException( e );
+		catch(final IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	public long getLong( final long index ) {
-		final long from = borders.getLong( index ), to = borders.getLong( index + 1 );
-		return ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - offset;
+	public long getLong(final long index) {
+		final long from = borders.getLong(index), to = borders.getLong(index + 1);
+		return ((1L << (to - from)) | bits.getLong(from, to)) - offset;
 	}
 
 	/** Extracts a number of consecutive entries into a given array fragment.
@@ -251,14 +251,14 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @return {@code dest}
 	 * @see #get(long, long[])
 	 */
-	public long[] get( long index, final long dest[], final int offset, final int length ) {
-		long from = borders.getLong( index++ ), to;
+	public long[] get(long index, final long dest[], final int offset, final int length) {
+		long from = borders.getLong(index++), to;
 		// We use the destination array to cache borders.
-		borders.get( index, dest, offset, length );
+		borders.get(index, dest, offset, length);
 
-		for( int i = 0; i < length; i++ ) {
-			to = dest[ offset + i ];
-			dest[ offset + i ] = ( ( 1L << ( to - from ) ) | bits.getLong( from, to ) ) - this.offset;
+		for(int i = 0; i < length; i++) {
+			to = dest[offset + i];
+			dest[offset + i] = ((1L << (to - from)) | bits.getLong(from, to)) - this.offset;
 			from = to;
 		}
 
@@ -272,8 +272,8 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @return {@code dest}
 	 * @see #get(long, long[], int, int)
 	 */
-	public long[] get( final long index, final long dest[] ) {
-		return get( index, dest, 0, dest.length );
+	public long[] get(final long index, final long dest[]) {
+		return get(index, dest, 0, dest.length);
 	}
 
 	@Override

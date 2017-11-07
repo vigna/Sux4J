@@ -29,12 +29,12 @@ public class MergedBitVectorIterator implements ObjectIterator<BitVector> {
 	 * @param it0 the first (monotonically nondecreasing) component iterator.
 	 * @param it1 the second (monotonically nondecreasing) component iterator.
 	 */
-	public MergedBitVectorIterator( final Iterator<? extends BitVector> it0, final Iterator<? extends BitVector> it1 ) {
+	public MergedBitVectorIterator(final Iterator<? extends BitVector> it0, final Iterator<? extends BitVector> it1) {
 		this.it0 = it0;
 		this.it1 = it1;
 		result = LongArrayBitVector.getInstance();
-		if ( it0.hasNext() ) curr0 = it0.next();
-		if ( it1.hasNext() ) curr1 = it1.next();
+		if (it0.hasNext()) curr0 = it0.next();
+		if (it1.hasNext()) curr1 = it1.next();
 	}
 
 	@Override
@@ -44,28 +44,28 @@ public class MergedBitVectorIterator implements ObjectIterator<BitVector> {
 
 	@Override
 	public BitVector next() {
-		if ( ! hasNext() ) throw new NoSuchElementException();
+		if (! hasNext()) throw new NoSuchElementException();
 
 		final int cmp;
 
-		if ( curr0 == null ) {
-			result.replace( curr1 );
+		if (curr0 == null) {
+			result.replace(curr1);
 			curr1 = it1.hasNext() ? it1.next() : null;
 		}
-		else if ( curr1 == null ) {
-			result.replace( curr0 );
+		else if (curr1 == null) {
+			result.replace(curr0);
 			curr0 = it0.hasNext() ? it0.next() : null;
 		}
-		else if ( ( cmp = curr0.compareTo( curr1 ) ) < 0 ) {
-			result.replace( curr0 );
+		else if ((cmp = curr0.compareTo(curr1)) < 0) {
+			result.replace(curr0);
 			curr0 = it0.hasNext() ? it0.next() : null;
 		}
-		else if ( cmp > 0 ) {
-			result.replace( curr1 );
+		else if (cmp > 0) {
+			result.replace(curr1);
 			curr1 = it1.hasNext() ? it1.next() : null;
 		}
 		else {
-			result.replace( curr1 );
+			result.replace(curr1);
 			curr0 = it0.hasNext() ? it0.next() : null;
 			curr1 = it1.hasNext() ? it1.next() : null;
 		}

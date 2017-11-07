@@ -5,7 +5,7 @@ import java.io.Serializable;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -91,36 +91,36 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
 
-	protected EliasFanoMonotoneLongBigList( final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
+	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
 		this.length = length;
 		this.l = l;
 		this.lowerBits = lowerBits;
 		this.selectUpper = selectUpper;
-		this.lowerBitsMask = ( 1L << l ) - 1;
+		this.lowerBitsMask = (1L << l) - 1;
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
 	 *
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final IntIterable list ) {
-		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
+	public EliasFanoMonotoneLongBigList(final IntIterable list) {
+		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
 	 *
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final ShortIterable list ) {
-		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
+	public EliasFanoMonotoneLongBigList(final ShortIterable list) {
+		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
 	 *
 	 * @param list an iterable object.
 	 */
-	public EliasFanoMonotoneLongBigList( final ByteIterable list ) {
-		this( (LongIterable) () -> LongIterators.wrap( list.iterator() ));
+	public EliasFanoMonotoneLongBigList(final ByteIterable list) {
+		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
@@ -128,8 +128,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @param list an iterable object.
 	 */
 
-	public EliasFanoMonotoneLongBigList( final LongIterable list ) {
-		this( computeParameters( list.iterator() ), list.iterator() );
+	public EliasFanoMonotoneLongBigList(final LongIterable list) {
+		this(computeParameters(list.iterator()), list.iterator());
 	}
 
 	/** Computes the number of elements and the last element returned by the given iterator.
@@ -139,11 +139,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @return a two-element array of longs containing the number of elements returned by
 	 * the iterator and the last returned element, respectively.
 	 */
-	private static long[] computeParameters( final LongIterator iterator ) {
+	private static long[] computeParameters(final LongIterator iterator) {
 		long v = -1, prev = -1, c = 0;
-		while( iterator.hasNext() ) {
+		while(iterator.hasNext()) {
 			v = iterator.nextLong();
-			if ( prev > v ) throw new IllegalArgumentException( "The list of values is not monotone: " + prev + " > " + v );
+			if (prev > v) throw new IllegalArgumentException("The list of values is not monotone: " + prev + " > " + v);
 			prev = v;
 			c++;
 		}
@@ -163,8 +163,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ByteIterator iterator ) {
-		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
+		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
@@ -178,8 +178,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final ShortIterator iterator ) {
-		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
+		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
@@ -193,8 +193,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final IntIterator iterator ) {
-		this( new long[] { n, upperBound }, LongIterators.wrap( iterator ) );
+	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final IntIterator iterator) {
+		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
 	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
@@ -208,8 +208,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a <em>strict</em> upper bound).
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	public EliasFanoMonotoneLongBigList( final long n, final long upperBound, final LongIterator iterator ) {
-		this( new long[] { n, upperBound }, iterator );
+	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final LongIterator iterator) {
+		this(new long[] { n, upperBound }, iterator);
 	}
 
 	/**  Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
@@ -222,30 +222,30 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneLongBigList( long[] a, final LongIterator iterator ) {
-		length = a[ 0 ];
+	protected EliasFanoMonotoneLongBigList(long[] a, final LongIterator iterator) {
+		length = a[0];
 		long v = -1;
-		final long upperBound = a[ 1 ];
-		l = length == 0 ? 0 : Math.max( 0, Fast.mostSignificantBit( upperBound / length ) );
-		lowerBitsMask = ( 1L << l ) - 1;
-		final long lowerBitsMask = ( 1L << l ) - 1;
+		final long upperBound = a[1];
+		l = length == 0 ? 0 : Math.max(0, Fast.mostSignificantBit(upperBound / length));
+		lowerBitsMask = (1L << l) - 1;
+		final long lowerBitsMask = (1L << l) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
-		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList( l );
-		lowerBitsList.size( length );
-		final BitVector upperBits = LongArrayBitVector.getInstance().length( length + ( upperBound >>> l ) + 1 );
+		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
+		lowerBitsList.size(length);
+		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound >>> l) + 1);
 		long last = Long.MIN_VALUE;
-		for( long i = 0; i < length; i++ ) {
+		for(long i = 0; i < length; i++) {
 			v = iterator.nextLong();
-			if ( v > upperBound ) throw new IllegalArgumentException( "Too large value: " + v + " > " + upperBound );
-			if ( v < last ) throw new IllegalArgumentException( "Values are not nondecreasing: " + v + " < " + last );
-			if ( l != 0 ) lowerBitsList.set( i, v & lowerBitsMask );
-			upperBits.set( ( v >>> l ) + i );
+			if (v > upperBound) throw new IllegalArgumentException("Too large value: " + v + " > " + upperBound);
+			if (v < last) throw new IllegalArgumentException("Values are not nondecreasing: " + v + " < " + last);
+			if (l != 0) lowerBitsList.set(i, v & lowerBitsMask);
+			upperBits.set((v >>> l) + i);
 			last = v;
 		}
 
-		if ( iterator.hasNext() ) throw new IllegalArgumentException( "There are more than " + length + " values in the provided iterator" );
+		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + length + " values in the provided iterator");
 		this.lowerBits = lowerBitsVector.bits();
-		selectUpper = new SimpleSelect( upperBits );
+		selectUpper = new SimpleSelect(upperBits);
 	}
 
 
@@ -254,17 +254,17 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	@Override
-	public long getLong( final long index ) {
+	public long getLong(final long index) {
 		final int l = this.l;
-		final long upperBits = selectUpper.select( index ) - index;
-		if ( l == 0 ) return upperBits;
+		final long upperBits = selectUpper.select(index) - index;
+		if (l == 0) return upperBits;
 
 		final long position = index * l;
-		final int startWord = (int)( position / Long.SIZE );
-		final int startBit = (int)( position % Long.SIZE );
+		final int startWord = (int)(position / Long.SIZE);
+		final int startBit = (int)(position % Long.SIZE);
 		final int totalOffset = startBit + l;
-		final long result = lowerBits[ startWord ] >>> startBit;
-		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+		final long result = lowerBits[startWord] >>> startBit;
+		return upperBits << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 	}
 
 
@@ -277,17 +277,17 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @return {@code dest}
 	 * @see #get(long, long[])
 	 */
-	public long[] get( long index, final long dest[], final int offset, final int length ) {
-		selectUpper.select( index, dest, offset, length );
-		if ( l == 0 ) for( int i = 0; i < length; i++ ) dest[ offset + i ] -= index++;
+	public long[] get(long index, final long dest[], final int offset, final int length) {
+		selectUpper.select(index, dest, offset, length);
+		if (l == 0) for(int i = 0; i < length; i++) dest[offset + i] -= index++;
 		else {
 			long position = index * l;
-			for( int i = 0; i < length; i++ ) {
-				final int startWord = (int)( position / Long.SIZE );
-				final int startBit = (int)( position % Long.SIZE );
+			for(int i = 0; i < length; i++) {
+				final int startWord = (int)(position / Long.SIZE);
+				final int startBit = (int)(position % Long.SIZE);
 				final int totalOffset = startBit + l;
-				final long result = lowerBits[ startWord ] >>> startBit;
-				dest[ offset + i ] = dest[ offset + i ] - index++ << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+				final long result = lowerBits[startWord] >>> startBit;
+				dest[offset + i] = dest[offset + i] - index++ << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 				position += l;
 			}
 		}
@@ -302,8 +302,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @return {@code dest}
 	 * @see #get(long, long[], int, int)
 	 */
-	public long[] get( final long index, final long dest[] ) {
-		return get( index, dest, 0, dest.length );
+	public long[] get(final long index, final long dest[]) {
+		return get(index, dest, 0, dest.length);
 	}
 
 	@Override

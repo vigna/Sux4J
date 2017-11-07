@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -51,8 +51,8 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 * @param bits a long array containing the bits.
 	 * @param length the number of valid bits in <code>bits</code>.
 	 */
-	public SparseSelect( final long[] bits, final long length ) {
-		this( LongArrayBitVector.wrap( bits, length ) );
+	public SparseSelect(final long[] bits, final long length) {
+		this(LongArrayBitVector.wrap(bits, length));
 	}
 
 	/** Creates a new select structure using a bit vector.
@@ -61,8 +61,8 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 *
 	 * @param bitVector the input bit vector.
 	 */
-	public SparseSelect( final BitVector bitVector ) {
-		this( bitVector.length(), bitVector.count(), bitVector.asLongSet().iterator() );
+	public SparseSelect(final BitVector bitVector) {
+		this(bitVector.length(), bitVector.count(), bitVector.asLongSet().iterator());
 	}
 
 
@@ -75,8 +75,8 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 * @param m the number of ones in the underlying bit vector.
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
-	public SparseSelect( final long n, long m, final LongIterator iterator ) {
-		super( m, n, iterator );
+	public SparseSelect(final long n, long m, final LongIterator iterator) {
+		super(m, n, iterator);
 		this.n = n;
 		fromRank = false;
 	}
@@ -85,9 +85,9 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 *
 	 * @param list the list of the positions of ones.
 	 */
-	public SparseSelect( final LongList list ) {
-		super( list );
-		this.n = list.isEmpty() ? 0 : list.getLong( list.size() - 1 ) + 1;
+	public SparseSelect(final LongList list) {
+		super(list);
+		this.n = list.isEmpty() ? 0 : list.getLong(list.size() - 1) + 1;
 		fromRank = false;
 	}
 
@@ -98,14 +98,14 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 *
 	 * @param list the list of the positions of ones.
 	 */
-	public SparseSelect( final LongBigList list ) {
-		super( list );
-		this.n = list.isEmpty() ? 0 : list.getLong( list.size64() - 1 ) + 1;
+	public SparseSelect(final LongBigList list) {
+		super(list);
+		this.n = list.isEmpty() ? 0 : list.getLong(list.size64() - 1) + 1;
 		fromRank = false;
 	}
 
-	protected SparseSelect( final long n, final long m, final int l, final long[] lowerBits, final SimpleSelect selectUpper ) {
-		super( m, l, lowerBits, selectUpper );
+	protected SparseSelect(final long n, final long m, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
+		super(m, l, lowerBits, selectUpper);
 		this.n = n;
 		this.fromRank = true;
 	}
@@ -115,7 +115,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 * @return a new {@link SparseRank} structure sharing data with this instance.
 	 */
 	public SparseRank getRank() {
-		return new SparseRank( n, length, l, lowerBits, selectUpper.bitVector() );
+		return new SparseRank(n, length, l, lowerBits, selectUpper.bitVector());
 	}
 
 	@Override
@@ -126,32 +126,32 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	@Override
 	@Deprecated
 	public int size() {
-		return (int)Math.min( n, Integer.MAX_VALUE );
+		return (int)Math.min(n, Integer.MAX_VALUE);
 	}
 
 	@Override
-	public long getLong( final long pos ) {
+	public long getLong(final long pos) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public long numBits() {
-		return selectUpper.numBits() + ( fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE );
+		return selectUpper.numBits() + (fromRank ? 0 : selectUpper.bitVector().length() + lowerBits.length * (long)Long.SIZE);
 	}
 
 	@Override
-	public long select( final long rank ) {
-		if ( rank >= length ) return -1;
+	public long select(final long rank) {
+		if (rank >= length) return -1;
 		final int l = this.l;
-		final long upperBits = selectUpper.select( rank ) - rank;
-		if ( l == 0 ) return upperBits;
+		final long upperBits = selectUpper.select(rank) - rank;
+		if (l == 0) return upperBits;
 
 		final long position = rank * l;
-		final int startWord = (int)( position / Long.SIZE );
-		final int startBit = (int)( position % Long.SIZE );
+		final int startWord = (int)(position / Long.SIZE);
+		final int startBit = (int)(position % Long.SIZE);
 		final int totalOffset = startBit + l;
-		final long result = lowerBits[ startWord ] >>> startBit;
-		return upperBits << l | ( totalOffset <= Long.SIZE ? result : result | lowerBits[ startWord + 1 ] << -startBit ) & lowerBitsMask;
+		final long result = lowerBits[startWord] >>> startBit;
+		return upperBits << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 	}
 
 	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
@@ -161,23 +161,23 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 */
 	@Override
 	public BitVector bitVector() {
-		final LongArrayBitVector result = LongArrayBitVector.ofLength( n );
-		for( long i = length; i-- != 0; ) result.set( select( i ) );
+		final LongArrayBitVector result = LongArrayBitVector.ofLength(n);
+		for(long i = length; i-- != 0;) result.set(select(i));
 		return result;
 	}
 
 	@Override
 	public int hashCode() {
-		return System.identityHashCode( this );
+		return System.identityHashCode(this);
 	}
 
 	@Override
-	public boolean equals( final Object o ) {
+	public boolean equals(final Object o) {
 		return o == this;
 	}
 
 	@Override
 	public String toString() {
-		return getClass().getName() + '@' + Integer.toHexString( hashCode() );
+		return getClass().getName() + '@' + Integer.toHexString(hashCode());
 	}
 }

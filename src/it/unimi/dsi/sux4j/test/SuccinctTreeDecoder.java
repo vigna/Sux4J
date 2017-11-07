@@ -16,44 +16,44 @@ public class SuccinctTreeDecoder implements Decoder, Serializable {
 	private final JacobsonBalancedParentheses balParen;
 	private final LongArrayBitVector bitVector;
 	private final boolean returnZero;
-	
-	public SuccinctTreeDecoder( TreeDecoder treeDecoder ) {
+
+	public SuccinctTreeDecoder(TreeDecoder treeDecoder) {
 		bitVector = treeDecoder.succinctRepresentation();
 		//System.err.println(bitVector);
 		//System.err.println(Arrays.toString(treeDecoder.buildCodes()));
 		returnZero = bitVector.length() <= 2;
-		balParen = new JacobsonBalancedParentheses( bitVector, false, true, false );
+		balParen = new JacobsonBalancedParentheses(bitVector, false, true, false);
 	}
 
 	@Override
-	public int decode( BooleanIterator iterator ) {
-		if ( returnZero ) return 0;
+	public int decode(BooleanIterator iterator) {
+		if (returnZero) return 0;
 		int p = 1, index = 0;
 
 		for(;;) {
-			if ( iterator.nextBoolean() ) {
-				final int q = (int)( balParen.findClose( p ) + 1 );
-				index += ( q - p ) / 2;
-				if ( ! bitVector.getBoolean( q ) ) return index;
+			if (iterator.nextBoolean()) {
+				final int q = (int)(balParen.findClose(p) + 1);
+				index += (q - p) / 2;
+				if (! bitVector.getBoolean(q)) return index;
 				p = q;
 			}
-			else if ( ! bitVector.getBoolean( ++p ) ) return index;
+			else if (! bitVector.getBoolean(++p)) return index;
 		}
 	}
 
 	@Override
-	public int decode( InputBitStream ibs ) throws IOException {
-		if ( returnZero ) return 0;
+	public int decode(InputBitStream ibs) throws IOException {
+		if (returnZero) return 0;
 		int p = 1, index = 0;
 
 		for(;;) {
-			if ( ibs.readBit() != 0 ) {
-				final int q = (int)( balParen.findClose( p ) + 1 );
-				index += ( q - p ) / 2;
-				if ( ! bitVector.getBoolean( q ) ) return index;
+			if (ibs.readBit() != 0) {
+				final int q = (int)(balParen.findClose(p) + 1);
+				index += (q - p) / 2;
+				if (! bitVector.getBoolean(q)) return index;
 				p = q;
 			}
-			else if ( ! bitVector.getBoolean( ++p ) ) return index;
+			else if (! bitVector.getBoolean(++p)) return index;
 		}
 	}
 }

@@ -65,7 +65,7 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 	 *
 	 * @param function a signed function.
 	 */
-	public SignedFunctionStringMap( final Object2LongFunction<? extends CharSequence> function ) {
+	public SignedFunctionStringMap(final Object2LongFunction<? extends CharSequence> function) {
 		this.function = function;
 	}
 
@@ -73,25 +73,25 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 	 *
 	 * @param keys the keys used to populate the string map.
 	 */
-	public SignedFunctionStringMap( final Iterable<? extends CharSequence> keys ) throws IOException {
-		this.function = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<CharSequence>().keys( keys ).transform( TransformationStrategies.prefixFreeUtf16() ).build();
+	public SignedFunctionStringMap(final Iterable<? extends CharSequence> keys) throws IOException {
+		this.function = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<CharSequence>().keys(keys).transform(TransformationStrategies.prefixFreeUtf16()).build();
 	}
 
 	@Override
-	public long getLong( Object o ) {
-		return function.getLong( o );
+	public long getLong(Object o) {
+		return function.getLong(o);
 	}
 
 	@Override
-	public Long get( Object o ) {
+	public Long get(Object o) {
 		final CharSequence s = (CharSequence)o;
-		final long index = function.getLong( s );
-		return index == -1 ? null : Long.valueOf( index );
+		final long index = function.getLong(s);
+		return index == -1 ? null : Long.valueOf(index);
 	}
 
 	@Override
-	public boolean containsKey( Object o ) {
-		return function.getLong( o ) != -1;
+	public boolean containsKey(Object o) {
+		return function.getLong(o) != -1;
 	}
 
 	@Override
@@ -117,18 +117,18 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void main( final String[] arg ) throws IOException, JSAPException, ClassNotFoundException {
-		final SimpleJSAP jsap = new SimpleJSAP( SignedFunctionStringMap.class.getName(), "Saves a string map wrapping a signed function on character sequences.",
+	public static void main(final String[] arg) throws IOException, JSAPException, ClassNotFoundException {
+		final SimpleJSAP jsap = new SimpleJSAP(SignedFunctionStringMap.class.getName(), "Saves a string map wrapping a signed function on character sequences.",
 				new Parameter[] {
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of a signed function defined on character sequences." ),
-			new UnflaggedOption( "map", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of the resulting string map." ),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of a signed function defined on character sequences."),
+			new UnflaggedOption("map", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename of the resulting string map."),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final String functionName = jsapResult.getString( "function" );
-		final String mapName = jsapResult.getString( "map" );
-		BinIO.storeObject( new SignedFunctionStringMap( (Object2LongFunction<? extends CharSequence>)BinIO.loadObject( functionName ) ), mapName );
+		final String functionName = jsapResult.getString("function");
+		final String mapName = jsapResult.getString("map");
+		BinIO.storeObject(new SignedFunctionStringMap((Object2LongFunction<? extends CharSequence>)BinIO.loadObject(functionName)), mapName);
 	}
 }

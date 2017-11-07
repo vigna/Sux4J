@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -77,7 +77,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
     public static final long serialVersionUID = 4L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( LcpMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(LcpMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
 
@@ -118,7 +118,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @param keys the keys to hash.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -133,7 +133,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @param numKeys the keys to hash.
 		 * @return this builder.
 		 */
-		public Builder<T> numKeys( final long numKeys ) {
+		public Builder<T> numKeys(final long numKeys) {
 			this.numKeys = numKeys;
 			return this;
 		}
@@ -143,7 +143,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -153,7 +153,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -163,7 +163,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -174,9 +174,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public LcpMonotoneMinimalPerfectHashFunction<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			return new LcpMonotoneMinimalPerfectHashFunction<>( keys, numKeys, transform, signatureWidth, tempDir );
+			return new LcpMonotoneMinimalPerfectHashFunction<>(keys, numKeys, transform, signatureWidth, tempDir);
 		}
 	}
 
@@ -190,18 +190,18 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 */
 	@SuppressWarnings("unused")
-	protected LcpMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final long numKeys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir ) throws IOException {
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+	protected LcpMonotoneMinimalPerfectHashFunction(final Iterable<? extends T> keys, final long numKeys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir) throws IOException {
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		this.transform = transform;
 
-		if ( numKeys == -1 ) {
-			if ( keys instanceof Size64 ) n = ((Size64)keys).size64();
-			else if ( keys instanceof Collection ) n = ((Collection<?>)keys).size();
+		if (numKeys == -1) {
+			if (keys instanceof Size64) n = ((Size64)keys).size64();
+			else if (keys instanceof Collection) n = ((Collection<?>)keys).size();
 			else {
 				long c = 0;
-				for( final T dummy: keys ) c++;
+				for(final T dummy: keys) c++;
 				n = c;
 			}
 		}
@@ -209,7 +209,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		if ( n == 0 ) {
+		if (n == 0) {
 			bucketSize = bucketSizeMask = log2BucketSize = 0;
 			lcp2Bucket = null;
 			offsetLcpLength = null;
@@ -218,92 +218,92 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return;
 		}
 
-		final int theoreticalBucketSize = (int)Math.ceil( 1 + GOV3Function.C * Math.log( 2 ) + Math.log( n ) - Math.log( 1 + Math.log( n ) ) );
-		log2BucketSize = Fast.ceilLog2( theoreticalBucketSize );
+		final int theoreticalBucketSize = (int)Math.ceil(1 + GOV3Function.C * Math.log(2) + Math.log(n) - Math.log(1 + Math.log(n)));
+		log2BucketSize = Fast.ceilLog2(theoreticalBucketSize);
 		bucketSize = 1 << log2BucketSize;
 		bucketSizeMask = bucketSize - 1;
-		LOGGER.debug( "Bucket size: " + bucketSize );
+		LOGGER.debug("Bucket size: " + bucketSize);
 
-		final long numBuckets = ( n + bucketSize - 1 ) / bucketSize;
+		final long numBuckets = (n + bucketSize - 1) / bucketSize;
 
 		final LongArrayBitVector prev = LongArrayBitVector.getInstance();
 		final LongArrayBitVector curr = LongArrayBitVector.getInstance();
 		int currLcp = 0;
 		@SuppressWarnings("resource")
-		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-		final int[][] lcpLengths = IntBigArrays.newBigArray( numBuckets );
+		final OfflineIterable<BitVector, LongArrayBitVector> lcps = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
+		final int[][] lcpLengths = IntBigArrays.newBigArray(numBuckets);
 		int maxLcp = 0;
 		long maxLength = 0;
 
 		pl.expectedUpdates = n;
 
 		@SuppressWarnings("resource")
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>( TransformationStrategies.identity(), tempDir, pl );
-		chunkedHashStore.reset( Util.randomSeed() );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), tempDir, pl);
+		chunkedHashStore.reset(Util.randomSeed());
 
-		pl.start( "Scanning collection..." );
+		pl.start("Scanning collection...");
 
 		final Iterator<? extends T> iterator = keys.iterator();
-		for( long b = 0; b < numBuckets; b++ ) {
-			prev.replace( transform.toBitVector( iterator.next() ) );
-			chunkedHashStore.add( prev );
+		for(long b = 0; b < numBuckets; b++) {
+			prev.replace(transform.toBitVector(iterator.next()));
+			chunkedHashStore.add(prev);
 			pl.lightUpdate();
-			maxLength = Math.max( maxLength, prev.length() );
+			maxLength = Math.max(maxLength, prev.length());
 			currLcp = (int)prev.length();
-			final int currBucketSize = (int)Math.min( bucketSize, n - b * bucketSize );
+			final int currBucketSize = (int)Math.min(bucketSize, n - b * bucketSize);
 
-			for( int i = 0; i < currBucketSize - 1; i++ ) {
-				curr.replace( transform.toBitVector( iterator.next() ) );
-				chunkedHashStore.add( curr );
+			for(int i = 0; i < currBucketSize - 1; i++) {
+				curr.replace(transform.toBitVector(iterator.next()));
+				chunkedHashStore.add(curr);
 				pl.lightUpdate();
-				final int prefix = (int)curr.longestCommonPrefixLength( prev );
-				if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct@" + ( b * bucketSize + i ) + " (\"" + curr + "\" = \"" + prev + "\")" );
-				if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free@" + ( b * bucketSize + i ) + " (\"" + curr + "\" is a prefix or a suffix of \"" + prev + "\")" );
-				if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted @" + ( b * bucketSize + i ) + " (\"" + curr + "\" < \"" + prev + "\")" );
+				final int prefix = (int)curr.longestCommonPrefixLength(prev);
+				if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct@" + (b * bucketSize + i) + " (\"" + curr + "\" = \"" + prev + "\")");
+				if (prefix == prev.length() || prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not prefix-free@" + (b * bucketSize + i) + " (\"" + curr + "\" is a prefix or a suffix of \"" + prev + "\")");
+				if (prev.getBoolean(prefix)) throw new IllegalArgumentException("The input bit vectors are not lexicographically sorted @" + (b * bucketSize + i) + " (\"" + curr + "\" < \"" + prev + "\")");
 
-				currLcp = Math.min( prefix, currLcp );
-				prev.replace( curr );
+				currLcp = Math.min(prefix, currLcp);
+				prev.replace(curr);
 
-				maxLength = Math.max( maxLength, prev.length() );
+				maxLength = Math.max(maxLength, prev.length());
 			}
 
-			lcps.add( prev.subVector( 0, currLcp  ) );
-			IntBigArrays.set( lcpLengths, b, currLcp );
-			maxLcp = Math.max( maxLcp, currLcp );
+			lcps.add(prev.subVector(0, currLcp));
+			IntBigArrays.set(lcpLengths, b, currLcp);
+			maxLcp = Math.max(maxLcp, currLcp);
 		}
 
 		pl.done();
 
-		if ( ASSERTS ) {
+		if (ASSERTS) {
 			final ObjectOpenHashSet<BitVector> s = new ObjectOpenHashSet<>();
-			for( final LongArrayBitVector bv: lcps ) s.add( bv.copy() );
+			for(final LongArrayBitVector bv: lcps) s.add(bv.copy());
 			assert s.size() == lcps.size64() : s.size() + " != " + lcps.size64(); // No duplicates.
 		}
 
-		LOGGER.info( "Generating the map from keys to LCP lengths and offsets..." );
+		LOGGER.info("Generating the map from keys to LCP lengths and offsets...");
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys( TransformationStrategies.wrap( keys, transform ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( new AbstractLongBigList() {
+		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(keys, transform)).transform(TransformationStrategies.identity()).store(chunkedHashStore).values(new AbstractLongBigList() {
 			@Override
-			public long getLong( long index ) {
-				return IntBigArrays.get( lcpLengths, index >>> log2BucketSize ) << log2BucketSize | index & bucketSizeMask;
+			public long getLong(long index) {
+				return IntBigArrays.get(lcpLengths, index >>> log2BucketSize) << log2BucketSize | index & bucketSizeMask;
 			}
 			@Override
 			public long size64() {
 				return n;
 			}
-		}, log2BucketSize + Fast.length( maxLcp ) ).indirect().build();
+		}, log2BucketSize + Fast.length(maxLcp)).indirect().build();
 
-		LOGGER.info( "Generating the map from LCPs to buckets..." );
+		LOGGER.info("Generating the map from LCPs to buckets...");
 		// Build function assigning each lcp to its bucket.
-		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys( lcps ).transform( TransformationStrategies.identity() ).tempDir( tempDir ).build();
+		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys(lcps).transform(TransformationStrategies.identity()).tempDir(tempDir).build();
 
-		if ( DEBUG ) {
+		if (DEBUG) {
 			int p = 0;
-			for( final BitVector v: lcps ) System.err.println( v  + " " + v.length() );
-			for( final BitVector v: lcps ) {
-				final long value = lcp2Bucket.getLong( v );
-				if ( p++ != value ) {
-					System.err.println( "p: " + (p-1) + "  value: " + value + " key:" + v );
+			for(final BitVector v: lcps) System.err.println(v  + " " + v.length());
+			for(final BitVector v: lcps) {
+				final long value = lcp2Bucket.getLong(v);
+				if (p++ != value) {
+					System.err.println("p: " + (p-1) + "  value: " + value + " key:" + v);
 					throw new AssertionError();
 				}
 			}
@@ -312,29 +312,29 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		lcps.close();
 		this.seed = chunkedHashStore.seed();
 
-		if ( DEBUG ) {
+		if (DEBUG) {
 			int p = 0;
-			for( final T key: keys ) {
-				final long value = offsetLcpLength.getLong( key );
-				if ( p++ != lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) ) * bucketSize + ( value & bucketSizeMask ) ) {
-					System.err.println( "p: " + ( p - 1 )
+			for(final T key: keys) {
+				final long value = offsetLcpLength.getLong(key);
+				if (p++ != lcp2Bucket.getLong(transform.toBitVector(key).subVector(0, value >>> log2BucketSize)) * bucketSize + (value & bucketSizeMask)) {
+					System.err.println("p: " + (p - 1)
 							+ "  Key: " + key
 							+ " bucket size: " + bucketSize
-							+ " lcp " + transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize )
-							+ " lcp length: " + ( value >>> log2BucketSize )
-							+ " bucket " + lcp2Bucket.getLong( transform.toBitVector( key ).subVector( 0, value >>> log2BucketSize ) )
-							+ " offset: " + ( value & bucketSizeMask ) );
+							+ " lcp " + transform.toBitVector(key).subVector(0, value >>> log2BucketSize)
+							+ " lcp length: " + (value >>> log2BucketSize)
+							+ " bucket " + lcp2Bucket.getLong(transform.toBitVector(key).subVector(0, value >>> log2BucketSize))
+							+ " offset: " + (value & bucketSizeMask));
 					throw new AssertionError();
 				}
 			}
 		}
 
-		LOGGER.debug( "Forecast bit cost per element: " + ( log2( E ) + GOV3Function.C - log2( log2( E ) ) + log2( 1 + log2( n ) ) + log2( maxLength - log2( 1 + log2( n ) ) ) ) );
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.debug("Forecast bit cost per element: " + (log2(E) + GOV3Function.C - log2(log2(E)) + log2(1 + log2(n)) + log2(maxLength - log2(1 + log2(n)))));
+		LOGGER.info("Actual bit cost per element: " + (double)numBits() / n);
 
-		if ( signatureWidth != 0 ) {
+		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures( signatureWidth, pl );
+			signatures = chunkedHashStore.signatures(signatureWidth, pl);
 		}
 		else {
 			signatureMask = 0;
@@ -346,16 +346,16 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( n == 0 ) return defRetValue;
-		final BitVector bitVector = transform.toBitVector( (T)o );
-		final long[] triple = new long[ 3 ];
-		Hashes.spooky4( bitVector, seed, triple );
-		final long value = offsetLcpLength.getLongByTriple( triple );
+	public long getLong(final Object o) {
+		if (n == 0) return defRetValue;
+		final BitVector bitVector = transform.toBitVector((T)o);
+		final long[] triple = new long[3];
+		Hashes.spooky4(bitVector, seed, triple);
+		final long value = offsetLcpLength.getLongByTriple(triple);
 		final long prefix = value >>> log2BucketSize;
-		if ( prefix > bitVector.length() ) return defRetValue;
-		final long result = ( lcp2Bucket.getLong( bitVector.subVector( 0, prefix ) ) << log2BucketSize ) + ( value & bucketSizeMask );
-		if ( signatureMask != 0 ) return result < 0 || result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
+		if (prefix > bitVector.length()) return defRetValue;
+		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + (value & bucketSizeMask);
+		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= n ? defRetValue : result;
 	}
@@ -373,52 +373,52 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		return offsetLcpLength.numBits() + lcp2Bucket.numBits() + transform.numBits();
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP(LcpMonotoneMinimalPerfectHashFunction.class.getName(), "Builds an LCP-based monotone minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+			new Switch("huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length."),
+			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
+			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function."),
+			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final File tempDir = jsapResult.getFile("tempDir");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final boolean huTucker = jsapResult.getBoolean("huTucker");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
 		final Collection<MutableString> collection;
-		if ( "-".equals( stringFile ) ) {
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
+		if ("-".equals(stringFile)) {
+			final ProgressLogger pl = new ProgressLogger(LOGGER);
 			pl.displayLocalSpeed = true;
 			pl.displayFreeMemory = true;
-			pl.start( "Loading strings..." );
-			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+			pl.start("Loading strings...");
+			collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 			pl.done();
 		}
-		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
-			? new HuTuckerTransformationStrategy( collection, true )
+			? new HuTuckerTransformationStrategy(collection, true)
 			: iso
 				? TransformationStrategies.prefixFreeIso()
 				: utf32
 					? TransformationStrategies.prefixFreeUtf32()
 					: TransformationStrategies.prefixFreeUtf16();
-		BinIO.storeObject( new LcpMonotoneMinimalPerfectHashFunction<CharSequence>( collection, -1, transformationStrategy, signatureWidth, tempDir ), functionName );
-		LOGGER.info( "Completed." );
+		BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<CharSequence>(collection, -1, transformationStrategy, signatureWidth, tempDir), functionName);
+		LOGGER.info("Completed.");
 	}
 }

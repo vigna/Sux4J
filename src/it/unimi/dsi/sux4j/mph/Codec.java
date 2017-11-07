@@ -310,7 +310,7 @@ public interface Codec {
 					for (int curr = 0;; curr++) {
 						if (value < lastCodeWordPlusOne[curr]) {
 							//System.err.println("LC:" + StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[curr]), 64, '0'));
-							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> ( shift[curr]))), 64, '0'));
+							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> (shift[curr]))), 64, '0'));
 							//System.err.println(howManyUpToBlock[curr]);
 							//System.err.println(curr);
 							final int s = shift[curr];

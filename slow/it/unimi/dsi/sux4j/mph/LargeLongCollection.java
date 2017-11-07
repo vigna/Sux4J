@@ -9,7 +9,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterator;
 final class LargeLongCollection implements Iterable<Long>, Size64 {
 
 	public final static long SIZE = 3000000005L; // An odd number is essential to catch problems in the computation of the last bucket.
-	private final static long INCREMENT = ( ( 1L << 62 ) / SIZE );
+	private final static long INCREMENT = ((1L << 62) / SIZE);
 
 	private LargeLongCollection() {}
 	private final static LargeLongCollection INSTANCE = new LargeLongCollection();
@@ -29,15 +29,15 @@ final class LargeLongCollection implements Iterable<Long>, Size64 {
 
 			@Override
 			public Long next() {
-				if ( ! hasNext() ) throw new NoSuchElementException();
-				return Long.valueOf( curr++ * INCREMENT );
+				if (! hasNext()) throw new NoSuchElementException();
+				return Long.valueOf(curr++ * INCREMENT);
 			}
 		};
 	}
 
 	@Override
 	public int size() {
-		throw new UnsupportedOperationException( "You should invoke size64(), only." );
+		throw new UnsupportedOperationException("You should invoke size64(), only.");
 	}
 
 	@Override

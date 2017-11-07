@@ -12,13 +12,13 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionSlowTest {
 
 	@Test
 	public void testBig() throws IOException {
-		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long> f = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).build();
-				
+		Iterable<Long> p = LargeLongCollection.getInstance();
+		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<Long> f = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<Long>().keys(p).transform(TransformationStrategies.fixedLong()).build();
+
 		long j = 0;
-		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {
+		for(Iterator<Long> i = p.iterator(); i.hasNext();) {
 			Long s = i.next();
-			assertEquals( j++, f.getLong( s ) );
+			assertEquals(j++, f.getLong(s));
 		}
 	}
 }

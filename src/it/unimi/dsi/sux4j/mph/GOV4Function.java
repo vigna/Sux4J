@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2016 Sebastiano Vigna
+ * Copyright (C) 2016-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -141,7 +141,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 5L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( GOV4Function.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(GOV4Function.class);
 	private static final boolean DEBUG = false;
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #offsetAndSeed}. */
@@ -152,7 +152,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	/** The ratio between variables and equations. */
 	public static double C = 1.02 + 0.01;
 	/** Fixed-point representation of {@link #C}. */
-	private static long C_TIMES_256 = (long)Math.floor( C * 256 );
+	private static long C_TIMES_256 = (long)Math.floor(C * 256);
 
 	/** A builder class for {@link GOV4Function}. */
 	public static class Builder<T> {
@@ -172,7 +172,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param keys the keys of the function.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -182,7 +182,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -193,7 +193,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -207,7 +207,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #signed(int)} with the opposite argument).
 		 * @return this builder.
 		 */
-		public Builder<T> dictionary( final int signatureWidth ) {
+		public Builder<T> dictionary(final int signatureWidth) {
 			this.signatureWidth = - signatureWidth;
 			return this;
 		}
@@ -217,7 +217,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -232,7 +232,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -248,7 +248,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all values contained in the store.
 		 * @return this builder.
 		 */
-		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore, final int outputWidth ) {
+		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore, final int outputWidth) {
 			this.chunkedHashStore = chunkedHashStore;
 			this.outputWidth = outputWidth;
 			return this;
@@ -264,7 +264,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @return this builder.
 		 * @see #values(LongIterable)
 		 */
-		public Builder<T> values( final LongIterable values, final int outputWidth ) {
+		public Builder<T> values(final LongIterable values, final int outputWidth) {
 			this.values = values;
 			this.outputWidth = outputWidth;
 			return this;
@@ -280,10 +280,10 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @return this builder.
 		 * @see #values(LongIterable,int)
 		 */
-		public Builder<T> values(  final LongIterable values ) {
+		public Builder<T> values(final LongIterable values) {
 			this.values = values;
 			int outputWidth = 0;
-			for( final LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
+			for(final LongIterator i = values.iterator(); i.hasNext();) outputWidth = Math.max(outputWidth, Fast.length(i.nextLong()));
 			this.outputWidth = outputWidth;
 			return this;
 		}
@@ -306,13 +306,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public GOV4Function<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if ( transform == null ) {
-				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			if (transform == null) {
+				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			}
-			return new GOV4Function<>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect );
+			return new GOV4Function<>(keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect);
 		}
 	}
 
@@ -355,30 +355,30 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values.
 	 */
-	protected GOV4Function( final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect  ) throws IOException {
+	protected GOV4Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect) throws IOException {
 		this.transform = transform;
 
-		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
-		if ( signatureWidth != 0 && dataWidth != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
+		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
+		if (signatureWidth != 0 && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a signature width and a data width");
 
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if ( chunkedHashStore == null) {
-			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
-			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, - Math.min( signatureWidth, 0 ), pl );
-			chunkedHashStore.reset( r.nextLong() );
-			if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-			else chunkedHashStore.addAll( keys.iterator(), values.iterator() );
+		if (chunkedHashStore == null) {
+			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
+			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, - Math.min(signatureWidth, 0), pl);
+			chunkedHashStore.reset(r.nextLong());
+			if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
+			else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 		}
 		n = chunkedHashStore.size();
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
-		if ( n == 0 ) {
+		if (n == 0) {
 			m = this.globalSeed = chunkShift = this.width = 0;
 			data = null;
 			offsetAndSeed = null;
@@ -387,47 +387,47 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return;
 		}
 
-		final int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
-		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.debug( "Number of chunks: " + numChunks );
+		LOGGER.debug("Number of chunks: " + numChunks);
 
-		offsetAndSeed = new long[ numChunks + 1 ];
+		offsetAndSeed = new long[numChunks + 1];
 
-		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
+		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
-		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
 
 		int duplicates = 0;
 
 		for(;;) {
-			LOGGER.debug( "Generating GOV function with " + this.width + " output bits..." );
+			LOGGER.debug("Generating GOV function with " + this.width + " output bits...");
 
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
-			pl.start( "Analysing chunks... " );
+			pl.start("Analysing chunks... ");
 
 			try {
 				int q = 0;
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-				final LongBigList data = dataBitVector.asLongBigList( this.width );
+				final LongBigList data = dataBitVector.asLongBigList(this.width);
 				long unsolvable = 0;
-				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
+				for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
 
 					final long chunkDataSize = Math.max(C_TIMES_256 * chunk.size() >>> 8, chunk.size() + 1);
 					assert chunkDataSize <= Integer.MAX_VALUE;
-					offsetAndSeed[ q + 1 ] = offsetAndSeed[ q ] + chunkDataSize;
+					offsetAndSeed[q + 1] = offsetAndSeed[q] + chunkDataSize;
 
 					long seed = 0;
 					final Linear4SystemSolver solver =
-							new Linear4SystemSolver( (int) chunkDataSize, chunk.size() );
+							new Linear4SystemSolver((int) chunkDataSize, chunk.size());
 
 					for(;;) {
-						final boolean solved = solver.generateAndSolve( chunk, seed, new AbstractLongBigList() {
-							private final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : null;
+						final boolean solved = solver.generateAndSolve(chunk, seed, new AbstractLongBigList() {
+							private final LongBigList valueList = indirect ? (values instanceof LongList ? LongBigLists.asBigList((LongList)values) : (LongBigList)values) : null;
 
 							@Override
 							public long size64() {
@@ -435,68 +435,68 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 							}
 
 							@Override
-							public long getLong( final long index ) {
-								return indirect ? valueList.getLong( chunk.data( index ) ) : chunk.data( index );
+							public long getLong(final long index) {
+								return indirect ? valueList.getLong(chunk.data(index)) : chunk.data(index);
 							}
 						});
 						unsolvable += solver.unsolvable;
-						if ( solved ) break;
+						if (solved) break;
 						seed += SEED_STEP;
-						if ( seed == 0 ) throw new AssertionError( "Exhausted local seeds" );
+						if (seed == 0) throw new AssertionError("Exhausted local seeds");
 					}
 
-					this.offsetAndSeed[ q ] |= seed;
+					this.offsetAndSeed[q] |= seed;
 
-					dataBitVector.fill( false );
+					dataBitVector.fill(false);
 					data.size(chunkDataSize);
 					q++;
 
 					/* We assign values. */
 					final long[] solution = solver.solution;
-					for( int i = 0; i < solution.length; i++ ) data.set( i, solution[ i ] );
+					for(int i = 0; i < solution.length; i++) data.set(i, solution[i]);
 
-					offlineData.add( dataBitVector );
+					offlineData.add(dataBitVector);
 					pl.update();
 				}
 
-				LOGGER.info( "Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format( 100.0 * unsolvable / numChunks ) + "%)");
+				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable / numChunks) + "%)");
 
 				pl.done();
 				break;
 			}
-			catch( final ChunkedHashStore.DuplicateException e ) {
-				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
-				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
-				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				chunkedHashStore.reset( r.nextLong() );
+			catch(final ChunkedHashStore.DuplicateException e) {
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
+				LOGGER.warn("Found duplicate. Recomputing triples...");
+				chunkedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
-				if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-				else chunkedHashStore.addAll( keys.iterator(), values.iterator() );
+				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
+				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 			}
 		}
 
-		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offsetAndSeed ) );
+		if (DEBUG) System.out.println("Offsets: " + Arrays.toString(offsetAndSeed));
 
 		globalSeed = chunkedHashStore.seed();
-		m = offsetAndSeed[ offsetAndSeed.length - 1 ];
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
-		this.data = dataBitVector.asLongBigList( this.width );
+		m = offsetAndSeed[offsetAndSeed.length - 1];
+		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance(m * this.width);
+		this.data = dataBitVector.asLongBigList(this.width);
 
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-		while( iterator.hasNext() ) dataBitVector.append( iterator.next() );
+		while(iterator.hasNext()) dataBitVector.append(iterator.next());
 		iterator.close();
 
 		offlineData.close();
 
-		LOGGER.info( "Completed." );
-		LOGGER.info( "Forecast bit cost per element: " + C * this.width );
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+		LOGGER.info("Completed.");
+		LOGGER.info("Forecast bit cost per element: " + C * this.width);
+		LOGGER.info("Actual bit cost per element: " + (double)numBits() / n);
 
-		if ( signatureWidth > 0 ) {
+		if (signatureWidth > 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures( signatureWidth, pl );
+			signatures = chunkedHashStore.signatures(signatureWidth, pl);
 		}
-		else if ( signatureWidth < 0 ) {
+		else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
 			signatures = null;
 		}
@@ -505,26 +505,26 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			signatures = null;
 		}
 
-		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
+		if (! givenChunkedHashStore) chunkedHashStore.close();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 4 ];
-		final long[] h = new long[ 3 ];
-		Hashes.spooky4( transform.toBitVector( (T)o ), globalSeed, h );
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
-		Linear4SystemSolver.tripleToEquation( h, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
+	public long getLong(final Object o) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[4];
+		final long[] h = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, h);
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] >>> chunkShift);
+		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
+		Linear4SystemSolver.tripleToEquation(h, offsetAndSeed[chunk] & ~OFFSET_MASK, (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset), e);
+		if (e[0] == -1) return defRetValue;
+		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;
 
-		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );
-		if ( signatureMask == 0 ) return result;
-		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
-		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
+		final long result = data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) ^ data.getLong(e3);
+		if (signatureMask == 0) return result;
+		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
+		else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Low-level access to the output of this function.
@@ -536,18 +536,18 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple( final long[] triple ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 4 ];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offsetAndSeed[ chunk ] & OFFSET_MASK;
-		Linear4SystemSolver.tripleToEquation( triple, offsetAndSeed[ chunk ] & ~OFFSET_MASK, (int)( ( offsetAndSeed[ chunk + 1 ] & OFFSET_MASK ) - chunkOffset ), e );
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset, e3 = e[ 3 ] + chunkOffset;
+	public long getLongByTriple(final long[] triple) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[4];
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
+		Linear4SystemSolver.tripleToEquation(triple, offsetAndSeed[chunk] & ~OFFSET_MASK, (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset), e);
+		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;
 
-		final long result = data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) ^ data.getLong( e3 );
-		if ( signatureMask == 0 ) return result;
-		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
-		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
+		final long result = data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) ^ data.getLong(e3);
+		if (signatureMask == 0) return result;
+		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ triple[0]) & signatureMask) != 0 ? defRetValue : result;
+		else return ((result ^ triple[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Returns the number of keys in the function domain.
@@ -570,77 +570,77 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		if ( n == 0 ) return 0;
-		return ( data != null ? data.size64() : 0 ) * width + offsetAndSeed.length * (long)Long.SIZE;
+		if (n == 0) return 0;
+		return (data != null ? data.size64() : 0) * width + offsetAndSeed.length * (long)Long.SIZE;
 	}
 
 	@Override
-	public boolean containsKey( final Object o ) {
+	public boolean containsKey(final Object o) {
 		return true;
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( GOV4Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+		final SimpleJSAP jsap = new SimpleJSAP(GOV4Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
-			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+			new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
+			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."),
+			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
-		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final File tempDir = jsapResult.getFile("tempDir");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
-		if ( byteArray ) {
-			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
-			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new GOV4Function<>( collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false ), functionName );
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
-			if ( "-".equals( stringFile ) ) {
-				final ProgressLogger pl = new ProgressLogger( LOGGER );
+			if ("-".equals(stringFile)) {
+				final ProgressLogger pl = new ProgressLogger(LOGGER);
 				pl.displayLocalSpeed = true;
 				pl.displayFreeMemory = true;
-				pl.start( "Loading strings..." );
-				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.start("Loading strings...");
+				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.iso()
 							: utf32
 							? TransformationStrategies.utf32()
 									: TransformationStrategies.utf16();
 
-							if ( jsapResult.userSpecified( "values" ) ) {
-								final String values = jsapResult.getString( "values" );
+							if (jsapResult.userSpecified("values")) {
+								final String values = jsapResult.getString("values");
 								int dataWidth = 0;
-								for( final LongIterator i = BinIO.asLongIterator( values ); i.hasNext(); ) dataWidth = Math.max( dataWidth, Fast.length( i.nextLong() ) );
+								for(final LongIterator i = BinIO.asLongIterator(values); i.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(i.nextLong()));
 
-								BinIO.storeObject( new GOV4Function<CharSequence>( collection, transformationStrategy, signatureWidth, BinIO.asLongIterable( values ), dataWidth, tempDir, null, false ), functionName );
+								BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, BinIO.asLongIterable(values), dataWidth, tempDir, null, false), functionName);
 							}
 
-							else BinIO.storeObject( new GOV4Function<CharSequence>( collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false ), functionName );
+							else BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false), functionName);
 		}
-		LOGGER.info( "Completed." );
+		LOGGER.info("Completed.");
 	}
 }

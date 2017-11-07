@@ -6,7 +6,7 @@ import java.io.ObjectInputStream;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -50,7 +50,7 @@ public class SimpleSelectZero implements SelectZero {
 	private static final int MAX_LOG2_LONGWORDS_PER_SUBINVENTORY = 3;
 
 	/** The maximum size of span to qualify for a subinventory made of 16-bit offsets. */
-	private static final int MAX_SPAN = ( 1 << 16 );
+	private static final int MAX_SPAN = (1 << 16);
 
 	/** The underlying bit vector. */
 	private final BitVector bitVector;
@@ -97,115 +97,115 @@ public class SimpleSelectZero implements SelectZero {
 	 * @param bits an array of longs representing a bit array.
 	 * @param length the number of bits to use from <code>bits</code>.
 	 */
-	public SimpleSelectZero( long[] bits, long length ) {
-		this( LongArrayBitVector.wrap( bits, length ) );
+	public SimpleSelectZero(long[] bits, long length) {
+		this(LongArrayBitVector.wrap(bits, length));
 	}
 
 	/** Creates a new selection structure using the specified bit vector.
 	 *
 	 * @param bitVector a bit vector.
 	 */
-	public SimpleSelectZero( final BitVector bitVector ) {
+	public SimpleSelectZero(final BitVector bitVector) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 
-		numWords = (int)( ( length + 63 ) / 64 );
+		numWords = (int)((length + 63) / 64);
 
 		// We compute quickly the number of ones (possibly counting spurious bits in the last word).
 		long d = 0;
-		for( int i = numWords; i-- != 0; ) d += Long.bitCount( ~bits[ i ] );
+		for(int i = numWords; i-- != 0;) d += Long.bitCount(~bits[i]);
 
-		onesPerInventory = 1 << ( log2OnesPerInventory = Fast.mostSignificantBit( length == 0 ? 1 : (int)( ( d * MAX_ONES_PER_INVENTORY + length - 1 ) / length ) ) );
+		onesPerInventory = 1 << (log2OnesPerInventory = Fast.mostSignificantBit(length == 0 ? 1 : (int)((d * MAX_ONES_PER_INVENTORY + length - 1) / length)));
 		onesPerInventoryMask = onesPerInventory - 1;
-		final int inventorySize = (int)( ( d + onesPerInventory - 1 ) / onesPerInventory );
+		final int inventorySize = (int)((d + onesPerInventory - 1) / onesPerInventory);
 
-		inventory = new long[ inventorySize + 1 ];
+		inventory = new long[inventorySize + 1];
 
 		// First phase: we build an inventory for each one out of onesPerInventory.
 		d = 0;
-		for( int i = 0; i < numWords; i++ )
-			for( int j = 0; j < 64; j++ ) {
-				if ( i * 64L + j >= length ) break;
-				if ( ( ~bits[ i ] & 1L << j ) != 0 ) {
-					if ( ( d & onesPerInventoryMask ) == 0 ) inventory[ (int)( d >>> log2OnesPerInventory ) ] = i * 64L + j;
+		for(int i = 0; i < numWords; i++)
+			for(int j = 0; j < 64; j++) {
+				if (i * 64L + j >= length) break;
+				if ((~bits[i] & 1L << j) != 0) {
+					if ((d & onesPerInventoryMask) == 0) inventory[(int)(d >>> log2OnesPerInventory)] = i * 64L + j;
 					d++;
 				}
 			}
 
 		numOnes = d;
 
-		inventory[ inventorySize ] = length;
+		inventory[inventorySize] = length;
 
-		log2LongwordsPerSubinventory = Math.min( MAX_LOG2_LONGWORDS_PER_SUBINVENTORY, Math.max( 0, log2OnesPerInventory - 2 ) );
-		log2OnesPerSub64 = Math.max( 0, log2OnesPerInventory - log2LongwordsPerSubinventory );
-		log2OnesPerSub16 = Math.max( 0, log2OnesPerSub64 - 2 );
-		onesPerSub64 = ( 1 << log2OnesPerSub64 );
-		onesPerSub16 = ( 1 << log2OnesPerSub16 );
+		log2LongwordsPerSubinventory = Math.min(MAX_LOG2_LONGWORDS_PER_SUBINVENTORY, Math.max(0, log2OnesPerInventory - 2));
+		log2OnesPerSub64 = Math.max(0, log2OnesPerInventory - log2LongwordsPerSubinventory);
+		log2OnesPerSub16 = Math.max(0, log2OnesPerSub64 - 2);
+		onesPerSub64 = (1 << log2OnesPerSub64);
+		onesPerSub16 = (1 << log2OnesPerSub16);
 		onesPerSub16Mask = onesPerSub16 - 1;
 
-		if ( onesPerInventory > 1 ) {
+		if (onesPerInventory > 1) {
 			d = 0;
 			int ones;
 			long diff16 = 0, start = 0, span = 0;
 			int spilled = 0, inventoryIndex = 0;
 
-			for( int i = 0; i < numWords; i++ )
+			for(int i = 0; i < numWords; i++)
 				// We estimate the subinventory and exact spill size
-				for( int j = 0; j < 64; j++ ) {
-					if ( i * 64L + j >= length ) break;
-					if ( ( ~bits[ i ] & 1L << j ) != 0 ) {
-						if ( ( d & onesPerInventoryMask ) == 0 ) {
-							inventoryIndex = (int)( d >>> log2OnesPerInventory );
-							start = inventory[ inventoryIndex ];
-							span = inventory[ inventoryIndex + 1 ] - start;
-							ones = (int)Math.min( numOnes - d, onesPerInventory );
+				for(int j = 0; j < 64; j++) {
+					if (i * 64L + j >= length) break;
+					if ((~bits[i] & 1L << j) != 0) {
+						if ((d & onesPerInventoryMask) == 0) {
+							inventoryIndex = (int)(d >>> log2OnesPerInventory);
+							start = inventory[inventoryIndex];
+							span = inventory[inventoryIndex + 1] - start;
+							ones = (int)Math.min(numOnes - d, onesPerInventory);
 
 							// We must always count (possibly unused) diff16's. And we cannot store less then 4 diff16.
-							diff16 += Math.max( 4, ( ones + onesPerSub16 - 1 ) >>> log2OnesPerSub16 );
-							if ( span >= MAX_SPAN && onesPerSub64 > 1 ) spilled += ones;
+							diff16 += Math.max(4, (ones + onesPerSub16 - 1) >>> log2OnesPerSub16);
+							if (span >= MAX_SPAN && onesPerSub64 > 1) spilled += ones;
 						}
 						d++;
 					}
 				}
 
-			final int subinventorySize = (int)( ( diff16 + 3 ) / 4 );
+			final int subinventorySize = (int)((diff16 + 3) / 4);
 			final int exactSpillSize = spilled;
-			subinventory = new long[ subinventorySize ];
-			exactSpill = new long[ exactSpillSize ];
-			subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
+			subinventory = new long[subinventorySize];
+			exactSpill = new long[exactSpillSize];
+			subinventory16 = LongArrayBitVector.wrap(subinventory).asLongBigList(Short.SIZE);
 
 			int offset = 0;
 			spilled = 0;
 			d = 0;
 
-			for( int i = 0; i < numWords; i++ )
-				for( int j = 0; j < 64; j++ ) {
-					if ( i * 64L + j >= length ) break;
-					if ( ( ~bits[ i ] & 1L << j ) != 0 ) {
-						if ( ( d & onesPerInventoryMask ) == 0 ) {
-							inventoryIndex = (int)( d >>> log2OnesPerInventory );
-							start = inventory[ inventoryIndex ];
-							span = inventory[ inventoryIndex + 1 ] - start;
+			for(int i = 0; i < numWords; i++)
+				for(int j = 0; j < 64; j++) {
+					if (i * 64L + j >= length) break;
+					if ((~bits[i] & 1L << j) != 0) {
+						if ((d & onesPerInventoryMask) == 0) {
+							inventoryIndex = (int)(d >>> log2OnesPerInventory);
+							start = inventory[inventoryIndex];
+							span = inventory[inventoryIndex + 1] - start;
 							offset = 0;
 						}
 
-						if ( span < MAX_SPAN ) {
-							if ( ASSERTS ) assert i * 64L + j - start <= MAX_SPAN;
-							if ( ( d & onesPerSub16Mask ) == 0 ) {
-								subinventory16.set( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) +  offset++, i * 64L + j - start );
+						if (span < MAX_SPAN) {
+							if (ASSERTS) assert i * 64L + j - start <= MAX_SPAN;
+							if ((d & onesPerSub16Mask) == 0) {
+								subinventory16.set((inventoryIndex << log2LongwordsPerSubinventory + 2) +  offset++, i * 64L + j - start);
 							}
 						}
 						else {
-							if ( onesPerSub64 == 1 ) {
-								subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + offset++ ] = i * 64L + j;
+							if (onesPerSub64 == 1) {
+								subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + offset++] = i * 64L + j;
 							}
 							else {
-								if ( ( d & onesPerInventoryMask ) == 0 ) {
-									inventory[ inventoryIndex ] |= 1L << 63;
-									subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] = spilled;
+								if ((d & onesPerInventoryMask) == 0) {
+									inventory[inventoryIndex] |= 1L << 63;
+									subinventory[inventoryIndex << log2LongwordsPerSubinventory] = spilled;
 								}
-								exactSpill[ spilled++ ] = i * 64L + j;
+								exactSpill[spilled++] = i * 64L + j;
 							}
 						}
 
@@ -221,42 +221,42 @@ public class SimpleSelectZero implements SelectZero {
 	}
 
 	@Override
-	public long selectZero( long rank ) {
-		if ( rank >= numOnes ) return -1;
+	public long selectZero(long rank) {
+		if (rank >= numOnes) return -1;
 
-		final int inventoryIndex = (int)( rank >>> log2OnesPerInventory );
+		final int inventoryIndex = (int)(rank >>> log2OnesPerInventory);
 
-		final long inventoryRank = inventory[ inventoryIndex ];
-		final int subrank = (int)( rank & onesPerInventoryMask );
+		final long inventoryRank = inventory[inventoryIndex];
+		final int subrank = (int)(rank & onesPerInventoryMask);
 
-		if ( subrank == 0 ) return inventoryRank & ~(1L<<63);
+		if (subrank == 0) return inventoryRank & ~(1L<<63);
 
 		long start;
 		int residual;
 
-		if ( inventoryRank >= 0 ) {
-			start = inventoryRank + subinventory16.getLong( ( inventoryIndex << log2LongwordsPerSubinventory + 2 ) + ( subrank >>> log2OnesPerSub16 ) );
+		if (inventoryRank >= 0) {
+			start = inventoryRank + subinventory16.getLong((inventoryIndex << log2LongwordsPerSubinventory + 2) + (subrank >>> log2OnesPerSub16));
 			residual = subrank & onesPerSub16Mask;
 		}
 		else {
-			if ( onesPerSub64 == 1 ) return subinventory[ ( inventoryIndex << log2LongwordsPerSubinventory ) + subrank ];
-			return exactSpill[ (int)( subinventory[ inventoryIndex << log2LongwordsPerSubinventory ] + subrank ) ];
+			if (onesPerSub64 == 1) return subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + subrank];
+			return exactSpill[(int)(subinventory[inventoryIndex << log2LongwordsPerSubinventory] + subrank)];
 		}
 
-		if ( residual == 0 ) return start;
+		if (residual == 0) return start;
 
 		final long bits[] = this.bits;
-		int wordIndex = (int)( start / 64 );
-		long word = ~bits[ wordIndex ] & -1L << start;
+		int wordIndex = (int)(start / 64);
+		long word = ~bits[wordIndex] & -1L << start;
 
 		for(;;) {
-			final int bitCount = Long.bitCount( word );
-			if ( residual < bitCount ) break;
-			word = ~bits[ ++wordIndex ];
+			final int bitCount = Long.bitCount(word);
+			if (residual < bitCount) break;
+			word = ~bits[++wordIndex];
 			residual -= bitCount;
 		}
 
-		return wordIndex * 64L + Fast.select( word, residual );
+		return wordIndex * 64L + Fast.select(word, residual);
 	}
 
 	/** Performs a bulk select of consecutive ranks into a given array fragment.
@@ -268,18 +268,18 @@ public class SimpleSelectZero implements SelectZero {
 	 * @return {@code dest}
 	 * @see #selectZero(long, long[])
 	 */
-	public long[] selectZero( long rank, long[] dest, final int offset, final int length ) {
-		if ( length == 0 ) return dest;
-		final long s = selectZero( rank );
-		dest[ offset ] = s;
-		int curr = (int)( s / Long.SIZE );
+	public long[] selectZero(long rank, long[] dest, final int offset, final int length) {
+		if (length == 0) return dest;
+		final long s = selectZero(rank);
+		dest[offset] = s;
+		int curr = (int)(s / Long.SIZE);
 
-		long window = ~bits[ curr ] & -1L << s;
+		long window = ~bits[curr] & -1L << s;
 		window &= window - 1;
 
-		for( int i = 1; i < length; i++ ) {
-			while( window == 0 ) window = ~bits[ ++curr ];
-			dest[ offset + i ] = curr * Long.SIZE + Long.numberOfTrailingZeros( window );
+		for(int i = 1; i < length; i++) {
+			while(window == 0) window = ~bits[++curr];
+			dest[offset + i] = curr * Long.SIZE + Long.numberOfTrailingZeros(window);
 			window &= window - 1;
 		}
 
@@ -293,13 +293,13 @@ public class SimpleSelectZero implements SelectZero {
 	 * @return {@code dest}
 	 * @see #selectZero(long, long[], int, int)
 	 */
-	public long[] selectZero( long rank, long[] dest ) {
-		return selectZero( rank, dest, 0, dest.length );
+	public long[] selectZero(long rank, long[] dest) {
+		return selectZero(rank, dest, 0, dest.length);
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		subinventory16 = LongArrayBitVector.wrap( subinventory ).asLongBigList( Short.SIZE );
+		subinventory16 = LongArrayBitVector.wrap(subinventory).asLongBigList(Short.SIZE);
 		bits = bitVector.bits();
 	}
 

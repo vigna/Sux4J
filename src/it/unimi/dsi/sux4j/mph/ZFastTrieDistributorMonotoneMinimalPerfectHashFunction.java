@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -72,7 +72,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
     public static final long serialVersionUID = 4L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class);
 
 	/** The number of elements. */
 	private final long size;
@@ -106,7 +106,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		 * @param keys the keys to hash.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -116,7 +116,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -126,7 +126,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -136,7 +136,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -147,9 +147,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			return new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<>( keys, transform, -1, signatureWidth, tempDir );
+			return new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<>(keys, transform, -1, signatureWidth, tempDir);
 		}
 	}
 
@@ -164,7 +164,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	 * @param signatureWidth a signature width, or 0 for no signature.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 */
-	protected ZFastTrieDistributorMonotoneMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int log2BucketSize, final int signatureWidth, final File tempDir ) throws IOException {
+	protected ZFastTrieDistributorMonotoneMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int log2BucketSize, final int signatureWidth, final File tempDir) throws IOException {
 
 		this.transform = transform;
 		defRetValue = -1; // For the very few cases in which we can decide
@@ -172,27 +172,27 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		long maxLength = 0;
 		long totalLength = 0;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>( TransformationStrategies.identity(), tempDir );
-		chunkedHashStore.reset( r.nextLong() );
-		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap( keys, transform );
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), tempDir);
+		chunkedHashStore.reset(r.nextLong());
+		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(keys, transform);
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
-		pl.start( "Scanning collection..." );
-		for( final BitVector bv: bitVectors ) {
-			maxLength = Math.max( maxLength, bv.length() );
+		pl.start("Scanning collection...");
+		for(final BitVector bv: bitVectors) {
+			maxLength = Math.max(maxLength, bv.length());
 			totalLength += bv.length();
-			chunkedHashStore.add( bv );
+			chunkedHashStore.add(bv);
 			pl.lightUpdate();
 		}
 
 		pl.done();
 
-		chunkedHashStore.checkAndRetry( bitVectors );
+		chunkedHashStore.checkAndRetry(bitVectors);
 		size = chunkedHashStore.size();
 
-		if ( size == 0 ) {
+		if (size == 0) {
 			this.log2BucketSize = -1;
 			distributor = null;
 			offset = null;
@@ -202,43 +202,43 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			return;
 		}
 
-		final long averageLength = ( totalLength + size - 1 ) / size;
+		final long averageLength = (totalLength + size - 1) / size;
 
-		final long forecastBucketSize = (long)Math.ceil( 10.5 + 4.05 * log( averageLength ) + 2.43 * log( log ( size ) + 1 ) + 2.43 * log( log( averageLength ) + 1 ) );
-		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit( forecastBucketSize ) : log2BucketSize;
+		final long forecastBucketSize = (long)Math.ceil(10.5 + 4.05 * log(averageLength) + 2.43 * log(log (size) + 1) + 2.43 * log(log(averageLength) + 1));
+		this.log2BucketSize = log2BucketSize == -1 ? Fast.mostSignificantBit(forecastBucketSize) : log2BucketSize;
 
-		LOGGER.debug( "Average length: " + averageLength );
-		LOGGER.debug( "Max length: " + maxLength );
-		LOGGER.debug( "Bucket size: " + ( 1L << this.log2BucketSize ) );
-		LOGGER.info( "Computing z-fast trie distributor..." );
-		distributor = new ZFastTrieDistributor<>( bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore );
+		LOGGER.debug("Average length: " + averageLength);
+		LOGGER.debug("Max length: " + maxLength);
+		LOGGER.debug("Bucket size: " + (1L << this.log2BucketSize));
+		LOGGER.info("Computing z-fast trie distributor...");
+		distributor = new ZFastTrieDistributor<>(bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore);
 
-		LOGGER.info( "Computing offsets..." );
-		offset = new GOV3Function.Builder<BitVector>().store( chunkedHashStore ).values( new AbstractLongBigList() {
-			final long bucketSizeMask = ( 1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize ) - 1;
+		LOGGER.info("Computing offsets...");
+		offset = new GOV3Function.Builder<BitVector>().store(chunkedHashStore).values(new AbstractLongBigList() {
+			final long bucketSizeMask = (1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize) - 1;
 			@Override
-			public long getLong( long index ) {
+			public long getLong(long index) {
 				return index & bucketSizeMask;
 			}
 			@Override
 			public long size64() {
 				return size;
 			}
-		}, this.log2BucketSize ).indirect().build();
+		}, this.log2BucketSize).indirect().build();
 
 		seed = chunkedHashStore.seed();
-		final double logU = averageLength * log( 2 );
-		LOGGER.info( "Forecast bit cost per element: "
+		final double logU = averageLength * log(2);
+		LOGGER.info("Forecast bit cost per element: "
 				+ 1.0 / forecastBucketSize
-				* ( -6 * log2( log( 2 ) ) + 5 * log2( logU ) + 2 * log2( forecastBucketSize ) +
-						log2( log( logU ) - log( log( 2 ) ) ) + 6 * GOV3Function.C + 3 * log2 ( E ) + 3 * log2( log( 3.0 * size ) )
-						+ 3 + GOV3Function.C * forecastBucketSize + GOV3Function.C * forecastBucketSize * log2( forecastBucketSize ) ) );
+				* (-6 * log2(log(2)) + 5 * log2(logU) + 2 * log2(forecastBucketSize) +
+						log2(log(logU) - log(log(2))) + 6 * GOV3Function.C + 3 * log2 (E) + 3 * log2(log(3.0 * size))
+						+ 3 + GOV3Function.C * forecastBucketSize + GOV3Function.C * forecastBucketSize * log2(forecastBucketSize)));
 
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / size );
+		LOGGER.info("Actual bit cost per element: " + (double)numBits() / size);
 
-		if ( signatureWidth != 0 ) {
+		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures( signatureWidth, pl );
+			signatures = chunkedHashStore.signatures(signatureWidth, pl);
 		}
 		else {
 			signatureMask = 0;
@@ -251,16 +251,16 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( size == 0 ) return defRetValue;
-		final BitVector bv = transform.toBitVector( (T)o ).fast();
-		final long state[] = Hashes.preprocessSpooky4( bv, seed );
-		final long[] triple = new long[ 3 ];
-		Hashes.spooky4( bv, bv.length(), seed, state, triple );
+	public long getLong(final Object o) {
+		if (size == 0) return defRetValue;
+		final BitVector bv = transform.toBitVector((T)o).fast();
+		final long state[] = Hashes.preprocessSpooky4(bv, seed);
+		final long[] triple = new long[3];
+		Hashes.spooky4(bv, bv.length(), seed, state, triple);
 
-		final long bucket = distributor.getLongByBitVectorTripleAndState( bv, triple, state );
-		final long result = ( bucket << log2BucketSize ) + offset.getLongByTriple( triple );
-		if ( signatureMask != 0 ) return result < 0 || result >= size || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
+		final long bucket = distributor.getLongByBitVectorTripleAndState(bv, triple, state);
+		final long result = (bucket << log2BucketSize) + offset.getLongByTriple(triple);
+		if (signatureMask != 0) return result < 0 || result >= size || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= size ? defRetValue : result;
 	}
@@ -271,59 +271,59 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	}
 
 	public long numBits() {
-		if ( size == 0 ) return 0;
+		if (size == 0) return 0;
 		return distributor.numBits() + offset.numBits() + transform.numBits();
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a probabilistic z-fast trie as a distributor reading a newline-separated list of strings.",
+		final SimpleJSAP jsap = new SimpleJSAP(ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class.getName(), "Builds a monotone minimal perfect hash using a probabilistic z-fast trie as a distributor reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-			new Switch( "huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "log2bucket", JSAP.INTEGER_PARSER, "-1", JSAP.NOT_REQUIRED, 'b', "log2bucket", "The base 2 logarithm of the bucket size (mainly for testing)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+			new Switch("huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length."),
+			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
+			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+			new FlaggedOption("log2bucket", JSAP.INTEGER_PARSER, "-1", JSAP.NOT_REQUIRED, 'b', "log2bucket", "The base 2 logarithm of the bucket size (mainly for testing)."),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function."),
+			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final int log2BucketSize = jsapResult.getInt( "log2bucket" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final boolean huTucker = jsapResult.getBoolean( "huTucker" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final int log2BucketSize = jsapResult.getInt("log2bucket");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final File tempDir = jsapResult.getFile("tempDir");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final boolean huTucker = jsapResult.getBoolean("huTucker");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
 		final Collection<MutableString> collection;
-		if ( "-".equals( stringFile ) ) {
-			final ProgressLogger pl = new ProgressLogger( LOGGER );
+		if ("-".equals(stringFile)) {
+			final ProgressLogger pl = new ProgressLogger(LOGGER);
 			pl.displayLocalSpeed = true;
 			pl.displayFreeMemory = true;
-			pl.start( "Loading strings..." );
-			collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+			pl.start("Loading strings...");
+			collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 			pl.done();
 		}
-		else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+		else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
-				? new HuTuckerTransformationStrategy( collection, true )
+				? new HuTuckerTransformationStrategy(collection, true)
 				: iso
 					? TransformationStrategies.prefixFreeIso()
 					: utf32
 						? TransformationStrategies.prefixFreeUtf32()
 						: TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject( new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, log2BucketSize, signatureWidth, tempDir ), functionName );
-		LOGGER.info( "Completed." );
+		BinIO.storeObject(new ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, log2BucketSize, signatureWidth, tempDir), functionName);
+		LOGGER.info("Completed.");
 	}
 }

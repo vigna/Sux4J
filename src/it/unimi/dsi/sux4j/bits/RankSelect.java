@@ -6,7 +6,7 @@ import java.io.Serializable;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -51,7 +51,7 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 	 * @param select a select structure, or {@code null}.
 	 * @param selectZero a zero-select structure, or {@code null}.
 	 */
-	public RankSelect( final Rank rank, final Select select, final SelectZero selectZero ) {
+	public RankSelect(final Rank rank, final Select select, final SelectZero selectZero) {
 		this.rank = rank;
 		this.select = select;
 		this.selectZero = selectZero;
@@ -62,8 +62,8 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 	 * @param rank a rank structure, or {@code null}.
 	 * @param select a select structure, or {@code null}.
 	 */
-	public RankSelect( final Rank rank, final Select select ) {
-		this( rank, select, null );
+	public RankSelect(final Rank rank, final Select select) {
+		this(rank, select, null);
 	}
 
 	@Override
@@ -73,45 +73,45 @@ public class RankSelect implements Rank, Select, SelectZero, Serializable {
 
 	@Override
 	public long numBits() {
-		return ( rank != null ? rank.numBits() : 0 ) + ( select != null ? select.numBits() : 0 )+ ( selectZero != null ? selectZero.numBits() : 0 );
+		return (rank != null ? rank.numBits() : 0) + (select != null ? select.numBits() : 0)+ (selectZero != null ? selectZero.numBits() : 0);
 	}
 
 	@Override
-	public long rank( final long from, final long to ) {
-		return rank.rank( from, to );
+	public long rank(final long from, final long to) {
+		return rank.rank(from, to);
 	}
 
 	@Override
-	public long rank( final long pos ) {
-		return rank.rank( pos );
+	public long rank(final long pos) {
+		return rank.rank(pos);
 	}
 
 	@Override
-	public long rankZero( final long from, final long to ) {
-		return rank.rankZero( from, to );
+	public long rankZero(final long from, final long to) {
+		return rank.rankZero(from, to);
 	}
 
 	@Override
-	public long rankZero( final long pos ) {
-		return rank.rankZero( pos );
+	public long rankZero(final long pos) {
+		return rank.rankZero(pos);
 	}
 
 	@Override
-	public long select( final long rank ) {
-		return select.select( rank );
+	public long select(final long rank) {
+		return select.select(rank);
 	}
 
 	@Override
-	public long selectZero( final long rank ) {
-		return selectZero.selectZero( rank );
+	public long selectZero(final long rank) {
+		return selectZero.selectZero(rank);
 	}
 
 	@Override
 	public BitVector bitVector() {
-		if ( rank != null ) return rank.bitVector();
-		if ( select != null ) return select.bitVector();
-		if ( selectZero != null ) return selectZero.bitVector();
-		throw new UnsupportedOperationException( "All fields are nulls" );
+		if (rank != null) return rank.bitVector();
+		if (select != null) return select.bitVector();
+		if (selectZero != null) return selectZero.bitVector();
+		throw new UnsupportedOperationException("All fields are nulls");
 	}
 
 }

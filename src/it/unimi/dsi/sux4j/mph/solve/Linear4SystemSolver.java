@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2015-2016 Sebastiano Vigna
+ * Copyright (C) 2015-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -121,7 +121,7 @@ public class Linear4SystemSolver {
 	/** The initial size of the queue used to peel the 3-hypergraph. */
 	private static final int INITIAL_QUEUE_SIZE = 1024;
 	private static final boolean DEBUG = false;
-	private final static Logger LOGGER = LoggerFactory.getLogger( Linear4SystemSolver.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger(Linear4SystemSolver.class);
 
 	/** The number of vertices in the hypergraph. */
 	private final int numVariables;
@@ -157,40 +157,40 @@ public class Linear4SystemSolver {
 	 * @param numVariables the number of variables.
 	 * @param numEquations the number of equations.
 	 */
-	public Linear4SystemSolver( final int numVariables, final int numEquations ) {
+	public Linear4SystemSolver(final int numVariables, final int numEquations) {
 		this.numVariables = numVariables;
 		this.numEdges = numEquations;
-		peeled = new boolean[ numEquations ];
-		edge = new int[ numVariables ];
-		edge2Vertex = new int[ 4 ][ numEquations ];
-		stack = new int[ numEquations ];
-		d = new int[ numVariables ];
-		visitStack = new IntArrayList( INITIAL_QUEUE_SIZE );
+		peeled = new boolean[numEquations];
+		edge = new int[numVariables];
+		edge2Vertex = new int[4][numEquations];
+		stack = new int[numEquations];
+		d = new int[numVariables];
+		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
 	}
 
 	private final void cleanUpIfNecessary() {
-		if ( ! neverUsed ) {
-			Arrays.fill( d, 0 );
-			Arrays.fill( edge, 0 );
-			Arrays.fill( peeled, false );
+		if (! neverUsed) {
+			Arrays.fill(d, 0);
+			Arrays.fill(edge, 0);
+			Arrays.fill(peeled, false);
 			undirectable = unsolvable = 0;
 		}
 		neverUsed = false;
 	}
 
-	private final void xorEdge( final int e, final int hinge ) {
-		if ( hinge != edge2Vertex[ 0 ][ e ] ) edge[ edge2Vertex[ 0 ][ e ] ] ^= e;
-		if ( hinge != edge2Vertex[ 1 ][ e ] ) edge[ edge2Vertex[ 1 ][ e ] ] ^= e;
-		if ( hinge != edge2Vertex[ 2 ][ e ] ) edge[ edge2Vertex[ 2 ][ e ] ] ^= e;
-		if ( hinge != edge2Vertex[ 3 ][ e ] ) edge[ edge2Vertex[ 3 ][ e ] ] ^= e;
+	private final void xorEdge(final int e, final int hinge) {
+		if (hinge != edge2Vertex[0][e]) edge[edge2Vertex[0][e]] ^= e;
+		if (hinge != edge2Vertex[1][e]) edge[edge2Vertex[1][e]] ^= e;
+		if (hinge != edge2Vertex[2][e]) edge[edge2Vertex[2][e]] ^= e;
+		if (hinge != edge2Vertex[3][e]) edge[edge2Vertex[3][e]] ^= e;
 	}
 
-	private final void xorEdge( final int e ) {
-		edge[ edge2Vertex[ 0 ][ e ] ] ^= e;
-		edge[ edge2Vertex[ 1 ][ e ] ] ^= e;
-		edge[ edge2Vertex[ 2 ][ e ] ] ^= e;
-		edge[ edge2Vertex[ 3 ][ e ] ] ^= e;
+	private final void xorEdge(final int e) {
+		edge[edge2Vertex[0][e]] ^= e;
+		edge[edge2Vertex[1][e]] ^= e;
+		edge[edge2Vertex[2][e]] ^= e;
+		edge[edge2Vertex[3][e]] ^= e;
 	}
 
 	/** Turns a triple of longs into an equation.
@@ -203,19 +203,19 @@ public class Linear4SystemSolver {
 	 * @param e an array to store the resulting equation.
 	 * @see #bitVectorToEquation(BitVector, long, int, int[])
 	 */
-	public static void tripleToEquation( final long[] triple, final long seed, final int numVariables, final int e[] ) {
-		if ( numVariables == 0 ) {
-			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ]  = -1;
+	public static void tripleToEquation(final long[] triple, final long seed, final int numVariables, final int e[]) {
+		if (numVariables == 0) {
+			e[0] = e[1] = e[2] = e[3]  = -1;
 			return;
 		}
-		final long[] hash = new long[ 4 ];
-		Hashes.spooky4( triple, seed, hash );
+		final long[] hash = new long[4];
+		Hashes.spooky4(triple, seed, hash);
 		final int shift = Long.numberOfLeadingZeros(numVariables);
 		final long mask = (1L << shift) - 1;
-		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
-		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
-		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
-		e[ 3 ] = (int)( ( ( hash[ 3 ] & mask ) * numVariables ) >>> shift );
+		e[0] = (int)(((hash[0] & mask) * numVariables) >>> shift);
+		e[1] = (int)(((hash[1] & mask) * numVariables) >>> shift);
+		e[2] = (int)(((hash[2] & mask) * numVariables) >>> shift);
+		e[3] = (int)(((hash[3] & mask) * numVariables) >>> shift);
 	}
 
 	/** Turns a bit vector into an equation.
@@ -227,23 +227,23 @@ public class Linear4SystemSolver {
 	 * @param numVariables the number of variables in the system.
 	 * @param e an array to store the resulting edge.
 	 */
-	public static void bitVectorToEquation( final BitVector bv, final long seed, final int numVariables, final int e[] ) {
-		if ( numVariables == 0 ) {
-			e[ 0 ] = e[ 1 ] = e[ 2 ] = e[ 3 ] -1;
+	public static void bitVectorToEquation(final BitVector bv, final long seed, final int numVariables, final int e[]) {
+		if (numVariables == 0) {
+			e[0] = e[1] = e[2] = e[3] -1;
 			return;
 		}
-		final long[] hash = new long[ 4 ];
-		Hashes.spooky4( bv, seed, hash );
+		final long[] hash = new long[4];
+		Hashes.spooky4(bv, seed, hash);
 		final int shift = Long.numberOfLeadingZeros(numVariables);
 		final long mask = (1L << shift) - 1;
-		e[ 0 ] = (int)( ( ( hash[ 0 ] & mask ) * numVariables ) >>> shift );
-		e[ 1 ] = (int)( ( ( hash[ 1 ] & mask ) * numVariables ) >>> shift );
-		e[ 2 ] = (int)( ( ( hash[ 2 ] & mask ) * numVariables ) >>> shift );
-		e[ 3 ] = (int)( ( ( hash[ 3 ] & mask ) * numVariables ) >>> shift );
+		e[0] = (int)(((hash[0] & mask) * numVariables) >>> shift);
+		e[1] = (int)(((hash[1] & mask) * numVariables) >>> shift);
+		e[2] = (int)(((hash[2] & mask) * numVariables) >>> shift);
+		e[3] = (int)(((hash[3] & mask) * numVariables) >>> shift);
 	}
 
-	private String edge2String( final int e ) {
-		return "<" + edge2Vertex[ 0 ][ e ] + "," + edge2Vertex[ 1 ][ e ] + "," + edge2Vertex[ 2 ][ e ] + "," + edge2Vertex[ 3 ][ e ] + ">";
+	private String edge2String(final int e) {
+		return "<" + edge2Vertex[0][e] + "," + edge2Vertex[1][e] + "," + edge2Vertex[2][e] + "," + edge2Vertex[3][e] + ">";
 	}
 
 	/** Generates a random 4-regular linear system on <b>F</b><sub>2</sub>
@@ -257,29 +257,29 @@ public class Linear4SystemSolver {
 	 * @return true if a solution was found.
 	 * @see Linear4SystemSolver
 	 */
-	public boolean generateAndSolve( final Iterable<long[]> triples, final long seed, final LongBigList valueList ) {
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
-		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge2Vertex3 = edge2Vertex[ 3 ];
+		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3];
 
 		cleanUpIfNecessary();
 
 		/* We build the edge list and compute the degree of each vertex. */
-		final int[] e = new int[ 4 ];
+		final int[] e = new int[4];
 		final Iterator<long[]> iterator = triples.iterator();
-		for( int i = 0; i < numEdges; i++ ) {
-			tripleToEquation( iterator.next(), seed, numVariables, e );
-			if ( DEBUG ) System.err.println("Edge <" + e[ 0 ] + "," + e[ 1 ] + "," + e[ 2 ] + "," + e[ 3 ] + ">" );
-			d[ edge2Vertex0[ i ] = e[ 0 ] ]++;
-			d[ edge2Vertex1[ i ] = e[ 1 ] ]++;
-			d[ edge2Vertex2[ i ] = e[ 2 ] ]++;
-			d[ edge2Vertex3[ i ] = e[ 3 ] ]++;
-			xorEdge( i );
+		for(int i = 0; i < numEdges; i++) {
+			tripleToEquation(iterator.next(), seed, numVariables, e);
+			if (DEBUG) System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "," + e[3] + ">");
+			d[edge2Vertex0[i] = e[0]]++;
+			d[edge2Vertex1[i] = e[1]]++;
+			d[edge2Vertex2[i] = e[2]]++;
+			d[edge2Vertex3[i] = e[3]]++;
+			xorEdge(i);
 		}
 
-		if ( iterator.hasNext() ) throw new IllegalStateException( "This " + Linear4SystemSolver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more" );
+		if (iterator.hasNext()) throw new IllegalStateException("This " + Linear4SystemSolver.class.getSimpleName() + " has " + numEdges + " edges, but the provided iterator returns more");
 
-		return solve( valueList );
+		return solve(valueList);
 	}
 
 	/** Sorts the edges of a random 3-hypergraph in &ldquo;leaf peeling&rdquo; order.
@@ -290,22 +290,22 @@ public class Linear4SystemSolver {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling hypergraph (" + numVariables + " vertices, " + numEdges + " edges)..." );
+		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling hypergraph (" + numVariables + " vertices, " + numEdges + " edges)...");
 
 		top = 0;
-		for( int i = 0; i < numVariables; i++ ) if ( d[ i ] == 1 ) peel( i );
+		for(int i = 0; i < numVariables; i++) if (d[i] == 1) peel(i);
 
-		if ( top == numEdges ) {
-			if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeling completed." );
+		if (top == numEdges) {
+			if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling completed.");
 			return true;
 		}
 
-		if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "Peeled " + top + " edges out of " + numEdges + "." );
+		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeled " + top + " edges out of " + numEdges + ".");
 		return false;
 	}
 
-	private void peel( final int x ) {
-		// System.err.println( "Visiting " + x + "..." );
+	private void peel(final int x) {
+		// System.err.println("Visiting " + x + "...");
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
@@ -314,78 +314,78 @@ public class Linear4SystemSolver {
 		// Stack initialization
 		int v;
 		visitStack.clear();
-		visitStack.push( x );
+		visitStack.push(x);
 
-		final int[] edge2Vertex0 = edge2Vertex[ 0 ];
-		final int[] edge2Vertex1 = edge2Vertex[ 1 ];
-		final int[] edge2Vertex2 = edge2Vertex[ 2 ];
-		final int[] edge2Vertex3 = edge2Vertex[ 3 ];
+		final int[] edge2Vertex0 = edge2Vertex[0];
+		final int[] edge2Vertex1 = edge2Vertex[1];
+		final int[] edge2Vertex2 = edge2Vertex[2];
+		final int[] edge2Vertex3 = edge2Vertex[3];
 
-		while ( ! visitStack.isEmpty() ) {
+		while (! visitStack.isEmpty()) {
 			v = visitStack.popInt();
-			if ( d[ v ] == 1 ) {
-				stack[ top++ ] = v;
-				// System.err.println( "Stripping <" + v + ", " + vertex1[ v ] + ", " + vertex2[ v ] + ">" );
-				final int e = edge[ v ];
-				peeled[ e ] = true;
-				xorEdge( e, v );
-				if ( --d[ edge2Vertex0[ e ] ] == 1 ) visitStack.add( edge2Vertex0[ e ] );
-				if ( --d[ edge2Vertex1[ e ] ] == 1 ) visitStack.add( edge2Vertex1[ e ] );
-				if ( --d[ edge2Vertex2[ e ] ] == 1 ) visitStack.add( edge2Vertex2[ e ] );
-				if ( --d[ edge2Vertex3[ e ] ] == 1 ) visitStack.add( edge2Vertex3[ e ] );
+			if (d[v] == 1) {
+				stack[top++] = v;
+				// System.err.println("Stripping <" + v + ", " + vertex1[v] + ", " + vertex2[v] + ">");
+				final int e = edge[v];
+				peeled[e] = true;
+				xorEdge(e, v);
+				if (--d[edge2Vertex0[e]] == 1) visitStack.add(edge2Vertex0[e]);
+				if (--d[edge2Vertex1[e]] == 1) visitStack.add(edge2Vertex1[e]);
+				if (--d[edge2Vertex2[e]] == 1) visitStack.add(edge2Vertex2[e]);
+				if (--d[edge2Vertex3[e]] == 1) visitStack.add(edge2Vertex3[e]);
 			}
 		}
 	}
 
-	private boolean solve( final LongBigList valueList ) {
+	private boolean solve(final LongBigList valueList) {
 		final boolean peelingCompleted = sort();
 		numPeeled = top;
-		solution = new long[ numVariables ];
+		solution = new long[numVariables];
 		final long[] solution = this.solution;
-		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge2Vertex3 = edge2Vertex[ 3 ], edge = this.edge, d = this.d;
+		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3], edge = this.edge, d = this.d;
 
-		if ( ! peelingCompleted ) {
+		if (! peelingCompleted) {
 
-			final int[][] vertex2Edge = new int[ d.length ][];
-			for( int i = vertex2Edge.length; i-- != 0; ) vertex2Edge[ i ] = new int[ d[ i ] ];
-			final int[] p = new int[ d.length ];
-			final long[] c = new long[ d.length - top ];
-			Arrays.fill( d, 0 );
+			final int[][] vertex2Edge = new int[d.length][];
+			for(int i = vertex2Edge.length; i-- != 0;) vertex2Edge[i] = new int[d[i]];
+			final int[] p = new int[d.length];
+			final long[] c = new long[d.length - top];
+			Arrays.fill(d, 0);
 
-			for ( int i = 0, j = 0; i < numEdges; i++ ) {
-				if ( ! peeled[ i ] ) {
-					final int v0 = edge2Vertex0[ i ];
-					vertex2Edge[ v0 ][ p[ v0 ]++ ] = j;
-					final int v1 = edge2Vertex1[ i ];
-					vertex2Edge[ v1 ][ p[ v1 ]++ ] = j;
-					final int v2 = edge2Vertex2[ i ];
-					vertex2Edge[ v2 ][ p[ v2 ]++ ] = j;
-					final int v3 = edge2Vertex3[ i ];
-					vertex2Edge[ v3 ][ p[ v3 ]++ ] = j;
+			for (int i = 0, j = 0; i < numEdges; i++) {
+				if (! peeled[i]) {
+					final int v0 = edge2Vertex0[i];
+					vertex2Edge[v0][p[v0]++] = j;
+					final int v1 = edge2Vertex1[i];
+					vertex2Edge[v1][p[v1]++] = j;
+					final int v2 = edge2Vertex2[i];
+					vertex2Edge[v2][p[v2]++] = j;
+					final int v3 = edge2Vertex3[i];
+					vertex2Edge[v3][p[v3]++] = j;
 
-					c[ j++ ] = valueList.getLong( i );
+					c[j++] = valueList.getLong(i);
 				}
 			}
 
-			if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVariables ), solution ) ) {
+			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVariables), solution)) {
 				unsolvable++;
-				if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "System is unsolvable" );
+				if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 				return false;
 			}
 		}
 
 		// Complete with peeled hyperedges
-		while( top > 0 ) {
-			final int x = stack[ --top ];
-			final int e = edge[ x ];
-			solution[ x ] = valueList.getLong( e );
-			if ( x != edge2Vertex0[ e ] ) solution[ x ] ^= solution[ edge2Vertex0[ e ] ];
-			if ( x != edge2Vertex1[ e ] ) solution[ x ] ^= solution[ edge2Vertex1[ e ] ];
-			if ( x != edge2Vertex2[ e ] ) solution[ x ] ^= solution[ edge2Vertex2[ e ] ];
-			if ( x != edge2Vertex3[ e ] ) solution[ x ] ^= solution[ edge2Vertex3[ e ] ];
+		while(top > 0) {
+			final int x = stack[--top];
+			final int e = edge[x];
+			solution[x] = valueList.getLong(e);
+			if (x != edge2Vertex0[e]) solution[x] ^= solution[edge2Vertex0[e]];
+			if (x != edge2Vertex1[e]) solution[x] ^= solution[edge2Vertex1[e]];
+			if (x != edge2Vertex2[e]) solution[x] ^= solution[edge2Vertex2[e]];
+			if (x != edge2Vertex3[e]) solution[x] ^= solution[edge2Vertex3[e]];
 
-			assert valueList.getLong( e ) == ( solution[ edge2Vertex0[ e ] ] ^ solution[ edge2Vertex1[ e ] ] ^ solution[ edge2Vertex2[ e ] ] ^ solution[ edge2Vertex3[ e ] ] ) :
-				edge2String( e ) + ": " + valueList.getLong( e ) + " != " + ( solution[ edge2Vertex0[ e ] ] ^ solution[ edge2Vertex1[ e ] ] ^ solution[ edge2Vertex2[ e ] ] ^ solution[ edge2Vertex2[ e ] ] );
+			assert valueList.getLong(e) == (solution[edge2Vertex0[e]] ^ solution[edge2Vertex1[e]] ^ solution[edge2Vertex2[e]] ^ solution[edge2Vertex3[e]]) :
+				edge2String(e) + ": " + valueList.getLong(e) + " != " + (solution[edge2Vertex0[e]] ^ solution[edge2Vertex1[e]] ^ solution[edge2Vertex2[e]] ^ solution[edge2Vertex2[e]]);
 		}
 
 		return true;
@@ -433,36 +433,36 @@ public class Linear4SystemSolver {
 	private boolean solve(LongArrayBitVector codedValues) {
 		final boolean peelingCompleted = sort();
 		numPeeled = top;
-		this.solution = new long[ numVariables ];
-		final int[] edge2Vertex0 = edge2Vertex[ 0 ], edge2Vertex1 = edge2Vertex[ 1 ], edge2Vertex2 = edge2Vertex[ 2 ], edge2Vertex3 = edge2Vertex[ 3 ], edge = this.edge, d = this.d;
+		this.solution = new long[numVariables];
+		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3], edge = this.edge, d = this.d;
 		int j =0;
-		if ( ! peelingCompleted ) {
+		if (! peelingCompleted) {
 			final int[][] vertex2Edge = new int[numVariables][];
 			Arrays.fill(vertex2Edge, new int[0]);
 			for (int i = 0; i<numVariables; i++) {
 				vertex2Edge[i] = new int[d[i]];
 			}
-			final int[] p = new int[numVariables ];
-			final long[] c = new long[ stack.length ];
-			for ( int i = 0; i < stack.length; i++ ) {
-				if ( ! peeled[ i ] ) {
-					final int v0 = edge2Vertex0[ i ];
-					final int v1 = edge2Vertex1[ i ];
-					final int v2 = edge2Vertex2[ i ];
-					final int v3 = edge2Vertex3[ i ];
-					vertex2Edge[ v0 ][ p[ v0 ]++ ] = j;
-					vertex2Edge[ v1 ][ p[ v1 ]++ ] = j;
-					vertex2Edge[ v2 ][ p[ v2 ]++ ] = j;
-					vertex2Edge[ v3 ][ p[ v3 ]++ ] = j;
-					c[ j++ ] =  codedValues.getBoolean(i) ? 1 : 0;
+			final int[] p = new int[numVariables];
+			final long[] c = new long[stack.length];
+			for (int i = 0; i < stack.length; i++) {
+				if (! peeled[i]) {
+					final int v0 = edge2Vertex0[i];
+					final int v1 = edge2Vertex1[i];
+					final int v2 = edge2Vertex2[i];
+					final int v3 = edge2Vertex3[i];
+					vertex2Edge[v0][p[v0]++] = j;
+					vertex2Edge[v1][p[v1]++] = j;
+					vertex2Edge[v2][p[v2]++] = j;
+					vertex2Edge[v3][p[v3]++] = j;
+					c[j++] =  codedValues.getBoolean(i) ? 1 : 0;
 				}
 
 			}
 			// squeezing the system
 
-			if ( ! Modulo2System.lazyGaussianElimination( vertex2Edge, c, Util.identity( numVariables), solution ) ) {
+			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVariables), solution)) {
 				unsolvable++;
-				if ( LOGGER.isDebugEnabled() ) LOGGER.debug( "System is unsolvable" );
+				if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 				return false;
 			}
 		}

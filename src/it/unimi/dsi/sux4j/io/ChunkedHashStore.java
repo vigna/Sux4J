@@ -24,7 +24,7 @@ import it.unimi.dsi.Util;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -128,9 +128,9 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>To compute the chunk corresponding to given element, use
  * <pre>
- * final long[] h = new long[ 3 ];
- * Hashes.spooky4( transform.toBitVector( key ), seed, h );
- * final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] &gt;&gt;&gt; chunkShift );
+ * final long[] h = new long[3];
+ * Hashes.spooky4(transform.toBitVector(key), seed, h);
+ * final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] &gt;&gt;&gt; chunkShift);
  * </pre>
  * where <code>seed</code> is the store seed, and <code>chunkShift</code>
  * is the return value of {@link #log2Chunks(int)} and should be stored by the caller. Note
@@ -142,7 +142,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Chunk> {
     public static final long serialVersionUID = 1L;
-    private static final Logger LOGGER = LoggerFactory.getLogger( ChunkedHashStore.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger(ChunkedHashStore.class);
 	private static final boolean DEBUG = false;
 
 	/** Denotes that the chunked hash store contains a duplicate hash triple. */
@@ -206,8 +206,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param transform a transformation strategy for the elements.
 	 * @throws IOException
 	 */
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform ) throws IOException {
-		this( transform, null, null );
+	public ChunkedHashStore(final TransformationStrategy<? super T> transform) throws IOException {
+		this(transform, null, null);
 	}
 
 	/** Creates a chunked hash store with given transformation strategy and temporary file directory.
@@ -215,8 +215,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param transform a transformation strategy for the elements.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the current directory.
 	 */
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir ) throws IOException {
-		this( transform, tempDir, null );
+	public ChunkedHashStore(final TransformationStrategy<? super T> transform, final File tempDir) throws IOException {
+		this(transform, tempDir, null);
 	}
 
 	/** Creates a chunked hash store with given transformation strategy.
@@ -224,8 +224,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param transform a transformation strategy for the elements.
 	 * @param pl a progress logger, or {@code null}.
 	 */
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final ProgressLogger pl ) throws IOException {
-		this( transform, null, pl );
+	public ChunkedHashStore(final TransformationStrategy<? super T> transform, final ProgressLogger pl) throws IOException {
+		this(transform, null, pl);
 	}
 
 	/** Creates a chunked hash store with given transformation strategy and progress logger.
@@ -235,8 +235,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param pl a progress logger, or {@code null}.
 	 */
 
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final ProgressLogger pl ) throws IOException {
-		this( transform, tempDir, 0, pl );
+	public ChunkedHashStore(final TransformationStrategy<? super T> transform, final File tempDir, final ProgressLogger pl) throws IOException {
+		this(transform, tempDir, 0, pl);
 	}
 
 	/** Creates a chunked hash store with given transformation strategy, hash width and progress logger.
@@ -249,7 +249,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param pl a progress logger, or {@code null}.
 	 */
 
-	public ChunkedHashStore( final TransformationStrategy<? super T> transform, final File tempDir, final int hashWidthOrCountValues, final ProgressLogger pl ) throws IOException {
+	public ChunkedHashStore(final TransformationStrategy<? super T> transform, final File tempDir, final int hashWidthOrCountValues, final ProgressLogger pl) throws IOException {
 		this.transform = transform;
 		this.pl = pl;
 		this.tempDir = tempDir;
@@ -257,17 +257,17 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> Long.SIZE - hashWidthOrCountValues;
 		if (hashWidthOrCountValues < 0) value2FrequencyMap = new Long2LongOpenHashMap();
 
-		file = new File[ DISK_CHUNKS ];
-		writableByteChannel = new WritableByteChannel[ DISK_CHUNKS ];
+		file = new File[DISK_CHUNKS];
+		writableByteChannel = new WritableByteChannel[DISK_CHUNKS];
 		byteBuffer = new ByteBuffer[DISK_CHUNKS];
 		// Create disk chunks
-		for( int i = 0; i < DISK_CHUNKS; i++ ) {
+		for(int i = 0; i < DISK_CHUNKS; i++) {
 			byteBuffer[i] = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
-			writableByteChannel[ i ] = new FileOutputStream( file[ i ] = File.createTempFile( ChunkedHashStore.class.getSimpleName(), String.valueOf( i ), tempDir ) ).getChannel();
-			file[ i ].deleteOnExit();
+			writableByteChannel[i] = new FileOutputStream(file[i] = File.createTempFile(ChunkedHashStore.class.getSimpleName(), String.valueOf(i), tempDir)).getChannel();
+			file[i].deleteOnExit();
 		}
 
-		count = new int[ DISK_CHUNKS ];
+		count = new int[DISK_CHUNKS];
 	}
 
 	/** Return the current seed of this chunked hash store. After calling this method, no {@link #reset(long)} will be allowed (unless the store
@@ -300,18 +300,18 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param o the element to be added.
 	 * @param value the associated value.
 	 */
-	public void add( final T o, final long value ) throws IOException {
-		final long[] triple = new long[ 3 ];
-		Hashes.spooky4( transform.toBitVector( o ), seed, triple );
-		add( triple, value );
+	public void add(final T o, final long value) throws IOException {
+		final long[] triple = new long[3];
+		Hashes.spooky4(transform.toBitVector(o), seed, triple);
+		add(triple, value);
 	}
 
 	/** Adds an element to this store, associating it with its ordinal position.
 	 *
 	 * @param o the element to be added.
 	 */
-	public void add( final T o ) throws IOException {
-		add( o, filteredSize );
+	public void add(final T o) throws IOException {
+		add(o, filteredSize);
 	}
 
 	/** Adds a triple to this store.
@@ -319,16 +319,16 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param triple the triple to be added.
 	 * @param value the associated value.
 	 */
-	private void add( final long[] triple, final long value ) throws IOException {
-		final int chunk = (int)( triple[ 0 ] >>> DISK_CHUNKS_SHIFT );
-		count[ chunk ]++;
+	private void add(final long[] triple, final long value) throws IOException {
+		final int chunk = (int)(triple[0] >>> DISK_CHUNKS_SHIFT);
+		count[chunk]++;
 		checkedForDuplicates = false;
-		if ( DEBUG ) System.err.println( "Adding " + Arrays.toString( triple ));
+		if (DEBUG) System.err.println("Adding " + Arrays.toString(triple));
 		writeLong(triple[0], byteBuffer[chunk], writableByteChannel[chunk]);
 		writeLong(triple[1], byteBuffer[chunk], writableByteChannel[chunk]);
 		writeLong(triple[2], byteBuffer[chunk], writableByteChannel[chunk]);
-		if ( hashMask == 0 ) writeLong(value, byteBuffer[chunk], writableByteChannel[chunk]);
-		if ( filteredSize != -1 && ( filter == null || filter.evaluate( triple ) ) ) filteredSize++;
+		if (hashMask == 0) writeLong(value, byteBuffer[chunk], writableByteChannel[chunk]);
+		if (filteredSize != -1 && (filter == null || filter.evaluate(triple))) filteredSize++;
 		if (value2FrequencyMap != null) value2FrequencyMap.addTo(value, 1);
 		size++;
 	}
@@ -340,19 +340,19 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param values an iterator on values parallel to {@code elements}.
 	 * @param requiresValue2CountMap whether to build the value frequency map (associating with each value its frequency).
 	 */
-	public void addAll( final Iterator<? extends T> elements, final LongIterator values, boolean requiresValue2CountMap ) throws IOException {
-		if ( pl != null ) {
+	public void addAll(final Iterator<? extends T> elements, final LongIterator values, boolean requiresValue2CountMap) throws IOException {
+		if (pl != null) {
 			pl.expectedUpdates = -1;
-			pl.start( "Adding elements..." );
+			pl.start("Adding elements...");
 		}
-		final long[] triple = new long[ 3 ];
-		while( elements.hasNext() ) {
-			Hashes.spooky4( transform.toBitVector( elements.next() ), seed, triple );
-			add( triple, values != null ? values.nextLong() : filteredSize );
-			if ( pl != null ) pl.lightUpdate();
+		final long[] triple = new long[3];
+		while(elements.hasNext()) {
+			Hashes.spooky4(transform.toBitVector(elements.next()), seed, triple);
+			add(triple, values != null ? values.nextLong() : filteredSize);
+			if (pl != null) pl.lightUpdate();
 		}
-		if ( values != null && values.hasNext() ) throw new IllegalStateException( "The iterator on values contains more entries than the iterator on keys" );
-		if ( pl != null ) pl.done();
+		if (values != null && values.hasNext()) throw new IllegalStateException("The iterator on values contains more entries than the iterator on keys");
+		if (pl != null) pl.done();
 	}
 
 	/** Adds the elements returned by an iterator to this store, associating them with specified values.
@@ -360,7 +360,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param elements an iterator returning elements.
 	 * @param values an iterator on values parallel to {@code elements}.
 	 */
-	public void addAll( final Iterator<? extends T> elements, final LongIterator values ) throws IOException {
+	public void addAll(final Iterator<? extends T> elements, final LongIterator values) throws IOException {
 		addAll(elements, values, false);
 	}
 
@@ -368,8 +368,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 *
 	 * @param elements an iterator returning elements.
 	 */
-	public void addAll( final Iterator<? extends T> elements ) throws IOException {
-		addAll( elements, null );
+	public void addAll(final Iterator<? extends T> elements) throws IOException {
+		addAll(elements, null);
 	}
 
 	private void flushAll() throws IOException {
@@ -384,24 +384,24 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 
 	public long size() throws IOException {
-		if ( filter == null ) return size;
-		if ( filteredSize == - 1 ) {
+		if (filter == null) return size;
+		if (filteredSize == - 1) {
 			long c = 0;
-			final long[] triple = new long[ 3 ];
+			final long[] triple = new long[3];
 			final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
-			for( int i = 0; i < DISK_CHUNKS; i++ ) {
-				if ( filter == null ) c += count[ i ];
+			for(int i = 0; i < DISK_CHUNKS; i++) {
+				if (filter == null) c += count[i];
 				else {
 					flushAll();
 					@SuppressWarnings("resource")
-					final ReadableByteChannel channel = new FileInputStream(file[ i ]).getChannel();
+					final ReadableByteChannel channel = new FileInputStream(file[i]).getChannel();
 					iteratorByteBuffer.clear().flip();
-					for( int j = 0; j < count[ i ]; j++ ) {
-						triple[ 0 ] = readLong(iteratorByteBuffer, channel);
-						triple[ 1 ] = readLong(iteratorByteBuffer, channel);
-						triple[ 2 ] = readLong(iteratorByteBuffer, channel);
-						if ( hashMask == 0 ) readLong(iteratorByteBuffer, channel);
-						if ( filter.evaluate( triple ) ) c++;
+					for(int j = 0; j < count[i]; j++) {
+						triple[0] = readLong(iteratorByteBuffer, channel);
+						triple[1] = readLong(iteratorByteBuffer, channel);
+						triple[2] = readLong(iteratorByteBuffer, channel);
+						if (hashMask == 0) readLong(iteratorByteBuffer, channel);
+						if (filter.evaluate(triple)) c++;
 					}
 					channel.close();
 				}
@@ -416,7 +416,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	public void clear() throws IOException {
 		locked = false;
 		if (value2FrequencyMap != null) value2FrequencyMap = new Long2LongOpenHashMap();
-		reset( 0 );
+		reset(0);
 	}
 
 	/** Return the current value frequency map.
@@ -436,7 +436,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 	private static void flush(final ByteBuffer buffer, final WritableByteChannel channel) throws IOException {
 		buffer.flip();
-		channel.write( buffer );
+		channel.write(buffer);
 		buffer.clear();
 	}
 
@@ -484,8 +484,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	@Override
 	protected void finalize() throws Throwable {
 		try {
-			if ( ! closed ) {
-				LOGGER.warn( "This " + this.getClass().getName() + " [" + toString() + "] should have been closed." );
+			if (! closed) {
+				LOGGER.warn("This " + this.getClass().getName() + " [" + toString() + "] should have been closed.");
 				close();
 			}
 		}
@@ -497,11 +497,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** Closes this store, disposing all associated resources. */
 	@Override
 	public void close() throws IOException {
-		if ( ! closed ) {
+		if (! closed) {
 			LOGGER.info("Wall clock for quicksort: " + Util.format(quickSortWallTime / 1E9) + "s");
 			closed = true;
-			for( final WritableByteChannel channel: writableByteChannel ) channel.close();
-			for( final File f: file ) f.delete();
+			for(final WritableByteChannel channel: writableByteChannel) channel.close();
+			for(final File f: file) f.delete();
 		}
 	}
 
@@ -532,7 +532,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 
 	public void check() throws DuplicateException {
-		for( final ChunkedHashStore.Chunk b: this ) b.iterator();
+		for(final ChunkedHashStore.Chunk b: this) b.iterator();
 	}
 
 	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
@@ -541,7 +541,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param values the values that will be associated with the elements returned by <code>iterable</code>.
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
-	public void checkAndRetry( final Iterable<? extends T> iterable, final LongIterable values ) throws IOException {
+	public void checkAndRetry(final Iterable<? extends T> iterable, final LongIterable values) throws IOException {
 		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator();
 		int duplicates = 0;
 
@@ -550,11 +550,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				check();
 				break;
 			}
-			catch ( final DuplicateException e ) {
-				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
-				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				reset( random.nextLong() );
-				addAll( iterable.iterator(), values.iterator() );
+			catch (final DuplicateException e) {
+				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
+				LOGGER.warn("Found duplicate. Recomputing triples...");
+				reset(random.nextLong());
+				addAll(iterable.iterator(), values.iterator());
 			}
 
 		checkedForDuplicates = true;
@@ -568,8 +568,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param iterable the elements with which the store will be refilled if there are duplicate triples.
 	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
 	 */
-	public void checkAndRetry( final Iterable<? extends T> iterable ) throws IOException {
-		checkAndRetry( iterable, null );
+	public void checkAndRetry(final Iterable<? extends T> iterable) throws IOException {
+		checkAndRetry(iterable, null);
 	}
 
 	/** Generate a list of signatures using the lowest bits of the first hash in this store.
@@ -580,18 +580,18 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param pl a progress logger.
 	 */
 
-	public LongBigList signatures( final int signatureWidth, final ProgressLogger pl ) throws IOException {
-		final LongBigList signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth );
+	public LongBigList signatures(final int signatureWidth, final ProgressLogger pl) throws IOException {
+		final LongBigList signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth);
 		final long signatureMask = -1L >>> Long.SIZE - signatureWidth;
-		signatures.size( size() );
+		signatures.size(size());
 		pl.expectedUpdates = size();
 		pl.itemsName = "signatures";
-		pl.start( "Signing..." );
-		for ( final ChunkedHashStore.Chunk chunk : this ) {
+		pl.start("Signing...");
+		for (final ChunkedHashStore.Chunk chunk : this) {
 			final Iterator<long[]> chunkIterator = chunk.iterator();
-			for( int i = chunk.size(); i-- != 0; ) {
+			for(int i = chunk.size(); i-- != 0;) {
 				final long[] quadruple = chunkIterator.next();
-				signatures.set( quadruple[ 3 ], signatureMask & quadruple[ 0 ] );
+				signatures.set(quadruple[3], signatureMask & quadruple[0]);
 				pl.lightUpdate();
 			}
 		}
@@ -608,30 +608,30 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @return the shift to be applied to the first hash of a triple to get the chunk number (see the {@linkplain ChunkedHashStore introduction}).
 	 */
 
-	public int log2Chunks( final int log2chunks ) {
+	public int log2Chunks(final int log2chunks) {
 		this.chunks = 1 << log2chunks;
-		diskChunkStep = (int)Math.max( DISK_CHUNKS / chunks, 1 );
+		diskChunkStep = (int)Math.max(DISK_CHUNKS / chunks, 1);
 		virtualDiskChunks = DISK_CHUNKS / diskChunkStep;
 
-		if ( DEBUG ) {
-			System.err.print( "Chunk sizes: " );
+		if (DEBUG) {
+			System.err.print("Chunk sizes: ");
 			final double avg = filteredSize / (double)DISK_CHUNKS;
 			double var = 0;
-			for( int i = 0; i < DISK_CHUNKS; i++ ) {
-				System.err.print( i + ":" + count[ i ] + " " );
-				var += ( count[ i ] - avg  ) * ( count[ i ] - avg );
+			for(int i = 0; i < DISK_CHUNKS; i++) {
+				System.err.print(i + ":" + count[i] + " ");
+				var += (count[i] - avg) * (count[i] - avg);
 			}
 			System.err.println();
-			System.err.println( "Average: " + avg );
-			System.err.println( "Variance: " + var / filteredSize );
+			System.err.println("Average: " + avg);
+			System.err.println("Variance: " + var / filteredSize);
 
 		}
 
 		chunkShift = Long.SIZE - log2chunks;
 
-		LOGGER.debug( "Number of chunks: " + chunks );
-		LOGGER.debug( "Number of disk chunks: " + DISK_CHUNKS );
-		LOGGER.debug( "Number of virtual disk chunks: " + virtualDiskChunks );
+		LOGGER.debug("Number of chunks: " + chunks);
+		LOGGER.debug("Number of disk chunks: " + DISK_CHUNKS);
+		LOGGER.debug("Number of virtual disk chunks: " + virtualDiskChunks);
 
 		return chunkShift;
 	}
@@ -650,7 +650,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		private final long[] data;
 		private final long hashMask;
 
-		private Chunk( final int index, final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end ) {
+		private Chunk(final int index, final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end) {
 			this.index = index;
 			this.start = start;
 			this.end = end;
@@ -713,8 +713,8 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 * @return the corresponding data.
 		 */
 
-		public long data( final long k ) {
-			return data != null ? data[ (int)( start + k ) ] : ( buffer0[ (int)( start + k ) ] & hashMask );
+		public long data(final long k) {
+			return data != null ? data[(int)(start + k)] : (buffer0[(int)(start + k)] & hashMask);
 		}
 
 
@@ -727,7 +727,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		public Iterator<long[]> iterator() {
 			return new ObjectIterator<long[]>() {
 				private int pos = start;
-				private final long[] quadruple = new long[ 4 ];
+				private final long[] quadruple = new long[4];
 
 				@Override
 				public boolean hasNext() {
@@ -736,12 +736,12 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 				@Override
 				public long[] next() {
-					if ( ! hasNext() ) throw new NoSuchElementException();
+					if (! hasNext()) throw new NoSuchElementException();
 					final long[] quadruple = this.quadruple;
-					quadruple[ 0 ] = buffer0[ pos ];
-					quadruple[ 1 ] = buffer1[ pos ];
-					quadruple[ 2 ] = buffer2[ pos ];
-					quadruple[ 3 ] = data != null ? data[ pos ] : buffer0[ pos ] & hashMask;
+					quadruple[0] = buffer0[pos];
+					quadruple[1] = buffer1[pos];
+					quadruple[2] = buffer2[pos];
+					quadruple[3] = data != null ? data[pos] : buffer0[pos] & hashMask;
 					pos++;
 					return quadruple;
 				}
@@ -754,7 +754,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 *
 	 * @param filter a predicate that will be used to filter triples.
 	 */
-	public void filter( final Predicate filter ) {
+	public void filter(final Predicate filter) {
 		this.filter = filter;
 		filteredSize = -1;
 	}
@@ -771,19 +771,19 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 */
 	@Override
 	public Iterator<Chunk> iterator() {
-		if ( closed ) throw new IllegalStateException( "This " + getClass().getSimpleName() + " has been closed " );
+		if (closed) throw new IllegalStateException("This " + getClass().getSimpleName() + " has been closed ");
 		try {
 			flushAll();
 		}
-		catch ( final IOException e ) {
-			throw new RuntimeException( e );
+		catch (final IOException e) {
+			throw new RuntimeException(e);
 		}
 
 		int m = 0;
-		for( int i = 0; i < virtualDiskChunks; i++ ) {
+		for(int i = 0; i < virtualDiskChunks; i++) {
 			int s = 0;
-			for( int j = 0; j < diskChunkStep; j++ ) s += count[ i * diskChunkStep + j ];
-			if ( s > m ) m = s;
+			for(int j = 0; j < diskChunkStep; j++) s += count[i * diskChunkStep + j];
+			if (s > m) m = s;
 		}
 
 		final int maxCount = m;
@@ -794,10 +794,10 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			private final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			private int last;
 			private int chunkSize;
-			private final long[] buffer0 = new long[ maxCount ];
-			private final long[] buffer1 = new long[ maxCount ];
-			private final long[] buffer2 = new long[ maxCount ];
-			private final long[] data = hashMask != 0 ? null : new long[ maxCount ];
+			private final long[] buffer0 = new long[maxCount];
+			private final long[] buffer1 = new long[maxCount];
+			private final long[] buffer2 = new long[maxCount];
+			private final long[] data = hashMask != 0 ? null : new long[maxCount];
 
 			@Override
 			public boolean hasNext() {
@@ -806,81 +806,81 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 			@Override
 			public Chunk next() {
-				if ( ! hasNext() ) throw new NoSuchElementException();
+				if (! hasNext()) throw new NoSuchElementException();
 				final long[] buffer0 = this.buffer0;
 
-				if ( chunk % ( chunks / virtualDiskChunks ) == 0 ) {
-					final int diskChunk = (int)( chunk / ( chunks / virtualDiskChunks ) );
+				if (chunk % (chunks / virtualDiskChunks) == 0) {
+					final int diskChunk = (int)(chunk / (chunks / virtualDiskChunks));
 					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 
 					chunkSize = 0;
 					try {
-						if ( diskChunkStep == 1 ) {
-							channel = new FileInputStream(file[ diskChunk ]).getChannel();
-							chunkSize = count[ diskChunk ];
+						if (diskChunkStep == 1) {
+							channel = new FileInputStream(file[diskChunk]).getChannel();
+							chunkSize = count[diskChunk];
 						}
 						else {
-							final ReadableByteChannel[] subChannel = new ReadableByteChannel[ diskChunkStep ];
-							for( int i = 0; i < diskChunkStep; i++) {
-								subChannel[ i ] = new FileInputStream(file[ diskChunk * diskChunkStep + i ]).getChannel();
-								chunkSize += count[ diskChunk * diskChunkStep + i ];
+							final ReadableByteChannel[] subChannel = new ReadableByteChannel[diskChunkStep];
+							for(int i = 0; i < diskChunkStep; i++) {
+								subChannel[i] = new FileInputStream(file[diskChunk * diskChunkStep + i]).getChannel();
+								chunkSize += count[diskChunk * diskChunkStep + i];
 							}
 							channel = concatenate(subChannel);
 						}
 
 						iteratorByteBuffer.clear().flip();
-						final long triple[] = new long[ 3 ];
+						final long triple[] = new long[3];
 						int count = 0;
-						for( int j = 0; j < chunkSize; j++ ) {
-							triple[ 0 ] = readLong(iteratorByteBuffer, channel);
-							triple[ 1 ] = readLong(iteratorByteBuffer, channel);
-							triple[ 2 ] = readLong(iteratorByteBuffer, channel);
+						for(int j = 0; j < chunkSize; j++) {
+							triple[0] = readLong(iteratorByteBuffer, channel);
+							triple[1] = readLong(iteratorByteBuffer, channel);
+							triple[2] = readLong(iteratorByteBuffer, channel);
 
-							if ( DEBUG ) System.err.println( "From disk: " + Arrays.toString( triple ) );
+							if (DEBUG) System.err.println("From disk: " + Arrays.toString(triple));
 
-							if ( filter == null || filter.evaluate( triple ) ) {
-								buffer0[ count ] = triple[ 0 ];
-								buffer1[ count ] = triple[ 1 ];
-								buffer2[ count ] = triple[ 2 ];
-								if ( hashMask == 0 ) data[ count ] = readLong(iteratorByteBuffer, channel);
+							if (filter == null || filter.evaluate(triple)) {
+								buffer0[count] = triple[0];
+								buffer1[count] = triple[1];
+								buffer2[count] = triple[2];
+								if (hashMask == 0) data[count] = readLong(iteratorByteBuffer, channel);
 								count++;
 							}
-							else if ( hashMask == 0 ) readLong(iteratorByteBuffer, channel); // Discard data
+							else if (hashMask == 0) readLong(iteratorByteBuffer, channel); // Discard data
 						}
 
 						chunkSize = count;
 						channel.close();
 					}
-					catch ( final IOException e ) {
-						throw new RuntimeException( e );
+					catch (final IOException e) {
+						throw new RuntimeException(e);
 					}
 
 					final long start = System.nanoTime();
 					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, chunkSize, (x, y) -> {
-						int t = Long.signum( buffer0[ x ] - buffer0[ y ] );
-						if ( t != 0 ) return t;
-						t = Long.signum( buffer1[ x ] - buffer1[ y ] );
-						if ( t != 0 ) return t;
-						return Long.signum( buffer2[ x ] - buffer2[ y ] );
+						int t = Long.signum(buffer0[x] - buffer0[y]);
+						if (t != 0) return t;
+						t = Long.signum(buffer1[x] - buffer1[y]);
+						if (t != 0) return t;
+						return Long.signum(buffer2[x] - buffer2[y]);
 					},
 					(x, y) -> {
-						final long e0 = buffer0[ x ], e1 = buffer1[ x ], e2 = buffer2[ x ];
-						buffer0[ x ] = buffer0[ y ];
-						buffer1[ x ] = buffer1[ y ];
-						buffer2[ x ] = buffer2[ y ];
-						buffer0[ y ] = e0;
-						buffer1[ y ] = e1;
-						buffer2[ y ] = e2;
-						if ( hashMask == 0 ) {
-							final long v = data[ x ];
-							data[ x ] = data[ y ];
-							data[ y ] = v;
+						final long e0 = buffer0[x], e1 = buffer1[x], e2 = buffer2[x];
+						buffer0[x] = buffer0[y];
+						buffer1[x] = buffer1[y];
+						buffer2[x] = buffer2[y];
+						buffer0[y] = e0;
+						buffer1[y] = e1;
+						buffer2[y] = e2;
+						if (hashMask == 0) {
+							final long v = data[x];
+							data[x] = data[y];
+							data[y] = v;
 						}
 					});
 					quickSortWallTime += System.nanoTime() - start;
 
-					if ( DEBUG ) {
-						for( int i = 0; i < chunkSize; i++ ) System.err.println( buffer0[ i ] + ", " + buffer1[ i ] + ", " + buffer2[ i ] );
+					if (DEBUG) {
+						for(int i = 0; i < chunkSize; i++) System.err.println(buffer0[i] + ", " + buffer1[i] + ", " + buffer2[i]);
 					}
 
 					last = 0;

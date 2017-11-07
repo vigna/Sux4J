@@ -5,7 +5,7 @@ import java.util.NoSuchElementException;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -52,7 +52,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	private final static class CumulativeLongIterable implements LongIterable {
 		private final LongIterable iterable;
 
-		public CumulativeLongIterable( final LongIterable iterable ) {
+		public CumulativeLongIterable(final LongIterable iterable) {
 			this.iterable = iterable;
 		}
 
@@ -70,8 +70,8 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 
 				@Override
 				public long nextLong() {
-					if ( ! hasNext() ) throw new NoSuchElementException();
-					if ( ! iterator.hasNext() && lastToDo ) {
+					if (! hasNext()) throw new NoSuchElementException();
+					if (! iterator.hasNext() && lastToDo) {
 						lastToDo = false;
 						return prefixSum;
 					}
@@ -90,8 +90,8 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoPrefixSumLongBigList( final LongIterable elements ) {
-		super( new CumulativeLongIterable( elements ) );
+	public EliasFanoPrefixSumLongBigList(final LongIterable elements) {
+		super(new CumulativeLongIterable(elements));
 		this.upperBits = selectUpper.bitVector();
 	}
 
@@ -99,44 +99,44 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoPrefixSumLongBigList( final IntIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoPrefixSumLongBigList(final IntIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoPrefixSumLongBigList( final ShortIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoPrefixSumLongBigList(final ShortIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Creates a new Elias&ndash;Fano prefix-sum long big list.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public EliasFanoPrefixSumLongBigList( final ByteIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public EliasFanoPrefixSumLongBigList(final ByteIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
-	private final static long getDiff( long[] bits, long index, int l ) {
-		if ( l == 0 ) return 0;
+	private final static long getDiff(long[] bits, long index, int l) {
+		if (l == 0) return 0;
 		final int m = Long.SIZE - l;
 		final long start = index * l;
-		int startWord = (int)( start >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
-		int startBit = (int)( start & LongArrayBitVector.WORD_MASK );
-		final long a = startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m;
-		startWord = (int)( ( start + l ) >>> LongArrayBitVector.LOG2_BITS_PER_WORD );
-		startBit = (int)( ( start + l ) & LongArrayBitVector.WORD_MASK );
-		return ( startBit <= m ? bits[ startWord ] << m - startBit >>> m : bits[ startWord ] >>> startBit | bits[ startWord + 1 ] << Long.SIZE + m - startBit >>> m ) - a;
+		int startWord = (int)(start >>> LongArrayBitVector.LOG2_BITS_PER_WORD);
+		int startBit = (int)(start & LongArrayBitVector.WORD_MASK);
+		final long a = startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << Long.SIZE + m - startBit >>> m;
+		startWord = (int)((start + l) >>> LongArrayBitVector.LOG2_BITS_PER_WORD);
+		startBit = (int)((start + l) & LongArrayBitVector.WORD_MASK);
+		return (startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << Long.SIZE + m - startBit >>> m) - a;
 	}
 
 	@Override
-	public long getLong( final long index ) {
-		if ( index < 0 || index >= length - 1 ) throw new IndexOutOfBoundsException( Long.toString( index ) );
-		final long pos = selectUpper.select( index + 1 );
-		if ( upperBits.getBoolean( pos - 1 ) ) return getDiff( lowerBits, index, l );
-		else return ( pos - upperBits.previousOne( pos ) - 1 ) * ( 1L << l ) + getDiff( lowerBits, index, l );
+	public long getLong(final long index) {
+		if (index < 0 || index >= length - 1) throw new IndexOutOfBoundsException(Long.toString(index));
+		final long pos = selectUpper.select(index + 1);
+		if (upperBits.getBoolean(pos - 1)) return getDiff(lowerBits, index, l);
+		else return (pos - upperBits.previousOne(pos) - 1) * (1L << l) + getDiff(lowerBits, index, l);
 	}
 
 	/** Returns the prefix sum of this list up to the given index.
@@ -144,8 +144,8 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	 * @param index an index from 0 to the length of this list.
 	 * @return the sum of the values with index between 0 (inclusive) and <code>index</code> (exclusive).
 	 */
-	public long prefixSum( final long index ) {
-		return super.getLong( index );
+	public long prefixSum(final long index) {
+		return super.getLong(index);
 	}
 
 	@Override

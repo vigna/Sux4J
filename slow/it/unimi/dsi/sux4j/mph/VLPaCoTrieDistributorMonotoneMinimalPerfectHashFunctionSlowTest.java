@@ -14,12 +14,12 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		final Iterable<Long> p = LargeLongCollection.getInstance();
-		final VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<>( p, TransformationStrategies.fixedLong() );
+		final VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<>(p, TransformationStrategies.fixedLong());
 
 		long j = 0;
-		for( final Iterator<Long> i = p.iterator(); i.hasNext(); ) {
+		for(final Iterator<Long> i = p.iterator(); i.hasNext();) {
 			final Long s = i.next();
-			assertEquals( j++, f.getLong( s ) );
+			assertEquals(j++, f.getLong(s));
 		}
 	}
 }

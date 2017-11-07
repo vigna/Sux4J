@@ -1,12 +1,9 @@
 package it.unimi.dsi.sux4j.scratch;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2014 Sebastiano Vigna
+ * Copyright (C) 2014-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -22,6 +19,9 @@ import java.io.ObjectInputStream;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -50,55 +50,55 @@ public class Rank11Original extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 
-	public Rank11Original( long[] bits, long length ) {
-		this( LongArrayBitVector.wrap( bits, length ) );
+	public Rank11Original(long[] bits, long length) {
+		this(LongArrayBitVector.wrap(bits, length));
 	}
 
-	public Rank11Original( final BitVector bitVector ) {
+	public Rank11Original(final BitVector bitVector) {
 		this.bitVector = bitVector;
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 
-		numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
+		numWords = (int)((length + Long.SIZE - 1) / Long.SIZE);
 
-		final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
+		final int numCounts = (int)((length + 32 * Long.SIZE - 1) / (32 * Long.SIZE)) * 2;
 		// Init rank/select structure
-		count = new long[ numCounts + 1 ];
+		count = new long[numCounts + 1];
 
 		long c = 0, l = -1;
 		int pos = 0;
-		for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
-			count[ pos ] = c;
+		for(int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2) {
+			count[pos] = c;
 
-			for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
-				if ( j % 6 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 60 - 12 * ( j / 6 );
-				if ( i + j < numWords ) {
-					if ( bits[ i + j ] != 0 ) l = ( i + j ) * 64L + Fast.mostSignificantBit( bits[ i + j ] );
-					c += Long.bitCount( bits[ i + j ] );
+			for(int j = 0; j < WORDS_PER_SUPERBLOCK; j++) {
+				if (j % 6 == 0) count[pos + 1] |= (i + j <= numWords ? c - count[pos] : 0x7FFL) << 60 - 12 * (j / 6);
+				if (i + j < numWords) {
+					if (bits[i + j] != 0) l = (i + j) * 64L + Fast.mostSignificantBit(bits[i + j]);
+					c += Long.bitCount(bits[i + j]);
 				}
 			}
 		}
 
 		numOnes = c;
 		lastOne = l;
-		count[ numCounts ] = c;
+		count[numCounts] = c;
 	}
 
 
 	@Override
-	public long rank( long pos ) {
-		if ( ASSERTS ) assert pos >= 0;
-		if ( ASSERTS ) assert pos <= bitVector.length();
+	public long rank(long pos) {
+		if (ASSERTS) assert pos >= 0;
+		if (ASSERTS) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
-		if ( pos > lastOne ) return numOnes;
+		if (pos > lastOne) return numOnes;
 
-		int word = (int)( pos / Long.SIZE );
-		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
-        final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 );
-		long result = count[ block ] + ( count[ block + 1 ] >> ( 60 - 12 * offset ) & 0x7FF ) +
-				Long.bitCount( bits[ word ] & ( 1L << pos % Long.SIZE ) - 1 );
+		int word = (int)(pos / Long.SIZE);
+		final int block = word / (WORDS_PER_SUPERBLOCK / 2) & ~1;
+        final int offset = ((word % WORDS_PER_SUPERBLOCK) / 6);
+		long result = count[block] + (count[block + 1] >> (60 - 12 * offset) & 0x7FF) +
+				Long.bitCount(bits[word] & (1L << pos % Long.SIZE) - 1);
 
-		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += Long.bitCount( bits[ --word ] );
+		for (int todo = (word & 0x1F) % 6; todo-- != 0;) result += Long.bitCount(bits[--word]);
         return result;
 	}
 
@@ -113,15 +113,15 @@ public class Rank11Original extends AbstractRank implements Rank {
 	}
 
 	@Override
-	public long rank( long from, long to ) {
-		return rank( to ) - rank( from );
+	public long rank(long from, long to) {
+		return rank(to) - rank(from);
 	}
 
 	public long lastOne() {
 		return lastOne;
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		bits = bitVector.bits();
 	}

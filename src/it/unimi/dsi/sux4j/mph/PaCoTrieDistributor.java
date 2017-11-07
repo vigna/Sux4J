@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -65,7 +65,7 @@ import it.unimi.dsi.logging.ProgressLogger;
  */
 
 public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = LoggerFactory.getLogger( PaCoTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger(PaCoTrieDistributor.class);
 	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
@@ -104,7 +104,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 			 * @param right the right child.
 			 * @param path the path compacted at this node.
 			 */
-			public Node( final Node left, final Node right, final LongArrayBitVector path ) {
+			public Node(final Node left, final Node right, final LongArrayBitVector path) {
 				this.left = left;
 				this.right = right;
 				this.path = path;
@@ -137,17 +137,17 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 		 * distinct, lexicographically increasing (in iteration order) bit vectors.
 		 */
 
-		public PartialTrie( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ProgressLogger pl ) {
+		public PartialTrie(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ProgressLogger pl) {
 			Iterator<? extends T> iterator = elements.iterator();
 
 			Node node;
 			final LongArrayBitVector curr = LongArrayBitVector.getInstance();
 			int pos, prefix;
-			final int bucketMask = ( 1 << log2BucketSize ) - 1;
+			final int bucketMask = (1 << log2BucketSize) - 1;
 
-			if ( iterator.hasNext() ) {
-				pl.start( "Building trie..." );
-				final LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+			if (iterator.hasNext()) {
+				pl.start("Building trie...");
+				final LongArrayBitVector prev = LongArrayBitVector.copy(transformationStrategy.toBitVector(iterator.next()));
 				pl.lightUpdate();
 				// The last delimiter seen, if root is not null.
 				final LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
@@ -156,51 +156,51 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 				Node root = null;
 				long maxLength = prev.length();
 
-				while( iterator.hasNext() ) {
+				while(iterator.hasNext()) {
 					// Check order
-					curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
+					curr.replace(transformationStrategy.toBitVector(iterator.next()));
 					pl.lightUpdate();
-					prefix = (int)curr.longestCommonPrefixLength( prev );
-					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
-					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+					prefix = (int)curr.longestCommonPrefixLength(prev);
+					if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct");
+					if (prefix == prev.length() || prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not prefix-free");
+					if (prev.getBoolean(prefix)) throw new IllegalArgumentException("The input bit vectors are not lexicographically sorted");
 
-					if ( ( count & bucketMask ) == 0 ) {
+					if ((count & bucketMask) == 0) {
 						// Found delimiter. Insert into trie.
-						if ( root == null ) {
-							root = new Node( null, null, prev.copy() );
-							prevDelimiter.replace( prev );
+						if (root == null) {
+							root = new Node(null, null, prev.copy());
+							prevDelimiter.replace(prev);
 						}
 						else {
-							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
+							prefix = (int)prev.longestCommonPrefixLength(prevDelimiter);
 
 							pos = 0;
 							node = root;
 							Node n = null;
-							while( node != null ) {
+							while(node != null) {
 								final long pathLength = node.path.length();
-								if ( prefix < pathLength ) {
-									n = new Node( node.left, node.right, node.path.copy( prefix + 1, pathLength ) );
-									node.path.length( prefix );
+								if (prefix < pathLength) {
+									n = new Node(node.left, node.right, node.path.copy(prefix + 1, pathLength));
+									node.path.length(prefix);
 									node.path.trim();
 									node.left = n;
-									node.right = new Node( null, null, prev.copy( pos + prefix + 1, prev.length() ) );
+									node.right = new Node(null, null, prev.copy(pos + prefix + 1, prev.length()));
 									break;
 								}
 
 								prefix -= pathLength + 1;
 								pos += pathLength + 1;
 								node = node.right;
-								if ( ASSERTS ) assert node == null || prefix >= 0 : prefix + " <= " + 0;
+								if (ASSERTS) assert node == null || prefix >= 0 : prefix + " <= " + 0;
 							}
 
-							if ( ASSERTS ) assert node != null;
+							if (ASSERTS) assert node != null;
 
-							prevDelimiter.replace( prev );
+							prevDelimiter.replace(prev);
 						}
 					}
-					prev.replace( curr );
-					maxLength = Math.max( maxLength, prev.length() );
+					prev.replace(curr);
+					maxLength = Math.max(maxLength, prev.length());
 					count++;
 				}
 
@@ -208,21 +208,21 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 
 				this.root = root;
 
-				if ( root != null ) {
-					if ( ASSERTS ) {
+				if (root != null) {
+					if (ASSERTS) {
 						iterator = elements.iterator();
 						long c = 1;
-						while( iterator.hasNext() ) {
-							curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
-							if ( ( c++ & bucketMask ) == 0 ) {
-								if ( ! iterator.hasNext() ) break; // The last string is never a delimiter
+						while(iterator.hasNext()) {
+							curr.replace(transformationStrategy.toBitVector(iterator.next()));
+							if ((c++ & bucketMask) == 0) {
+								if (! iterator.hasNext()) break; // The last string is never a delimiter
 								node = root;
 								pos = 0;
-								while( node != null ) {
-									prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( node.path );
-									assert prefix == node.path.length() : "Error at delimiter " + ( c - 1 ) / ( 1 << log2BucketSize );
+								while(node != null) {
+									prefix = (int)curr.subVector(pos).longestCommonPrefixLength(node.path);
+									assert prefix == node.path.length() : "Error at delimiter " + (c - 1) / (1 << log2BucketSize);
 									pos += node.path.length() + 1;
-									if ( pos <= curr.length() ) node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+									if (pos <= curr.length()) node = curr.getBoolean(pos - 1) ? node.right : node.left;
 									else {
 										assert node.left == null && node.right == null;
 										break;
@@ -233,53 +233,53 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 					}
 
 					pl.expectedUpdates = count;
-					pl.start( "Reducing paths..." );
+					pl.start("Reducing paths...");
 
 					iterator = elements.iterator();
 
 					// The stack of nodes visited the last time
-					final Node stack[] = new Node[ (int)maxLength ];
+					final Node stack[] = new Node[(int)maxLength];
 					// The length of the path compacted in the trie up to the corresponding node, excluded
-					final int[] len = new int[ (int)maxLength ];
+					final int[] len = new int[(int)maxLength];
 
-					stack[ 0 ] = root;
+					stack[0] = root;
 					// The index of the last valid element on the stack
 					int last = 0;
 
 					boolean first = true;
 
 					// TODO: the inner for(;;) loop shouldn't be necessary
-					while( iterator.hasNext() ) {
-						curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
+					while(iterator.hasNext()) {
+						curr.replace(transformationStrategy.toBitVector(iterator.next()));
 						pl.lightUpdate();
-						if ( ! first )  {
+						if (! first)  {
 							// Adjust stack using lcp between present string and previous one
-							prefix = (int)prev.longestCommonPrefixLength( curr );
-							while( last > 0 && len[ last ] > prefix ) last--;
+							prefix = (int)prev.longestCommonPrefixLength(curr);
+							while(last > 0 && len[last] > prefix) last--;
 						}
 						else first = false;
-						node = stack[ last ];
-						pos = len[ last ];
+						node = stack[last];
+						pos = len[last];
 						for(;;) {
 							final LongArrayBitVector path = node.path;
-							prefix = (int)curr.subVector( pos ).longestCommonPrefixLength( path );
-							if ( prefix < path.length() ) {
+							prefix = (int)curr.subVector(pos).longestCommonPrefixLength(path);
+							if (prefix < path.length()) {
 								/* If we are at the left of the current node, we simply update prefixLeft. Otherwise,
 								 * can update prefixRight only *once*. */
-								if ( path.getBoolean( prefix ) ) node.prefixLeft = prefix;
-								else if ( node.prefixRight == MAX_PREFIX ) node.prefixRight = prefix;
+								if (path.getBoolean(prefix)) node.prefixLeft = prefix;
+								else if (node.prefixRight == MAX_PREFIX) node.prefixRight = prefix;
 								break;
 							}
 
 							pos += path.length() + 1;
-							if ( pos > curr.length() ) break;
-							node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+							if (pos > curr.length()) break;
+							node = curr.getBoolean(pos - 1) ? node.right : node.left;
 							// Update stack
-							len[ ++last ] = pos;
-							stack[ last ] = node;
+							len[++last] = pos;
+							stack[last] = node;
 						}
 
-						prev.replace( curr );
+						prev.replace(curr);
 					}
 
 					pl.done();
@@ -294,97 +294,97 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 		/** Accumulates the gain in bits w.r.t. a standard trie (just for statistical purposes). */
 		protected long gain;
 
-		private final OutputBitStream bitCount = new OutputBitStream( NullOutputStream.getInstance(), 0 );
+		private final OutputBitStream bitCount = new OutputBitStream(NullOutputStream.getInstance(), 0);
 
 		/** Writes this trie in bit stream format to the given stream.
 		 *
 		 * @param obs an output bit stream.
 		 * @return the number of leaves in the trie.
 		 */
-		public long toStream( final OutputBitStream obs, ProgressLogger pl ) throws IOException {
-			final long result = toStream( root, obs, pl );
-			LOGGER.debug( "Gain: " + gain );
+		public long toStream(final OutputBitStream obs, ProgressLogger pl) throws IOException {
+			final long result = toStream(root, obs, pl);
+			LOGGER.debug("Gain: " + gain);
 			return result;
 		}
 
-		private long toStream( final Node n, final OutputBitStream obs, ProgressLogger pl ) throws IOException {
-			if ( n == null ) return 0;
+		private long toStream(final Node n, final OutputBitStream obs, ProgressLogger pl) throws IOException {
+			if (n == null) return 0;
 
-			if ( ASSERTS ) assert ( n.left != null ) == ( n.right != null );
+			if (ASSERTS) assert (n.left != null) == (n.right != null);
 
 			// We recursively create the stream of the left and right trees
 			final FastByteArrayOutputStream leftStream = new FastByteArrayOutputStream();
-			final OutputBitStream left = new OutputBitStream( leftStream, 0 );
-			final long leavesLeft = toStream( n.left, left, pl );
+			final OutputBitStream left = new OutputBitStream(leftStream, 0);
+			final long leavesLeft = toStream(n.left, left, pl);
 			final long leftBits = left.writtenBits();
 			left.flush();
 
 			final FastByteArrayOutputStream rightStream = new FastByteArrayOutputStream();
-			final OutputBitStream right = new OutputBitStream( rightStream, 0 );
-			final long leavesRight = toStream( n.right, right, pl );
+			final OutputBitStream right = new OutputBitStream(rightStream, 0);
+			final long leavesRight = toStream(n.right, right, pl);
 			final long rightBits = right.writtenBits();
 			right.flush();
 
 			pl.lightUpdate();
-			obs.writeLongDelta( n.isLeaf() ? 0 : leftBits ); // Skip pointer (nonzero if non leaf)
+			obs.writeLongDelta(n.isLeaf() ? 0 : leftBits); // Skip pointer (nonzero if non leaf)
 
-			final int pathLength = (int)Math.min( n.path.length(), Math.max( n.prefixLeft, n.prefixRight ) + 1 );
+			final int pathLength = (int)Math.min(n.path.length(), Math.max(n.prefixLeft, n.prefixRight) + 1);
 
-			final int missing =  (int)( n.path.length() - pathLength );
+			final int missing =  (int)(n.path.length() - pathLength);
 			// We gain one bit for each missing bit
 			gain += missing;
 
 			/* For efficiency, the path is written in 64-bit blocks exactly as
 			 * it is represented in a LongArrayBitVector. */
 
-			gain += bitCount.writeLongDelta( n.path.length() ) - obs.writeDelta( pathLength ); // We gain if the path length is written in less bits than it should be.
-			if ( pathLength > 0 ) for( int i = 0; i < pathLength; i += Long.SIZE ) obs.writeLong( n.path.getLong( i, Math.min( i + Long.SIZE, pathLength ) ), Math.min( Long.SIZE, pathLength - i ) );
+			gain += bitCount.writeLongDelta(n.path.length()) - obs.writeDelta(pathLength); // We gain if the path length is written in less bits than it should be.
+			if (pathLength > 0) for(int i = 0; i < pathLength; i += Long.SIZE) obs.writeLong(n.path.getLong(i, Math.min(i + Long.SIZE, pathLength)), Math.min(Long.SIZE, pathLength - i));
 
 			// Nothing after the path in leaves.
-			if ( n.isLeaf() ) return 1;
+			if (n.isLeaf()) return 1;
 
 			n.left = n.right = null;
 
 			// We count the missing bit as a gain, but of course in an internal node we must subtract the space needed to represent their cardinality.
-			gain -= obs.writeDelta( missing );
+			gain -= obs.writeDelta(missing);
 
-			obs.writeLongDelta( leavesLeft ); // The number of leaves in the left subtree
+			obs.writeLongDelta(leavesLeft); // The number of leaves in the left subtree
 
 			// Write left and right trees
-			obs.write( leftStream.array, leftBits );
-			obs.write( rightStream.array, rightBits );
+			obs.write(leftStream.array, leftBits);
+			obs.write(rightStream.array, rightBits);
 
 			return leavesLeft + leavesRight;
 		}
 
-		private void recToString( final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) {
-			if ( n == null ) return;
+		private void recToString(final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level) {
+			if (n == null) return;
 
-			result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
+			result.append(printPrefix).append('(').append(level).append(')');
 
-			if ( n.path != null ) {
-				path.append( n.path );
-				result.append( " path:" ).append( n.path );
+			if (n.path != null) {
+				path.append(n.path);
+				result.append(" path:").append(n.path);
 			}
 
-			result.append( '\n' );
+			result.append('\n');
 
-			path.append( '0' );
-			recToString( n.left, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
-			path.charAt( path.length() - 1, '1' );
-			recToString( n.right, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
-			path.delete( path.length() - 1, path.length() );
-			printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
+			path.append('0');
+			recToString(n.left, printPrefix.append('\t').append("0 => "), result, path, level + 1);
+			path.charAt(path.length() - 1, '1');
+			recToString(n.right, printPrefix.replace(printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1);
+			path.delete(path.length() - 1, path.length());
+			printPrefix.delete(printPrefix.length() - 6, printPrefix.length());
 
-			//System.err.println( "Path now: " + path + " Going to delete from " + ( path.length() - n.pathLength));
+			//System.err.println("Path now: " + path + " Going to delete from " + (path.length() - n.pathLength));
 
-			path.delete( (int)( path.length() - n.path.length() ), path.length() );
+			path.delete((int)(path.length() - n.path.length()), path.length());
 		}
 
 		@Override
 		public String toString() {
 			final MutableString s = new MutableString();
-			recToString( root, new MutableString(), s, new MutableString(), 0 );
+			recToString(root, new MutableString(), s, new MutableString(), 0);
 			return s.toString();
 		}
 
@@ -398,151 +398,151 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 */
 	@SuppressWarnings("resource")
-	public PaCoTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy ) throws IOException {
+	public PaCoTrieDistributor(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy) throws IOException {
 		this.transformationStrategy = transformationStrategy;
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		pl.itemsName = "keys";
-		final PartialTrie<T> immutableBinaryTrie = new PartialTrie<>( elements, log2BucketSize, transformationStrategy, pl );
+		final PartialTrie<T> immutableBinaryTrie = new PartialTrie<>(elements, log2BucketSize, transformationStrategy, pl);
 		final FastByteArrayOutputStream fbStream = new FastByteArrayOutputStream();
-		final OutputBitStream trie = new OutputBitStream( fbStream, 0 );
-		pl.start( "Converting to bitstream..." );
-		numberOfLeaves = immutableBinaryTrie.toStream( trie, pl );
+		final OutputBitStream trie = new OutputBitStream(fbStream, 0);
+		pl.start("Converting to bitstream...");
+		numberOfLeaves = immutableBinaryTrie.toStream(trie, pl);
 		pl.done();
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		LOGGER.info( "Trie bit size: " + trie.writtenBits() );
+		LOGGER.info("Trie bit size: " + trie.writtenBits());
 
 		trie.flush();
 		fbStream.trim();
 		this.trie = fbStream.array;
 
-		if ( DDEBUG ) {
+		if (DDEBUG) {
 			final MutableString s = new MutableString();
-			recToString( new InputBitStream( this.trie ), new MutableString(), s, new MutableString(), 0 );
-			System.err.println( s );
+			recToString(new InputBitStream(this.trie), new MutableString(), s, new MutableString(), 0);
+			System.err.println(s);
 		}
 	}
 
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( Object o ) {
-		if ( numberOfLeaves == 0 ) return 0;
+	public long getLong(Object o) {
+		if (numberOfLeaves == 0) return 0;
 		try {
-			if ( DEBUG ) System.err.println( "Getting " + o + "...");
-			final BitVector v = transformationStrategy.toBitVector( (T)o ).fast();
+			if (DEBUG) System.err.println("Getting " + o + "...");
+			final BitVector v = transformationStrategy.toBitVector((T)o).fast();
 			final long length = v.length();
 			@SuppressWarnings("resource")
-			final InputBitStream trie = new InputBitStream( this.trie );
+			final InputBitStream trie = new InputBitStream(this.trie);
 
 			long pos = 0, readBits, skip, xor, t;
 			long leavesOnTheLeft = 0, leftSubtrieLeaves, leaves = numberOfLeaves;
 			int pathLength, size, missing;
-			for( ;; ) {
+			for(;;) {
 				skip = trie.readLongDelta();
 				pathLength = trie.readDelta();
-				if ( DEBUG ) System.err.println( "Path length: " + pathLength );
+				if (DEBUG) System.err.println("Path length: " + pathLength);
 
 				xor = t = 0;
 
 				readBits = trie.readBits();
 
-				for( int i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
-					size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
-					xor = v.getLong( pos, Math.min( length, pos += size ) ) ^ ( t = trie.readLong( size ) );
-					if ( xor != 0 || pos >= length ) break;
+				for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
+					size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
+					xor = v.getLong(pos, Math.min(length, pos += size)) ^ (t = trie.readLong(size));
+					if (xor != 0 || pos >= length) break;
 				}
 
-				if ( xor != 0 || pos > length ) {
-					if ( DEBUG ) System.err.println( "Path mismatch: " +  ( ( ( ( xor & -xor ) & t ) != 0 ) ? "smaller" : "greater" ) + " than trie path at (leaf = " + leavesOnTheLeft + ")" );
+				if (xor != 0 || pos > length) {
+					if (DEBUG) System.err.println("Path mismatch: " +  ((((xor & -xor) & t) != 0) ? "smaller" : "greater") + " than trie path at (leaf = " + leavesOnTheLeft + ")");
 					// If we are lexicographically smaller than the trie, we just return the leaves to our left.
-					if ( ( ( xor & -xor ) & t ) != 0 ) return leavesOnTheLeft;
+					if (((xor & -xor) & t) != 0) return leavesOnTheLeft;
 					else {
-						if ( skip == 0 ) {
-							if ( DEBUG ) System.err.println( "Leaf node" );
+						if (skip == 0) {
+							if (DEBUG) System.err.println("Leaf node");
 							return leavesOnTheLeft + 1;
 						}
-						if ( DEBUG ) System.err.println( "Non-leaf node" );
+						if (DEBUG) System.err.println("Non-leaf node");
 						// Skip remaining path, if any and missing bits count
-						trie.skip( pathLength - ( trie.readBits() - readBits ) );
+						trie.skip(pathLength - (trie.readBits() - readBits));
 						trie.readDelta();
 						return leavesOnTheLeft + leaves;
 					}
 				}
 
-				if ( skip == 0 ) {
-					if ( DEBUG ) System.err.println( "Exact match (leaf = " + leavesOnTheLeft + ")" + pos + " " + length );
+				if (skip == 0) {
+					if (DEBUG) System.err.println("Exact match (leaf = " + leavesOnTheLeft + ")" + pos + " " + length);
 					return leavesOnTheLeft;
 				}
 
 				missing = trie.readDelta();
-				if ( DEBUG ) System.err.println( "Missing bits: " + missing );
+				if (DEBUG) System.err.println("Missing bits: " + missing);
 
 				// Increment pos by missing bits
 				pos += missing;
-				if ( pos >= v.length() ) return leavesOnTheLeft;
+				if (pos >= v.length()) return leavesOnTheLeft;
 
 				leftSubtrieLeaves = trie.readLongDelta();
 
-				if ( v.getBoolean( pos++ ) ) {
+				if (v.getBoolean(pos++)) {
 					// Right
-					trie.skip( skip );
+					trie.skip(skip);
 					leavesOnTheLeft += leftSubtrieLeaves;
 					leaves -= leftSubtrieLeaves;
-					if ( DEBUG ) System.err.println( "Turining right (" + leavesOnTheLeft + " leaves on the left)..." );
+					if (DEBUG) System.err.println("Turining right (" + leavesOnTheLeft + " leaves on the left)...");
 				}
 				else {
 					// Left
 					leaves = leftSubtrieLeaves;
-					if ( DEBUG ) System.err.println( "Turining left (" + leavesOnTheLeft + " leaves on the left)..." );
+					if (DEBUG) System.err.println("Turining left (" + leavesOnTheLeft + " leaves on the left)...");
 				}
 
 			}
-		} catch( final IOException cantHappen ) {
-			throw new RuntimeException( cantHappen );
+		} catch(final IOException cantHappen) {
+			throw new RuntimeException(cantHappen);
 		}
 	}
 
 
-	private void recToString( final InputBitStream trie, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) throws IOException {
+	private void recToString(final InputBitStream trie, final MutableString printPrefix, final MutableString result, final MutableString path, final int level) throws IOException {
 		final long skip = trie.readLongDelta();
 
-		//System.err.println( "Called with prefix " + printPrefix );
+		//System.err.println("Called with prefix " + printPrefix);
 
-		result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
+		result.append(printPrefix).append('(').append(level).append(')');
 
 		final int pathLength = trie.readDelta();
-		final LongArrayBitVector p = LongArrayBitVector.getInstance( pathLength );
+		final LongArrayBitVector p = LongArrayBitVector.getInstance(pathLength);
 
-		for( int i = 0; i < ( pathLength + Long.SIZE - 1 ) / Long.SIZE; i++ ) {
-			final int size = Math.min( Long.SIZE, pathLength - i * Long.SIZE );
-			p.append( trie.readLong( size ), size );
+		for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
+			final int size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
+			p.append(trie.readLong(size), size);
 		}
 
-		if ( skip == 0 ) return; // Leaf
+		if (skip == 0) return; // Leaf
 
 		int missing = trie.readDelta();
 
-		path.append( p );
-		result.append( " path:" ).append( p );
-		while( missing-- != 0 ) result.append( '*' );
+		path.append(p);
+		result.append(" path:").append(p);
+		while(missing-- != 0) result.append('*');
 
-		result.append( '\n' );
+		result.append('\n');
 
 		trie.readDelta(); // Skip number of leaves in the left subtree
 
-		path.append( '0' );
-		recToString( trie, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
-		path.charAt( path.length() - 1, '1' );
-		recToString( trie, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
-		path.delete( path.length() - 1, path.length() );
-		printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
+		path.append('0');
+		recToString(trie, printPrefix.append('\t').append("0 => "), result, path, level + 1);
+		path.charAt(path.length() - 1, '1');
+		recToString(trie, printPrefix.replace(printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1);
+		path.delete(path.length() - 1, path.length());
+		printPrefix.delete(printPrefix.length() - 6, printPrefix.length());
 
-		//System.err.println( "Path now: " + path + " Going to delete from " + ( path.length() - n.pathLength));
+		//System.err.println("Path now: " + path + " Going to delete from " + (path.length() - n.pathLength));
 
-		path.delete( path.length() - pathLength, path.length() );
+		path.delete(path.length() - pathLength, path.length());
 	}
 
 	public long numBits() {
@@ -550,7 +550,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 	}
 
 	@Override
-	public boolean containsKey( Object o ) {
+	public boolean containsKey(Object o) {
 		return true;
 	}
 
@@ -562,6 +562,6 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 	@Override
 	@Deprecated
 	public int size() {
-		return (int)Math.min( numberOfLeaves, Integer.MAX_VALUE );
+		return (int)Math.min(numberOfLeaves, Integer.MAX_VALUE);
 	}
 }

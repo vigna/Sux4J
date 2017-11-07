@@ -74,7 +74,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2016 Sebastiano Vigna
+ * Copyright (C) 2016-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free

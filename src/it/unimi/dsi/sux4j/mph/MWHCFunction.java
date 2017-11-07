@@ -29,7 +29,7 @@ import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2016 Sebastiano Vigna
+ * Copyright (C) 2002-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -144,7 +144,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 @Deprecated
 public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 5L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( MWHCFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(MWHCFunction.class);
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 
@@ -166,7 +166,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param keys the keys of the function.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -176,7 +176,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -187,7 +187,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -201,7 +201,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #signed(int)} with the opposite argument).
 		 * @return this builder.
 		 */
-		public Builder<T> dictionary( final int signatureWidth ) {
+		public Builder<T> dictionary(final int signatureWidth) {
 			this.signatureWidth = - signatureWidth;
 			return this;
 		}
@@ -211,7 +211,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -226,7 +226,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -241,7 +241,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @return this builder.
 		 * @see #values(LongIterable)
 		 */
-		public Builder<T> values( final LongIterable values, final int outputWidth ) {
+		public Builder<T> values(final LongIterable values, final int outputWidth) {
 			this.values = values;
 			this.outputWidth = outputWidth;
 			return this;
@@ -257,10 +257,10 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @return this builder.
 		 * @see #values(LongIterable,int)
 		 */
-		public Builder<T> values(  final LongIterable values ) {
+		public Builder<T> values(final LongIterable values) {
 			this.values = values;
 			int outputWidth = 0;
-			for( final LongIterator i = values.iterator(); i.hasNext(); ) outputWidth = Math.max( outputWidth, Fast.length( i.nextLong() ) );
+			for(final LongIterator i = values.iterator(); i.hasNext();) outputWidth = Math.max(outputWidth, Fast.length(i.nextLong()));
 			this.outputWidth = outputWidth;
 			return this;
 		}
@@ -284,13 +284,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public MWHCFunction<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if ( transform == null ) {
-				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			if (transform == null) {
+				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			}
-			return new MWHCFunction<>( keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect );
+			return new MWHCFunction<>(keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect);
 		}
 	}
 
@@ -342,33 +342,33 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * must be accessed to retrieve the actual values.
 	 */
 	@SuppressWarnings("resource")
-	protected MWHCFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect ) throws IOException {
+	protected MWHCFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, boolean indirect) throws IOException {
 		this.transform = transform;
 
-		if ( signatureWidth != 0 && values != null ) throw new IllegalArgumentException( "You cannot sign a function if you specify its values" );
-		if ( signatureWidth != 0 && dataWidth != -1 ) throw new IllegalArgumentException( "You cannot specify a signature width and a data width" );
+		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
+		if (signatureWidth != 0 && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a signature width and a data width");
 
 		// If we have no keys, values must be a random-access list of longs.
-		final LongBigList valueList = indirect ? ( values instanceof LongList ? LongBigLists.asBigList( (LongList)values ) : (LongBigList)values ) : LongBigLists.EMPTY_BIG_LIST;
+		final LongBigList valueList = indirect ? (values instanceof LongList ? LongBigLists.asBigList((LongList)values) : (LongBigList)values) : LongBigLists.EMPTY_BIG_LIST;
 
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if ( chunkedHashStore == null) {
-			if ( keys == null ) throw new IllegalArgumentException( "If you do not provide a chunked hash store, you must provide the keys" );
-			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, - Math.min( signatureWidth, 0 ), pl );
-			chunkedHashStore.reset( r.nextLong() );
-			if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-			else chunkedHashStore.addAll( keys.iterator(), values.iterator() );
+		if (chunkedHashStore == null) {
+			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
+			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, - Math.min(signatureWidth, 0), pl);
+			chunkedHashStore.reset(r.nextLong());
+			if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
+			else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 		}
 		n = chunkedHashStore.size();
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default resturn value.
 
-		if ( n == 0 ) {
+		if (n == 0) {
 			m = this.globalSeed = chunkShift = this.width = 0;
 			data = null;
 			marker = null;
@@ -380,44 +380,44 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return;
 		}
 
-		final int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
-		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.debug( "Number of chunks: " + numChunks );
+		LOGGER.debug("Number of chunks: " + numChunks);
 
-		seed = new long[ numChunks ];
-		offset = new long[ numChunks + 1 ];
+		seed = new long[numChunks];
+		offset = new long[numChunks + 1];
 
-		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2( n ) : dataWidth;
+		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
-		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
 
 		int duplicates = 0;
 
 		for(;;) {
-			LOGGER.debug( "Generating MWHC function with " + this.width + " output bits..." );
+			LOGGER.debug("Generating MWHC function with " + this.width + " output bits...");
 
 			long seed = 0;
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
-			pl.start( "Analysing chunks... " );
+			pl.start("Analysing chunks... ");
 
 			try {
 				int q = 0;
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
-				final LongBigList data = dataBitVector.asLongBigList( this.width );
-				for( final ChunkedHashStore.Chunk chunk: chunkedHashStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>( chunk.size() );
+				final LongBigList data = dataBitVector.asLongBigList(this.width);
+				for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
+					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>(chunk.size());
 					do {
 						seed = r.nextLong();
-					} while ( ! sorter.generateAndSort( chunk.iterator(), seed ) );
+					} while (! sorter.generateAndSort(chunk.iterator(), seed));
 
-					this.seed[ q ] = seed;
-					dataBitVector.fill( false );
-					data.size( sorter.numVertices );
-					offset[ q + 1 ] = offset[ q ] + sorter.numVertices;
+					this.seed[q] = seed;
+					dataBitVector.fill(false);
+					data.size(sorter.numVertices);
+					offset[q + 1] = offset[q] + sorter.numVertices;
 
 					/* We assign values. */
 
@@ -427,85 +427,85 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 					final int[] vertex2 = sorter.vertex2;
 					final int[] edge = sorter.edge;
 
-					while( top > 0 ) {
-						x = stack[ --top ];
-						k = edge[ x ];
-						final long s = data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] );
-						final long value = indirect ? valueList.getLong( chunk.data( k ) ) : chunk.data( k );
-						data.set( x, value ^ s );
+					while(top > 0) {
+						x = stack[--top];
+						k = edge[x];
+						final long s = data.getLong(vertex1[x]) ^ data.getLong(vertex2[x]);
+						final long value = indirect ? valueList.getLong(chunk.data(k)) : chunk.data(k);
+						data.set(x, value ^ s);
 
-						if ( ASSERTS ) assert ( value == ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) ) ) :
-							"<" + x + "," + vertex1[ x ] + "," + vertex2[ x ] + ">: " + value + " != " + ( data.getLong( x ) ^ data.getLong( vertex1[ x ] ) ^ data.getLong( vertex2[ x ] ) );
+						if (ASSERTS) assert (value == (data.getLong(x) ^ data.getLong(vertex1[x]) ^ data.getLong(vertex2[x]))) :
+							"<" + x + "," + vertex1[x] + "," + vertex2[x] + ">: " + value + " != " + (data.getLong(x) ^ data.getLong(vertex1[x]) ^ data.getLong(vertex2[x]));
 					}
 
 					q++;
-					offlineData.add( dataBitVector );
+					offlineData.add(dataBitVector);
 					pl.update();
 				}
 
 				pl.done();
 				break;
 			}
-			catch( final ChunkedHashStore.DuplicateException e ) {
-				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
-				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
-				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				chunkedHashStore.reset( r.nextLong() );
+			catch(final ChunkedHashStore.DuplicateException e) {
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
+				LOGGER.warn("Found duplicate. Recomputing triples...");
+				chunkedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
-				if ( values == null || indirect ) chunkedHashStore.addAll( keys.iterator() );
-				else chunkedHashStore.addAll( keys.iterator(), values.iterator());
+				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
+				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 			}
 		}
 
-		if ( DEBUG ) System.out.println( "Offsets: " + Arrays.toString( offset ) );
+		if (DEBUG) System.out.println("Offsets: " + Arrays.toString(offset));
 
 		globalSeed = chunkedHashStore.seed();
 
 		// Check for compaction
 		long nonZero = 0;
-		m = offset[ offset.length - 1 ];
+		m = offset[offset.length - 1];
 
 		{
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-			while( iterator.hasNext() ) {
-				final LongBigList data = iterator.next().asLongBigList( this.width );
-				for( long i = 0; i < data.size64(); i++ ) if ( data.getLong( i ) != 0 ) nonZero++;
+			while(iterator.hasNext()) {
+				final LongBigList data = iterator.next().asLongBigList(this.width);
+				for(long i = 0; i < data.size64(); i++) if (data.getLong(i) != 0) nonZero++;
 			}
 			iterator.close();
 		}
 		// We estimate size using Rank16
-		if ( nonZero * this.width + m * 1.126 < m * this.width ) {
-			LOGGER.info( "Compacting..." );
-			marker = LongArrayBitVector.ofLength( m );
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList( this.width );
-			newData.size( nonZero );
+		if (nonZero * this.width + m * 1.126 < m * this.width) {
+			LOGGER.info("Compacting...");
+			marker = LongArrayBitVector.ofLength(m);
+			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList(this.width);
+			newData.size(nonZero);
 			nonZero = 0;
 
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 			long j = 0;
-			while( iterator.hasNext() ) {
-				final LongBigList data = iterator.next().asLongBigList( this.width );
-				for( long i = 0; i < data.size64(); i++, j++ ) {
-					final long value = data.getLong( i );
-					if ( value != 0 ) {
-						marker.set( j );
-						newData.set( nonZero++, value );
+			while(iterator.hasNext()) {
+				final LongBigList data = iterator.next().asLongBigList(this.width);
+				for(long i = 0; i < data.size64(); i++, j++) {
+					final long value = data.getLong(i);
+					if (value != 0) {
+						marker.set(j);
+						newData.set(nonZero++, value);
 					}
 				}
 			}
 			iterator.close();
 
-			rank = new Rank16( marker );
+			rank = new Rank16(marker);
 
-			if ( ASSERTS ) {
+			if (ASSERTS) {
 				final OfflineIterator<BitVector, LongArrayBitVector> iterator2 = offlineData.iterator();
 				long k = 0;
-				while( iterator2.hasNext() ) {
-					final LongBigList data = iterator2.next().asLongBigList( this.width );
-					for( long i = 0; i < data.size64(); i++, k++ ) {
-						final long value = data.getLong( i );
-						assert ( value != 0 ) == marker.getBoolean( k );
-						if ( value != 0 ) assert value == newData.getLong( rank.rank( k ) ) : value + " != " + newData.getLong( rank.rank( k ) );
+				while(iterator2.hasNext()) {
+					final LongBigList data = iterator2.next().asLongBigList(this.width);
+					for(long i = 0; i < data.size64(); i++, k++) {
+						final long value = data.getLong(i);
+						assert (value != 0) == marker.getBoolean(k);
+						if (value != 0) assert value == newData.getLong(rank.rank(k)) : value + " != " + newData.getLong(rank.rank(k));
 					}
 				}
 				iterator2.close();
@@ -513,11 +513,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			this.data = newData;
 		}
 		else {
-			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance( m * this.width );
-			this.data = dataBitVector.asLongBigList( this.width );
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance(m * this.width);
+			this.data = dataBitVector.asLongBigList(this.width);
 
 			final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-			while( iterator.hasNext() ) dataBitVector.append( iterator.next() );
+			while(iterator.hasNext()) dataBitVector.append(iterator.next());
 			iterator.close();
 
 			marker = null;
@@ -526,17 +526,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		offlineData.close();
 
-		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per element: " + ( marker == null ?
+		LOGGER.info("Completed.");
+		LOGGER.debug("Forecast bit cost per element: " + (marker == null ?
 				HypergraphSorter.GAMMA * this.width :
-					HypergraphSorter.GAMMA + this.width + 0.126 ) );
-		LOGGER.info( "Actual bit cost per element: " + (double)numBits() / n );
+					HypergraphSorter.GAMMA + this.width + 0.126));
+		LOGGER.info("Actual bit cost per element: " + (double)numBits() / n);
 
-		if ( signatureWidth > 0 ) {
+		if (signatureWidth > 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures( signatureWidth, pl );
+			signatures = chunkedHashStore.signatures(signatureWidth, pl);
 		}
-		else if ( signatureWidth < 0 ) {
+		else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
 			signatures = null;
 		}
@@ -545,31 +545,31 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			signatures = null;
 		}
 
-		if ( ! givenChunkedHashStore ) chunkedHashStore.close();
+		if (! givenChunkedHashStore) chunkedHashStore.close();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object o ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
-		final long[] h = new long[ 3 ];
-		Hashes.spooky4( transform.toBitVector( (T)o ), globalSeed, h );
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
+	public long getLong(final Object o) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[3];
+		final long[] h = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, h);
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] >>> chunkShift);
+		final long chunkOffset = offset[chunk];
+		HypergraphSorter.tripleToEdge(h, seed[chunk], (int)(offset[chunk + 1] - chunkOffset), e);
+		if (e[0] == -1) return defRetValue;
+		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset;
 
 		final long result = rank == null ?
-				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
-				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
-				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
-				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
-		if ( signatureMask == 0 ) return result;
+				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
+				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
+				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
+				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
+		if (signatureMask == 0) return result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if ( signatures != null ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
-		else return ( ( result ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
+		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
+		else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Low-level access to the output of this function.
@@ -581,23 +581,23 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple( final long[] triple ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		final long e0 = e[ 0 ] + chunkOffset, e1 = e[ 1 ] + chunkOffset, e2 = e[ 2 ] + chunkOffset;
-		if ( e0 == -1 ) return defRetValue;
+	public long getLongByTriple(final long[] triple) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[3];
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final long chunkOffset = offset[chunk];
+		HypergraphSorter.tripleToEdge(triple, seed[chunk], (int)(offset[chunk + 1] - chunkOffset), e);
+		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset;
+		if (e0 == -1) return defRetValue;
 		final long result = rank == null ?
-				data.getLong( e0 ) ^ data.getLong( e1 ) ^ data.getLong( e2 ) :
-				( marker.getBoolean( e0 ) ? data.getLong( rank.rank( e0 ) ) : 0 ) ^
-				( marker.getBoolean( e1 ) ? data.getLong( rank.rank( e1 ) ) : 0 ) ^
-				( marker.getBoolean( e2 ) ? data.getLong( rank.rank( e2 ) ) : 0 );
-		if ( signatureMask == 0 ) return result;
+				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
+				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
+				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
+				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
+		if (signatureMask == 0) return result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if ( signatures != null ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
-		else return ( ( result ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : 1;
+		if (signatures != null) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		else return ((result ^ triple[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Returns the number of keys in the function domain.
@@ -620,45 +620,45 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		if ( n == 0 ) return 0;
-		return ( marker != null ? rank.numBits() + marker.length() : 0 ) + ( data != null ? data.size64() : 0 ) * width + seed.length * (long)Long.SIZE + offset.length * (long)Integer.SIZE;
+		if (n == 0) return 0;
+		return (marker != null ? rank.numBits() + marker.length() : 0) + (data != null ? data.size64() : 0) * width + seed.length * (long)Long.SIZE + offset.length * (long)Integer.SIZE;
 	}
 
 	@Override
-	public boolean containsKey( final Object o ) {
+	public boolean containsKey(final Object o) {
 		return true;
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
+		final SimpleJSAP jsap = new SimpleJSAP(MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
-			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new FlaggedOption( "values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
+			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+			new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
+			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function."),
+			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		LOGGER.warn( "This class is deprecated: please use GOV3Function or GOV4Function" );
+		LOGGER.warn("This class is deprecated: please use GOV3Function or GOV4Function");
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
-		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final File tempDir = jsapResult.getFile("tempDir");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
 		int dataWidth = -1;
 		LongIterable values = null;
@@ -669,31 +669,31 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		}
 
 
-		if ( byteArray ) {
-			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
-			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new MWHCFunction<>( collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, tempDir, null, false), functionName );
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			BinIO.storeObject(new MWHCFunction<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, tempDir, null, false), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
-			if ( "-".equals( stringFile ) ) {
-				final ProgressLogger pl = new ProgressLogger( LOGGER );
+			if ("-".equals(stringFile)) {
+				final ProgressLogger pl = new ProgressLogger(LOGGER);
 				pl.displayLocalSpeed = true;
 				pl.displayFreeMemory = true;
-				pl.start( "Loading strings..." );
-				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.start("Loading strings...");
+				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 						: utf32
 						? TransformationStrategies.rawUtf32()
 							: TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject( new MWHCFunction<CharSequence>( collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false ), functionName );
+			BinIO.storeObject(new MWHCFunction<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false), functionName);
 		}
-		LOGGER.info( "Completed." );
+		LOGGER.info("Completed.");
 	}
 }

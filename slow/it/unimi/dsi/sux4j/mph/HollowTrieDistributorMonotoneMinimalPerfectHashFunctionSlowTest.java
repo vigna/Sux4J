@@ -16,12 +16,12 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 	@Test
 	public void testBig() throws IOException {
 		final Iterable<Long> p = LargeLongCollection.getInstance();
-		final HollowTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new HollowTrieDistributorMonotoneMinimalPerfectHashFunction<>( p, TransformationStrategies.fixedLong() );
+		final HollowTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new HollowTrieDistributorMonotoneMinimalPerfectHashFunction<>(p, TransformationStrategies.fixedLong());
 
 		long j = 0;
-		for( final Iterator<Long> i = p.iterator(); i.hasNext(); ) {
+		for(final Iterator<Long> i = p.iterator(); i.hasNext();) {
 			final Long s = i.next();
-			assertEquals( j++, f.getLong( s ) );
+			assertEquals(j++, f.getLong(s));
 		}
 	}
 }

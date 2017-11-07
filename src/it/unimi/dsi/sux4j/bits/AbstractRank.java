@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2007-2016 Sebastiano Vigna
+ * Copyright (C) 2007-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,21 +27,21 @@ public abstract class AbstractRank implements Rank {
 
 	@Override
 	public long count() {
-		return rank( bitVector().length() );
+		return rank(bitVector().length());
 	}
 
 	@Override
-	public long rank( final long from, final long to ) {
-		return rank( to ) - rank( from );
+	public long rank(final long from, final long to) {
+		return rank(to) - rank(from);
 	}
 
 	@Override
-	public long rankZero( final long pos ) {
-		return pos - rank( pos );
+	public long rankZero(final long pos) {
+		return pos - rank(pos);
 	}
 
 	@Override
-	public long rankZero( final long from, final long to ) {
-		return to - from - rank( from, to );
+	public long rankZero(final long from, final long to) {
+		return to - from - rank(from, to);
 	}
 }

@@ -35,7 +35,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2014-2016 Sebastiano Vigna
+ * Copyright (C) 2014-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -128,7 +128,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-	private static final Logger LOGGER = LoggerFactory.getLogger( CHDMinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(CHDMinimalPerfectHashFunction.class);
 	private static final boolean ASSERTS = true;
 
 	public static final long serialVersionUID = 6L;
@@ -150,7 +150,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param keys the keys to hash.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -160,7 +160,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param lambda the average size of a bucket.
 		 * @return this builder.
 		 */
-		public Builder<T> lambda( final int lambda ) {
+		public Builder<T> lambda(final int lambda) {
 			this.lambda = lambda;
 			return this;
 		}
@@ -170,7 +170,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param loadFactor the load factor.
 		 * @return this builder.
 		 */
-		public Builder<T> loadFactor( final int loadFactor ) {
+		public Builder<T> loadFactor(final int loadFactor) {
 			this.loadFactor = loadFactor;
 			return this;
 		}
@@ -180,7 +180,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -190,7 +190,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -200,7 +200,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -212,7 +212,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -223,13 +223,13 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public CHDMinimalPerfectHashFunction<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if ( transform == null ) {
-				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			if (transform == null) {
+				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			}
-			return new CHDMinimalPerfectHashFunction<>( keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore );
+			return new CHDMinimalPerfectHashFunction<>(keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore);
 		}
 	}
 
@@ -271,28 +271,28 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return value;
 	}
 
-	private long offset( final int k ) {
-		return offsetNumBucketsSeed[ k * 3 ];
+	private long offset(final int k) {
+		return offsetNumBucketsSeed[k * 3];
 	}
 
-	private void offset( final int k, final long value ) {
-		offsetNumBucketsSeed[ k * 3 ] = value;;
+	private void offset(final int k, final long value) {
+		offsetNumBucketsSeed[k * 3] = value;;
 	}
 
-	private long numBuckets( final int k ) {
-		return offsetNumBucketsSeed[ k * 3 + 1 ];
+	private long numBuckets(final int k) {
+		return offsetNumBucketsSeed[k * 3 + 1];
 	}
 
-	private void numBuckets( final int k, final long value ) {
-		offsetNumBucketsSeed[ k * 3 + 1 ] = value;
+	private void numBuckets(final int k, final long value) {
+		offsetNumBucketsSeed[k * 3 + 1] = value;
 	}
 
-	private long seed( final int k ) {
-		return offsetNumBucketsSeed[ k * 3 + 2 ];
+	private long seed(final int k) {
+		return offsetNumBucketsSeed[k * 3 + 2];
 	}
 
-	private void seed( final int k, final long value ) {
-		offsetNumBucketsSeed[ k * 3 + 2 ] = value;
+	private void seed(final int k, final long value) {
+		offsetNumBucketsSeed[k * 3 + 2] = value;
 	}
 
 
@@ -309,10 +309,10 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected CHDMinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected CHDMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
@@ -320,150 +320,150 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
-			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, pl );
-			chunkedHashStore.reset( r.nextLong() );
-			chunkedHashStore.addAll( keys.iterator() );
+			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, pl);
+			chunkedHashStore.reset(r.nextLong());
+			chunkedHashStore.addAll(keys.iterator());
 		}
 		n = chunkedHashStore.size();
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		final int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
-		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.debug( "Number of chunks: " + numChunks );
-		LOGGER.debug( "Average chunk size: " + (double)n / numChunks );
+		LOGGER.debug("Number of chunks: " + numChunks);
+		LOGGER.debug("Average chunk size: " + (double)n / numChunks);
 
-		offsetNumBucketsSeed = new long[ ( numChunks + 1 ) * 3 + 2 ];
+		offsetNumBucketsSeed = new long[(numChunks + 1) * 3 + 2];
 
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
 
 		final OfflineIterable<MutableLong, MutableLong> coefficients =
-				new OfflineIterable<>( new Serializer<MutableLong, MutableLong>() {
+				new OfflineIterable<>(new Serializer<MutableLong, MutableLong>() {
 
 					@Override
-					public void write( final MutableLong a, final DataOutput dos ) throws IOException {
+					public void write(final MutableLong a, final DataOutput dos) throws IOException {
 						long x = a.longValue();
-						while ( ( x & ~0x7FL ) != 0 ) {
-							dos.writeByte( (int)( x | 0x80 ) );
+						while ((x & ~0x7FL) != 0) {
+							dos.writeByte((int)(x | 0x80));
 							x >>>= 7;
 						}
-						dos.writeByte( (int)x );
+						dos.writeByte((int)x);
 					}
 
 					@Override
-					public void read( final DataInput dis, final MutableLong x ) throws IOException {
+					public void read(final DataInput dis, final MutableLong x) throws IOException {
 						byte b = dis.readByte();
 						long t = b & 0x7F;
-						for ( int shift = 7; ( b & 0x80 ) != 0; shift += 7 ) {
+						for (int shift = 7; (b & 0x80) != 0; shift += 7) {
 							b = dis.readByte();
-							t |= ( b & 0x7FL ) << shift;
+							t |= (b & 0x7FL) << shift;
 						}
-						x.setValue( t );
+						x.setValue(t);
 					}
-				}, new MutableLong() );
+				}, new MutableLong());
 
-		for ( ;; ) {
-			LOGGER.debug( "Generating minimal perfect hash function..." );
+		for (;;) {
+			LOGGER.debug("Generating minimal perfect hash function...");
 
 			holes.clear();
 			coefficients.clear();
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
-			pl.start( "Analysing chunks... " );
+			pl.start("Analysing chunks... ");
 
 			try {
 				int chunkNumber = 0;
 
-				for ( final ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 					/* We treat a chunk as a single hash function. The number of bins is thus
 					 * the first prime larger than the chunk size divided by the load factor. */
-					final int p = Primes.nextPrime( (int)Math.ceil( chunk.size() / loadFactor ) + 1 );
-					final boolean used[] = new boolean[ p ];
+					final int p = Primes.nextPrime((int)Math.ceil(chunk.size() / loadFactor) + 1);
+					final boolean used[] = new boolean[p];
 
-					final int numBuckets = ( chunk.size() + lambda - 1 ) / lambda;
-					numBuckets( chunkNumber + 1, numBuckets( chunkNumber ) + numBuckets );
-					final int[] cc0 = new int[ numBuckets ];
-					final int[] cc1 = new int[ numBuckets ];
+					final int numBuckets = (chunk.size() + lambda - 1) / lambda;
+					numBuckets(chunkNumber + 1, numBuckets(chunkNumber) + numBuckets);
+					final int[] cc0 = new int[numBuckets];
+					final int[] cc1 = new int[numBuckets];
 					@SuppressWarnings({ "unchecked" })
-					final ArrayList<long[]>[] bucket = new ArrayList[ numBuckets ];
-					for( int i = bucket.length; i-- != 0; ) bucket[ i ] = new ArrayList<>();
+					final ArrayList<long[]>[] bucket = new ArrayList[numBuckets];
+					for(int i = bucket.length; i-- != 0;) bucket[i] = new ArrayList<>();
 
 					tryChunk: for(;;) {
-						for( final ArrayList<long[]> b : bucket ) b.clear();
-						Arrays.fill( used,  false );
+						for(final ArrayList<long[]> b : bucket) b.clear();
+						Arrays.fill(used,  false);
 
 						/* At each try, the allocation to keys to bucket is randomized differently. */
 						final long seed = r.nextLong();
-						// System.err.println( "Number of keys: " + chunk.size()  + " Number of bins: " + p + " seed: " + seed );
+						// System.err.println("Number of keys: " + chunk.size()  + " Number of bins: " + p + " seed: " + seed);
 						/* We distribute the keys in this chunks in the buckets. */
-						for( final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
+						for(final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext();) {
 							final long[] triple = iterator.next();
-							final long[] h = new long[ 3 ];
-							Hashes.spooky4( triple, seed, h );
-							final ArrayList<long[]> b = bucket[ (int) spread(h[0], numBuckets) ];
-							h[ 1 ] = spread(h[1], p);
-							h[ 2 ] = spread(h[2], p - 1) + 1;
+							final long[] h = new long[3];
+							Hashes.spooky4(triple, seed, h);
+							final ArrayList<long[]> b = bucket[(int) spread(h[0], numBuckets)];
+							h[1] = spread(h[1], p);
+							h[2] = spread(h[2], p - 1) + 1;
 
-							// All elements in a bucket must have either different h[ 1 ] or different h[ 2 ]
-							for( final long[] t: b ) if ( t[ 1 ] == h[ 1 ] && t[ 2 ] == h[ 2 ] ) {
-								LOGGER.info( "Duplicate index" + Arrays.toString( t ) );
+							// All elements in a bucket must have either different h[1] or different h[2]
+							for(final long[] t: b) if (t[1] == h[1] && t[2] == h[2]) {
+								LOGGER.info("Duplicate index" + Arrays.toString(t));
 								continue tryChunk;
 							}
-							b.add( h );
+							b.add(h);
 						}
 
-						final int[] perm = Util.identity( bucket.length );
-						IntArrays.quickSort(perm, (a0, a1) -> Integer.compare( bucket[ a1 ].size(), bucket[ a0 ].size()));
+						final int[] perm = Util.identity(bucket.length);
+						IntArrays.quickSort(perm, (a0, a1) -> Integer.compare(bucket[a1].size(), bucket[a0].size()));
 
-						for( int i = 0; i < perm.length; ) {
+						for(int i = 0; i < perm.length;) {
 							final LinkedList<Integer> bucketsToDo = new LinkedList<>();
-							final int size = bucket[ perm[ i ] ].size();
-							//System.err.println( "Bucket size: " + size );
+							final int size = bucket[perm[i]].size();
+							//System.err.println("Bucket size: " + size);
 							int j;
 							// Gather indices of all buckets with the same size
-							for( j = i; j < perm.length && bucket[ perm[ j ] ].size() == size; j++ ) bucketsToDo.add( Integer.valueOf( perm[ j ] ) );
+							for(j = i; j < perm.length && bucket[perm[j]].size() == size; j++) bucketsToDo.add(Integer.valueOf(perm[j]));
 
 							// Examine for each pair (c0,c1) the buckets still to do
-							ext: for( int c1 = 0; c1 < p; c1++ )
-								for( int c0 = 0; c0 < p; c0++ )  {
-									//System.err.println( "Testing " + c0 + ", " + c1 + " (to do: " + bucketsToDo.size() + ")" );
-									for( final Iterator<Integer> iterator = bucketsToDo.iterator(); iterator.hasNext(); ) {
+							ext: for(int c1 = 0; c1 < p; c1++)
+								for(int c0 = 0; c0 < p; c0++)  {
+									//System.err.println("Testing " + c0 + ", " + c1 + " (to do: " + bucketsToDo.size() + ")");
+									for(final Iterator<Integer> iterator = bucketsToDo.iterator(); iterator.hasNext();) {
 										final int k = iterator.next().intValue();
-										final ArrayList<long[]> b = bucket[ k ];
+										final ArrayList<long[]> b = bucket[k];
 										boolean completed = true;
 										final IntArrayList done = new IntArrayList();
 										// Try to see whether the necessary entries are not used
-										for( final long[] h: b ) {
-											//assert k == h[ 0 ];
+										for(final long[] h: b) {
+											//assert k == h[0];
 
-											final int pos = (int)( ( h[ 1 ] + c0 * h[ 2 ] + c1 ) % p );
-											//System.err.println( "Testing pos " + pos + " for " + Arrays.toString( e  ));
-											if ( used[ pos ] ) {
+											final int pos = (int)((h[1] + c0 * h[2] + c1) % p);
+											//System.err.println("Testing pos " + pos + " for " + Arrays.toString(e));
+											if (used[pos]) {
 												completed = false;
 												break;
 											}
 											else {
-												used[ pos ] = true;
-												done.add( pos );
+												used[pos] = true;
+												done.add(pos);
 											}
 										}
 
-										if ( completed ) {
+										if (completed) {
 											// All positions were free
-											cc0[ k ] = c0;
-											cc1[ k ] = c1;
+											cc0[k] = c0;
+											cc1[k] = c1;
 											iterator.remove();
 										}
-										else for( final int d: done ) used[ d ] = false;
+										else for(final int d: done) used[d] = false;
 									}
-									if ( bucketsToDo.isEmpty() ) break ext;
+									if (bucketsToDo.isEmpty()) break ext;
 								}
-							if ( ! bucketsToDo.isEmpty() ) continue tryChunk;
+							if (! bucketsToDo.isEmpty()) continue tryChunk;
 
-							seed( chunkNumber, seed );
+							seed(chunkNumber, seed);
 							i = j;
 						}
 						break;
@@ -471,29 +471,29 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 					// System.err.println("DONE!");
 
-					if ( ASSERTS ) {
+					if (ASSERTS) {
 						final IntOpenHashSet pos = new IntOpenHashSet();
-						final long h[] = new long[ 3 ];
-						for( final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext(); ) {
+						final long h[] = new long[3];
+						for(final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext();) {
 							final long[] triple = iterator.next();
-							Hashes.spooky4( triple, seed( chunkNumber ), h );
-							h[ 0 ] = spread(h[0], numBuckets);
-							h[ 1 ] = spread(h[1], p);
-							h[ 2 ] = spread(h[2], p - 1) + 1;
-							//System.err.println( Arrays.toString(  e  ) );
-							assert pos.add( (int)( ( h[ 1 ] + cc0[ (int)( h[ 0 ] ) ] * h[ 2 ] + cc1[ (int)( h[ 0 ] ) ] ) % p ) );
+							Hashes.spooky4(triple, seed(chunkNumber), h);
+							h[0] = spread(h[0], numBuckets);
+							h[1] = spread(h[1], p);
+							h[2] = spread(h[2], p - 1) + 1;
+							//System.err.println(Arrays.toString(e));
+							assert pos.add((int)((h[1] + cc0[(int)(h[0])] * h[2] + cc1[(int)(h[0])]) % p));
 						}
 					}
 
 					final MutableLong l = new MutableLong();
-					for( int i = 0; i < numBuckets; i++ ) {
-						l.setValue( cc0[ i ] + cc1[ i ] * p );
-						coefficients.add( l );
+					for(int i = 0; i < numBuckets; i++) {
+						l.setValue(cc0[i] + cc1[i] * p);
+						coefficients.add(l);
 					}
 
-					for( int i = 0; i < p; i++ ) if ( ! used[ i ] ) holes.add( offset( chunkNumber ) + i );
+					for(int i = 0; i < p; i++) if (! used[i]) holes.add(offset(chunkNumber) + i);
 
-					offset( chunkNumber + 1, offset( chunkNumber ) + p );
+					offset(chunkNumber + 1, offset(chunkNumber) + p);
 					chunkNumber++;
 					pl.update();
 				}
@@ -501,20 +501,20 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				pl.done();
 				break;
 			}
-			catch ( final ChunkedHashStore.DuplicateException e ) {
-				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
-				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
-				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				chunkedHashStore.reset( r.nextLong() );
-				chunkedHashStore.addAll( keys.iterator() );
+			catch (final ChunkedHashStore.DuplicateException e) {
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
+				LOGGER.warn("Found duplicate. Recomputing triples...");
+				chunkedHashStore.reset(r.nextLong());
+				chunkedHashStore.addAll(keys.iterator());
 			}
 		}
 
-		rank = new SparseRank( offset( offsetNumBucketsSeed.length / 3 - 1 ), holes.size(), holes.iterator() );
+		rank = new SparseRank(offset(offsetNumBucketsSeed.length / 3 - 1), holes.size(), holes.iterator());
 
 		globalSeed = chunkedHashStore.seed();
 
-		this.coefficients = new EliasFanoLongBigList( new LongIterator() {
+		this.coefficients = new EliasFanoLongBigList(new LongIterator() {
 			final OfflineIterator<MutableLong, MutableLong> iterator = coefficients.iterator();
 
 			@Override
@@ -526,25 +526,25 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			public long nextLong() {
 				return iterator.next().longValue();
 			}
-		}, 0, true );
+		}, 0, true);
 
 		coefficients.close();
 
-		LOGGER.info( "Completed." );
-		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
+		LOGGER.info("Completed.");
+		LOGGER.info("Actual bit cost per key: " + (double)numBits() / n);
 
-		if ( signatureWidth != 0 ) {
+		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
+			(signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth)).size(n);
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
-			pl.start( "Signing..." );
-			for ( final ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+			pl.start("Signing...");
+			for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 				final Iterator<long[]> iterator = chunk.iterator();
-				for( int i = chunk.size(); i-- != 0; ) {
+				for(int i = chunk.size(); i-- != 0;) {
 					final long[] triple = iterator.next();
-					final long t = getLongByTripleNoCheck( triple );
-					signatures.set( t, signatureMask & triple[ 0 ] );
+					final long t = getLongByTripleNoCheck(triple);
+					signatures.set(t, signatureMask & triple[0]);
 					pl.lightUpdate();
 				}
 			}
@@ -555,7 +555,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			signatures = null;
 		}
 
-		if ( !givenChunkedHashStore ) chunkedHashStore.close();
+		if (!givenChunkedHashStore) chunkedHashStore.close();
 	}
 
 	/**
@@ -569,51 +569,51 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object key ) {
-		if ( n == 0 ) return defRetValue;
-		final long[] triple = new long[ 3 ];
-		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, triple );
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+	public long getLong(final Object key) {
+		if (n == 0) return defRetValue;
+		final long[] triple = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, triple);
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
 		final int index = chunk * 3;
 		final long[] offsetNumBucketsSeed = this.offsetNumBucketsSeed;
-		final long chunkOffset = offsetNumBucketsSeed[ index ];
-		final int p = (int)( offsetNumBucketsSeed[ index + 3 ] - chunkOffset );
+		final long chunkOffset = offsetNumBucketsSeed[index];
+		final int p = (int)(offsetNumBucketsSeed[index + 3] - chunkOffset);
 
-		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
+		final long[] h = new long[3];
+		Hashes.spooky4(triple, offsetNumBucketsSeed[index + 2], h);
 		h[1] = spread(h[1], p);
 		h[2] = spread(h[2], p - 1) + 1;
 
-		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
-		final long c = coefficients.getLong( numBuckets + spread(h[0], offsetNumBucketsSeed[ index + 4 ] - numBuckets) );
+		final long numBuckets = offsetNumBucketsSeed[index + 1];
+		final long c = coefficients.getLong(numBuckets + spread(h[0], offsetNumBucketsSeed[index + 4] - numBuckets));
 
-		long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
-		result -= rank.rank( result );
+		long result = chunkOffset + (int)((h[1] + (c % p) * h[2] + c / p) % p);
+		result -= rank.rank(result);
 
-		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ triple[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+		if (signatureMask != 0) return result >= n || ((signatures.getLong(result) ^ triple[0]) & signatureMask) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
 
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
-	private long getLongByTripleNoCheck( final long[] triple ) {
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
+	private long getLongByTripleNoCheck(final long[] triple) {
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
 		final int index = chunk * 3;
 		final long[] offsetNumBucketsSeed = this.offsetNumBucketsSeed;
-		final long chunkOffset = offsetNumBucketsSeed[ index ];
-		final int p = (int)( offsetNumBucketsSeed[ index + 3 ] - chunkOffset );
+		final long chunkOffset = offsetNumBucketsSeed[index];
+		final int p = (int)(offsetNumBucketsSeed[index + 3] - chunkOffset);
 
-		final long[] h = new long[ 3 ];
-		Hashes.spooky4( triple, offsetNumBucketsSeed[ index + 2 ], h );
+		final long[] h = new long[3];
+		Hashes.spooky4(triple, offsetNumBucketsSeed[index + 2], h);
 		h[1] = spread(h[1], p);
 		h[2] = spread(h[2], p - 1) + 1;
 
-		final long numBuckets = offsetNumBucketsSeed[ index + 1 ];
-		final long c = coefficients.getLong( numBuckets + spread(h[0], offsetNumBucketsSeed[ index + 4 ] - numBuckets) );
+		final long numBuckets = offsetNumBucketsSeed[index + 1];
+		final long c = coefficients.getLong(numBuckets + spread(h[0], offsetNumBucketsSeed[index + 4] - numBuckets));
 
-		final long result = chunkOffset + (int)( ( h[ 1 ] + ( c % p ) * h[ 2 ] + c / p ) % p );
-		return result - rank.rank( result );
+		final long result = chunkOffset + (int)((h[1] + (c % p) * h[2] + c / p) % p);
+		return result - rank.rank(result);
 	}
 
 	@Override
@@ -621,67 +621,67 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return n;
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 	}
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
-		final SimpleJSAP jsap = new SimpleJSAP( CHDMinimalPerfectHashFunction.class.getName(), "Builds a CHD minimal perfect hash function reading a newline-separated list of strings.",
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
+		final SimpleJSAP jsap = new SimpleJSAP(CHDMinimalPerfectHashFunction.class.getName(), "Builds a CHD minimal perfect hash function reading a newline-separated list of strings.",
 				new Parameter[] {
-			new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-			new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-			new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-			new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-			new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
-			new FlaggedOption( "lambda", JSAP.INTEGER_PARSER, "5", JSAP.NOT_REQUIRED, 'l', "lambda", "The average size of a bucket of the first-level hash function." ),
-			new FlaggedOption( "loadFactor", JSAP.DOUBLE_PARSER, "1", JSAP.NOT_REQUIRED, 'f', "load-factor", "The load factor." ),
-			new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
-			new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-			new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
-			new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
-				"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ),
-		} );
+			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+			new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+			new FlaggedOption("lambda", JSAP.INTEGER_PARSER, "5", JSAP.NOT_REQUIRED, 'l', "lambda", "The average size of a bucket of the first-level hash function."),
+			new FlaggedOption("loadFactor", JSAP.DOUBLE_PARSER, "1", JSAP.NOT_REQUIRED, 'f', "load-factor", "The load factor."),
+			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits."),
+			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function."),
+			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
+				"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
+		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final File tempDir = jsapResult.getFile( "tempDir" );
-		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
-		final int lambda = jsapResult.getInt( "lambda" );
-		final double loadFactor = jsapResult.getDouble( "loadFactor" );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final File tempDir = jsapResult.getFile("tempDir");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
+		final int lambda = jsapResult.getInt("lambda");
+		final double loadFactor = jsapResult.getDouble("loadFactor");
 
-		if ( byteArray ) {
-			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
-			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new CHDMinimalPerfectHashFunction<>( collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			BinIO.storeObject(new CHDMinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
-			if ( "-".equals( stringFile ) ) {
-				final ProgressLogger pl = new ProgressLogger( LOGGER );
+			if ("-".equals(stringFile)) {
+				final ProgressLogger pl = new ProgressLogger(LOGGER);
 				pl.displayLocalSpeed = true;
 				pl.displayFreeMemory = true;
-				pl.start( "Loading strings..." );
-				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.start("Loading strings...");
+				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 							: utf32
 							? TransformationStrategies.rawUtf32()
 									: TransformationStrategies.rawUtf16();
 
-							BinIO.storeObject( new CHDMinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, lambda, loadFactor, signatureWidth, tempDir, null ), functionName );
+							BinIO.storeObject(new CHDMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, lambda, loadFactor, signatureWidth, tempDir, null), functionName);
 		}
-		LOGGER.info( "Saved." );
+		LOGGER.info("Saved.");
 	}
 }

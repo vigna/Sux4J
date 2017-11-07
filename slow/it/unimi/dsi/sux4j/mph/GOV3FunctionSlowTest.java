@@ -13,11 +13,11 @@ public class GOV3FunctionSlowTest {
 
 	@Test
 	public void testBig() throws IOException {
-		Iterable<Long> p = LargeLongCollection.getInstance();		
-		final GOV3Function<Long> f = new GOV3Function.Builder<Long>().keys( p ).transform( TransformationStrategies.fixedLong() ).values( new AbstractLongBigList() {
+		Iterable<Long> p = LargeLongCollection.getInstance();
+		final GOV3Function<Long> f = new GOV3Function.Builder<Long>().keys(p).transform(TransformationStrategies.fixedLong()).values(new AbstractLongBigList() {
 
 			@Override
-			public long getLong( long index ) {
+			public long getLong(long index) {
 				return index % 7;
 			}
 
@@ -25,12 +25,12 @@ public class GOV3FunctionSlowTest {
 			public long size64() {
 				return LargeLongCollection.SIZE;
 			}
-		}, 3 ).build();
-				
+		}, 3).build();
+
 		long j = 0;
-		for( Iterator<Long> i = p.iterator(); i.hasNext(); ) {
+		for(Iterator<Long> i = p.iterator(); i.hasNext();) {
 			Long s = i.next();
-			assertEquals( j++ % 7, f.getLong( s ) );
+			assertEquals(j++ % 7, f.getLong(s));
 		}
 	}
 }

@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -25,24 +25,24 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.logging.ProgressLogger;
 
 /** Basic hash functions.
- * 
+ *
  * <p>This class provides a number of hash functions for {@linkplain BitVector bit vectors}. For this reason, they
  * are sometimes tweaked with respect to the official C code, which can assume at least byte granularity. In particular, we provide:
  * <ul>
  * <li>{@linkplain #murmur(BitVector, long) MurmurHash};
- * <li>{@linkplain #murmur3(BitVector, long) MurmurHash3};  
- * <li>{@linkplain #jenkins(BitVector, long) Jenkins's Lookup3 hash};  
+ * <li>{@linkplain #murmur3(BitVector, long) MurmurHash3};
+ * <li>{@linkplain #jenkins(BitVector, long) Jenkins's Lookup3 hash};
  * <li>{@linkplain #spooky4(BitVector, long) Jenkins's SpookyHash}.
  * </ul>
- * 
+ *
  * <p>In particular, SpookyHash is available in the {@linkplain #spooky4(BitVector, long, long[]) 4-word-state version}
- * and in the {@linkplain #spooky12(BitVector, long, long[]) 12-word-state version}. 
+ * and in the {@linkplain #spooky12(BitVector, long, long[]) 12-word-state version}.
  * The 12-word-state version delegates to the 4-word-state version for short keys (i.e., less than 12 words).
- * 
+ *
  * <p>All functions (with the exception of the 12-word-state version of SpookyHash) provide <em>preprocessing</em>: a linear
  * pass on the bit vector generates a vector storing the internal state of the function after each mixing round. Using the
- * preprocessed state, one can hash any prefix of the bit vector in constant time. 
- * 
+ * preprocessed state, one can hash any prefix of the bit vector in constant time.
+ *
  * <p>It is your responsibility to use preprocessing
  * correctly: using the state vector of the wrong bit vector will generate unpredictable results.
  */
@@ -64,14 +64,14 @@ public class Hashes {
 	 * @param h a triple of long values in which the three generated hashes will be saved.
 	 */
 
-	public static void jenkins( final BitVector bv, final long seed, final long[] h )  {
+	public static void jenkins(final BitVector bv, final long seed, final long[] h)  {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( length == 0 ) {
-			h[ 0 ] = seed ^ 0x8de6a918d6538324L;
-			h[ 1 ] = seed ^ 0x6bda2aef21654e7dL;
-			h[ 2 ] = seed ^ 0x36071e726d0ba0c5L;
+		if (length == 0) {
+			h[0] = seed ^ 0x8de6a918d6538324L;
+			h[1] = seed ^ 0x6bda2aef21654e7dL;
+			h[2] = seed ^ 0x36071e726d0ba0c5L;
 			return;
 		}
 
@@ -79,10 +79,10 @@ public class Hashes {
 		a = b = seed;
 		c = ARBITRARY_BITS;
 
-		while ( length - from > Long.SIZE * 2 ) {
-			a += bv.getLong( from, from + Long.SIZE );
-			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, length ) );
+		while (length - from > Long.SIZE * 2) {
+			a += bv.getLong(from, from + Long.SIZE);
+			b += bv.getLong(from + Long.SIZE, from + 2 * Long.SIZE);
+			c += bv.getLong(from + 2 * Long.SIZE, Math.min(from + 3 * Long.SIZE, length));
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -102,12 +102,12 @@ public class Hashes {
 
 		c += length;
 		long residual = length - from;
-		if ( residual > 0 ) {
-			if ( residual > Long.SIZE ) {
-				a += bv.getLong( from, from + Long.SIZE );
+		if (residual > 0) {
+			if (residual > Long.SIZE) {
+				a += bv.getLong(from, from + Long.SIZE);
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) b += bv.getLong( length - residual, length );
+			if (residual != 0) b += bv.getLong(length - residual, length);
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -123,9 +123,9 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		h[ 0 ] = a;
-		h[ 1 ] = b;
-		h[ 2 ] = c;
+		h[0] = a;
+		h[1] = b;
+		h[2] = c;
 	}
 
 	/** Jenkins 64-bit hashing.
@@ -135,20 +135,20 @@ public class Hashes {
 	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[])}.
 	 */
 
-	public static long jenkins( final BitVector bv, final long seed )  {
+	public static long jenkins(final BitVector bv, final long seed)  {
 		final long length = bv.length();
 		long a, b, c, from = 0;
 
-		if ( length == 0 ) return seed ^ 0x36071e726d0ba0c5L;
+		if (length == 0) return seed ^ 0x36071e726d0ba0c5L;
 
 		/* Set up the internal state */
 		a = b = seed;
 		c = ARBITRARY_BITS;
 
-		while ( length - from > Long.SIZE * 2 ) {
-			a += bv.getLong( from, from + Long.SIZE );
-			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, length ) );
+		while (length - from > Long.SIZE * 2) {
+			a += bv.getLong(from, from + Long.SIZE);
+			b += bv.getLong(from + Long.SIZE, from + 2 * Long.SIZE);
+			c += bv.getLong(from + 2 * Long.SIZE, Math.min(from + 3 * Long.SIZE, length));
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -168,12 +168,12 @@ public class Hashes {
 
 		c += length;
 		long residual = length - from;
-		if ( residual > 0 ) {
-			if ( residual > Long.SIZE ) {
-				a += bv.getLong( from, from + Long.SIZE );
+		if (residual > 0) {
+			if (residual > Long.SIZE) {
+				a += bv.getLong(from, from + Long.SIZE);
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) b += bv.getLong( length - residual, length );
+			if (residual != 0) b += bv.getLong(length - residual, length);
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -197,8 +197,8 @@ public class Hashes {
 	 * @param bv a bit vector.
 	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[])} with seed 0.
 	 */
-	public static long jenkins( final BitVector bv )  {
-		return jenkins( bv, 0 );
+	public static long jenkins(final BitVector bv)  {
+		return jenkins(bv, 0);
 	}
 
 
@@ -211,13 +211,13 @@ public class Hashes {
 	 * @see #jenkins(BitVector, long)
 	 */
 
-	public static long[][] preprocessJenkins( final BitVector bv, final long seed )  {
+	public static long[][] preprocessJenkins(final BitVector bv, final long seed)  {
 		final long length = bv.length();
-		final int wordLength = (int)( length / ( Long.SIZE * 3 ) ) + 1;
-		final long aa[] = new long[ wordLength ], bb[] = new long[ wordLength ], cc[] = new long[ wordLength ];
+		final int wordLength = (int)(length / (Long.SIZE * 3)) + 1;
+		final long aa[] = new long[wordLength], bb[] = new long[wordLength], cc[] = new long[wordLength];
 		long a, b, c, from = 0;
 
-		if ( aa.length == 0 ) return new long[ 3 ][ 0 ];
+		if (aa.length == 0) return new long[3][0];
 
 		int i = 0;
 
@@ -225,15 +225,15 @@ public class Hashes {
 		a = b = seed;
 		c = ARBITRARY_BITS;
 
-		aa[ i ] = a;
-		bb[ i ] = b;
-		cc[ i ] = c;
+		aa[i] = a;
+		bb[i] = b;
+		cc[i] = c;
 		i++;
 
-		while ( length - from >= Long.SIZE * 3 ) {
-			a += bv.getLong( from, from + Long.SIZE );
-			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, from + 3 * Long.SIZE );
+		while (length - from >= Long.SIZE * 3) {
+			a += bv.getLong(from, from + Long.SIZE);
+			b += bv.getLong(from + Long.SIZE, from + 2 * Long.SIZE);
+			c += bv.getLong(from + 2 * Long.SIZE, from + 3 * Long.SIZE);
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -250,9 +250,9 @@ public class Hashes {
 
 			from += 3 * Long.SIZE;
 
-			aa[ i ] = a;
-			bb[ i ] = b;
-			cc[ i ] = c;
+			aa[i] = a;
+			bb[i] = b;
+			cc[i] = c;
 			i++;
 		}
 
@@ -269,25 +269,25 @@ public class Hashes {
 	 * @param h a triple of long values in which the three generated hashes will be saved.
 	 */
 
-	public static void jenkins( final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[], final long[] h )  {
-		if ( prefixLength == 0 ) {
-			final long seed = aa[ 0 ];
-			h[ 0 ] = seed ^ 0x8de6a918d6538324L;
-			h[ 1 ] = seed ^ 0x6bda2aef21654e7dL;
-			h[ 2 ] = seed ^ 0x36071e726d0ba0c5L;
+	public static void jenkins(final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[], final long[] h)  {
+		if (prefixLength == 0) {
+			final long seed = aa[0];
+			h[0] = seed ^ 0x8de6a918d6538324L;
+			h[1] = seed ^ 0x6bda2aef21654e7dL;
+			h[2] = seed ^ 0x36071e726d0ba0c5L;
 			return;
 		}
 
-		int stateOffset = (int)( prefixLength / ( 3 * Long.SIZE ) );
-		long from = ( stateOffset * 3 ) * Long.SIZE;
-		long a = aa[ stateOffset ];
-		long b = bb[ stateOffset ];
-		long c = cc[ stateOffset ];
+		int stateOffset = (int)(prefixLength / (3 * Long.SIZE));
+		long from = (stateOffset * 3) * Long.SIZE;
+		long a = aa[stateOffset];
+		long b = bb[stateOffset];
+		long c = cc[stateOffset];
 
-		if ( prefixLength - from > Long.SIZE * 2 ) {
-			a += bv.getLong( from, from + Long.SIZE );
-			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, prefixLength ) );
+		if (prefixLength - from > Long.SIZE * 2) {
+			a += bv.getLong(from, from + Long.SIZE);
+			b += bv.getLong(from + Long.SIZE, from + 2 * Long.SIZE);
+			c += bv.getLong(from + 2 * Long.SIZE, Math.min(from + 3 * Long.SIZE, prefixLength));
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -308,12 +308,12 @@ public class Hashes {
 
 		c += prefixLength;
 		long residual = prefixLength - from;
-		if ( residual > 0 ) {
-			if ( residual > Long.SIZE ) {
-				a += bv.getLong( from, from + Long.SIZE );
+		if (residual > 0) {
+			if (residual > Long.SIZE) {
+				a += bv.getLong(from, from + Long.SIZE);
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) b += bv.getLong( prefixLength - residual, prefixLength );
+			if (residual != 0) b += bv.getLong(prefixLength - residual, prefixLength);
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -329,9 +329,9 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		h[ 0 ] = a;
-		h[ 1 ] = b;
-		h[ 2 ] = c;
+		h[0] = a;
+		h[1] = b;
+		h[2] = c;
 	}
 
 	/** Constant-time Jenkins 64-bit hashing for any prefix.
@@ -344,19 +344,19 @@ public class Hashes {
 	 * @return the third of the three hash values returned by {@link #jenkins(BitVector, long, long[], long[], long[], long[])}.
 	 */
 
-	public static long jenkins( final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[] )  {
-		if ( prefixLength == 0 ) return aa[ 0 ] ^ 0x36071e726d0ba0c5L;
+	public static long jenkins(final BitVector bv, final long prefixLength, final long[] aa, final long bb[], final long cc[])  {
+		if (prefixLength == 0) return aa[0] ^ 0x36071e726d0ba0c5L;
 
-		int stateOffset = (int)( prefixLength / ( 3 * Long.SIZE ) );
-		long from = ( stateOffset * 3 ) * Long.SIZE;
-		long a = aa[ stateOffset ];
-		long b = bb[ stateOffset ];
-		long c = cc[ stateOffset ];
+		int stateOffset = (int)(prefixLength / (3 * Long.SIZE));
+		long from = (stateOffset * 3) * Long.SIZE;
+		long a = aa[stateOffset];
+		long b = bb[stateOffset];
+		long c = cc[stateOffset];
 
-		if ( prefixLength - from > Long.SIZE * 2 ) {
-			a += bv.getLong( from, from + Long.SIZE );
-			b += bv.getLong( from + Long.SIZE, from + 2 * Long.SIZE );
-			c += bv.getLong( from + 2 * Long.SIZE, Math.min( from + 3 * Long.SIZE, prefixLength ) );
+		if (prefixLength - from > Long.SIZE * 2) {
+			a += bv.getLong(from, from + Long.SIZE);
+			b += bv.getLong(from + Long.SIZE, from + 2 * Long.SIZE);
+			c += bv.getLong(from + 2 * Long.SIZE, Math.min(from + 3 * Long.SIZE, prefixLength));
 
 			a -= b; a -= c; a ^= (c >>> 43);
 			b -= c; b -= a; b ^= (a << 9);
@@ -377,12 +377,12 @@ public class Hashes {
 
 		c += prefixLength;
 		long residual = prefixLength - from;
-		if ( residual > 0 ) {
-			if ( residual > Long.SIZE ) {
-				a += bv.getLong( from, from + Long.SIZE );
+		if (residual > 0) {
+			if (residual > Long.SIZE) {
+				a += bv.getLong(from, from + Long.SIZE);
 				residual -= Long.SIZE;
 			}
-			if ( residual != 0 ) b += bv.getLong( prefixLength - residual, prefixLength );
+			if (residual != 0) b += bv.getLong(prefixLength - residual, prefixLength);
 		}
 
 		a -= b; a -= c; a ^= (c >>> 43);
@@ -407,16 +407,16 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @param h a triple of long values in which the three generated hashes will be saved.
 	 */
-	public static void jenkins( final long[] triple, final long seed, final long[] h )  {
+	public static void jenkins(final long[] triple, final long seed, final long[] h)  {
 		long a, b, c;
 
 		/* Set up the internal state */
 		a = b = seed;
 		c = ARBITRARY_BITS;
 
-		a += triple[ 0 ];
-		b += triple[ 1 ];
-		c += triple[ 2 ];
+		a += triple[0];
+		b += triple[1];
+		c += triple[2];
 
 		a -= b; a -= c; a ^= (c >>> 43);
 		b -= c; b -= a; b ^= (a << 9);
@@ -431,9 +431,9 @@ public class Hashes {
 		b -= c; b -= a; b ^= (a << 18);
 		c -= a; c -= b; c ^= (b >>> 22);
 
-		h[ 0 ] = a;
-		h[ 1 ] = b;
-		h[ 2 ] = c;
+		h[0] = a;
+		h[1] = b;
+		h[2] = c;
 	}
 
 
@@ -451,13 +451,13 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @return the hash.
 	 */
-	public static long murmur( final BitVector bv, final long seed ) {
+	public static long murmur(final BitVector bv, final long seed) {
 		long h = seed, k;
 		long from = 0;
 		final long length = bv.length();
 
-		while( length - from >= Long.SIZE ) {
-			k = bv.getLong( from, from += Long.SIZE );
+		while(length - from >= Long.SIZE) {
+			k = bv.getLong(from, from += Long.SIZE);
 
 			k *= M;
 			k ^= k >>> R;
@@ -467,8 +467,8 @@ public class Hashes {
 			h *= M;
 		}
 
-		if ( length > from ) {
-			k = bv.getLong( from, length );
+		if (length > from) {
+			k = bv.getLong(from, length);
 			k *= M;
 			k ^= k >>> R;
 			k *= M;
@@ -495,12 +495,12 @@ public class Hashes {
 	 * @return the hash for the prefix of <code>bv</code> or <code>prefixLength</code> bits.
 	 */
 
-	public static long murmur( final BitVector bv, final long prefixLength, final long[] state ) {
+	public static long murmur(final BitVector bv, final long prefixLength, final long[] state) {
 		final long precomputedUpTo = prefixLength - prefixLength % Long.SIZE;
-		long h = state[ (int)( precomputedUpTo / Long.SIZE ) ], k;
+		long h = state[(int)(precomputedUpTo / Long.SIZE)], k;
 
-		if ( prefixLength > precomputedUpTo ) {
-			k = bv.getLong( precomputedUpTo, prefixLength );
+		if (prefixLength > precomputedUpTo) {
+			k = bv.getLong(precomputedUpTo, prefixLength);
 			k *= M;
 			k ^= k >>> R;
 			k *= M;
@@ -529,13 +529,13 @@ public class Hashes {
 	 * @return the hash for the prefix of <code>bv</code> or <code>prefixLength</code> bits.
 	 */
 
-	public static long murmur( final BitVector bv, final long prefixLength, final long[] state, final long lcp ) {
-		final int startStateWord = (int)( Math.min( lcp, prefixLength )  / Long.SIZE );
-		long h = state[ startStateWord ], k;
+	public static long murmur(final BitVector bv, final long prefixLength, final long[] state, final long lcp) {
+		final int startStateWord = (int)(Math.min(lcp, prefixLength)  / Long.SIZE);
+		long h = state[startStateWord], k;
 		long from = startStateWord * Long.SIZE;
 
-		while( prefixLength - from >= Long.SIZE ) {
-			k = bv.getLong( from, from += Long.SIZE );
+		while(prefixLength - from >= Long.SIZE) {
+			k = bv.getLong(from, from += Long.SIZE);
 
 			k *= M;
 			k ^= k >>> R;
@@ -545,8 +545,8 @@ public class Hashes {
 			h *= M;
 		}
 
-		if ( prefixLength > from ) {
-			k = bv.getLong( from, prefixLength );
+		if (prefixLength > from) {
+			k = bv.getLong(from, prefixLength);
 			k *= M;
 			k ^= k >>> R;
 			k *= M;
@@ -574,19 +574,19 @@ public class Hashes {
 	 * (and analogous methods) in this order.
 	 * @see #murmur(BitVector, long)
 	 */
-	public static long[] preprocessMurmur( final BitVector bv, final long seed ) {
+	public static long[] preprocessMurmur(final BitVector bv, final long seed) {
 		long h = seed, k;
 		long from = 0;
 		final long length = bv.length();
 
-		final int wordLength = (int)( length / Long.SIZE );
-		final long state[] = new long[ wordLength + 1 ];
+		final int wordLength = (int)(length / Long.SIZE);
+		final long state[] = new long[wordLength + 1];
 
 		int i = 0;
-		state[ i++ ] = h;
+		state[i++] = h;
 
-		for( ; length - from >= Long.SIZE; i++ ) {
-			k = bv.getLong( from, from += Long.SIZE );
+		for(; length - from >= Long.SIZE; i++) {
+			k = bv.getLong(from, from += Long.SIZE);
 
 			k *= M;
 			k ^= k >>> R;
@@ -594,14 +594,14 @@ public class Hashes {
 
 			h ^= k;
 			h *= M;
-			state[ i ] = h;
+			state[i] = h;
 		}
 
 		return state;
 	}
 
 
-	private final static long finalizeMurmur3( long x ) {
+	private final static long finalizeMurmur3(long x) {
 		x ^= x >>> 33;
 		x *= 0xff51afd7ed558ccdL;
 		x ^= x >>> 33;
@@ -621,7 +621,7 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @param h a pair of long values in which the two generated hashes will be saved.
 	 */
-	public static void murmur3( final BitVector bv, final long seed, final long[] h ) {
+	public static void murmur3(final BitVector bv, final long seed, final long[] h) {
 		long h1 = 0x9368e53c2f6af274L ^ seed;
 		long h2 = 0x586dcd208f7cd3fdL ^ seed;
 
@@ -632,20 +632,20 @@ public class Hashes {
 		final long length = bv.length();
 		long k1, k2;
 
-		while ( length - from >= Long.SIZE * 2 ) {
-			k1 = bv.getLong( from, from + Long.SIZE );
-			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
+		while (length - from >= Long.SIZE * 2) {
+			k1 = bv.getLong(from, from + Long.SIZE);
+			k2 = bv.getLong(from + Long.SIZE, from += 2 * Long.SIZE);
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -657,26 +657,26 @@ public class Hashes {
 			c2 = c2 * 5 + 0x6bce6396;
 		}
 
-		if ( length > from ) {
-			if ( length - from > Long.SIZE ) {
-				k1 = bv.getLong( from, from + Long.SIZE );
-				k2 = bv.getLong( from + Long.SIZE, length );
+		if (length > from) {
+			if (length - from > Long.SIZE) {
+				k1 = bv.getLong(from, from + Long.SIZE);
+				k2 = bv.getLong(from + Long.SIZE, length);
 			}
 			else {
-				k1 = bv.getLong( from, length );
+				k1 = bv.getLong(from, length);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -693,14 +693,14 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		h1 += h2;
 		h2 += h1;
 
-		h[ 0 ] = h1;
-		h[ 1 ] = h2;
+		h[0] = h1;
+		h[1] = h2;
 	}
 
 	/** MurmurHash3 64-bit
@@ -714,7 +714,7 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @return a hash.
 	 */
-	public static long murmur3( final BitVector bv, final long seed ) {
+	public static long murmur3(final BitVector bv, final long seed) {
 		long h1 = 0x9368e53c2f6af274L ^ seed;
 		long h2 = 0x586dcd208f7cd3fdL ^ seed;
 
@@ -725,20 +725,20 @@ public class Hashes {
 		final long length = bv.length();
 		long k1, k2;
 
-		while ( length - from >= Long.SIZE * 2 ) {
-			k1 = bv.getLong( from, from + Long.SIZE );
-			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
+		while (length - from >= Long.SIZE * 2) {
+			k1 = bv.getLong(from, from + Long.SIZE);
+			k2 = bv.getLong(from + Long.SIZE, from += 2 * Long.SIZE);
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -750,26 +750,26 @@ public class Hashes {
 			c2 = c2 * 5 + 0x6bce6396;
 		}
 
-		if ( length > from ) {
-			if ( length - from > Long.SIZE ) {
-				k1 = bv.getLong( from, from + Long.SIZE );
-				k2 = bv.getLong( from + Long.SIZE, length );
+		if (length > from) {
+			if (length - from > Long.SIZE) {
+				k1 = bv.getLong(from, from + Long.SIZE);
+				k2 = bv.getLong(from + Long.SIZE, length);
 			}
 			else {
-				k1 = bv.getLong( from, length );
+				k1 = bv.getLong(from, length);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -786,8 +786,8 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		return h1 + h2;
 	}
@@ -805,37 +805,37 @@ public class Hashes {
 	 * @param h a pair of long values in which the two generated hashes will be saved.
 	 */
 
-	public static void murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long h[] ) {
-		final int startStateWord = (int)( prefixLength / ( 2 * Long.SIZE ) );
+	public static void murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long h[]) {
+		final int startStateWord = (int)(prefixLength / (2 * Long.SIZE));
 		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
 
-		long h1 = hh1[ startStateWord ];
-		long h2 = hh2[ startStateWord ];
-		long c1 = cc1[ startStateWord ];
-		long c2 = cc2[ startStateWord ];
+		long h1 = hh1[startStateWord];
+		long h2 = hh2[startStateWord];
+		long c1 = cc1[startStateWord];
+		long c2 = cc2[startStateWord];
 
 		long k1, k2;
 
-		if ( prefixLength > precomputedUpTo ) {
-			if ( prefixLength - precomputedUpTo > Long.SIZE ) {
-				k1 = bv.getLong( precomputedUpTo, precomputedUpTo += Long.SIZE );
-				k2 = bv.getLong( precomputedUpTo, prefixLength );
+		if (prefixLength > precomputedUpTo) {
+			if (prefixLength - precomputedUpTo > Long.SIZE) {
+				k1 = bv.getLong(precomputedUpTo, precomputedUpTo += Long.SIZE);
+				k2 = bv.getLong(precomputedUpTo, prefixLength);
 			}
 			else {
-				k1 = bv.getLong( precomputedUpTo, prefixLength );
+				k1 = bv.getLong(precomputedUpTo, prefixLength);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -852,14 +852,14 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		h1 += h2;
 		h2 += h1;
 
-		h[ 0 ] = h1;
-		h[ 1 ] = h2;
+		h[0] = h1;
+		h[1] = h2;
 	}
 
 	/** Constant-time MurmurHash3 64-bit hashing for any prefix.
@@ -874,37 +874,37 @@ public class Hashes {
 	 * @param cc2 the fourth component of the state array returned by {@link #preprocessMurmur3(BitVector, long)}.
 	 * @return a hash.
 	 */
-	public static long murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[] ) {
-		final int startStateWord = (int)( prefixLength / ( 2 * Long.SIZE ) );
+	public static long murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[]) {
+		final int startStateWord = (int)(prefixLength / (2 * Long.SIZE));
 		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
 
-		long h1 = hh1[ startStateWord ];
-		long h2 = hh2[ startStateWord ];
-		long c1 = cc1[ startStateWord ];
-		long c2 = cc2[ startStateWord ];
+		long h1 = hh1[startStateWord];
+		long h2 = hh2[startStateWord];
+		long c1 = cc1[startStateWord];
+		long c2 = cc2[startStateWord];
 
 		long k1, k2;
 
-		if ( prefixLength > precomputedUpTo ) {
-			if ( prefixLength - precomputedUpTo > Long.SIZE ) {
-				k1 = bv.getLong( precomputedUpTo, precomputedUpTo += Long.SIZE );
-				k2 = bv.getLong( precomputedUpTo, prefixLength );
+		if (prefixLength > precomputedUpTo) {
+			if (prefixLength - precomputedUpTo > Long.SIZE) {
+				k1 = bv.getLong(precomputedUpTo, precomputedUpTo += Long.SIZE);
+				k2 = bv.getLong(precomputedUpTo, prefixLength);
 			}
 			else {
-				k1 = bv.getLong( precomputedUpTo, prefixLength );
+				k1 = bv.getLong(precomputedUpTo, prefixLength);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -921,8 +921,8 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		return h1 + h2;
 	}
@@ -940,31 +940,31 @@ public class Hashes {
 	 * @param lcp the length of the longest common prefix between <code>bv</code> and the vector over which <code>state</code> was computed.
 	 * @param h a pair of long values in which the two generated hashes will be saved.
 	 */
-	public static void murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp, final long h[] ) {
-		final int startStateWord = (int)( Math.min( lcp, prefixLength ) / ( 2 * Long.SIZE ) );
+	public static void murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp, final long h[]) {
+		final int startStateWord = (int)(Math.min(lcp, prefixLength) / (2 * Long.SIZE));
 		long from = startStateWord * 2L * Long.SIZE;
 
-		long h1 = hh1[ startStateWord ];
-		long h2 = hh2[ startStateWord ];
-		long c1 = cc1[ startStateWord ];
-		long c2 = cc2[ startStateWord ];
+		long h1 = hh1[startStateWord];
+		long h2 = hh2[startStateWord];
+		long c1 = cc1[startStateWord];
+		long c2 = cc2[startStateWord];
 
 		long k1, k2;
 
-		while ( prefixLength - from >= Long.SIZE * 2 ) {
-			k1 = bv.getLong( from, from + Long.SIZE );
-			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
+		while (prefixLength - from >= Long.SIZE * 2) {
+			k1 = bv.getLong(from, from + Long.SIZE);
+			k2 = bv.getLong(from + Long.SIZE, from += 2 * Long.SIZE);
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -976,26 +976,26 @@ public class Hashes {
 			c2 = c2 * 5 + 0x6bce6396;
 		}
 
-		if ( prefixLength - from != 0 ) {
-			if ( prefixLength - from > Long.SIZE ) {
-				k1 = bv.getLong( from, from + Long.SIZE );
-				k2 = bv.getLong( from + Long.SIZE, prefixLength );
+		if (prefixLength - from != 0) {
+			if (prefixLength - from > Long.SIZE) {
+				k1 = bv.getLong(from, from + Long.SIZE);
+				k2 = bv.getLong(from + Long.SIZE, prefixLength);
 			}
 			else {
-				k1 = bv.getLong( from, prefixLength );
+				k1 = bv.getLong(from, prefixLength);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1012,14 +1012,14 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		h1 += h2;
 		h2 += h1;
 
-		h[ 0 ] = h1;
-		h[ 1 ] = h2;
+		h[0] = h1;
+		h[1] = h2;
 	}
 
 	/** Constant-time MurmurHash3 64-bit hashing reusing precomputed state partially.
@@ -1035,31 +1035,31 @@ public class Hashes {
 	 * @param lcp the length of the longest common prefix between <code>bv</code> and the vector over which <code>state</code> was computed.
 	 * @return a hash.
 	 */
-	public static long murmur3( final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp ) {
-		final int startStateWord = (int)( Math.min( lcp, prefixLength ) / ( 2 * Long.SIZE ) );
+	public static long murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp) {
+		final int startStateWord = (int)(Math.min(lcp, prefixLength) / (2 * Long.SIZE));
 		long from = startStateWord * 2L * Long.SIZE;
 
-		long h1 = hh1[ startStateWord ];
-		long h2 = hh2[ startStateWord ];
-		long c1 = cc1[ startStateWord ];
-		long c2 = cc2[ startStateWord ];
+		long h1 = hh1[startStateWord];
+		long h2 = hh2[startStateWord];
+		long c1 = cc1[startStateWord];
+		long c2 = cc2[startStateWord];
 
 		long k1, k2;
 
-		while ( prefixLength - from >= Long.SIZE * 2 ) {
-			k1 = bv.getLong( from, from + Long.SIZE );
-			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
+		while (prefixLength - from >= Long.SIZE * 2) {
+			k1 = bv.getLong(from, from + Long.SIZE);
+			k2 = bv.getLong(from + Long.SIZE, from += 2 * Long.SIZE);
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1071,26 +1071,26 @@ public class Hashes {
 			c2 = c2 * 5 + 0x6bce6396;
 		}
 
-		if ( prefixLength - from != 0 ) {
-			if ( prefixLength - from > Long.SIZE ) {
-				k1 = bv.getLong( from, from + Long.SIZE );
-				k2 = bv.getLong( from + Long.SIZE, prefixLength );
+		if (prefixLength - from != 0) {
+			if (prefixLength - from > Long.SIZE) {
+				k1 = bv.getLong(from, from + Long.SIZE);
+				k2 = bv.getLong(from + Long.SIZE, prefixLength);
 			}
 			else {
-				k1 = bv.getLong( from, prefixLength );
+				k1 = bv.getLong(from, prefixLength);
 				k2 = 0;
 			}
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1107,8 +1107,8 @@ public class Hashes {
 		h1 += h2;
 		h2 += h1;
 
-		h1 = finalizeMurmur3( h1 );
-		h2 = finalizeMurmur3( h2 );
+		h1 = finalizeMurmur3(h1);
+		h2 = finalizeMurmur3(h2);
 
 		return h1 + h2;
 	}
@@ -1124,7 +1124,7 @@ public class Hashes {
 	 * (and analogous methods) in this order.
 	 * @see #murmur3(BitVector, long)
 	 */
-	public static long[][] preprocessMurmur3( final BitVector bv, final long seed ) {
+	public static long[][] preprocessMurmur3(final BitVector bv, final long seed) {
 		long from = 0;
 		final long length = bv.length();
 
@@ -1134,31 +1134,31 @@ public class Hashes {
 		long c1 = 0x87c37b91114253d5L;
 		long c2 = 0x4cf5ad432745937fL;
 
-		final int wordLength = (int)( length / ( 2 * Long.SIZE ) );
-		final long state[][] = new long[ 4 ][ wordLength + 1 ];
+		final int wordLength = (int)(length / (2 * Long.SIZE));
+		final long state[][] = new long[4][wordLength + 1];
 
 		long k1, k2;
 
 		int i = 0;
-		state[ 0 ][ i ] = h1;
-		state[ 1 ][ i ] = h2;
-		state[ 2 ][ i ] = c1;
-		state[ 3 ][ i ] = c2;
+		state[0][i] = h1;
+		state[1][i] = h2;
+		state[2][i] = c1;
+		state[3][i] = c2;
 
-		for( i++ ; length - from >= Long.SIZE * 2; i++ ) {
-			k1 = bv.getLong( from, from + Long.SIZE );
-			k2 = bv.getLong( from + Long.SIZE, from += 2 * Long.SIZE );
+		for(i++ ; length - from >= Long.SIZE * 2; i++) {
+			k1 = bv.getLong(from, from + Long.SIZE);
+			k2 = bv.getLong(from + Long.SIZE, from += 2 * Long.SIZE);
 
 			k1 *= c1;
-			k1 = Long.rotateLeft( k1, 23 );
+			k1 = Long.rotateLeft(k1, 23);
 			k1 *= c2;
 			h1 ^= k1;
 			h1 += h2;
 
-			h2 = Long.rotateLeft( h2, 41 );
+			h2 = Long.rotateLeft(h2, 41);
 
 			k2 *= c2;
-			k2 = Long.rotateLeft( k2, 23 );
+			k2 = Long.rotateLeft(k2, 23);
 			k2 *= c1;
 			h2 ^= k2;
 			h2 += h1;
@@ -1169,23 +1169,23 @@ public class Hashes {
 			c1 = c1 * 5 + 0x7b7d159c;
 			c2 = c2 * 5 + 0x6bce6396;
 
-			state[ 0 ][ i ] = h1;
-			state[ 1 ][ i ] = h2;
-			state[ 2 ][ i ] = c1;
-			state[ 3 ][ i ] = c2;
+			state[0][i] = h1;
+			state[1][i] = h2;
+			state[2][i] = c1;
+			state[3][i] = c2;
 		}
 
 		return state;
 	}
 
- 
-	/** SpookyHash 4-word-state (up to four values produced). 
+
+	/** SpookyHash 4-word-state (up to four values produced).
 	 *
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @param tuple a tuple of longs in which up to four generated hashes will be saved.
 	 */
-	public static void spooky4( final BitVector bv, final long seed, final long[] tuple ) {
+	public static void spooky4(final BitVector bv, final long seed, final long[] tuple) {
 		long h0, h1, h2, h3;
 		h0 = seed;
 		h1 = seed;
@@ -1196,9 +1196,9 @@ public class Hashes {
 		int remaining = length;
 		int pos = 0;
 
-		while ( remaining >= Long.SIZE * 4 ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		while (remaining >= Long.SIZE * 4) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 
 	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
@@ -1213,15 +1213,15 @@ public class Hashes {
 	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
-			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
-			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+			h0 += bv.getLong(pos + 2 * Long.SIZE, pos + 3 * Long.SIZE);
+			h1 += bv.getLong(pos + 3 * Long.SIZE, pos + 4 * Long.SIZE);
 			remaining -= 4 * Long.SIZE;
 			pos += 4 * Long.SIZE;
 		}
 
-		if ( remaining >= Long.SIZE * 2 ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		if (remaining >= Long.SIZE * 2) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 			remaining -= 2 * Long.SIZE;
 			pos += 2 * Long.SIZE;
 
@@ -1239,12 +1239,12 @@ public class Hashes {
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 		}
 
-		if ( remaining > Long.SIZE ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, length );
+		if (remaining > Long.SIZE) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, length);
 		}
-		else if ( remaining > 0 ) {
-			h2 += bv.getLong( pos, length );
+		else if (remaining > 0) {
+			h2 += bv.getLong(pos, length);
 		}
 		else {
 			h2 += ARBITRARY_BITS;
@@ -1265,21 +1265,21 @@ public class Hashes {
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
-		switch( tuple.length ) {
-		case 4: tuple[ 3 ] = h3;
-		case 3: tuple[ 2 ] = h2;
-		case 2: tuple[ 1 ] = h1;
-		case 1: tuple[ 0 ] = h0;
+		switch(tuple.length) {
+		case 4: tuple[3] = h3;
+		case 3: tuple[2] = h2;
+		case 2: tuple[1] = h1;
+		case 1: tuple[0] = h0;
 		}
 	}
 
-	/** SpookyHash 4-word-state (up to four values produced). 
+	/** SpookyHash 4-word-state (up to four values produced).
 	 *
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @return the first of the four available hash values.
 	 */
-	public static long spooky4( final BitVector bv, final long seed ) {
+	public static long spooky4(final BitVector bv, final long seed) {
 
 		long h0, h1, h2, h3;
 		h0 = seed;
@@ -1291,9 +1291,9 @@ public class Hashes {
 		int remaining = length;
 		int pos = 0;
 
-		while ( remaining >= Long.SIZE * 4 ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		while (remaining >= Long.SIZE * 4) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 
 	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
@@ -1308,15 +1308,15 @@ public class Hashes {
 	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
-			h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
-			h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+			h0 += bv.getLong(pos + 2 * Long.SIZE, pos + 3 * Long.SIZE);
+			h1 += bv.getLong(pos + 3 * Long.SIZE, pos + 4 * Long.SIZE);
 			remaining -= 4 * Long.SIZE;
 			pos += 4 * Long.SIZE;
 		}
 
-		if ( remaining >= Long.SIZE * 2 ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		if (remaining >= Long.SIZE * 2) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 			remaining -= 2 * Long.SIZE;
 			pos += 2 * Long.SIZE;
 
@@ -1334,12 +1334,12 @@ public class Hashes {
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 		}
 
-		if ( remaining > Long.SIZE ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, length );
+		if (remaining > Long.SIZE) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, length);
 		}
-		else if ( remaining > 0 ) {
-			h2 += bv.getLong( pos, length );
+		else if (remaining > 0) {
+			h2 += bv.getLong(pos, length);
 		}
 		else {
 			h2 += ARBITRARY_BITS;
@@ -1364,7 +1364,7 @@ public class Hashes {
 	}
 
 	/** SpookyHash 12-word-state (up to four values produced).
-	 * 
+	 *
 	 * <p>This method will automatically switch to {@link #spooky4(BitVector, long, long[])} when
 	 * the provided bit vector is shorter than 768 bits.
 	 *
@@ -1372,9 +1372,9 @@ public class Hashes {
 	 * @param seed a seed for the hash.
 	 * @param tuple a tuple of longs in which up to four generated hashes will be saved.
 	 */
-	public static void spooky12( final BitVector bv, final long seed, final long[] tuple ) {
-		if ( bv.length() < Long.SIZE * 12 ) {
-			spooky4( bv, seed, tuple );
+	public static void spooky12(final BitVector bv, final long seed, final long[] tuple) {
+		if (bv.length() < Long.SIZE * 12) {
+			spooky4(bv, seed, tuple);
 			return;
 		}
 
@@ -1386,74 +1386,74 @@ public class Hashes {
 		long pos = 0;
 		long remaining = length;
 
-		while ( remaining >= Long.SIZE * 11 ) {
-			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
+		while (remaining >= Long.SIZE * 11) {
+			h0 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
 			h2 ^= h10;
 			h11 ^= h0;
 			h0 = Long.rotateLeft(h0, 11);
 			h11 += h1;
 
-			h1 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+			h1 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 			h3 ^= h11;
 			h0 ^= h1;
 			h1 = Long.rotateLeft(h1, 32);
 			h0 += h2;
 
-			h2 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
+			h2 += bv.getLong(pos + 2 * Long.SIZE, pos + 3 * Long.SIZE);
 			h4 ^= h0;
 			h1 ^= h2;
 			h2 = Long.rotateLeft(h2, 43);
 			h1 += h3;
 
-			h3 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+			h3 += bv.getLong(pos + 3 * Long.SIZE, pos + 4 * Long.SIZE);
 			h5 ^= h1;
 			h2 ^= h3;
 			h3 = Long.rotateLeft(h3, 31);
 			h2 += h4;
 
-			h4 += bv.getLong( pos + 4 * Long.SIZE, pos + 5 * Long.SIZE );
+			h4 += bv.getLong(pos + 4 * Long.SIZE, pos + 5 * Long.SIZE);
 			h6 ^= h2;
 			h3 ^= h4;
 			h4 = Long.rotateLeft(h4, 17);
 			h3 += h5;
 
-			h5 += bv.getLong( pos + 5 * Long.SIZE, pos + 6 * Long.SIZE );
+			h5 += bv.getLong(pos + 5 * Long.SIZE, pos + 6 * Long.SIZE);
 			h7 ^= h3;
 			h4 ^= h5;
 			h5 = Long.rotateLeft(h5, 28);
 			h4 += h6;
 
-			h6 += bv.getLong( pos + 6 * Long.SIZE, pos + 7 * Long.SIZE );
+			h6 += bv.getLong(pos + 6 * Long.SIZE, pos + 7 * Long.SIZE);
 			h8 ^= h4;
 			h5 ^= h6;
 			h6 = Long.rotateLeft(h6, 39);
 			h5 += h7;
 
-			h7 += bv.getLong( pos + 7 * Long.SIZE, pos + 8 * Long.SIZE );
+			h7 += bv.getLong(pos + 7 * Long.SIZE, pos + 8 * Long.SIZE);
 			h9 ^= h5;
 			h6 ^= h7;
 			h7 = Long.rotateLeft(h7, 57);
 			h6 += h8;
 
-			h8 += bv.getLong( pos + 8 * Long.SIZE, pos + 9 * Long.SIZE );
+			h8 += bv.getLong(pos + 8 * Long.SIZE, pos + 9 * Long.SIZE);
 			h10 ^= h6;
 			h7 ^= h8;
 			h8 = Long.rotateLeft(h8, 55);
 			h7 += h9;
 
-			h9 += bv.getLong( pos + 9 * Long.SIZE, pos + 10 * Long.SIZE );
+			h9 += bv.getLong(pos + 9 * Long.SIZE, pos + 10 * Long.SIZE);
 			h11 ^= h7;
 			h8 ^= h9;
 			h9 = Long.rotateLeft(h9, 54);
 			h8 += h10;
 
-			h10 += bv.getLong( pos + 10 * Long.SIZE, pos + 11 * Long.SIZE );
+			h10 += bv.getLong(pos + 10 * Long.SIZE, pos + 11 * Long.SIZE);
 			h0 ^= h8;
 			h9 ^= h10;
 			h10 = Long.rotateLeft(h10, 22);
 			h9 += h11;
 
-			h11 += bv.getLong( pos + 11 * Long.SIZE, Math.min( length, pos + 12 * Long.SIZE ) );
+			h11 += bv.getLong(pos + 11 * Long.SIZE, Math.min(length, pos + 12 * Long.SIZE));
 			h1 ^= h9;
 			h10 ^= h11;
 			h11 = Long.rotateLeft(h11, 46);
@@ -1464,35 +1464,35 @@ public class Hashes {
 		}
 
 		final int remainingWords = (int)(remaining / Long.SIZE);
-		switch ( remainingWords ) {
+		switch (remainingWords) {
 		case 10:
-			h9 += bv.getLong( pos + Long.SIZE * 9, pos + Long.SIZE * 10 );
+			h9 += bv.getLong(pos + Long.SIZE * 9, pos + Long.SIZE * 10);
 		case 9:
-			h8 += bv.getLong( pos + Long.SIZE * 8, pos + Long.SIZE * 9 );
+			h8 += bv.getLong(pos + Long.SIZE * 8, pos + Long.SIZE * 9);
 		case 8:
-			h7 += bv.getLong( pos + Long.SIZE * 7, pos + Long.SIZE * 8 );
+			h7 += bv.getLong(pos + Long.SIZE * 7, pos + Long.SIZE * 8);
 		case 7:
-			h6 += bv.getLong( pos + Long.SIZE * 6, pos + Long.SIZE * 7 );
+			h6 += bv.getLong(pos + Long.SIZE * 6, pos + Long.SIZE * 7);
 		case 6:
-			h5 += bv.getLong( pos + Long.SIZE * 5, pos + Long.SIZE * 6 );
+			h5 += bv.getLong(pos + Long.SIZE * 5, pos + Long.SIZE * 6);
 		case 5:
-			h4 += bv.getLong( pos + Long.SIZE * 4, pos + Long.SIZE * 5 );
+			h4 += bv.getLong(pos + Long.SIZE * 4, pos + Long.SIZE * 5);
 		case 4:
-			h3 += bv.getLong( pos + Long.SIZE * 3, pos + Long.SIZE * 4 );
+			h3 += bv.getLong(pos + Long.SIZE * 3, pos + Long.SIZE * 4);
 		case 3:
-			h2 += bv.getLong( pos + Long.SIZE * 2, pos + Long.SIZE * 3 );
+			h2 += bv.getLong(pos + Long.SIZE * 2, pos + Long.SIZE * 3);
 		case 2:
-			h1 += bv.getLong( pos + Long.SIZE * 1, pos + Long.SIZE * 2 );
+			h1 += bv.getLong(pos + Long.SIZE * 1, pos + Long.SIZE * 2);
 		case 1:
-			h0 += bv.getLong( pos + Long.SIZE * 0, pos + Long.SIZE * 1 );
+			h0 += bv.getLong(pos + Long.SIZE * 0, pos + Long.SIZE * 1);
 		default:
 			break;
 		}
 
-		final int bits = (int)( remaining % Long.SIZE );
-		if ( bits > 0 ) {
-			final long partial = bv.getLong( length - bits, length );
-			switch( remainingWords ) {
+		final int bits = (int)(remaining % Long.SIZE);
+		if (bits > 0) {
+			final long partial = bv.getLong(length - bits, length);
+			switch(remainingWords) {
 			case 0:
 				h0 += partial;
 				break;
@@ -1570,42 +1570,42 @@ public class Hashes {
 	        h0 = Long.rotateLeft(h0, 54);
 		}
 
-		switch( tuple.length ) {
-		case 4: tuple[ 3 ] = h3;
-		case 3: tuple[ 2 ] = h2;
-		case 2: tuple[ 1 ] = h1;
-		case 1: tuple[ 0 ] = h0;
+		switch(tuple.length) {
+		case 4: tuple[3] = h3;
+		case 3: tuple[2] = h2;
+		case 2: tuple[1] = h1;
+		case 1: tuple[0] = h0;
 		}
 	}
 
-	
+
 	/** Preprocesses a bit vector so that SpookyHash 4-word-state can be computed in constant time on all prefixes.
 	 *
 	 * @param bv a bit vector.
 	 * @param seed a seed for the hash.
 	 * @return an array containing the four internal words of state
-	 * during the hash computation; it can be passed to {@link #spooky4(BitVector, long, long, long[], long[])} 
+	 * during the hash computation; it can be passed to {@link #spooky4(BitVector, long, long, long[], long[])}
 	 * (and analogous methods).
 	 * @see #spooky4(BitVector, long)
 	 */
-	public static long[] preprocessSpooky4( final BitVector bv, final long seed ) {
+	public static long[] preprocessSpooky4(final BitVector bv, final long seed) {
 		final long length = bv.length();
-		if ( length < Long.SIZE * 2 ) return null;
-		final long[] state = new long[ 4 * (int)( length + Long.SIZE * 2 ) / ( 4 * Long.SIZE ) ];
+		if (length < Long.SIZE * 2) return null;
+		final long[] state = new long[4 * (int)(length + Long.SIZE * 2) / (4 * Long.SIZE)];
 
 		long h0, h1, h2, h3;
 		h0 = seed;
 		h1 = seed;
 		h2 = ARBITRARY_BITS;
 		h3 = ARBITRARY_BITS;
-		
+
 		long remaining = length;
 		long pos = 0;
 		int p = 0;
 
 		for(;;) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 
 	        h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 	        h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
@@ -1620,15 +1620,15 @@ public class Hashes {
 	        h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 	        h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
-			state[ p + 0 ] = h0;
-			state[ p + 1 ] = h1;
-			state[ p + 2 ] = h2;
-			state[ p + 3 ] = h3;
+			state[p + 0] = h0;
+			state[p + 1] = h1;
+			state[p + 2] = h2;
+			state[p + 3] = h3;
 			p += 4;
-			
-			if ( remaining >= Long.SIZE * 6 ) {
-				h0 += bv.getLong( pos + 2 * Long.SIZE, pos + 3 * Long.SIZE );
-				h1 += bv.getLong( pos + 3 * Long.SIZE, pos + 4 * Long.SIZE );
+
+			if (remaining >= Long.SIZE * 6) {
+				h0 += bv.getLong(pos + 2 * Long.SIZE, pos + 3 * Long.SIZE);
+				h1 += bv.getLong(pos + 3 * Long.SIZE, pos + 4 * Long.SIZE);
 				remaining -= 4 * Long.SIZE;
 				pos += 4 * Long.SIZE;
 			}
@@ -1643,7 +1643,7 @@ public class Hashes {
 	 * @param state the state vector returned by {@link #preprocessSpooky4(BitVector, long)}; note that {@code seed} must be the same.
 	 * @param tuple a tuple of longs in which up to four generated hashes will be saved.
 	 */
-	public static void spooky4( final BitVector bv, final long prefixLength, final long seed, final long[] state, final long[] tuple ) {
+	public static void spooky4(final BitVector bv, final long prefixLength, final long seed, final long[] state, final long[] tuple) {
 
 		long h0, h1, h2, h3;
 		h0 = seed;
@@ -1651,32 +1651,32 @@ public class Hashes {
 		h2 = ARBITRARY_BITS;
 		h3 = ARBITRARY_BITS;
 		long pos;
-		
-		if ( prefixLength >= 2 * Long.SIZE ) {
-			final int p = 4 * (int)( ( prefixLength - 2 * Long.SIZE ) / ( 4 * Long.SIZE ) );
-			h0 = state[ p + 0 ];
-			h1 = state[ p + 1 ];
-			h2 = state[ p + 2 ];
-			h3 = state[ p + 3 ];
+
+		if (prefixLength >= 2 * Long.SIZE) {
+			final int p = 4 * (int)((prefixLength - 2 * Long.SIZE) / (4 * Long.SIZE));
+			h0 = state[p + 0];
+			h1 = state[p + 1];
+			h2 = state[p + 2];
+			h3 = state[p + 3];
 			pos = p * Long.SIZE + 2 * Long.SIZE;
 		}
 		else pos = 0;
 
 		long remaining = prefixLength - pos;
 
-		if ( remaining >= Long.SIZE * 2 ) {
-			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h1 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		if (remaining >= Long.SIZE * 2) {
+			h0 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h1 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 			remaining -= 2 * Long.SIZE;
 			pos += 2 * Long.SIZE;
 		}
 
-		if ( remaining > Long.SIZE ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, prefixLength );
+		if (remaining > Long.SIZE) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, prefixLength);
 		}
-		else if ( remaining > 0 ) {
-			h2 += bv.getLong( pos, prefixLength );
+		else if (remaining > 0) {
+			h2 += bv.getLong(pos, prefixLength);
 		}
 		else {
 			h2 += ARBITRARY_BITS;
@@ -1697,11 +1697,11 @@ public class Hashes {
         h0 ^= h3;  h3 = Long.rotateLeft(h3, 25);  h0 += h3;
         h1 ^= h0;  h0 = Long.rotateLeft(h0, 63);  h1 += h0;
 
-		switch( tuple.length ) {
-		case 4: tuple[ 3 ] = h3;
-		case 3: tuple[ 2 ] = h2;
-		case 2: tuple[ 1 ] = h1;
-		case 1: tuple[ 0 ] = h0;
+		switch(tuple.length) {
+		case 4: tuple[3] = h3;
+		case 3: tuple[2] = h2;
+		case 2: tuple[1] = h1;
+		case 1: tuple[0] = h0;
 		}
 	}
 
@@ -1712,39 +1712,39 @@ public class Hashes {
 	 * @param state the state vector returned by {@link #preprocessSpooky4(BitVector, long)}; note that {@code seed} must be the same.
 	 * @return the first of the four available hash values.
 	 */
-	public static long spooky4( final BitVector bv, final long prefixLength, final long seed, final long[] state ) {
+	public static long spooky4(final BitVector bv, final long prefixLength, final long seed, final long[] state) {
 		long h0, h1, h2, h3;
 		h0 = seed;
 		h1 = seed;
 		h2 = ARBITRARY_BITS;
 		h3 = ARBITRARY_BITS;
 		long pos;
-		
-		if ( prefixLength >= 2 * Long.SIZE ) {
-			final int p = 4 * (int)( ( prefixLength - 2 * Long.SIZE ) / ( 4 * Long.SIZE ) );
-			h0 = state[ p + 0 ];
-			h1 = state[ p + 1 ];
-			h2 = state[ p + 2 ];
-			h3 = state[ p + 3 ];
+
+		if (prefixLength >= 2 * Long.SIZE) {
+			final int p = 4 * (int)((prefixLength - 2 * Long.SIZE) / (4 * Long.SIZE));
+			h0 = state[p + 0];
+			h1 = state[p + 1];
+			h2 = state[p + 2];
+			h3 = state[p + 3];
 			pos = p * Long.SIZE + 2 * Long.SIZE;
 		}
 		else pos = 0;
 
 		long remaining = prefixLength - pos;
 
-		if ( remaining >= Long.SIZE * 2 ) {
-			h0 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h1 += bv.getLong( pos + 1 * Long.SIZE, pos + 2 * Long.SIZE );
+		if (remaining >= Long.SIZE * 2) {
+			h0 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h1 += bv.getLong(pos + 1 * Long.SIZE, pos + 2 * Long.SIZE);
 			remaining -= 2 * Long.SIZE;
 			pos += 2 * Long.SIZE;
 		}
 
-		if ( remaining > Long.SIZE ) {
-			h2 += bv.getLong( pos + 0 * Long.SIZE, pos + 1 * Long.SIZE );
-			h3 += bv.getLong( pos + 1 * Long.SIZE, prefixLength );
+		if (remaining > Long.SIZE) {
+			h2 += bv.getLong(pos + 0 * Long.SIZE, pos + 1 * Long.SIZE);
+			h3 += bv.getLong(pos + 1 * Long.SIZE, prefixLength);
 		}
-		else if ( remaining > 0 ) {
-			h2 += bv.getLong( pos, prefixLength );
+		else if (remaining > 0) {
+			h2 += bv.getLong(pos, prefixLength);
 		}
 		else {
 			h2 += ARBITRARY_BITS;
@@ -1768,19 +1768,19 @@ public class Hashes {
         return h0;
 	}
 
-	
+
 	/** SpookyHash (up to four values produced) for a triple of longs.
 	 *
 	 * @param triple three longs.
 	 * @param seed a seed for the hash.
 	 * @param tuple a tuple of longs in which up to four generated hashes will be saved.
 	 */
-	public static void spooky4( final long[] triple, final long seed, final long[] tuple )  {
+	public static void spooky4(final long[] triple, final long seed, final long[] tuple)  {
 		long h0, h1, h2, h3;
 		h0 = seed;
-		h1 = ARBITRARY_BITS + triple[ 0 ];
-		h2 = ARBITRARY_BITS + triple[ 1 ];
-		h3 = ARBITRARY_BITS + triple[ 2 ];
+		h1 = ARBITRARY_BITS + triple[0];
+		h2 = ARBITRARY_BITS + triple[1];
+		h3 = ARBITRARY_BITS + triple[2];
 
 		h2 = Long.rotateLeft(h2, 50);  h2 += h3;  h0 ^= h2;
 		h3 = Long.rotateLeft(h3, 52);  h3 += h0;  h1 ^= h3;
@@ -1795,11 +1795,11 @@ public class Hashes {
 		h0 = Long.rotateLeft(h0, 5);   h0 += h1;  h2 ^= h0;
 		h1 = Long.rotateLeft(h1, 36);  h1 += h2;  h3 ^= h1;
 
-		switch( tuple.length ) {
-		case 4: tuple[ 3 ] = h3;
-		case 3: tuple[ 2 ] = h2;
-		case 2: tuple[ 1 ] = h1;
-		case 1: tuple[ 0 ] = h0;
+		switch(tuple.length) {
+		case 4: tuple[3] = h3;
+		case 3: tuple[2] = h2;
+		case 2: tuple[1] = h1;
+		case 1: tuple[0] = h0;
 		}
 	}
 
@@ -1810,110 +1810,110 @@ public class Hashes {
 	 * @param arg the length of the bit vector to hash, and then the number of evaluations.
 	 */
 
-	public static void main( String arg[] ) {
-		final int l = Integer.parseInt( arg[ 0 ] );
-		final int n = Integer.parseInt( arg[ 1 ] );
-		LongArrayBitVector bv = LongArrayBitVector.ofLength( l );
+	public static void main(String arg[]) {
+		final int l = Integer.parseInt(arg[0]);
+		final int n = Integer.parseInt(arg[1]);
+		LongArrayBitVector bv = LongArrayBitVector.ofLength(l);
 
 		final ProgressLogger pl = new ProgressLogger();
 		long t = 0;
-		long h[] = new long[ 3 ];
+		long h[] = new long[3];
 
-		for( int k = 4; k-- != 0; ) {
-			pl.start( "Timing MurmurHash..." );
+		for(int k = 4; k-- != 0;) {
+			pl.start("Timing MurmurHash...");
 
-			for( int i = n; i-- != 0; ) t += murmur( bv, 0 );
-			if ( t == 0 ) System.err.println( t );
+			for(int i = n; i-- != 0;) t += murmur(bv, 0);
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			pl.start( "Timing MurmurHash3..." );
+			pl.start("Timing MurmurHash3...");
 
-			for( int i = n; i-- != 0; ) {
-				murmur3( bv, 0, h );
-				t += h[ 0 ];
+			for(int i = n; i-- != 0;) {
+				murmur3(bv, 0, h);
+				t += h[0];
 			}
-			if ( t == 0 ) System.err.println( t );
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			pl.start( "Timing Jenkins's hash..." );
+			pl.start("Timing Jenkins's hash...");
 
-			for( int i = n; i-- != 0; ) {
-				jenkins( bv, 0, h );
-				t += h[ 0 ];
+			for(int i = n; i-- != 0;) {
+				jenkins(bv, 0, h);
+				t += h[0];
 			}
-			if ( t == 0 ) System.err.println( t );
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
-	
-			pl.start( "Timing SpookyHash4..." );
+			pl.done(n);
 
-			for( int i = n; i-- != 0; ) {
-				spooky4( bv, 0, h );
-				t += h[ 0 ];
+			pl.start("Timing SpookyHash4...");
+
+			for(int i = n; i-- != 0;) {
+				spooky4(bv, 0, h);
+				t += h[0];
 			}
-			if ( t == 0 ) System.err.println( t );
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
-			pl.start( "Timing SpookyHash12..." );
+			pl.done(n);
+			pl.start("Timing SpookyHash12...");
 
-			for( int i = n; i-- != 0; ) {
-				spooky12( bv, 0, h );
-				t += h[ 0 ];
+			for(int i = n; i-- != 0;) {
+				spooky12(bv, 0, h);
+				t += h[0];
 			}
-			if ( t == 0 ) System.err.println( t );
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			final long[] preprocessMurmur = preprocessMurmur( bv, 0 );
+			final long[] preprocessMurmur = preprocessMurmur(bv, 0);
 
-			pl.start( "Timing preprocessed MurmurHash..." );
+			pl.start("Timing preprocessed MurmurHash...");
 
-			for( int i = n; i-- != 0; ) t += murmur( bv, l - 1, preprocessMurmur );
-			if ( t == 0 ) System.err.println( t );
+			for(int i = n; i-- != 0;) t += murmur(bv, l - 1, preprocessMurmur);
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			final long[][] preprocessMurmur3 = preprocessMurmur3( bv, 0 );
-			long[] hh1 = preprocessMurmur3[ 0 ];
-			long[] hh2 = preprocessMurmur3[ 1 ];
-			long[] cc1 = preprocessMurmur3[ 2 ];
-			long[] cc2 = preprocessMurmur3[ 3 ];
+			final long[][] preprocessMurmur3 = preprocessMurmur3(bv, 0);
+			long[] hh1 = preprocessMurmur3[0];
+			long[] hh2 = preprocessMurmur3[1];
+			long[] cc1 = preprocessMurmur3[2];
+			long[] cc2 = preprocessMurmur3[3];
 
-			pl.start( "Timing preprocessed MurmurHash3..." );
+			pl.start("Timing preprocessed MurmurHash3...");
 
-			for( int i = n / l; i-- != 0; )
-				for( int j = l; j-- != 0; )
-					t += murmur3( bv, j, hh1, hh2, cc1, cc2 );
-			if ( t == 0 ) System.err.println( t );
+			for(int i = n / l; i-- != 0;)
+				for(int j = l; j-- != 0;)
+					t += murmur3(bv, j, hh1, hh2, cc1, cc2);
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			long[][] preprocessJenkins = preprocessJenkins( bv, 0 );
-			long[] aa = preprocessJenkins[ 0 ];
-			long[] bb = preprocessJenkins[ 1 ];
-			long[] cc = preprocessJenkins[ 2 ];
+			long[][] preprocessJenkins = preprocessJenkins(bv, 0);
+			long[] aa = preprocessJenkins[0];
+			long[] bb = preprocessJenkins[1];
+			long[] cc = preprocessJenkins[2];
 
-			pl.start( "Timing preprocessed Jenkins's hash..." );
+			pl.start("Timing preprocessed Jenkins's hash...");
 
-			for( int i = n / l; i-- != 0; ) 
-				for( int j = l; j-- != 0; )
-					t += jenkins( bv, j, aa, bb, cc );
-			if ( t == 0 ) System.err.println( t );
+			for(int i = n / l; i-- != 0;)
+				for(int j = l; j-- != 0;)
+					t += jenkins(bv, j, aa, bb, cc);
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 
-			long[] preprocessSpooky4 = preprocessSpooky4( bv, 0 );
+			long[] preprocessSpooky4 = preprocessSpooky4(bv, 0);
 
-			pl.start( "Timing preprocessed SpookyHash..." );
+			pl.start("Timing preprocessed SpookyHash...");
 
-			for( int i = n / l; i-- != 0; ) 
-				for( int j = l; j-- != 0; )
-					t += spooky4( bv, j, 0, preprocessSpooky4 );
-			if ( t == 0 ) System.err.println( t );
+			for(int i = n / l; i-- != 0;)
+				for(int j = l; j-- != 0;)
+					t += spooky4(bv, j, 0, preprocessSpooky4);
+			if (t == 0) System.err.println(t);
 
-			pl.done( n );
+			pl.done(n);
 		}
 	}
 }

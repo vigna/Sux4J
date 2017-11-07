@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.bits;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2010-2016 Sebastiano Vigna
+ * Copyright (C) 2010-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -27,7 +27,7 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
 	private final BitVector v;
 
-	public TrivialBalancedParentheses( BitVector v ) {
+	public TrivialBalancedParentheses(BitVector v) {
 		this.v = v;
 	}
 
@@ -37,32 +37,32 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 	}
 
 	@Override
-	public long enclose( long pos ) {
+	public long enclose(long pos) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public long findClose( long pos ) {
-		if ( ! v.getBoolean( pos ) ) throw new IllegalArgumentException();
+	public long findClose(long pos) {
+		if (! v.getBoolean(pos)) throw new IllegalArgumentException();
 		int c = 1;
-		while( ++pos < v.length() ) {
-			if ( ! v.getBoolean( pos ) ) c--;
+		while(++pos < v.length()) {
+			if (! v.getBoolean(pos)) c--;
 			else c++;
-			if ( c == 0 ) return pos;
+			if (c == 0) return pos;
 		}
 
 		throw new IllegalArgumentException();
 	}
 
 	@Override
-	public long findOpen( long pos ) {
-		if ( v.getBoolean( pos ) ) throw new IllegalArgumentException();
+	public long findOpen(long pos) {
+		if (v.getBoolean(pos)) throw new IllegalArgumentException();
 
 		int c = 1;
-		while( --pos >= 0 ) {
-			if ( ! v.getBoolean( pos ) ) c++;
+		while(--pos >= 0) {
+			if (! v.getBoolean(pos)) c++;
 			else c--;
-			if ( c == 0 ) return pos;
+			if (c == 0) return pos;
 		}
 
 		throw new IllegalArgumentException();

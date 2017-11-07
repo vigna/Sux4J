@@ -18,75 +18,75 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 public class TwoSizesLongBigListSpeedTest {
 
-	public static void main( final String[] arg ) throws JSAPException {
+	public static void main(final String[] arg) throws JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( TwoSizesLongBigListSpeedTest.class.getName(), "Tests the speed of rank/select implementations.",
+		final SimpleJSAP jsap = new SimpleJSAP(TwoSizesLongBigListSpeedTest.class.getName(), "Tests the speed of rank/select implementations.",
 				new Parameter[] {
-					new UnflaggedOption( "numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements." ),
-					new UnflaggedOption( "density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density." ),
-					new FlaggedOption( "numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test" ),
+					new UnflaggedOption("numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements."),
+					new UnflaggedOption("density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density."),
+					new FlaggedOption("numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test"),
 		});
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		final int numElements = jsapResult.getInt( "numElements" );
-		final double density = jsapResult.getDouble( "density" );
-		final int numPos = jsapResult.getInt( "numPos" );
+		final int numElements = jsapResult.getInt("numElements");
+		final double density = jsapResult.getDouble("density");
+		final int numPos = jsapResult.getInt("numPos");
 
-		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator( 0 );
-		final LongArrayList list = new LongArrayList( numElements );
-		for( long i = numElements; i-- != 0; ) list.add( random.nextDouble() < density ? 0 : 100 );
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(0);
+		final LongArrayList list = new LongArrayList(numElements);
+		for(long i = numElements; i-- != 0;) list.add(random.nextDouble() < density ? 0 : 100);
 
-		final int[] position = new int[ numPos ];
+		final int[] position = new int[numPos];
 
-		for( int i = numPos; i-- != 0; ) position[ i ] = ( random.nextInt() & 0x7FFFFFFF ) % numElements;
-		final TwoSizesLongBigList twoSizes = new TwoSizesLongBigList( list );
-		final EliasFanoLongBigList eliasFano = new EliasFanoLongBigList( list );
-		final EliasFanoPrefixSumLongBigList eliasFanoPrefixSum = new EliasFanoPrefixSumLongBigList( list );
+		for(int i = numPos; i-- != 0;) position[i] = (random.nextInt() & 0x7FFFFFFF) % numElements;
+		final TwoSizesLongBigList twoSizes = new TwoSizesLongBigList(list);
+		final EliasFanoLongBigList eliasFano = new EliasFanoLongBigList(list);
+		final EliasFanoPrefixSumLongBigList eliasFanoPrefixSum = new EliasFanoPrefixSumLongBigList(list);
 		final long[] elements = list.elements();
-		for( int i = 1; i < list.size(); i++ ) elements[ i ] += elements[ i - 1 ];
-		final EliasFanoMonotoneLongBigList monotone = new EliasFanoMonotoneLongBigList( list );
-		final EliasFanoMonotoneLongBigListTables tables = new EliasFanoMonotoneLongBigListTables( list );
+		for(int i = 1; i < list.size(); i++) elements[i] += elements[i - 1];
+		final EliasFanoMonotoneLongBigList monotone = new EliasFanoMonotoneLongBigList(list);
+		final EliasFanoMonotoneLongBigListTables tables = new EliasFanoMonotoneLongBigListTables(list);
 
 		long time;
 
-		for( int k = 10; k-- != 0; ) {
-			System.out.println( "=== LongArrayList === (" + list.size() * (long)Long.SIZE + " bits)" );
+		for(int k = 10; k-- != 0;) {
+			System.out.println("=== LongArrayList === (" + list.size() * (long)Long.SIZE + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) list.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) list.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 
-			System.out.println( "=== TwoSizesLongBigList === (" + twoSizes.numBits() + " bits)" );
+			System.out.println("=== TwoSizesLongBigList === (" + twoSizes.numBits() + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) twoSizes.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) twoSizes.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 
-			System.out.println( "=== EliasFanoPrefixSumLongBigList === (" + eliasFanoPrefixSum.numBits() + " bits)");
+			System.out.println("=== EliasFanoPrefixSumLongBigList === (" + eliasFanoPrefixSum.numBits() + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) eliasFanoPrefixSum.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) eliasFanoPrefixSum.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 
-			System.out.println( "=== EliasFanoLongBigList === (" + eliasFano.numBits() + " bits)");
+			System.out.println("=== EliasFanoLongBigList === (" + eliasFano.numBits() + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) eliasFano.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) eliasFano.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 
-			System.out.println( "=== EliasFanoMonotoneLongBigListTables === (" + tables.numBits() + " bits)");
+			System.out.println("=== EliasFanoMonotoneLongBigListTables === (" + tables.numBits() + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) tables.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) tables.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 
-			System.out.println( "=== EliasFanoMonotoneLongBigList === (" + monotone.numBits() + " bits)");
+			System.out.println("=== EliasFanoMonotoneLongBigList === (" + monotone.numBits() + " bits)");
 			time = - System.nanoTime();
-			for( int i = 0; i < numPos; i++ ) monotone.getLong( position[ i ] );
+			for(int i = 0; i < numPos; i++) monotone.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println( time / 1E9 + "s, " + (double)time / numPos + " ns/get" );
+			System.err.println(time / 1E9 + "s, " + (double)time / numPos + " ns/get");
 		}
 	}
 }

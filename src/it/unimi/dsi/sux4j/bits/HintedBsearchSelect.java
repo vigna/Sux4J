@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -52,63 +52,63 @@ public class HintedBsearchSelect implements Select {
 	private final long[] count;
 	private final Rank9 rank9;
 
-	public HintedBsearchSelect( final Rank9 rank9 ) {
+	public HintedBsearchSelect(final Rank9 rank9) {
 		this.rank9 = rank9;
 		numOnes = rank9.numOnes;
 		numWords = rank9.numWords;
 		bits = rank9.bits;
 		count = rank9.count;
 
-		log2OnesPerInventory = rank9.bitVector.length() == 0 ? 0 : Fast.mostSignificantBit( ( numOnes * 16 * 64 + rank9.bitVector.length() - 1 ) / rank9.bitVector.length() );
+		log2OnesPerInventory = rank9.bitVector.length() == 0 ? 0 : Fast.mostSignificantBit((numOnes * 16 * 64 + rank9.bitVector.length() - 1) / rank9.bitVector.length());
 		onesPerInventory = 1 << log2OnesPerInventory;
-		final int inventorySize = (int)( ( numOnes + onesPerInventory - 1 ) / onesPerInventory );
+		final int inventorySize = (int)((numOnes + onesPerInventory - 1) / onesPerInventory);
 
-		inventory = new int[ inventorySize + 1 ];
+		inventory = new int[inventorySize + 1];
 		long d = 0;
 		final long mask = onesPerInventory - 1;
-		for( int i = 0; i < numWords; i++ )
-			for( int j = 0; j < 64; j++ )
-				if ( ( bits[ i ] & 1L << j ) != 0 ) {
-					if ( ( d & mask ) == 0 ) inventory[ (int)( d >> log2OnesPerInventory ) ] = ( i / 8 ) * 2;
+		for(int i = 0; i < numWords; i++)
+			for(int j = 0; j < 64; j++)
+				if ((bits[i] & 1L << j) != 0) {
+					if ((d & mask) == 0) inventory[(int)(d >> log2OnesPerInventory)] = (i / 8) * 2;
 					d++;
 				}
 
-		inventory[ inventorySize ] = ( numWords / 8 ) * 2;
+		inventory[inventorySize] = (numWords / 8) * 2;
 	}
 
 	@Override
-	public long select( long rank ) {
-		if ( rank >= numOnes ) return -1;
+	public long select(long rank) {
+		if (rank >= numOnes) return -1;
 
 		final long[] count = this.count;
 		final int[] inventory = this.inventory;
-		final int inventoryIndexLeft = (int)( rank >>> log2OnesPerInventory );
-		int blockLeft = inventory[ inventoryIndexLeft ];
-		int blockRight = inventory[ inventoryIndexLeft + 1 ];
+		final int inventoryIndexLeft = (int)(rank >>> log2OnesPerInventory);
+		int blockLeft = inventory[inventoryIndexLeft];
+		int blockRight = inventory[inventoryIndexLeft + 1];
 
-		if ( rank >= count[ blockRight ] ) {
-			blockRight = ( blockLeft = blockRight ) + 2;
+		if (rank >= count[blockRight]) {
+			blockRight = (blockLeft = blockRight) + 2;
 		}
 		else {
 			int blockMiddle;
 
-			while( blockRight - blockLeft > 2 ) {
-				blockMiddle = ( blockRight + blockLeft ) / 2 & ~1;
-				if ( rank >= count[ blockMiddle ] ) blockLeft = blockMiddle;
+			while(blockRight - blockLeft > 2) {
+				blockMiddle = (blockRight + blockLeft) / 2 & ~1;
+				if (rank >= count[blockMiddle]) blockLeft = blockMiddle;
 				else blockRight = blockMiddle;
 			}
 		}
 
-		final long rankInBlock = rank - count[ blockLeft ];
+		final long rankInBlock = rank - count[blockLeft];
 
 		final long rankInBlockStep9 = rankInBlock * ONES_STEP_9;
-		final long subcounts = count[ blockLeft + 1 ];
-		final long offsetInBlock = ( ( ( ( ( ( ( rankInBlockStep9 | MSBS_STEP_9 ) - ( subcounts & ~MSBS_STEP_9 ) ) | ( subcounts ^ rankInBlockStep9 ) ) ^ ( subcounts & ~rankInBlockStep9 ) ) & MSBS_STEP_9 ) >>> 8 ) * ONES_STEP_9 >>> 54 & 0x7 );
+		final long subcounts = count[blockLeft + 1];
+		final long offsetInBlock = (((((((rankInBlockStep9 | MSBS_STEP_9) - (subcounts & ~MSBS_STEP_9)) | (subcounts ^ rankInBlockStep9)) ^ (subcounts & ~rankInBlockStep9)) & MSBS_STEP_9) >>> 8) * ONES_STEP_9 >>> 54 & 0x7);
 
 		final long word = blockLeft * 4 + offsetInBlock;
-		final long rankInWord = rankInBlock - ( subcounts >>> ( offsetInBlock - 1 & 7 ) * 9 & 0x1FF );
+		final long rankInWord = rankInBlock - (subcounts >>> (offsetInBlock - 1 & 7) * 9 & 0x1FF);
 
-        return word * 64L + Fast.select( bits[ (int)word ], (int)rankInWord );
+        return word * 64L + Fast.select(bits[(int)word], (int)rankInWord);
 	}
 
 	@Override
@@ -117,7 +117,7 @@ public class HintedBsearchSelect implements Select {
 	}
 
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		bits = rank9.bitVector.bits();
 	}

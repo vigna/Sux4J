@@ -30,7 +30,7 @@ import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2002-2016 Sebastiano Vigna
+ * Copyright (C) 2002-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -134,7 +134,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 @Deprecated
 public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	public static final long serialVersionUID = 6L;
-	private static final Logger LOGGER = LoggerFactory.getLogger( MinimalPerfectHashFunction.class );
+	private static final Logger LOGGER = LoggerFactory.getLogger(MinimalPerfectHashFunction.class);
 	private static final boolean ASSERTS = false;
 
 	/** The length of a superblock. */
@@ -147,8 +147,8 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of nonzero bit pairs in <code>x</code>.
 	 */
 
-	public static int countNonzeroPairs( final long x ) {
-		return Long.bitCount( ( x | x >>> 1 ) & 0x5555555555555555L );
+	public static int countNonzeroPairs(final long x) {
+		return Long.bitCount((x | x >>> 1) & 0x5555555555555555L);
 	}
 
 	/** A builder class for {@link MinimalPerfectHashFunction}. */
@@ -166,7 +166,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * @param keys the keys to hash.
 		 * @return this builder.
 		 */
-		public Builder<T> keys( final Iterable<? extends T> keys ) {
+		public Builder<T> keys(final Iterable<? extends T> keys) {
 			this.keys = keys;
 			return this;
 		}
@@ -176,7 +176,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys to hash}.
 		 * @return this builder.
 		 */
-		public Builder<T> transform( final TransformationStrategy<? super T> transform ) {
+		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
 			this.transform = transform;
 			return this;
 		}
@@ -186,7 +186,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * @param signatureWidth a signature width, or 0 for no signature.
 		 * @return this builder.
 		 */
-		public Builder<T> signed( final int signatureWidth ) {
+		public Builder<T> signed(final int signatureWidth) {
 			this.signatureWidth = signatureWidth;
 			return this;
 		}
@@ -196,7 +196,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
-		public Builder<T> tempDir( final File tempDir ) {
+		public Builder<T> tempDir(final File tempDir) {
 			this.tempDir = tempDir;
 			return this;
 		}
@@ -208,7 +208,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store( final ChunkedHashStore<T> chunkedHashStore ) {
+		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -219,13 +219,13 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * @throws IllegalStateException if called more than once.
 		 */
 		public MinimalPerfectHashFunction<T> build() throws IOException {
-			if ( built ) throw new IllegalStateException( "This builder has been already used" );
+			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if ( transform == null ) {
-				if ( chunkedHashStore != null ) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException( "You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore" );
+			if (transform == null) {
+				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			}
-			return new MinimalPerfectHashFunction<>( keys, transform, signatureWidth, tempDir, chunkedHashStore );
+			return new MinimalPerfectHashFunction<>(keys, transform, signatureWidth, tempDir, chunkedHashStore);
 		}
 	}
 
@@ -278,19 +278,19 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param pos the position to rank in the 2-bit value array.
 	 * @return the number of hinges before the specified position.
 	 */
-	private long rank( long pos ) {
+	private long rank(long pos) {
 		pos *= 2;
 		assert pos >= 0;
 		assert pos <= bitVector.length();
 
-		int word = (int)( pos / Long.SIZE );
-		final int block = word / ( WORDS_PER_SUPERBLOCK / 2 ) & ~1;
-		final int offset = ( ( word % WORDS_PER_SUPERBLOCK ) / 6 ) - 1;
+		int word = (int)(pos / Long.SIZE);
+		final int block = word / (WORDS_PER_SUPERBLOCK / 2) & ~1;
+		final int offset = ((word % WORDS_PER_SUPERBLOCK) / 6) - 1;
 
-		long result = count[ block ] + ( count[ block + 1 ] >> 12 * ( offset + ( offset >>> 32 - 4 & 6 ) ) & 0x7FF ) +
-				countNonzeroPairs( array[ word ] & ( 1L << pos % Long.SIZE ) - 1 );
+		long result = count[block] + (count[block + 1] >> 12 * (offset + (offset >>> 32 - 4 & 6)) & 0x7FF) +
+				countNonzeroPairs(array[word] & (1L << pos % Long.SIZE) - 1);
 
-		for ( int todo = ( word & 0x1F ) % 6; todo-- != 0; ) result += countNonzeroPairs( array[ --word ] );
+		for (int todo = (word & 0x1F) % 6; todo-- != 0;) result += countNonzeroPairs(array[--word]);
 		return result;
 	}
 
@@ -307,10 +307,10 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected MinimalPerfectHashFunction( final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore ) throws IOException {
+	protected MinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
@@ -318,75 +318,75 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
-			chunkedHashStore = new ChunkedHashStore<>( transform, tempDir, pl );
-			chunkedHashStore.reset( r.nextLong() );
-			chunkedHashStore.addAll( keys.iterator() );
+			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, pl);
+			chunkedHashStore.reset(r.nextLong());
+			chunkedHashStore.addAll(keys.iterator());
 		}
 		n = chunkedHashStore.size();
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		final int log2NumChunks = Math.max( 0, Fast.mostSignificantBit( n >> LOG2_CHUNK_SIZE ) );
-		chunkShift = chunkedHashStore.log2Chunks( log2NumChunks );
+		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
-		LOGGER.debug( "Number of chunks: " + numChunks );
+		LOGGER.debug("Number of chunks: " + numChunks);
 
-		seed = new long[ numChunks ];
-		offset = new long[ numChunks + 1 ];
+		seed = new long[numChunks];
+		offset = new long[numChunks + 1];
 
 		bitVector = LongArrayBitVector.getInstance();
-		( values = bitVector.asLongBigList( 2 ) ).size( ( (long)Math.ceil( n * HypergraphSorter.GAMMA ) + 4 * numChunks ) );
+		(values = bitVector.asLongBigList(2)).size(((long)Math.ceil(n * HypergraphSorter.GAMMA) + 4 * numChunks));
 		array = bitVector.bits();
 
 		int duplicates = 0;
 
-		for ( ;; ) {
-			LOGGER.debug( "Generating minimal perfect hash function..." );
+		for (;;) {
+			LOGGER.debug("Generating minimal perfect hash function...");
 
 			long seed = 0;
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
-			pl.start( "Analysing chunks... " );
+			pl.start("Analysing chunks... ");
 
 			try {
 				int q = 0;
-				for ( final ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
-					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>( chunk.size(), false );
+				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>(chunk.size(), false);
 					do {
 						seed = r.nextLong();
-					} while ( !sorter.generateAndSort( chunk.iterator(), seed ) );
+					} while (!sorter.generateAndSort(chunk.iterator(), seed));
 
-					this.seed[ q ] = seed;
-					offset[ q + 1 ] = offset[ q ] + sorter.numVertices;
+					this.seed[q] = seed;
+					offset[q + 1] = offset[q] + sorter.numVertices;
 
 					/* We assign values. */
 					int top = chunk.size(), k, v = 0;
 					final int[] stack = sorter.stack;
 					final int[] vertex1 = sorter.vertex1;
 					final int[] vertex2 = sorter.vertex2;
-					final long off = offset[ q ];
+					final long off = offset[q];
 
-					while ( top > 0 ) {
-						v = stack[ --top ];
-						k = ( v > vertex1[ v ] ? 1 : 0 ) + ( v > vertex2[ v ] ? 1 : 0 );
-						assert k >= 0 && k < 3 : Integer.toString( k );
-						//System.err.println( "<" + v + ", " + vertex1[v] + ", " + vertex2[ v ]+ "> (" + k + ")" );
-						final long s = values.getLong( off + vertex1[ v ] ) + values.getLong( off + vertex2[ v ] );
-						final long value = ( k - s + 9 ) % 3;
-						assert values.getLong( off + v ) == 0;
-						values.set( off + v, value == 0 ? 3 : value );
+					while (top > 0) {
+						v = stack[--top];
+						k = (v > vertex1[v] ? 1 : 0) + (v > vertex2[v] ? 1 : 0);
+						assert k >= 0 && k < 3 : Integer.toString(k);
+						//System.err.println("<" + v + ", " + vertex1[v] + ", " + vertex2[v]+ "> (" + k + ")");
+						final long s = values.getLong(off + vertex1[v]) + values.getLong(off + vertex2[v]);
+						final long value = (k - s + 9) % 3;
+						assert values.getLong(off + v) == 0;
+						values.set(off + v, value == 0 ? 3 : value);
 					}
 
 					q++;
 					pl.update();
 
-					if ( ASSERTS ) {
+					if (ASSERTS) {
 						final IntOpenHashSet pos = new IntOpenHashSet();
-						final int[] e = new int[ 3 ];
-						for ( final long[] triple : chunk ) {
-							HypergraphSorter.tripleToEdge( triple, seed, sorter.numVertices, sorter.partSize, e );
-							assert pos.add( e[ (int)( values.getLong( off + e[ 0 ] ) + values.getLong( off + e[ 1 ] ) + values.getLong( off + e[ 2 ] ) ) % 3 ] );
+						final int[] e = new int[3];
+						for (final long[] triple : chunk) {
+							HypergraphSorter.tripleToEdge(triple, seed, sorter.numVertices, sorter.partSize, e);
+							assert pos.add(e[(int)(values.getLong(off + e[0]) + values.getLong(off + e[1]) + values.getLong(off + e[2])) % 3]);
 						}
 					}
 				}
@@ -394,75 +394,75 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				pl.done();
 				break;
 			}
-			catch ( final ChunkedHashStore.DuplicateException e ) {
-				if ( keys == null ) throw new IllegalStateException( "You provided no keys, but the chunked hash store was not checked" );
-				if ( duplicates++ > 3 ) throw new IllegalArgumentException( "The input list contains duplicates" );
-				LOGGER.warn( "Found duplicate. Recomputing triples..." );
-				chunkedHashStore.reset( r.nextLong() );
-				chunkedHashStore.addAll( keys.iterator() );
+			catch (final ChunkedHashStore.DuplicateException e) {
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
+				LOGGER.warn("Found duplicate. Recomputing triples...");
+				chunkedHashStore.reset(r.nextLong());
+				chunkedHashStore.addAll(keys.iterator());
 			}
 		}
 
 		globalSeed = chunkedHashStore.seed();
 
-		if ( n > 0 ) {
+		if (n > 0) {
 			final long m = values.size64();
 
 			final long length = bitVector.length();
 
-			final int numWords = (int)( ( length + Long.SIZE - 1 ) / Long.SIZE );
+			final int numWords = (int)((length + Long.SIZE - 1) / Long.SIZE);
 
-			final int numCounts = (int)( ( length + 32 * Long.SIZE - 1 ) / ( 32 * Long.SIZE ) ) * 2;
+			final int numCounts = (int)((length + 32 * Long.SIZE - 1) / (32 * Long.SIZE)) * 2;
 			// Init rank/select structure
-			count = new long[ numCounts + 1 ];
+			count = new long[numCounts + 1];
 
 			long c = 0;
 			int pos = 0;
-			for( int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2 ) {
-				count[ pos ] = c;
+			for(int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2) {
+				count[pos] = c;
 
-				for( int j = 0; j < WORDS_PER_SUPERBLOCK; j++ ) {
-					if ( j != 0 && j % 6 == 0 ) count[ pos + 1 ] |= ( i + j <= numWords ? c - count[ pos ] : 0x7FFL ) << 12 * ( j / 6 - 1 );
-					if ( i + j < numWords ) c += countNonzeroPairs( array[ i + j ] );
+				for(int j = 0; j < WORDS_PER_SUPERBLOCK; j++) {
+					if (j != 0 && j % 6 == 0) count[pos + 1] |= (i + j <= numWords ? c - count[pos] : 0x7FFL) << 12 * (j / 6 - 1);
+					if (i + j < numWords) c += countNonzeroPairs(array[i + j]);
 				}
 			}
 
-			count[ numCounts ] = c;
+			count[numCounts] = c;
 
-			if ( ASSERTS ) {
+			if (ASSERTS) {
 				int k = 0;
-				for ( long i = 0; i < m; i++ ) {
-					assert rank( i ) == k : "(" + i + ") " + k + " != " + rank( i );
-					if ( values.getLong( i ) != 0 ) k++;
+				for (long i = 0; i < m; i++) {
+					assert rank(i) == k : "(" + i + ") " + k + " != " + rank(i);
+					if (values.getLong(i) != 0) k++;
 					assert k <= n;
 				}
 
-				if ( keys != null ) {
+				if (keys != null) {
 					final Iterator<? extends T> iterator = keys.iterator();
-					for ( long i = 0; i < n; i++ )
-						assert getLong( iterator.next() ) < n;
+					for (long i = 0; i < n; i++)
+						assert getLong(iterator.next()) < n;
 				}
 			}
 		}
 		else count = LongArrays.EMPTY_ARRAY;
 
-		LOGGER.info( "Completed." );
-		LOGGER.debug( "Forecast bit cost per key: " + ( 2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK ) );
-		LOGGER.info( "Actual bit cost per key: " + (double)numBits() / n );
+		LOGGER.info("Completed.");
+		LOGGER.debug("Forecast bit cost per key: " + (2 * HypergraphSorter.GAMMA + 2. * Long.SIZE / BITS_PER_BLOCK));
+		LOGGER.info("Actual bit cost per key: " + (double)numBits() / n);
 
 
-		if ( signatureWidth != 0 ) {
+		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			( signatures = LongArrayBitVector.getInstance().asLongBigList( signatureWidth ) ).size( n );
+			(signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth)).size(n);
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
-			pl.start( "Signing..." );
-			for ( final ChunkedHashStore.Chunk chunk : chunkedHashStore ) {
+			pl.start("Signing...");
+			for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 				final Iterator<long[]> iterator = chunk.iterator();
-				for( int i = chunk.size(); i-- != 0; ) {
+				for(int i = chunk.size(); i-- != 0;) {
 					final long[] triple = iterator.next();
-					final int[] e = new int[ 3 ];
-					signatures.set( getLongByTripleNoCheck( triple, e ), signatureMask & triple[ 0 ] );
+					final int[] e = new int[3];
+					signatures.set(getLongByTripleNoCheck(triple, e), signatureMask & triple[0]);
 					pl.lightUpdate();
 				}
 			}
@@ -473,7 +473,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			signatures = null;
 		}
 
-		if ( !givenChunkedHashStore ) chunkedHashStore.close();
+		if (!givenChunkedHashStore) chunkedHashStore.close();
 	}
 
 	/**
@@ -487,17 +487,17 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong( final Object key ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
-		final long[] h = new long[ 3 ];
-		Hashes.spooky4( transform.toBitVector( (T)key ), globalSeed, h );
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( h[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( h, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
-		if ( signatureMask != 0 ) return result >= n || ( ( signatures.getLong( result ) ^ h[ 0 ] ) & signatureMask ) != 0 ? defRetValue : result;
+	public long getLong(final Object key) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[3];
+		final long[] h = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, h);
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] >>> chunkShift);
+		final long chunkOffset = offset[chunk];
+		HypergraphSorter.tripleToEdge(h, seed[chunk], (int)(offset[chunk + 1] - chunkOffset), e);
+		if (e[0] == -1) return defRetValue;
+		final long result = rank(chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3]);
+		if (signatureMask != 0) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
@@ -511,26 +511,26 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple( final long[] triple ) {
-		if ( n == 0 ) return defRetValue;
-		final int[] e = new int[ 3 ];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		if ( e[ 0 ] == -1 ) return defRetValue;
-		final long result = rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
-		if ( signatureMask != 0 ) return result >= n || signatures.getLong( result ) != ( triple[ 0 ] & signatureMask ) ? defRetValue : result;
+	public long getLongByTriple(final long[] triple) {
+		if (n == 0) return defRetValue;
+		final int[] e = new int[3];
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final long chunkOffset = offset[chunk];
+		HypergraphSorter.tripleToEdge(triple, seed[chunk], (int)(offset[chunk + 1] - chunkOffset), e);
+		if (e[0] == -1) return defRetValue;
+		final long result = rank(chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3]);
+		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < n ? result : defRetValue;
 	}
 
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
-	private long getLongByTripleNoCheck( final long[] triple, final int[] e ) {
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)( triple[ 0 ] >>> chunkShift );
-		final long chunkOffset = offset[ chunk ];
-		HypergraphSorter.tripleToEdge( triple, seed[ chunk ], (int)( offset[ chunk + 1 ] - chunkOffset ), e );
-		return rank( chunkOffset + e[ (int)( values.getLong( e[ 0 ] + chunkOffset ) + values.getLong( e[ 1 ] + chunkOffset ) + values.getLong( e[ 2 ] + chunkOffset ) ) % 3 ] );
+	private long getLongByTripleNoCheck(final long[] triple, final int[] e) {
+		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final long chunkOffset = offset[chunk];
+		HypergraphSorter.tripleToEdge(triple, seed[chunk], (int)(offset[chunk + 1] - chunkOffset), e);
+		return rank(chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3]);
 	}
 
 	@Override
@@ -538,65 +538,65 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return n;
 	}
 
-	private void readObject( final ObjectInputStream s ) throws IOException, ClassNotFoundException {
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		array = bitVector.bits();
 	}
 
 
-	public static void main( final String[] arg ) throws NoSuchMethodException, IOException, JSAPException {
+	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP( MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
-				new FlaggedOption( "encoding", ForNameStringParser.getParser( Charset.class ), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding." ),
-				new FlaggedOption( "tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files." ),
-				new Switch( "iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)." ),
-				new Switch( "utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)." ),
-				new Switch( "byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)." ),
-				new FlaggedOption( "signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits." ),
-				new Switch( "zipped", 'z', "zipped", "The string list is compressed in gzip format." ),
-				new UnflaggedOption( "function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function." ),
-				new UnflaggedOption( "stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
-						"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory." ), } );
+		final SimpleJSAP jsap = new SimpleJSAP(MinimalPerfectHashFunction.class.getName(), "Builds a minimal perfect hash function reading a newline-separated list of strings.", new Parameter[] {
+				new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+				new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+				new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+				new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+				new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+				new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits."),
+				new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+				new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function."),
+				new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
+						"The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."), });
 
-		final JSAPResult jsapResult = jsap.parse( arg );
-		if ( jsap.messagePrinted() ) return;
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
 
-		LOGGER.warn( "This class is deprecated: please use GOVMinimalPerfectHashFunction" );
+		LOGGER.warn("This class is deprecated: please use GOVMinimalPerfectHashFunction");
 
-		final String functionName = jsapResult.getString( "function" );
-		final String stringFile = jsapResult.getString( "stringFile" );
-		final Charset encoding = (Charset)jsapResult.getObject( "encoding" );
-		final boolean byteArray = jsapResult.getBoolean( "byteArray" );
-		final boolean zipped = jsapResult.getBoolean( "zipped" );
-		final boolean iso = jsapResult.getBoolean( "iso" );
-		final boolean utf32 = jsapResult.getBoolean( "utf32" );
-		final int signatureWidth = jsapResult.getInt( "signatureWidth", 0 );
+		final String functionName = jsapResult.getString("function");
+		final String stringFile = jsapResult.getString("stringFile");
+		final Charset encoding = (Charset)jsapResult.getObject("encoding");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
+		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean iso = jsapResult.getBoolean("iso");
+		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
-		if ( byteArray ) {
-			if ( "-".equals( stringFile ) ) throw new IllegalArgumentException( "Cannot read from standard input when building byte-array functions" );
-			if ( iso || utf32 || jsapResult.userSpecified( "encoding" ) ) throw new IllegalArgumentException( "Encoding options are not available when building byte-array functions" );
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection( stringFile, zipped );
-			BinIO.storeObject( new MinimalPerfectHashFunction<>( collection, TransformationStrategies.rawByteArray(), signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			BinIO.storeObject(new MinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, jsapResult.getFile("tempDir"), null), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
-			if ( "-".equals( stringFile ) ) {
-				final ProgressLogger pl = new ProgressLogger( LOGGER );
+			if ("-".equals(stringFile)) {
+				final ProgressLogger pl = new ProgressLogger(LOGGER);
 				pl.displayLocalSpeed = true;
 				pl.displayFreeMemory = true;
-				pl.start( "Loading strings..." );
-				collection = new LineIterator( new FastBufferedReader( new InputStreamReader( zipped ? new GZIPInputStream( System.in ) : System.in, encoding ) ), pl ).allLines();
+				pl.start("Loading strings...");
+				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection( stringFile, encoding.toString(), zipped );
+			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 					: utf32
 						? TransformationStrategies.rawUtf32()
 						: TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject( new MinimalPerfectHashFunction<CharSequence>( collection, transformationStrategy, signatureWidth, jsapResult.getFile( "tempDir"), null ), functionName );
+			BinIO.storeObject(new MinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, signatureWidth, jsapResult.getFile("tempDir"), null), functionName);
 		}
-		LOGGER.info( "Saved." );
+		LOGGER.info("Saved.");
 	}
 }

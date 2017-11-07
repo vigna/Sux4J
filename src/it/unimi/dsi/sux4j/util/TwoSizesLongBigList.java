@@ -6,7 +6,7 @@ import java.util.Arrays;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -69,45 +69,45 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	 *
 	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final IntIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public TwoSizesLongBigList(final IntIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Builds a new two-sizes long big list using a given iterable object.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final ShortIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public TwoSizesLongBigList(final ShortIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Builds a new two-sizes long big list using a given iterable object.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final ByteIterable elements ) {
-		this( (LongIterable) () -> LongIterators.wrap( elements.iterator() ));
+	public TwoSizesLongBigList(final ByteIterable elements) {
+		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
 	/** Builds a new two-sizes long big list using a given iterable object.
 	 *
 	 * @param elements an iterable object.
 	 */
-	public TwoSizesLongBigList( final LongIterable elements ) {
+	public TwoSizesLongBigList(final LongIterable elements) {
 		long l = 0;
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		int width = 0;
-		for( final LongIterator i = elements.iterator(); i.hasNext(); ) {
+		for(final LongIterator i = elements.iterator(); i.hasNext();) {
 			final long value = i.nextLong();
-			width = Math.max( width, Fast.mostSignificantBit( value ) + 1 );
-			counts.put( value, counts.get( value ) + 1 );
+			width = Math.max(width, Fast.mostSignificantBit(value) + 1);
+			counts.put(value, counts.get(value) + 1);
 			l++;
 		}
 
 		length = l;
 
 		final long[] keys = counts.keySet().toLongArray();
-		Arrays.sort( keys );
+		Arrays.sort(keys);
 
 		long costSmall = 0;
 		long costLarge = length * width;
@@ -118,68 +118,68 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 		int j = 0;
 
 		// Find the best cutpoint
-		for( int i = 1; i < width; i++ ) {
-			if ( ASSERTS ) assert costSmall % i == 0;
-			if ( i != 1 ) costSmall = ( costSmall / i ) * ( i + 1 );
-			while( j < keys.length && ( k = keys[ j ] ) < ( 1 << i ) ) {
-				final long c = counts.get( k );
+		for(int i = 1; i < width; i++) {
+			if (ASSERTS) assert costSmall % i == 0;
+			if (i != 1) costSmall = (costSmall / i) * (i + 1);
+			while(j < keys.length && (k = keys[j]) < (1 << i)) {
+				final long c = counts.get(k);
 				costLarge -= c * width;
-				costSmall += c * ( i + 1 );
+				costSmall += c * (i + 1);
 				j++;
 			}
-			//System.err.println( "At " + i + ":" + costSmall + " -> " + costLarge );
-			if ( costLarge + costSmall < minCostLarge + minCostSmall ) {
+			//System.err.println("At " + i + ":" + costSmall + " -> " + costLarge);
+			if (costLarge + costSmall < minCostLarge + minCostSmall) {
 				minIndex = i;
 				minCostLarge = costLarge;
 				minCostSmall = costSmall;
 			}
 		}
 
-		if ( ASSERTS ) assert minCostSmall / ( minIndex + 1 ) + minCostLarge / width == length;
-		//System.err.println( minCostLarge + " " + minCostSmall + " " + minIndex);
-		//System.err.println( numSmall );
-		if ( width != 0 && minIndex != width ) {
-			final long numSmall = minCostSmall / ( minIndex + 1 );
+		if (ASSERTS) assert minCostSmall / (minIndex + 1) + minCostLarge / width == length;
+		//System.err.println(minCostLarge + " " + minCostSmall + " " + minIndex);
+		//System.err.println(numSmall);
+		if (width != 0 && minIndex != width) {
+			final long numSmall = minCostSmall / (minIndex + 1);
 			final long numLarge = minCostLarge / width;
-			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( numSmall );
-			( marker = LongArrayBitVector.getInstance() ).length( length );
-			( large = LongArrayBitVector.getInstance().asLongBigList( width ) ).size( numLarge );
+			(small = LongArrayBitVector.getInstance().asLongBigList(minIndex)).size(numSmall);
+			(marker = LongArrayBitVector.getInstance()).length(length);
+			(large = LongArrayBitVector.getInstance().asLongBigList(width)).size(numLarge);
 		}
 		else {
-			( small = LongArrayBitVector.getInstance().asLongBigList( minIndex ) ).size( length );
+			(small = LongArrayBitVector.getInstance().asLongBigList(minIndex)).size(length);
 			marker = null;
 			large = null;
 		}
 
-		final int maxSmall = ( 1 << minIndex );
+		final int maxSmall = (1 << minIndex);
 
 		final LongIterator iterator = elements.iterator();
-		for( long i = 0, p = 0, q = 0; i < length; i++ ) {
+		for(long i = 0, p = 0, q = 0; i < length; i++) {
 			final long value = iterator.nextLong();
-			if ( value < maxSmall ) small.set( p++, value );
+			if (value < maxSmall) small.set(p++, value);
 			else {
-				large.set( q++, value );
-				marker.set( i );
+				large.set(q++, value);
+				marker.set(i);
 			}
 		}
 
-		rank = marker != null ? new Rank9( marker ) : null;
+		rank = marker != null ? new Rank9(marker) : null;
 
-		numBits = small.size64() * minIndex + ( marker != null ? rank.numBits() + marker.length() + large.size64() * width : 0 );
-		if ( ASSERTS ) {
+		numBits = small.size64() * minIndex + (marker != null ? rank.numBits() + marker.length() + large.size64() * width : 0);
+		if (ASSERTS) {
 			final LongIterator t = elements.iterator();
-			for( int i = 0; i < length; i++ ) {
+			for(int i = 0; i < length; i++) {
 				final long value = t.nextLong();
-				assert value == getLong( i ) : "At " + i + ": " + value + " != " + getLong( i );
+				assert value == getLong(i) : "At " + i + ": " + value + " != " + getLong(i);
 			}
 		}
 	}
 
 	@Override
-	public long getLong( long index ) {
-		if ( marker == null ) return small.getLong( index );
-		if ( marker.getBoolean( index ) ) return large.getLong( rank.rank( index ) );
-		return small.getLong( index - rank.rank( index ) );
+	public long getLong(long index) {
+		if (marker == null) return small.getLong(index);
+		if (marker.getBoolean(index)) return large.getLong(rank.rank(index));
+		return small.getLong(index - rank.rank(index));
 	}
 
 	@Override

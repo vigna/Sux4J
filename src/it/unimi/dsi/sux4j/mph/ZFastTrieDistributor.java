@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2016 Sebastiano Vigna
+ * Copyright (C) 2008-2017 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -54,7 +54,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 /** A distributor based on a z-fast trie. */
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
-	private final static Logger LOGGER = LoggerFactory.getLogger( ZFastTrieDistributor.class );
+	private final static Logger LOGGER = LoggerFactory.getLogger(ZFastTrieDistributor.class);
 	private static final long serialVersionUID = 3L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
@@ -124,7 +124,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			 * @param right the right child.
 			 * @param path the path compacted at this node.
 			 */
-			public Node( final Node left, final Node right, final LongArrayBitVector path ) {
+			public Node(final Node left, final Node right, final LongArrayBitVector path) {
 				this.left = left;
 				this.right = right;
 				this.path = path;
@@ -144,60 +144,60 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			}
 		}
 
-		void labelIntermediateTrie( final Node node, final LongArrayBitVector path,
+		void labelIntermediateTrie(final Node node, final LongArrayBitVector path,
 				final OfflineIterable<BitVector, LongArrayBitVector> delimiters,
 				final OfflineIterable<BitVector, LongArrayBitVector> representations,
 				final OfflineIterable<BitVector, LongArrayBitVector> keys,
 				final LongBigList internalNodeSignatures,
 				final long seed,
-				final boolean left ) throws IOException {
-			assert ( node.left != null ) == ( node.right != null );
+				final boolean left) throws IOException {
+			assert (node.left != null) == (node.right != null);
 
-			final long parentPathLength = Math.max( 0, path.length() - 1 );
+			final long parentPathLength = Math.max(0, path.length() - 1);
 
-			if ( node.left != null ) {
-				path.append( node.path );
+			if (node.left != null) {
+				path.append(node.path);
 
-				labelIntermediateTrie( node.left, path.append( 0, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, true );
-				path.removeBoolean( (int)( path.length() - 1 ) );
+				labelIntermediateTrie(node.left, path.append(0, 1), delimiters, representations, keys, internalNodeSignatures, seed, true);
+				path.removeBoolean((int)(path.length() - 1));
 
-				final long h = Hashes.spooky4( path, seed );
-				final long p = ( -1L << Fast.mostSignificantBit( parentPathLength ^ path.length() ) & path.length() );
+				final long h = Hashes.spooky4(path, seed);
+				final long p = (-1L << Fast.mostSignificantBit(parentPathLength ^ path.length()) & path.length());
 
 				assert p <= path.length() : p + " > " + path.length();
 				assert path.length() == 0 || p > parentPathLength : p + " <= " + parentPathLength;
 
-				keys.add( LongArrayBitVector.copy( path.subVector( 0, p ) ) );
-				representations.add( path.copy() );
-				assert Fast.length( path.length() ) <= logW;
-				if ( DDDEBUG ) System.err.println( "Entering " + path + " with key (" + p + "," + path.subVector( 0, p ).hashCode() + ") " + path.subVector( 0, p ) + ", signature " + ( h & signatureMask ) + " and length " + ( path.length() & logWMask ) + "(value: " + (( h & signatureMask ) << logW | ( path.length() & logWMask )) + ")" );
+				keys.add(LongArrayBitVector.copy(path.subVector(0, p)));
+				representations.add(path.copy());
+				assert Fast.length(path.length()) <= logW;
+				if (DDDEBUG) System.err.println("Entering " + path + " with key (" + p + "," + path.subVector(0, p).hashCode() + ") " + path.subVector(0, p) + ", signature " + (h & signatureMask) + " and length " + (path.length() & logWMask) + "(value: " + ((h & signatureMask) << logW | (path.length() & logWMask)) + ")");
 
-				internalNodeSignatures.add( ( h & signatureMask ) << logW | ( path.length() & logWMask ) );
+				internalNodeSignatures.add((h & signatureMask) << logW | (path.length() & logWMask));
 
-				labelIntermediateTrie( node.right, path.append( 1, 1 ), delimiters, representations, keys, internalNodeSignatures, seed, false );
+				labelIntermediateTrie(node.right, path.append(1, 1), delimiters, representations, keys, internalNodeSignatures, seed, false);
 
-				path.length( path.length() - node.path.length() - 1 );
+				path.length(path.length() - node.path.length() - 1);
 			}
 			else {
-				if ( left ) delimiters.add( LongArrayBitVector.copy( path.subVector( 0, path.lastOne() + 1 ) ) );
-				else delimiters.add( LongArrayBitVector.copy( path ) );
+				if (left) delimiters.add(LongArrayBitVector.copy(path.subVector(0, path.lastOne() + 1)));
+				else delimiters.add(LongArrayBitVector.copy(path));
 			}
 		}
 
 
-		public IntermediateTrie( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final long seed, final ProgressLogger pl ) throws IOException {
+		public IntermediateTrie(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final long seed, final ProgressLogger pl) throws IOException {
 
 			Iterator<? extends T> iterator = elements.iterator();
-			final long bucketSizeMask = ( 1L << log2BucketSize ) - 1;
+			final long bucketSizeMask = (1L << log2BucketSize) - 1;
 
 			pl.itemsName = "keys";
 			pl.displayFreeMemory = true;
 
 
 			leaves = DDEBUG ? new ObjectLinkedOpenHashSet<>() : null;
-			if ( iterator.hasNext() ) {
-				pl.start( "Building trie..." );
-				final LongArrayBitVector prev = LongArrayBitVector.copy( transformationStrategy.toBitVector( iterator.next() ) );
+			if (iterator.hasNext()) {
+				pl.start("Building trie...");
+				final LongArrayBitVector prev = LongArrayBitVector.copy(transformationStrategy.toBitVector(iterator.next()));
 				pl.lightUpdate();
 				final LongArrayBitVector prevDelimiter = LongArrayBitVector.getInstance();
 
@@ -207,36 +207,36 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				long count = 1;
 				long maxLength = prev.length();
 
-				while( iterator.hasNext() ) {
+				while(iterator.hasNext()) {
 					// Check order
-					curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
+					curr.replace(transformationStrategy.toBitVector(iterator.next()));
 					pl.lightUpdate();
-					prefix = (int)curr.longestCommonPrefixLength( prev );
-					if ( prefix == prev.length() && prefix == curr.length()  ) throw new IllegalArgumentException( "The input bit vectors are not distinct" );
-					if ( prefix == prev.length() || prefix == curr.length() ) throw new IllegalArgumentException( "The input bit vectors are not prefix-free" );
-					if ( prev.getBoolean( prefix ) ) throw new IllegalArgumentException( "The input bit vectors are not lexicographically sorted" );
+					prefix = (int)curr.longestCommonPrefixLength(prev);
+					if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct");
+					if (prefix == prev.length() || prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not prefix-free");
+					if (prev.getBoolean(prefix)) throw new IllegalArgumentException("The input bit vectors are not lexicographically sorted");
 
-					if ( ( count & bucketSizeMask ) == 0 ) {
+					if ((count & bucketSizeMask) == 0) {
 						// Found delimiter. Insert into trie.
-						if ( root == null ) {
-							root = new Node( null, null, prev.copy() );
-							if ( DDEBUG ) leaves.add( prev.copy() );
-							prevDelimiter.replace( prev );
+						if (root == null) {
+							root = new Node(null, null, prev.copy());
+							if (DDEBUG) leaves.add(prev.copy());
+							prevDelimiter.replace(prev);
 						}
 						else {
-							prefix = (int)prev.longestCommonPrefixLength( prevDelimiter );
+							prefix = (int)prev.longestCommonPrefixLength(prevDelimiter);
 
 							pos = 0;
 							node = root;
 							Node n = null;
-							while( node != null ) {
+							while(node != null) {
 								final long pathLength = node.path.length();
-								if ( prefix < pathLength ) {
-									n = new Node( node.left, node.right, node.path.copy( prefix + 1, pathLength ) );
-									node.path.length( prefix );
+								if (prefix < pathLength) {
+									n = new Node(node.left, node.right, node.path.copy(prefix + 1, pathLength));
+									node.path.length(prefix);
 									node.path.trim();
 									node.left = n;
-									node.right = new Node( null, null, prev.copy( pos + prefix + 1, prev.length() ) );
+									node.right = new Node(null, null, prev.copy(pos + prefix + 1, prev.length()));
 									break;
 								}
 
@@ -248,126 +248,126 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 							assert node != null;
 
-							if ( DDEBUG ) leaves.add( prev.copy() );
-							prevDelimiter.replace( prev );
+							if (DDEBUG) leaves.add(prev.copy());
+							prevDelimiter.replace(prev);
 						}
 					}
-					prev.replace( curr );
-					maxLength = Math.max( maxLength, prev.length() );
+					prev.replace(curr);
+					maxLength = Math.max(maxLength, prev.length());
 					count++;
 				}
 				pl.done();
 
 				numElements = count;
-				logLogW = Fast.ceilLog2( Fast.ceilLog2( maxLength ) );
+				logLogW = Fast.ceilLog2(Fast.ceilLog2(maxLength));
 				logW = 1 << logLogW;
 				w = 1L << logW;
-				logWMask = ( 1L << logW ) - 1;
+				logWMask = (1L << logW) - 1;
 				signatureSize = logLogW + log2BucketSize;
-				signatureMask = ( 1L << signatureSize ) - 1;
+				signatureMask = (1L << signatureSize) - 1;
 
 				assert logW + signatureSize <= Long.SIZE;
 
 				this.root = root;
 
-				if ( DEBUG ) System.err.println( "w: " + w );
-				if ( DDEBUG ) {
-					System.err.println( "Leaves (" + leaves.size() + "): " + leaves );
-					System.err.println( this );
+				if (DEBUG) System.err.println("w: " + w);
+				if (DDEBUG) {
+					System.err.println("Leaves (" + leaves.size() + "): " + leaves);
+					System.err.println(this);
 				}
 
-				internalNodeRepresentations = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
+				internalNodeRepresentations = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
 
-				if ( root != null ) {
-					LOGGER.info( "Computing approximate structure..." );
+				if (root != null) {
+					LOGGER.info("Computing approximate structure...");
 
-					internalNodeSignatures = LongArrayBitVector.getInstance().asLongBigList( logW + signatureSize );
-					internalNodeKeys = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-					delimiters = new OfflineIterable<>( BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance() );
-					labelIntermediateTrie( root, LongArrayBitVector.getInstance(), delimiters, internalNodeRepresentations, internalNodeKeys, internalNodeSignatures, seed, true );
+					internalNodeSignatures = LongArrayBitVector.getInstance().asLongBigList(logW + signatureSize);
+					internalNodeKeys = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
+					delimiters = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
+					labelIntermediateTrie(root, LongArrayBitVector.getInstance(), delimiters, internalNodeRepresentations, internalNodeKeys, internalNodeSignatures, seed, true);
 
-					if ( DDEBUG ) {
-						System.err.println( "Delimiters (" + delimiters.size64() + "): " + delimiters );
+					if (DDEBUG) {
+						System.err.println("Delimiters (" + delimiters.size64() + "): " + delimiters);
 						final Iterator<LongArrayBitVector> d = delimiters.iterator();
 						final Iterator<BitVector> l = leaves.iterator();
-						for( int i = 0; i < delimiters.size64(); i++ ) {
+						for(int i = 0; i < delimiters.size64(); i++) {
 							final BitVector del = d.next(), leaf = l.next();
-							assert del.longestCommonPrefixLength( leaf ) == del.length() : del.longestCommonPrefixLength( leaf ) + " != " + del.length() + "\n" + del + "\n" + leaf + "\n";
+							assert del.longestCommonPrefixLength(leaf) == del.length() : del.longestCommonPrefixLength(leaf) + " != " + del.length() + "\n" + del + "\n" + leaf + "\n";
 						}
 						assert ! l.hasNext();
 
-						System.err.println( "Internal node representations: " + internalNodeRepresentations );
-						System.err.println( "Internal node signatures: " + internalNodeSignatures );
+						System.err.println("Internal node representations: " + internalNodeRepresentations);
+						System.err.println("Internal node signatures: " + internalNodeSignatures);
 					}
 
 					pl.expectedUpdates = numElements;
-					pl.start( "Computing function keys..." );
+					pl.start("Computing function keys...");
 
-					externalValues = LongArrayBitVector.getInstance().asLongBigList( 1 );
-					externalParentRepresentations = new IntBigArrayBigList( numElements );
+					externalValues = LongArrayBitVector.getInstance().asLongBigList(1);
+					externalParentRepresentations = new IntBigArrayBigList(numElements);
 					iterator = elements.iterator();
 
 					// The stack of nodes visited the last time
-					final Node stack[] = new Node[ (int)maxLength ];
+					final Node stack[] = new Node[(int)maxLength];
 					// The length of the path compacted in the trie up to the corresponding node, excluded
-					final int[] len = new int[ (int)maxLength ];
-					stack[ 0 ] = root;
+					final int[] len = new int[(int)maxLength];
+					stack[0] = root;
 					int depth = 0, behaviour, c = 0;
 					boolean first = true;
 					BitVector currFromPos, path;
 					LongArrayBitVector nodePath;
 
-					while( iterator.hasNext() ) {
-						curr.replace( transformationStrategy.toBitVector( iterator.next() ) );
+					while(iterator.hasNext()) {
+						curr.replace(transformationStrategy.toBitVector(iterator.next()));
 						pl.lightUpdate();
-						if ( DDDEBUG ) System.err.println( "Analysing key " + curr + "..." );
-						if ( ! first )  {
+						if (DDDEBUG) System.err.println("Analysing key " + curr + "...");
+						if (! first)  {
 							// Adjust stack using lcp between present string and previous one
-							prefix = (int)prev.longestCommonPrefixLength( curr );
-							while( depth > 0 && len[ depth ] > prefix ) depth--;
+							prefix = (int)prev.longestCommonPrefixLength(curr);
+							while(depth > 0 && len[depth] > prefix) depth--;
 						}
 						else first = false;
-						node = stack[ depth ];
-						pos = len[ depth ];
+						node = stack[depth];
+						pos = len[depth];
 
 						for(;;) {
 							nodePath = node.path;
-							currFromPos = curr.subVector( pos );
-							prefix = (int)currFromPos.longestCommonPrefixLength( nodePath );
+							currFromPos = curr.subVector(pos);
+							prefix = (int)currFromPos.longestCommonPrefixLength(nodePath);
 
-							if ( DDDEBUG ) System.err.println( "prefix: " + prefix + " nodePath.length(): " + nodePath.length() + ( prefix < nodePath.length() ? " bit: " + String.valueOf( nodePath.getBoolean( prefix ) ) : "" ) + " node.isLeaf(): " + node.isLeaf() );
+							if (DDDEBUG) System.err.println("prefix: " + prefix + " nodePath.length(): " + nodePath.length() + (prefix < nodePath.length() ? " bit: " + String.valueOf(nodePath.getBoolean(prefix)) : "") + " node.isLeaf(): " + node.isLeaf());
 
-							if ( prefix < nodePath.length() || node.isLeaf() ) {
+							if (prefix < nodePath.length() || node.isLeaf()) {
 								// Exit. LEFT or RIGHT, depending on the bit at the end of the common prefix. The
 								// path is the remaining path at the current position for external nodes, or a prefix of length
 								// at most pathLength for internal nodes.
-								behaviour = prefix < nodePath.length() && ! nodePath.getBoolean( prefix ) ? RIGHT : LEFT;
+								behaviour = prefix < nodePath.length() && ! nodePath.getBoolean(prefix) ? RIGHT : LEFT;
 								path = curr;
 
-								externalValues.add( behaviour );
-								externalParentRepresentations.add( depth == 0 ? pos : pos - 1 );
+								externalValues.add(behaviour);
+								externalParentRepresentations.add(depth == 0 ? pos : pos - 1);
 
-								if ( DDDEBUG ) {
-									System.err.println( "Computed " + ( node.isLeaf() ? "leaf " : "" ) + "mapping " + c + " <" + node.hashCode() + ", " + path + "> -> " + behaviour );
-									System.err.println( "Root: " + root + " node: " + node + " representation length: " + ( depth == 0 ? pos : pos - 1 ) );
+								if (DDDEBUG) {
+									System.err.println("Computed " + (node.isLeaf() ? "leaf " : "") + "mapping " + c + " <" + node.hashCode() + ", " + path + "> -> " + behaviour);
+									System.err.println("Root: " + root + " node: " + node + " representation length: " + (depth == 0 ? pos : pos - 1));
 								}
 
 								break;
 							}
 
 							pos += nodePath.length() + 1;
-							if ( pos > curr.length() ) {
+							if (pos > curr.length()) {
 								assert false;
 								break;
 							}
-							// System.err.println( curr.getBoolean( pos - 1 ) ? "Turning right" : "Turning left" );
-							node = curr.getBoolean( pos - 1 ) ? node.right : node.left;
+							// System.err.println(curr.getBoolean(pos - 1) ? "Turning right" : "Turning left");
+							node = curr.getBoolean(pos - 1) ? node.right : node.left;
 							// Update stack
-							len[ ++depth ] = pos;
-							stack[ depth ] = node;
+							len[++depth] = pos;
+							stack[depth] = node;
 						}
 
-						prev.replace( curr );
+						prev.replace(curr);
 						c++;
 					}
 					pl.done();
@@ -382,32 +382,32 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			this.root = null;
 		}
 
-		private void recToString( final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level ) {
-			if ( n == null ) return;
+		private void recToString(final Node n, final MutableString printPrefix, final MutableString result, final MutableString path, final int level) {
+			if (n == null) return;
 
-			result.append( printPrefix ).append( '(' ).append( level ).append( ')' );
+			result.append(printPrefix).append('(').append(level).append(')');
 
-			if ( n.path != null ) {
-				path.append( n.path );
-				result.append( " path: (" ).append( n.path.length() ).append( ") :" ).append( n.path );
+			if (n.path != null) {
+				path.append(n.path);
+				result.append(" path: (").append(n.path.length()).append(") :").append(n.path);
 			}
 
-			result.append( '\n' );
+			result.append('\n');
 
-			path.append( '0' );
-			recToString( n.left, printPrefix.append( '\t' ).append( "0 => " ), result, path, level + 1 );
-			path.charAt( path.length() - 1, '1' );
-			recToString( n.right, printPrefix.replace( printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1 );
-			path.delete( path.length() - 1, path.length() );
-			printPrefix.delete( printPrefix.length() - 6, printPrefix.length() );
+			path.append('0');
+			recToString(n.left, printPrefix.append('\t').append("0 => "), result, path, level + 1);
+			path.charAt(path.length() - 1, '1');
+			recToString(n.right, printPrefix.replace(printPrefix.length() - 5, printPrefix.length(), "1 => "), result, path, level + 1);
+			path.delete(path.length() - 1, path.length());
+			printPrefix.delete(printPrefix.length() - 6, printPrefix.length());
 
-			path.delete( (int)( path.length() - n.path.length() ), path.length() );
+			path.delete((int)(path.length() - n.path.length()), path.length());
 		}
 
 		@Override
 		public String toString() {
 			final MutableString s = new MutableString();
-			recToString( root, new MutableString(), s, new MutableString(), 0 );
+			recToString(root, new MutableString(), s, new MutableString(), 0);
 			return s.toString();
 		}
 
@@ -422,19 +422,19 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
 	 * @param chunkedHashStore a store containing the keys already transformed into bit vectors.
 	 */
-	public ZFastTrieDistributor( final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ChunkedHashStore<BitVector> chunkedHashStore ) throws IOException {
+	public ZFastTrieDistributor(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ChunkedHashStore<BitVector> chunkedHashStore) throws IOException {
 		this.transformationStrategy = transformationStrategy;
 		this.seed = chunkedHashStore.seed();
-		final ProgressLogger pl = new ProgressLogger( LOGGER );
+		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
-		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<>( elements, log2BucketSize, transformationStrategy, seed, pl );
+		final IntermediateTrie<T> intermediateTrie = new IntermediateTrie<>(elements, log2BucketSize, transformationStrategy, seed, pl);
 
 		size = intermediateTrie.numElements;
 		emptyTrie = intermediateTrie.internalNodeRepresentations.size64() == 0;
 		noDelimiters = intermediateTrie.delimiters == null || intermediateTrie.delimiters.size64() == 0;
 
-		if ( noDelimiters ) {
+		if (noDelimiters) {
 			behaviour = null;
 			signatures = null;
 			leaves = null;
@@ -445,33 +445,33 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		logW =  intermediateTrie.logW;
 		signatureMask =  intermediateTrie.signatureMask;
 
-		LOGGER.info( "Computing behaviour function..." );
-		behaviour = new GOV3Function.Builder<BitVector>().keys( TransformationStrategies.wrap( elements, transformationStrategy ) ).transform( TransformationStrategies.identity() ).store( chunkedHashStore ).values( intermediateTrie.externalValues, 1 ).indirect().build();
+		LOGGER.info("Computing behaviour function...");
+		behaviour = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(elements, transformationStrategy)).transform(TransformationStrategies.identity()).store(chunkedHashStore).values(intermediateTrie.externalValues, 1).indirect().build();
 		intermediateTrie.externalValues = null;
 
-		if ( ! emptyTrie ) {
+		if (! emptyTrie) {
 			numDelimiters = intermediateTrie.delimiters.size64();
 
-			if ( DDEBUG ) {
-				System.err.println( "Internal node representations: " + intermediateTrie.internalNodeRepresentations );
-				System.err.println( "Internal node keys: " + intermediateTrie.internalNodeKeys );
+			if (DDEBUG) {
+				System.err.println("Internal node representations: " + intermediateTrie.internalNodeRepresentations);
+				System.err.println("Internal node keys: " + intermediateTrie.internalNodeKeys);
 			}
 
 			ObjectOpenHashSet<LongArrayBitVector> rankers = new ObjectOpenHashSet<>();
 
 			pl.itemsName = "nodes";
 			pl.expectedUpdates = intermediateTrie.internalNodeRepresentations.size64();
-			pl.start( "Computing leaf ranker keys..." );
+			pl.start("Computing leaf ranker keys...");
 
-			for( final BitVector bv: intermediateTrie.internalNodeRepresentations ) {
-				rankers.add( LongArrayBitVector.copy( bv.subVector( 0, bv.lastOne() + 1 ) ) );
-				rankers.add( LongArrayBitVector.copy( bv ).append( 1, 1 ) );
-				final LongArrayBitVector plus1 = LongArrayBitVector.copy( bv );
+			for(final BitVector bv: intermediateTrie.internalNodeRepresentations) {
+				rankers.add(LongArrayBitVector.copy(bv.subVector(0, bv.lastOne() + 1)));
+				rankers.add(LongArrayBitVector.copy(bv).append(1, 1));
+				final LongArrayBitVector plus1 = LongArrayBitVector.copy(bv);
 				final long lastZero = plus1.lastZero();
-				if ( lastZero != -1 ) {
-					plus1.length( lastZero + 1 );
-					plus1.set( lastZero );
-					rankers.add( plus1 );
+				if (lastZero != -1) {
+					plus1.length(lastZero + 1);
+					plus1.set(lastZero);
+					rankers.add(plus1);
 				}
 				pl.lightUpdate();
 			}
@@ -480,31 +480,31 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			intermediateTrie.internalNodeRepresentations.close();
 			intermediateTrie.internalNodeRepresentations = null;
 
-			LOGGER.info( "Sorting leaf ranker keys..." );
+			LOGGER.info("Sorting leaf ranker keys...");
 
-			LongArrayBitVector[] rankerArray = rankers.toArray( new LongArrayBitVector[ rankers.size() ] );
+			LongArrayBitVector[] rankerArray = rankers.toArray(new LongArrayBitVector[rankers.size()]);
 			rankers = null;
-			Arrays.sort( rankerArray );
+			Arrays.sort(rankerArray);
 
-			if ( DDEBUG ) {
-				System.err.println( "Rankers: " );
-				for( final BitVector bv: rankerArray ) System.err.println( bv );
+			if (DDEBUG) {
+				System.err.println("Rankers: ");
+				for(final BitVector bv: rankerArray) System.err.println(bv);
 				System.err.println();
 			}
 
-			final LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength( rankerArray.length );
+			final LongArrayBitVector leavesBitVector = LongArrayBitVector.ofLength(rankerArray.length);
 			int q = 0;
 
-			LOGGER.info( "Setting up leaf ranker bit vector..." );
+			LOGGER.info("Setting up leaf ranker bit vector...");
 
 			final OfflineIterator<BitVector, LongArrayBitVector> delimiterIterator = intermediateTrie.delimiters.iterator();
 			LongArrayBitVector bv = delimiterIterator.next();
 			int cmp;
-			for( final BitVector v : rankerArray ) {
-				while( bv != null ) {
-					cmp = bv.compareTo( v );
-					if ( cmp == 0 ) leavesBitVector.set( q );
-					if ( cmp >= 0 ) break;
+			for(final BitVector v : rankerArray) {
+				while(bv != null) {
+					cmp = bv.compareTo(v);
+					if (cmp == 0) leavesBitVector.set(q);
+					if (cmp >= 0) break;
 					bv = delimiterIterator.hasNext() ? delimiterIterator.next() : null;
 				}
 
@@ -513,21 +513,21 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			delimiterIterator.close();
 			intermediateTrie.delimiters.close();
 
-			leaves = new Rank9( leavesBitVector );
+			leaves = new Rank9(leavesBitVector);
 
-			if ( DDEBUG ) System.err.println( "Rank bit vector: " + leavesBitVector );
+			if (DDEBUG) System.err.println("Rank bit vector: " + leavesBitVector);
 
-			LOGGER.info( "Creating leaf ranker..." );
-			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<BitVector>().keys( Arrays.asList( rankerArray ) ).transform( TransformationStrategies.prefixFree() ).build();
+			LOGGER.info("Creating leaf ranker...");
+			ranker = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<BitVector>().keys(Arrays.asList(rankerArray)).transform(TransformationStrategies.prefixFree()).build();
 			rankerArray = null;
 
-			LOGGER.info( "Computing length/signature map..." );
+			LOGGER.info("Computing length/signature map...");
 
-			final ChunkedHashStore<BitVector> intermediateTrieChunkedHashStore = new ChunkedHashStore<>( TransformationStrategies.identity(), chunkedHashStore.tempDir() );
-			intermediateTrieChunkedHashStore.reset( seed );
-			intermediateTrieChunkedHashStore.addAll( intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator() );
+			final ChunkedHashStore<BitVector> intermediateTrieChunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), chunkedHashStore.tempDir());
+			intermediateTrieChunkedHashStore.reset(seed);
+			intermediateTrieChunkedHashStore.addAll(intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator());
 
-			signatures = new GOV3Function.Builder<BitVector>().store( intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize ).build();
+			signatures = new GOV3Function.Builder<BitVector>().store(intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
@@ -540,18 +540,18 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 			pl.itemsName = "keys";
 			pl.expectedUpdates = size;
-			pl.start( "Searching for mistakes..." );
+			pl.start("Searching for mistakes...");
 
-			final Iterator<BitVector>iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
+			final Iterator<BitVector>iterator = TransformationStrategies.wrap(elements.iterator(), transformationStrategy);
 			c = 0;
 			int mistakes = 0;
-			while( iterator.hasNext() ) {
+			while(iterator.hasNext()) {
 				final BitVector curr = iterator.next().fast();
-				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) % ( 1L << log2BucketSize ) == 0 ? " (bucket)" : "" ));
-				if ( getNodeStringLength( curr ) != intermediateTrie.externalParentRepresentations.getInt( c ) ){
-					if ( DEBUG ) System.err.println( "Error! " + getNodeStringLength( curr ) + " != " + intermediateTrie.externalParentRepresentations.getInt( c ) );
-					final long h = Hashes.spooky4( curr, seed );
-					mistakeSignatures.add( (int)h );
+				if (DEBUG) System.err.println("Checking element number " + c + ((c + 1) % (1L << log2BucketSize) == 0 ? " (bucket)" : ""));
+				if (getNodeStringLength(curr) != intermediateTrie.externalParentRepresentations.getInt(c)){
+					if (DEBUG) System.err.println("Error! " + getNodeStringLength(curr) + " != " + intermediateTrie.externalParentRepresentations.getInt(c));
+					final long h = Hashes.spooky4(curr, seed);
+					mistakeSignatures.add((int)h);
 					mistakes++;
 				}
 
@@ -560,7 +560,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			}
 			pl.done();
 
-			LOGGER.info( "Errors: " + mistakes + " (" + ( 100.0 * mistakes / size ) + "%)" );
+			LOGGER.info("Errors: " + mistakes + " (" + (100.0 * mistakes / size) + "%)");
 			assert size < 10000 || (double)mistakes / size < .5 : "size = " + size + ", errors = " + 100.0 * mistakes / size + "% >= 50%";
 
 			final ObjectArrayList<BitVector> positives = new ObjectArrayList<>();
@@ -568,36 +568,36 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			c = 0;
 
 			pl.expectedUpdates = size;
-			pl.start( "Searching for false positives..." );
+			pl.start("Searching for false positives...");
 
-			for( final BitVector curr: TransformationStrategies.wrap( elements, transformationStrategy ) ) {
-				final long h = Hashes.spooky4( curr, seed );
-				if ( mistakeSignatures.contains( (int)h ) ) {
-					positives.add( curr.copy() );
-					results.add( intermediateTrie.externalParentRepresentations.getInt( c ) );
+			for(final BitVector curr: TransformationStrategies.wrap(elements, transformationStrategy)) {
+				final long h = Hashes.spooky4(curr, seed);
+				if (mistakeSignatures.contains((int)h)) {
+					positives.add(curr.copy());
+					results.add(intermediateTrie.externalParentRepresentations.getInt(c));
 				}
 				c++;
 				pl.lightUpdate();
 			}
 			pl.done();
 
-			LOGGER.info( "False errors: " + ( positives.size() - mistakes ) + ( positives.size() != 0 ? " (" +  100 * ( positives.size() - mistakes ) / ( positives.size() ) + "%)" : "" ) );
+			LOGGER.info("False errors: " + (positives.size() - mistakes) + (positives.size() != 0 ? " (" +  100 * (positives.size() - mistakes) / (positives.size()) + "%)" : ""));
 			this.mistakeSignatures = mistakeSignatures;
 
-			LOGGER.info( "Creating correction function..." );
-			corrections = new GOV3Function.Builder<BitVector>().keys( positives ).transform( TransformationStrategies.identity() ).values( results, logW ).build();
+			LOGGER.info("Creating correction function...");
+			corrections = new GOV3Function.Builder<BitVector>().keys(positives).transform(TransformationStrategies.identity()).values(results, logW).build();
 
 			final int bucketSize = 1 << log2BucketSize;
-			LOGGER.debug( "Forecast signature bits per element: " + ( 1.0 / bucketSize ) * ( GOV3Function.C + log2( intermediateTrie.w ) + log2( bucketSize ) + log2( log2( intermediateTrie.w ) ) ) );
-			LOGGER.debug( "Actual signature bits per element: " + (double)signatures.numBits() / size );
-			LOGGER.debug( "Forecast ranker bits per element: " + ( 3.0 / bucketSize ) * ( GOV3Function.C + log2( Math.E ) - log2( log2( Math.E ) ) + log2( 1 + log2( 3.0 * size / bucketSize ) ) + log2( intermediateTrie.w - log2 ( log2( size ) ) ) ) );
-			LOGGER.debug( "Actual ranker bits per element: " + (double)ranker.numBits() / size );
-			LOGGER.debug( "Forecast leaves bits per element: " + ( 3.0 / bucketSize ) );
-			LOGGER.debug( "Actual leaves bits per element: " + (double)leaves.bitVector().length() / size );
-			LOGGER.debug( "Forecast mistake bits per element: " + ( log2( bucketSize ) / bucketSize + 2 * GOV3Function.C / bucketSize ) );
-			LOGGER.debug( "Actual mistake bits per element: " + (double)numBitsForMistakes() / size );
-			LOGGER.debug( "Forecast behaviour bits per element: " + GOV3Function.C );
-			LOGGER.debug( "Actual behaviour bits per element: " + (double)behaviour.numBits() / size );
+			LOGGER.debug("Forecast signature bits per element: " + (1.0 / bucketSize) * (GOV3Function.C + log2(intermediateTrie.w) + log2(bucketSize) + log2(log2(intermediateTrie.w))));
+			LOGGER.debug("Actual signature bits per element: " + (double)signatures.numBits() / size);
+			LOGGER.debug("Forecast ranker bits per element: " + (3.0 / bucketSize) * (GOV3Function.C + log2(Math.E) - log2(log2(Math.E)) + log2(1 + log2(3.0 * size / bucketSize)) + log2(intermediateTrie.w - log2 (log2(size)))));
+			LOGGER.debug("Actual ranker bits per element: " + (double)ranker.numBits() / size);
+			LOGGER.debug("Forecast leaves bits per element: " + (3.0 / bucketSize));
+			LOGGER.debug("Actual leaves bits per element: " + (double)leaves.bitVector().length() / size);
+			LOGGER.debug("Forecast mistake bits per element: " + (log2(bucketSize) / bucketSize + 2 * GOV3Function.C / bucketSize));
+			LOGGER.debug("Actual mistake bits per element: " + (double)numBitsForMistakes() / size);
+			LOGGER.debug("Forecast behaviour bits per element: " + GOV3Function.C);
+			LOGGER.debug("Actual behaviour bits per element: " + (double)behaviour.numBits() / size);
 					}
 		else {
 			signatures = null;
@@ -605,14 +605,14 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		}
 
 
-		if ( ASSERTS ) {
-			final Iterator<BitVector> iterator = TransformationStrategies.wrap( elements.iterator(), transformationStrategy );
+		if (ASSERTS) {
+			final Iterator<BitVector> iterator = TransformationStrategies.wrap(elements.iterator(), transformationStrategy);
 			int c = 0;
-			while( iterator.hasNext() ) {
+			while(iterator.hasNext()) {
 				final BitVector curr = iterator.next();
-				if ( DEBUG ) System.err.println( "Checking element number " + c + ( ( c + 1 ) >>> log2BucketSize == 0 ? " (bucket)" : "" ));
-				final long t = getLong( curr );
-				assert t == c >>> log2BucketSize : "At " + c + ": " + ( c >>> log2BucketSize ) + " != " + t;
+				if (DEBUG) System.err.println("Checking element number " + c + ((c + 1) >>> log2BucketSize == 0 ? " (bucket)" : ""));
+				final long t = getLong(curr);
+				assert t == c >>> log2BucketSize : "At " + c + ": " + (c >>> log2BucketSize) + " != " + t;
 				c++;
 			}
 		}
@@ -620,53 +620,53 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	}
 
-	private long getNodeStringLength( BitVector v ) {
-		return getNodeStringLength( v, Hashes.preprocessSpooky4( v, seed ) );
+	private long getNodeStringLength(BitVector v) {
+		return getNodeStringLength(v, Hashes.preprocessSpooky4(v, seed));
 	}
 
-	private long getNodeStringLength( BitVector v, final long[] state ) {
-		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ")..." );
+	private long getNodeStringLength(BitVector v, final long[] state) {
+		if (DEBUG) System.err.println("getNodeStringLength(" + v + ")...");
 
-		final long corr = Hashes.spooky4( v, v.length(), seed, state );
-		if ( mistakeSignatures.contains( (int)corr ) ) {
-			if ( DEBUG ) System.err.println( "Correcting..." );
-			return corrections.getLong( v );
+		final long corr = Hashes.spooky4(v, v.length(), seed, state);
+		if (mistakeSignatures.contains((int)corr)) {
+			if (DEBUG) System.err.println("Correcting...");
+			return corrections.getLong(v);
 		}
 
 		long r = v.length();
 		long l = 0;
-		int i = Fast.mostSignificantBit( r );
+		int i = Fast.mostSignificantBit(r);
 		long mask = 1L << i;
-		final long triple[] = new long[ 3 ];
-		while( r - l > 1 ) {
+		final long triple[] = new long[3];
+		while(r - l > 1) {
 			assert i > -1;
-			if ( DDDEBUG ) System.err.println( "[" + l + ".." + r + "]; i = " + i );
+			if (DDDEBUG) System.err.println("[" + l + ".." + r + "]; i = " + i);
 
-			if ( ( l & mask ) != ( r - 1 & mask ) ) {
-				final long f = ( r - 1 ) & ( -1L << i );
-				Hashes.spooky4( v, f, seed, state, triple );
-				final long data = signatures.getLongByTriple( triple );
-				assert signatures.getLong( v.subVector( 0, f ) ) == data : signatures.getLong( v.subVector( 0, f ) ) + " != " + data + " (prefix: " + f + ")";
+			if ((l & mask) != (r - 1 & mask)) {
+				final long f = (r - 1) & (-1L << i);
+				Hashes.spooky4(v, f, seed, state, triple);
+				final long data = signatures.getLongByTriple(triple);
+				assert signatures.getLong(v.subVector(0, f)) == data : signatures.getLong(v.subVector(0, f)) + " != " + data + " (prefix: " + f + ")";
 
-				if ( data == -1 ) {
-					if ( DDDEBUG ) System.err.println( "Missing " + v.subVector( 0, f )  );
+				if (data == -1) {
+					if (DDDEBUG) System.err.println("Missing " + v.subVector(0, f));
 					r = f;
 				}
 				else {
 					final long g = data & logWMask;
 
-					if ( g > v.length() ) {
-						if ( DDDEBUG ) System.err.println( "Excessive length for " + v.subVector( 0, f )  );
+					if (g > v.length()) {
+						if (DDDEBUG) System.err.println("Excessive length for " + v.subVector(0, f));
 						r = f;
 					}
 					else {
-						final long h = Hashes.spooky4( v, g, seed, state );
+						final long h = Hashes.spooky4(v, g, seed, state);
 
-						assert h == Hashes.spooky4( v.subVector( 0, g ), seed );
+						assert h == Hashes.spooky4(v.subVector(0, g), seed);
 
-						if ( DDDEBUG ) System.err.println( "Testing signature " + ( h & signatureMask ) );
+						if (DDDEBUG) System.err.println("Testing signature " + (h & signatureMask));
 
-						if ( ( data >>> logW ) == ( h & signatureMask ) && g >= f ) l = g;
+						if ((data >>> logW) == (h & signatureMask) && g >= f) l = g;
 						else r = f;
 					}
 				}
@@ -676,68 +676,68 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			mask >>= 1;
 		}
 
-		if ( DEBUG ) System.err.println( "getNodeStringLength(" + v + ") => " + l );
+		if (DEBUG) System.err.println("getNodeStringLength(" + v + ") => " + l);
 		return l;
 	}
 
 	@Override
-	public long getLong( final Object o ) {
+	public long getLong(final Object o) {
 		final BitVector bv = (BitVector)o;
-		final long state[] = Hashes.preprocessSpooky4( bv, seed );
-		final long[] triple = new long[ 3 ];
-		Hashes.spooky4( bv, bv.length(), seed, state, triple );
-		return getLongByBitVectorTripleAndState( bv, triple, state );
+		final long state[] = Hashes.preprocessSpooky4(bv, seed);
+		final long[] triple = new long[3];
+		Hashes.spooky4(bv, bv.length(), seed, state, triple);
+		return getLongByBitVectorTripleAndState(bv, triple, state);
 	}
 
-	public long getLongByBitVectorTripleAndState( final BitVector v, final long[] triple, final long[] state ) {
-		if ( noDelimiters ) return 0;
-		final int b = (int)behaviour.getLongByTriple( triple );
-		if ( emptyTrie ) return b;
-		final long length = getNodeStringLength( v, state );
-		if ( DDDEBUG ) System.err.println( "getNodeStringLength( v )=" + length );
-		if ( length >= v.length() ) return -1;
-		final BitVector key = v.subVector( 0, length ).copy();
-		final boolean bit = v.getBoolean( length );
+	public long getLongByBitVectorTripleAndState(final BitVector v, final long[] triple, final long[] state) {
+		if (noDelimiters) return 0;
+		final int b = (int)behaviour.getLongByTriple(triple);
+		if (emptyTrie) return b;
+		final long length = getNodeStringLength(v, state);
+		if (DDDEBUG) System.err.println("getNodeStringLength(v)=" + length);
+		if (length >= v.length()) return -1;
+		final BitVector key = v.subVector(0, length).copy();
+		final boolean bit = v.getBoolean(length);
 
-		if ( b == LEFT ) {
-			if ( DDDEBUG ) System.err.println( "LEFT: " + bit );
-			if ( bit ) key.add( true );
-			else key.length( key.lastOne() + 1 );
-			final long pos = ranker.getLong( key );
-			if ( DDDEBUG ) System.err.println( key.length() + " " + pos + " " + leaves.bitVector() );
-			return leaves.rank( pos );
+		if (b == LEFT) {
+			if (DDDEBUG) System.err.println("LEFT: " + bit);
+			if (bit) key.add(true);
+			else key.length(key.lastOne() + 1);
+			final long pos = ranker.getLong(key);
+			if (DDDEBUG) System.err.println(key.length() + " " + pos + " " + leaves.bitVector());
+			return leaves.rank(pos);
 		}
 		else {
-			if ( DDDEBUG ) System.err.println( "RIGHT: " + bit );
-			if ( bit ) {
+			if (DDDEBUG) System.err.println("RIGHT: " + bit);
+			if (bit) {
 				final long lastZero = key.lastZero();
-				//System.err.println( lastZero );
-				if ( lastZero == -1 ) return numDelimiters;	// We are exiting at the right of 1^k (k>=0).
-				key.length( lastZero + 1 ).set( lastZero );
-				final long pos = ranker.getLong( key );
-				//System.err.println( "pos: " + pos + " rank: " + leaves.rank( pos ) );
-				return leaves.rank( pos );
+				//System.err.println(lastZero);
+				if (lastZero == -1) return numDelimiters;	// We are exiting at the right of 1^k (k>=0).
+				key.length(lastZero + 1).set(lastZero);
+				final long pos = ranker.getLong(key);
+				//System.err.println("pos: " + pos + " rank: " + leaves.rank(pos));
+				return leaves.rank(pos);
 			}
 			else {
-				key.add( true );
-				final long pos = ranker.getLong( key );
-				return leaves.rank( pos );
+				key.add(true);
+				final long pos = ranker.getLong(key);
+				return leaves.rank(pos);
 			}
 		}
 	}
 
 	private long numBitsForMistakes() {
-		if ( emptyTrie ) return 0;
+		if (emptyTrie) return 0;
 		return corrections.numBits() + mistakeSignatures.size() * (long)Integer.SIZE;
 	}
 
 	public long numBits() {
-		if ( emptyTrie ) return 0;
+		if (emptyTrie) return 0;
 		return behaviour.numBits() + signatures.numBits() + ranker.numBits() + leaves.bitVector().length() + transformationStrategy.numBits() + numBitsForMistakes();
 	}
 
 	@Override
-	public boolean containsKey( Object o ) {
+	public boolean containsKey(Object o) {
 		return true;
 	}
 
@@ -749,6 +749,6 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	@Override
 	@Deprecated
 	public int size() {
-		return (int)Math.min( size, Integer.MAX_VALUE );
+		return (int)Math.min(size, Integer.MAX_VALUE);
 	}
 }
