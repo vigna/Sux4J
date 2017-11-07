@@ -1,30 +1,5 @@
 package it.unimi.dsi.sux4j.mph;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -45,13 +20,43 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
  *
  */
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
 import it.unimi.dsi.Util;
 import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
@@ -60,6 +65,8 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
+import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
@@ -93,6 +100,12 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * be associated with each key, so that {@link #getLong(Object)} will return -1 on strings that are not
  * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
+ * <h2>Multithreading</h2>
+ *
+ * <p>This implementation is multithreaded: each chunk returned by the {@link ChunkedHashStore} is processed independently. By
+ * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 16. If you wish to
+ * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
+ *
  * <h3>How it Works</h3>
  *
  * <p>The detail of the data structure
@@ -123,7 +136,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	public static final long serialVersionUID = 6L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(GOVMinimalPerfectHashFunction.class);
-	private static final boolean ASSERTS = false;
+	private static final Chunk END_OF_CHUNK_QUEUE = new Chunk();
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #edgeOffsetAndSeed}. */
 	private static final long SEED_STEP = 1L << 56;
@@ -169,6 +182,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		return pairs;
 	}
+
+	/** The system property used to set the number of parallel threads. */
+	public static final String NUMBER_OF_THREADS_PROPERTY = "it.unimi.dsi.sux4j.mph.threads";
 
 	/** A builder class for {@link GOVMinimalPerfectHashFunction}. */
 	public static class Builder<T> {
@@ -336,58 +352,99 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			pl.expectedUpdates = numChunks;
 			pl.itemsName = "chunks";
 			pl.start("Analysing chunks... ");
+			final AtomicLong unsolvable = new AtomicLong(), unorientable = new AtomicLong();
 
 			try {
-				int q = 0;
-				long unorientable = 0, unsolvable = 0;
-				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
+				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
+				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 1);
+				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
-					edgeOffsetAndSeed[q + 1] = edgeOffsetAndSeed[q] + chunk.size();
-
-					long seed = 0;
-					final long off = vertexOffset(edgeOffsetAndSeed[q]);
-					final Linear3SystemSolver solver =
-							new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[q + 1]) - off), chunk.size());
-
-					for(;;) {
-						final boolean solved = solver.generateAndSolve(chunk, seed, null);
-						unorientable += solver.unorientable;
-						unsolvable += solver.unsolvable;
-						if (solved) break;
-						seed += SEED_STEP;
-						if (seed == 0) throw new AssertionError("Exhausted local seeds");
-					}
-
-					this.edgeOffsetAndSeed[q] |= seed;
-					final long[] solution = solver.solution;
-					for(int i = 0; i < solution.length; i++) values.set(i + off, solution[i]);
-					q++;
-
-					pl.update();
-
-					if (ASSERTS) {
-						final IntOpenHashSet pos = new IntOpenHashSet();
-						final int[] e = new int[3];
-						for (final long[] triple : chunk) {
-							Linear3SystemSolver.tripleToEquation(triple, seed, (int)(vertexOffset(edgeOffsetAndSeed[q]) - off), e);
-
-							assert pos.add(e[(int)(values.getLong(off + e[0]) + values.getLong(off + e[1]) + values.getLong(off + e[2])) % 3]) :
-								"<" + e[0] + "," + e[1] + "," + e[2] + ">: " + e[(int)(values.getLong(off + e[0]) + values.getLong(off + e[1]) + values.getLong(off + e[2])) % 3];
+				final ChunkedHashStore<T> chs = chunkedHashStore;
+				executorCompletionService.submit(() -> {
+					try {
+						final Iterator<Chunk> iterator = chs.iterator();
+						for(int i1 = 0; iterator.hasNext(); i1++) {
+							final Chunk chunk = new Chunk(iterator.next());
+							assert i1 == chunk.index();
+							synchronized(edgeOffsetAndSeed) {
+								edgeOffsetAndSeed[i1 + 1] = edgeOffsetAndSeed[i1] + chunk.size();
+								assert edgeOffsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
+							}
+							chunkQueue.put(chunk);
 						}
 					}
-				}
+					finally {
+						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+					}
+					return null;
+				});
 
-				LOGGER.info("Unorientable graphs: " + unorientable + "/" + numChunks + " (" + Util.format(100.0 * unorientable / numChunks) + "%)");
-				LOGGER.info("Unsolvable systems: " + unsolvable + "/" + numChunks + " (" + Util.format(100.0 * unsolvable / numChunks) + "%)");
+				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
+					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+					long chunkTime = 0;
+					final long outputTime = 0;
+					for(;;) {
+						final long start = System.nanoTime();
+						final Chunk chunk = chunkQueue.take();
+						chunkTime += System.nanoTime() - start;
+						if (chunk == END_OF_CHUNK_QUEUE) {
+							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
+							return null;
+						}
+						long seed = 0;
+
+						final long off = vertexOffset(edgeOffsetAndSeed[chunk.index()]);
+						final Linear3SystemSolver solver =
+								new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[chunk.index() + 1]) - off), chunk.size());
+
+						for(;;) {
+							final boolean solved = solver.generateAndSolve(chunk, seed, null);
+							unorientable.addAndGet(solver.unorientable);
+							unsolvable.addAndGet(solver.unsolvable);
+							if (solved) break;
+							seed += SEED_STEP;
+							if (seed == 0) throw new AssertionError("Exhausted local seeds");
+						}
+
+						synchronized (edgeOffsetAndSeed) {
+							edgeOffsetAndSeed[chunk.index()] |= seed;
+						}
+
+						synchronized(values) {
+							final long[] solution = solver.solution;
+							for(int j = 0; j < solution.length; j++) values.set(j + off, solution[j]);
+						}
+					}
+				});
+
+				try {
+					for(int i = numberOfThreads + 1; i-- != 0;)
+						executorCompletionService.take().get();
+				} catch (final InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (final ExecutionException e) {
+					final Throwable cause = e.getCause();
+					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
+					if (cause instanceof IOException) throw (IOException)cause;
+					throw new RuntimeException(cause);
+				}
+				finally {
+					executorService.shutdown();
+				}
+				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numChunks)) + "%)");
+				LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (unorientable.get() + numChunks) + " (" + Util.format(100.0 * unorientable.get() / (unorientable.get() + numChunks)) + "%)");
 
 				pl.done();
 				break;
 			}
-			catch (final ChunkedHashStore.DuplicateException e) {
+			catch(final DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
 				chunkedHashStore.reset(r.nextLong());
+				pl.itemsName = "keys";
 				chunkedHashStore.addAll(keys.iterator());
 			}
 		}
