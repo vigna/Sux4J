@@ -2,13 +2,18 @@
 
 - Java 8-only.
 
-- Parallel construction of GOV3Function and GOV4Function.
+- New compressed functions (GV3CompressedFunction and
+  GV4CompressedFunction) which store a mapping key/value using a number of
+  bits per key close to the empirical entropy of the list of values.
+
+- Parallel, multithreaded construction for GOV3Function, GOV4Function,
+  GOVMinimalPerfectHashFunction, GV3CompressedFunction and GV4CompressedFunction).
 
 4.1.0
 
-- We now use in all the new structures of the mph package modulo-free
-  range reduction (see
-  http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/).
+- We now use in all the new structures of the mph package a modulo-free
+  range reduction based on a integer-simulated floating point computation
+  (see http://www.drdobbs.com/tools/fast-high-quality-parallel-random-number/231000484).
   This has improved lookup performance by 5-10% but it has made necessary
   to bump the serial version UIDs.
 
