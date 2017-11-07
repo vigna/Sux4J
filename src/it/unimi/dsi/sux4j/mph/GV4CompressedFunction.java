@@ -80,7 +80,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do not specify
  * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
  *
- * <p>The values must have a sweked distribution: some values must be much more frequent than others. In that case, this
+ * <p>The values must have a skewed distribution: some values must be much more frequent than others. In that case, this
  * data structure uses much less space than, say, a {@link GOV4Function} because it is able to use, for each key, a number
  * of bits close to the empirical entropy of the value list (with an additional &#8776;3%). It is slower than a {@link GV3CompressedFunction},
  * and it takes more time to build, but it uses less space.
@@ -95,7 +95,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * To exploit the various possibilities, you must understand some details of the construction.
  *
  * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
- * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
+ * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable) specify values},
  * the store will associate with each hash the corresponding value.
  *
  * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
