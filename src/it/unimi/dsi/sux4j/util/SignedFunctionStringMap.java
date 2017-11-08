@@ -82,6 +82,7 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 		return function.getLong(o);
 	}
 
+	@Deprecated
 	@Override
 	public Long get(Object o) {
 		final CharSequence s = (CharSequence)o;
@@ -94,8 +95,8 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 		return function.getLong(o) != -1;
 	}
 
-	@Override
 	@Deprecated
+	@Override
 	public int size() {
 		return function.size();
 	}

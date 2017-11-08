@@ -85,6 +85,7 @@ import it.unimi.dsi.sux4j.mph.Hashes;
  *
  */
 
+@SuppressWarnings({"rawtypes"})
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZFastTrie.class);
@@ -582,7 +583,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		@Override
-		@SuppressWarnings({"rawtypes","unchecked"})
+		@SuppressWarnings({"unchecked"})
 		public String toString() {
 			final Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
 			final TransformationStrategy transform = key instanceof CharSequence ? TransformationStrategies.prefixFreeIso() : TransformationStrategies.identity();
@@ -742,7 +743,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	@Override
 	public int size() {
-		return size > Integer.MAX_VALUE ? -1 : (int)size;
+		return size > Integer.MAX_VALUE ? -1 : size;
 	}
 
 	/** Returns the 2-fattest number in an interval.
