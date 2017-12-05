@@ -1,11 +1,5 @@
 package it.unimi.dsi.sux4j.mph.solve;
 
-import java.util.Arrays;
-import java.util.Iterator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -25,6 +19,12 @@ import org.slf4j.LoggerFactory;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+import java.util.Arrays;
+import java.util.Iterator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
@@ -363,7 +363,7 @@ public class Linear3SystemSolver {
 				final int[][] vertex2Edge = new int[d.length][];
 				for(int i = vertex2Edge.length; i-- != 0;) vertex2Edge[i] = new int[d[i]];
 				final int[] p = new int[d.length];
-				final long[] c = new long[d.length - top];
+				final int[] c = new int[d.length - top];
 				Arrays.fill(d, 0);
 
 				for (int i = 0, j = 0; i < numEdges; i++) {
@@ -375,11 +375,11 @@ public class Linear3SystemSolver {
 						final int v2 = edge2Vertex2[i];
 						vertex2Edge[v2][p[v2]++] = j;
 
-						c[j++] = valueList.getLong(i);
+						c[j++] = (int)valueList.getLong(i);
 					}
 				}
 
-				if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
+				if (! Modulo3System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
 					unsolvable++;
 					if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 					return false;
@@ -499,11 +499,11 @@ public class Linear3SystemSolver {
 		}
 	}
 
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, Codec.Coder coder, int m, int w) {
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, final Codec.Coder coder, final int m, final int w) {
 		return generateAndSolve(triples, seed, valueList, coder, m, w);
 	}
 
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, Codec.Coder coder, int m, int w, boolean peelOnly) {
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, final Codec.Coder coder, final int m, final int w, final boolean peelOnly) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] edge2Vertex0 = edge2Vertex[0],
@@ -541,7 +541,7 @@ public class Linear3SystemSolver {
 		return solve(convertedValues, peelOnly);
 	}
 
-	private boolean solve(LongArrayBitVector codedValues, boolean peelOnly) {
+	private boolean solve(final LongArrayBitVector codedValues, final boolean peelOnly) {
 		final boolean peelingCompleted = sort();
 		if (peelOnly && ! peelingCompleted) return false;
 		numPeeled = top;

@@ -142,7 +142,7 @@ public interface Codec {
 		}
 
 		@Override
-		public Coder getCoder(Long2LongMap frequencies) {
+		public Coder getCoder(final Long2LongMap frequencies) {
 			assert Longs.min(frequencies.values().toLongArray()) > 0;
 			return new Coder(Fast.length(Longs.max(frequencies.keySet().toLongArray())));
 		}
@@ -162,7 +162,7 @@ public interface Codec {
 				}
 
 				@Override
-				public long decode(long code) {
+				public long decode(final long code) {
 					final int length = maxCodewordLengthMinusOne - 63 + Long.numberOfLeadingZeros(code);
 					return (code >>> maxCodewordLengthMinusOne - 2 * length) - 1;
 				}
@@ -201,7 +201,7 @@ public interface Codec {
 		}
 
 		@Override
-		public Coder getCoder(Long2LongMap frequencies) {
+		public Coder getCoder(final Long2LongMap frequencies) {
 			assert Longs.min(frequencies.values().toLongArray()) > 0;
 			return new Coder(Fast.mostSignificantBit(Longs.max(frequencies.keySet().toLongArray()) + 1) * 2 + 1);
 		}
@@ -216,12 +216,12 @@ public interface Codec {
 				private static final long serialVersionUID = 0L;
 				private final int maxCodewordLengthMinus64;
 
-				public Decoder(int maxCodewordLength) {
+				public Decoder(final int maxCodewordLength) {
 					maxCodewordLengthMinus64 = maxCodewordLength - 64;
 				}
 
 				@Override
-				public long decode(long value) {
+				public long decode(final long value) {
 					return maxCodewordLengthMinus64 + Long.numberOfLeadingZeros(value);
 				}
 
@@ -236,7 +236,7 @@ public interface Codec {
 			}
 
 			@Override
-			public long encode(long symbol) {
+			public long encode(final long symbol) {
 				return 1L << symbol;
 			}
 
@@ -257,7 +257,7 @@ public interface Codec {
 		}
 
 		@Override
-		public Coder getCoder(Long2LongMap frequencies) {
+		public Coder getCoder(final Long2LongMap frequencies) {
 			assert Longs.min(frequencies.values().toLongArray()) > 0;
 			return new Coder((int) Longs.max(frequencies.keySet().toLongArray()) + 1);
 		}
@@ -268,12 +268,12 @@ public interface Codec {
 		private final int maxDecodingTableLength;
 		private final double entropyThreshold;
 
-		public Huffman(int maxDecodingTableLength, double entropyThreshold) {
+		public Huffman(final int maxDecodingTableLength, final double entropyThreshold) {
 			this.maxDecodingTableLength = maxDecodingTableLength;
 			this.entropyThreshold = entropyThreshold;
 		}
 
-		public Huffman(int maxDepth) {
+		public Huffman(final int maxDepth) {
 			this(maxDepth, 0.99);
 		}
 
@@ -295,7 +295,7 @@ public interface Codec {
 				private final int[] shift;
 				private final long[] symbol;
 
-				public Decoder(long[] lastCodeWordPlusOne, int[] howManyUpToBlock, int[] shift, long[] symbol) {
+				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final long[] symbol) {
 					this.lastCodeWordPlusOne = lastCodeWordPlusOne;
 					this.howManyUpToBlock = howManyUpToBlock;
 					this.shift = shift;
@@ -334,7 +334,7 @@ public interface Codec {
 			}
 
 			@Override
-			public long encode(long symbol) {
+			public long encode(final long symbol) {
 				return codeword[symbol2Rank.get(symbol)];
 			}
 
