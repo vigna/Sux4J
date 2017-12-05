@@ -91,7 +91,7 @@ public class Modulo3System {
 		 * @return this equation.
 		 * @throws IllegalStateException if you try to add twice the same variable.
 		 */
-		public Modulo3Equation add(final int variable, int coefficient) {
+		public Modulo3Equation add(final int variable, final int coefficient) {
 			assert coefficient % 3 != 0 : coefficient;
 			if (list.set(variable, coefficient) != 0) throw new IllegalStateException();
 			isEmpty = false;
@@ -250,7 +250,7 @@ public class Modulo3System {
 		}
 
 		@Override
-		public boolean equals(Object o) {
+		public boolean equals(final Object o) {
 			if (! (o instanceof Modulo3Equation)) return false;
 			final Modulo3Equation equation = (Modulo3Equation)o;
 			return c == equation.c && bitVector.equals(equation.bitVector);
@@ -268,6 +268,8 @@ public class Modulo3System {
 
 		/** Returns the modulo-3 scalar product of the two provided bit vectors.
 		 *
+		 * <p>This implementation was suggested by Djamal Belazzougui.
+		 *
 		 * @param x a bit vector represented as an array of longs.
 		 * @param y a bit vector represented as an array of longs.
 		 * @return the modulo-3 scalar product of {@code x} and {code y}.
@@ -275,12 +277,10 @@ public class Modulo3System {
 		public static int scalarProduct(final long[] x, final long[] y) {
 			int sum = 0;
 
-			for(int i = y.length; i-- != 0;) {
-				final long high = x[i] & 0xAAAAAAAAAAAAAAAAL;
-				final long low = x[i] & 0x5555555555555555L;
-				final long highShift = high >>> 1; // Make every 10 into a 11 and zero everything else
-				final long t = (y[i] ^ (high | highShift)) & (x[i] | highShift | low << 1); // Exchange ones with twos, and make 00 into 11
-
+			for (int i = y.length; i-- != 0;) {
+				final long z = x[i] | y[i];
+				final long w = (z | z >> 1) & 0x5555555555555555L;
+				final long t = x[i] ^ y[i] ^ w;
 				sum += Long.bitCount(t & 0xAAAAAAAAAAAAAAAAL) * 2 + Long.bitCount(t & 0x5555555555555555L);
 			}
 			return sum;
@@ -317,7 +317,7 @@ public class Modulo3System {
 		this.numVars = numVars;
 	}
 
-	protected Modulo3System(final int numVars , ArrayList<Modulo3Equation> system) {
+	protected Modulo3System(final int numVars , final ArrayList<Modulo3Equation> system) {
 		this.equations = system;
 		this.numVars = numVars;
 	}
@@ -332,7 +332,7 @@ public class Modulo3System {
 	 *
 	 * @param equation an equation with the same number of variables of the system.
 	 */
-	public void add(Modulo3Equation equation) {
+	public void add(final Modulo3Equation equation) {
 		if (equation.list.size64() != numVars) throw new IllegalArgumentException("The number of variables in the equation (" + equation.list.size64() + ") does not match the number of variables of the system (" + numVars + ")");
 		equations.add(equation);
 	}
