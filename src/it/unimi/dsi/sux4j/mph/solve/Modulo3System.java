@@ -522,7 +522,7 @@ public class Modulo3System {
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[numVars];
 
-		// The priority of each equation still to be examined (the number of light variables).
+		// The priority of each equation still to be examined (the number of idle variables).
 		final int[] priority = new int[numEquations];
 
 		for(final int v : variable) {

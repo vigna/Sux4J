@@ -139,7 +139,7 @@ public class Modulo2System {
 		}
 
 		@Override
-		public boolean equals(Object o) {
+		public boolean equals(final Object o) {
 			if (! (o instanceof Modulo2Equation)) return false;
 			final Modulo2Equation equation = (Modulo2Equation)o;
 			return c == equation.c && bitVector.equals(equation.bitVector);
@@ -197,7 +197,7 @@ public class Modulo2System {
 		this.numVars = numVars;
 	}
 
-	protected Modulo2System(final int numVars , ArrayList<Modulo2Equation> equations) {
+	protected Modulo2System(final int numVars , final ArrayList<Modulo2Equation> equations) {
 		this.equations = equations;
 		this.numVars = numVars;
 	}
@@ -212,7 +212,7 @@ public class Modulo2System {
 	 *
 	 * @param equation an equation with the same number of variables of the system.
 	 */
-	public void add(Modulo2Equation equation) {
+	public void add(final Modulo2Equation equation) {
 		if (equation.bitVector.length() != numVars) throw new IllegalArgumentException("The number of variables in the equation (" + equation.bitVector.length() + ") does not match the number of variables of the system (" + numVars + ")");
 		equations.add(equation);
 	}
@@ -366,7 +366,7 @@ public class Modulo2System {
 		 * denote pivots of solved equations. */
 		final int weight[] = new int[numVars];
 
-		// The priority of each equation still to be examined (the number of light variables).
+		// The priority of each equation still to be examined (the number of idle variables).
 		final int[] priority = new int[numEquations];
 
 		for(final int v : variable) {
@@ -446,12 +446,12 @@ public class Modulo2System {
 
 		for(int remaining = equations.size(); remaining != 0;) {
 			if (equationList.isEmpty()) {
-				// Make another variable heavy
+				// Make another variable active
 				int var;
 				do var = variables.popInt(); while(weight[var] == 0);
 				numActive++;
 				idleNormalized[var / 64] ^= 1L << (var % 64);
-				if (DEBUG) System.err.println("Making variable " + var + " of weight " + weight[var] + " heavy (" + remaining + " equations to go)");
+				if (DEBUG) System.err.println("Making variable " + var + " of weight " + weight[var] + " active (" + remaining + " equations to go)");
 				for(final int equationIndex: var2Eq[var])
 					if (--priority[equationIndex] == 1) equationList.push(equationIndex);
 			}
@@ -465,13 +465,13 @@ public class Modulo2System {
 					if (equation.isUnsolvable()) return false;
 					if (equation.isIdentity()) continue;
 					/* This equation must be necessarily solved by standard Gaussian elimination. No updated
-					 * is needed, as all its variables are heavy. */
+					 * is needed, as all its variables are active. */
 					dense.add(equation);
 				}
 				else if (priority[first] == 1) {
-					/* This is solved (in terms of the heavy variables). Let's find the pivot, that is,
+					/* This is solved (in terms of the active variables). Let's find the pivot, that is,
 					 * the only idle variable. Note that we do not need to update varEquation[] of any variable, as they
-					 * are all either heavy (the non-pivot), or appearing only in this equation (the pivot). */
+					 * are all either active (the non-pivot), or appearing only in this equation (the pivot). */
 					int wordIndex = 0;
 					while((equation.bits[wordIndex] & idleNormalized[wordIndex]) == 0) wordIndex++;
 					final int pivot = wordIndex * 64 + Long.numberOfTrailingZeros(equation.bits[wordIndex] & idleNormalized[wordIndex]);
@@ -480,7 +480,7 @@ public class Modulo2System {
 					if (DEBUG) System.err.println("Adding to solved variables x_" + pivot + " by equation " + equation);
 					pivots.add(pivot);
 					solved.add(equation);
-					// This forces to skip the pivot when looking for a new variable to be made heavy.
+					// This forces to skip the pivot when looking for a new variable to be made active.
 					weight[pivot] = 0;
 
 					// Now we need to eliminate the variable from all other equations containing it.
