@@ -364,7 +364,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 * @param values
 	 *            values to be assigned to each element, in the same order of
 	 *            the iterator returned by <code>keys</code>; if {@code null},
-	 *            the assigned value will the the ordinal number of each
+	 *            the assigned value will the ordinal number of each
 	 *            element.
 	 * @param indirect
 	 *            if true, <code>chunkedHashStore</code> contains ordinal

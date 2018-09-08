@@ -1,5 +1,29 @@
 package it.unimi.dsi.sux4j.mph;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.zip.GZIPInputStream;
+
+import org.apache.commons.collections.Predicate;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+import com.martiansoftware.jsap.stringparsers.FileStringParser;
+import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
+
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -38,30 +62,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.zip.GZIPInputStream;
-
-import org.apache.commons.collections.Predicate;
-import org.apache.commons.math3.random.RandomGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.martiansoftware.jsap.FlaggedOption;
-import com.martiansoftware.jsap.JSAP;
-import com.martiansoftware.jsap.JSAPException;
-import com.martiansoftware.jsap.JSAPResult;
-import com.martiansoftware.jsap.Parameter;
-import com.martiansoftware.jsap.SimpleJSAP;
-import com.martiansoftware.jsap.Switch;
-import com.martiansoftware.jsap.UnflaggedOption;
-import com.martiansoftware.jsap.stringparsers.FileStringParser;
-import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 
 /** A function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
@@ -198,7 +198,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
 	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
-	 * assigned value will the the ordinal number of each key.
+	 * assigned value will the ordinal number of each key.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
@@ -234,7 +234,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		long v;
 		final Long2LongOpenHashMap counts = new Long2LongOpenHashMap();
 		counts.defaultReturnValue(-1);
-		for(LongIterator i = values.iterator(); i.hasNext();) {
+		for(final LongIterator i = values.iterator(); i.hasNext();) {
 			v = i.nextLong();
 			counts.put(v, counts.get(v) + 1);
 			size = Fast.length(v);
@@ -297,8 +297,8 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		if (best != 0) {
 			firstFunction = new MWHCFunction.Builder<T>().keys(keys).transform(transform).store(chunkedHashStore).values(new AbstractLongBigList() {
 				@Override
-				public long getLong(long index) {
-					long value = map.get(values.getLong(index));
+				public long getLong(final long index) {
+					final long value = map.get(values.getLong(index));
 					return value == -1 ? escape : value;
 				}
 
@@ -377,7 +377,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		LOGGER.warn("This class is deprecated: please use TwoStepsGOV3Function");

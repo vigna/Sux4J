@@ -366,7 +366,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
-	 * assigned value will the the ordinal number of each element.
+	 * assigned value will the ordinal number of each element.
 	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
@@ -375,7 +375,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values.
 	 */
-	protected GOV4Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , int signatureWidth , final LongIterable values , final int dataWidth , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect) throws IOException {
+	protected GOV4Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , final int signatureWidth , final LongIterable values , final int dataWidth , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect) throws IOException {
 		this.transform = transform;
 
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");

@@ -196,7 +196,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
 	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
-	 * assigned value will the the ordinal number of each key.
+	 * assigned value will the ordinal number of each key.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
@@ -295,7 +295,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		if (best != 0) {
 			firstFunction = new GOV3Function.Builder<T>().keys(keys).transform(transform).store(chunkedHashStore).values(new AbstractLongBigList() {
 				@Override
-				public long getLong(long index) {
+				public long getLong(final long index) {
 					final long value = map.get(values.getLong(index));
 					return value == -1 ? escape : value;
 				}
