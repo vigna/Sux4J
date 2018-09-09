@@ -162,9 +162,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	private static final boolean DEBUG = false;
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #offsetAndSeed}. */
-	private static final long SEED_STEP = 1L << 54;
+	private static final long SEED_STEP = 1L << 56;
 	/** The lowest 56 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given chunk. */
-	private static final long OFFSET_MASK = -1L >>> 12;
+	private static final long OFFSET_MASK = -1L >>> 8;
 
 	/** The ratio between variables and equations. */
 	public static double C = 1.02 + 0.01;
@@ -375,7 +375,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
 	 * must be accessed to retrieve the actual values.
 	 */
-	protected GOV4Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , final int signatureWidth , final LongIterable values , final int dataWidth , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect) throws IOException {
+	protected GOV4Function(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect) throws IOException {
 		this.transform = transform;
 
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
@@ -399,11 +399,12 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
 		if (n == 0) {
-			m = this.globalSeed = chunkShift = this.width = 0;
+			m = globalSeed = chunkShift = width = 0;
 			data = null;
 			offsetAndSeed = null;
 			signatureMask = 0;
 			signatures = null;
+			if (! givenChunkedHashStore) chunkedHashStore.close();
 			return;
 		}
 
@@ -415,7 +416,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		offsetAndSeed = new long[numChunks + 1];
 
-		this.width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
+		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
@@ -674,11 +675,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
+		final LongIterable values = jsapResult.userSpecified("values") ? BinIO.asLongIterable(jsapResult.getString("values")) : null;
+
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
-			BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false), functionName);
+			BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, -1, tempDir, null, false), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -691,21 +694,14 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.done();
 			}
 			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
-			final TransformationStrategy<CharSequence> transformationStrategy = iso
-					? TransformationStrategies.iso()
-							: utf32
-							? TransformationStrategies.utf32()
-									: TransformationStrategies.utf16();
+			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-							if (jsapResult.userSpecified("values")) {
-								final String values = jsapResult.getString("values");
-								int dataWidth = 0;
-								for(final LongIterator i = BinIO.asLongIterator(values); i.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(i.nextLong()));
-
-								BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, BinIO.asLongIterable(values), dataWidth, tempDir, null, false), functionName);
-							}
-
-							else BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false), functionName);
+			if (values != null) {
+				int dataWidth = -1;
+				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
+				BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false), functionName);
+			}
+			else BinIO.storeObject(new GOV4Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

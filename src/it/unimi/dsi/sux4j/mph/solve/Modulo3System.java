@@ -51,7 +51,7 @@ public class Modulo3System {
 		/** A {@linkplain LongArrayBitVector#asLongBigList(int) 2-bit list view} of {@link #bitVector}, cached. */
 		protected final LongBigList list;
 		/** The constant term. */
-		protected int c;
+		protected long c;
 		/** The first variable. It is {@link Integer#MAX_VALUE} if the
 		 * first variable is not known. This field must be updated by {@link #updateFirstVar()} to be meaningful. */
 		protected int firstVar;
@@ -65,7 +65,7 @@ public class Modulo3System {
 		 * @param c the constant term.
 		 * @param numVars the number of variables.
 		 */
-		public Modulo3Equation(final int c, final int numVars) {
+		public Modulo3Equation(final long c, final int numVars) {
 			this.c = c;
 			this.bitVector = LongArrayBitVector.ofLength(numVars * 2);
 			this.bits = bitVector.bits();
@@ -246,7 +246,7 @@ public class Modulo3System {
 
 		@Override
 		public int hashCode() {
-			return HashCommon.murmurHash3(c ^ bitVector.hashCode());
+			return (int)HashCommon.murmurHash3(c ^ bitVector.hashCode());
 		}
 
 		@Override
@@ -430,7 +430,7 @@ public class Modulo3System {
 
 			assert solutionList.getLong(equation.firstVar) == 0 : equation.firstVar;
 
-			int sum = (equation.c - Modulo3Equation.scalarProduct(equation.bits, solutionBits)) % 3;
+			long sum = (equation.c - Modulo3Equation.scalarProduct(equation.bits, solutionBits)) % 3;
 			if (sum < 0) sum += 3;
 
 			solutionList.set(equation.firstVar, sum == 0 ? 0 : equation.firstCoeff == sum ? 1 : 2);
@@ -457,7 +457,7 @@ public class Modulo3System {
 
 		for(int v = numVars; v-- != 0;) var2Eq[v] = new int[d[v]];
 		Arrays.fill(d, 0);
-		final int[] c = new int[equations.size()];
+		final long[] c = new long[equations.size()];
 		for(int e = 0; e < equations.size(); e++) {
 			c[e] = equations.get(e).c;
 			final LongBigList list = equations.get(e).list;
@@ -482,7 +482,7 @@ public class Modulo3System {
 	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
-	public static boolean lazyGaussianElimination(final int var2Eq[][], final int c[], final int[] variable, final long[] solution) {
+	public static boolean lazyGaussianElimination(final int var2Eq[][], final long c[], final int[] variable, final long[] solution) {
 		return lazyGaussianElimination(null, var2Eq, c, variable, solution);
 	}
 
@@ -503,7 +503,7 @@ public class Modulo3System {
 	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.
 	 */
-	public static boolean lazyGaussianElimination(Modulo3System system, final int var2Eq[][], final int c[], final int[] variable, final long[] solution) {
+	public static boolean lazyGaussianElimination(Modulo3System system, final int var2Eq[][], final long c[], final int[] variable, final long[] solution) {
 		final int numEquations = c.length;
 		if (numEquations == 0) return true;
 
@@ -676,7 +676,7 @@ public class Modulo3System {
 
 			final int pivotCoefficient = (int)equation.list.getLong(pivot);
 
-			int sum = (equation.c - Modulo3Equation.scalarProduct(equation.bits, solutionBits)) % 3;
+			long sum = (equation.c - Modulo3Equation.scalarProduct(equation.bits, solutionBits)) % 3;
 			if (sum < 0) sum += 3;
 
 			assert pivotCoefficient != -1;

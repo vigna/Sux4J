@@ -351,7 +351,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
 				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			}
-			return new GOV3Function<>(keys, transform, signatureWidth, values, outputWidth, indirect, compacted, tempDir, chunkedHashStore);
+			return new GOV3Function<>(keys, transform, signatureWidth, values, outputWidth, compacted, tempDir, chunkedHashStore, indirect);
 		}
 	}
 
@@ -392,16 +392,16 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
 	 * assigned value will the ordinal number of each element.
 	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
-	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
-	 * must be accessed to retrieve the actual values.
 	 * @param compacted if true, the coefficients will be compacted.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
 	 * or values, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
+	 * @param indirect if true, <code>chunkedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
+	 * must be accessed to retrieve the actual values.
 	 */
 	@SuppressWarnings("resource")
-	protected GOV3Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , final int signatureWidth , final LongIterable values , final int dataWidth , final boolean indirect , final boolean compacted , final File tempDir , ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected GOV3Function(final Iterable<? extends T> keys , final TransformationStrategy<? super T> transform , final int signatureWidth , final LongIterable values , final int dataWidth , final boolean compacted , final File tempDir , ChunkedHashStore<T> chunkedHashStore , final boolean indirect) throws IOException {
 		this.transform = transform;
 
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
@@ -422,7 +422,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 		}
 		n = chunkedHashStore.size();
-		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default resturn value.
+		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
 		if (n == 0) {
 			m = globalSeed = chunkShift = width = 0;
@@ -481,7 +481,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 						for(int i1 = 0; iterator.hasNext(); i1++) {
 							final Chunk chunk = new Chunk(iterator.next());
 							assert i1 == chunk.index();
-							final long chunkDataSize = C_TIMES_256 * chunk.size() >>> 8;
+							final long chunkDataSize = Math.max(C_TIMES_256 * chunk.size() >>> 8, chunk.size() + 1);
 							assert chunkDataSize <= Integer.MAX_VALUE;
 							synchronized(offsetAndSeed) {
 								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + chunkDataSize;
@@ -762,11 +762,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
+		final LongIterable values = jsapResult.userSpecified("values") ? BinIO.asLongIterable(jsapResult.getString("values")) : null;
+
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
-			BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, false, compacted, tempDir, null), functionName);
+			BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, -1, compacted, tempDir, null, false), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -779,21 +781,14 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.done();
 			}
 			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
-			final TransformationStrategy<CharSequence> transformationStrategy = iso
-					? TransformationStrategies.rawIso()
-							: utf32
-							? TransformationStrategies.rawUtf32()
-									: TransformationStrategies.rawUtf16();
+			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-							if (jsapResult.userSpecified("values")) {
-								final String values = jsapResult.getString("values");
-								int dataWidth = 0;
-								for(final LongIterator i = BinIO.asLongIterator(values); i.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(i.nextLong()));
-
-								BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, BinIO.asLongIterable(values), dataWidth, false, compacted, tempDir, null), functionName);
-							}
-
-							else BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, false, compacted, tempDir, null), functionName);
+			if (values != null) {
+				int dataWidth = -1;
+				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
+				BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
+			}
+			else BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

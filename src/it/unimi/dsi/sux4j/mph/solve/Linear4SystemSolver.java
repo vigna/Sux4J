@@ -124,13 +124,13 @@ public class Linear4SystemSolver {
 	private final static Logger LOGGER = LoggerFactory.getLogger(Linear4SystemSolver.class);
 
 	/** The number of vertices in the hypergraph. */
-	private final int numVariables;
+	private final int numVertices;
 	/** The number of edges in the hypergraph. */
 	private final int numEdges;
 	/** For each vertex, the XOR of the indices of incident 3-hyperedges. */
-	public final int[] edge;
+	private final int[] edge;
 	/** The hinge stack. At the end of a peeling phase, it contains the hinges in reverse order. */
-	public final int[] stack;
+	private final int[] stack;
 	/** The degree of each vertex of the intermediate 3-hypergraph. */
 	private final int[] d;
 	/** Whether we ever called {@link #generateAndSort(Iterator, long)} or {@link #generateAndSort(Iterator, TransformationStrategy, long)}. */
@@ -147,8 +147,8 @@ public class Linear4SystemSolver {
 	public long[] solution;
 	/** The number of generated unsolvable systems. */
 	public int unsolvable;
-	/** The number of generated undirectable graphs. */
-	public int undirectable;
+	/** The number of generated unorientable graphs. */
+	public int unorientable;
 	/** The number of peeled nodes. */
 	public long numPeeled;
 
@@ -158,7 +158,7 @@ public class Linear4SystemSolver {
 	 * @param numEquations the number of equations.
 	 */
 	public Linear4SystemSolver(final int numVariables, final int numEquations) {
-		this.numVariables = numVariables;
+		this.numVertices = numVariables;
 		this.numEdges = numEquations;
 		peeled = new boolean[numEquations];
 		edge = new int[numVariables];
@@ -174,7 +174,7 @@ public class Linear4SystemSolver {
 			Arrays.fill(d, 0);
 			Arrays.fill(edge, 0);
 			Arrays.fill(peeled, false);
-			undirectable = unsolvable = 0;
+			unorientable = unsolvable = 0;
 		}
 		neverUsed = false;
 	}
@@ -251,13 +251,13 @@ public class Linear4SystemSolver {
 	 *
 	 * <p>The constant part is provided by {@code valueList}.
 	 *
-	 * @param triples an iterable returning triples of longs.
+	 * @param iterable an iterable returning triples of longs.
 	 * @param seed a 64-bit random seed.
 	 * @param valueList a value list containing the constant part.
 	 * @return true if a solution was found.
 	 * @see Linear4SystemSolver
 	 */
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList) {
+	public boolean generateAndSolve(final Iterable<long[]> iterable, final long seed, final LongBigList valueList) {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3];
@@ -266,9 +266,9 @@ public class Linear4SystemSolver {
 
 		/* We build the edge list and compute the degree of each vertex. */
 		final int[] e = new int[4];
-		final Iterator<long[]> iterator = triples.iterator();
+		final Iterator<long[]> iterator = iterable.iterator();
 		for(int i = 0; i < numEdges; i++) {
-			tripleToEquation(iterator.next(), seed, numVariables, e);
+			tripleToEquation(iterator.next(), seed, numVertices, e);
 			if (DEBUG) System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "," + e[3] + ">");
 			d[edge2Vertex0[i] = e[0]]++;
 			d[edge2Vertex1[i] = e[1]]++;
@@ -290,10 +290,10 @@ public class Linear4SystemSolver {
 		// We cache all variables for faster access
 		final int[] d = this.d;
 		//System.err.println("Visiting...");
-		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling hypergraph (" + numVariables + " vertices, " + numEdges + " edges)...");
+		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)...");
 
 		top = 0;
-		for(int i = 0; i < numVariables; i++) if (d[i] == 1) peel(i);
+		for(int i = 0; i < numVertices; i++) if (d[i] == 1) peel(i);
 
 		if (top == numEdges) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling completed.");
@@ -340,7 +340,7 @@ public class Linear4SystemSolver {
 	private boolean solve(final LongBigList valueList) {
 		final boolean peelingCompleted = sort();
 		numPeeled = top;
-		solution = new long[numVariables];
+		solution = new long[numVertices];
 		final long[] solution = this.solution;
 		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3], edge = this.edge, d = this.d;
 
@@ -367,7 +367,7 @@ public class Linear4SystemSolver {
 				}
 			}
 
-			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVariables), solution)) {
+			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
 				unsolvable++;
 				if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 				return false;
@@ -391,7 +391,7 @@ public class Linear4SystemSolver {
 		return true;
 	}
 
-	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, LongBigList valueList, Codec.Coder coder, int m, int w) {
+	public boolean generateAndSolve(final Iterable<long[]> triples, final long seed, final LongBigList valueList, final Codec.Coder coder, final int m, final int w) {
 
 		// We cache all variables for faster access
 		final int[] d = this.d;
@@ -431,19 +431,19 @@ public class Linear4SystemSolver {
 	}
 
 
-	private boolean solve(LongArrayBitVector codedValues) {
+	private boolean solve(final LongArrayBitVector codedValues) {
 		final boolean peelingCompleted = sort();
 		numPeeled = top;
-		this.solution = new long[numVariables];
+		this.solution = new long[numVertices];
 		final int[] edge2Vertex0 = edge2Vertex[0], edge2Vertex1 = edge2Vertex[1], edge2Vertex2 = edge2Vertex[2], edge2Vertex3 = edge2Vertex[3], edge = this.edge, d = this.d;
 		int j =0;
 		if (! peelingCompleted) {
-			final int[][] vertex2Edge = new int[numVariables][];
+			final int[][] vertex2Edge = new int[numVertices][];
 			Arrays.fill(vertex2Edge, new int[0]);
-			for (int i = 0; i<numVariables; i++) {
+			for (int i = 0; i<numVertices; i++) {
 				vertex2Edge[i] = new int[d[i]];
 			}
-			final int[] p = new int[numVariables];
+			final int[] p = new int[numVertices];
 			final long[] c = new long[stack.length];
 			for (int i = 0; i < stack.length; i++) {
 				if (! peeled[i]) {
@@ -461,7 +461,7 @@ public class Linear4SystemSolver {
 			}
 			// squeezing the system
 
-			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVariables), solution)) {
+			if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
 				unsolvable++;
 				if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 				return false;

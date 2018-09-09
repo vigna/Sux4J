@@ -682,9 +682,8 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);if (jsapResult.userSpecified("values"))
+			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);
 			BinIO.storeObject(new GV3CompressedFunction<>(collection, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec), functionName);
-
 		} else {
 			final Collection<MutableString> collection;
 			if ("-".equals(stringFile)) {
@@ -694,7 +693,8 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				pl.start("Loading strings...");
 				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
-			} else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			}
+			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
 			BinIO.storeObject(new GV3CompressedFunction<>(collection, transformationStrategy, values, false, tempDir, null, codec), functionName);

@@ -176,11 +176,11 @@ public class Linear3SystemSolver {
 	public Linear3SystemSolver(final int numVariables, final int numEquations) {
 		this.numVertices = numVariables;
 		this.numEdges = numEquations;
-		peeled = new boolean[numEdges];
-		edge = new int[numVertices];
-		edge2Vertex = new int[3][numEdges];
-		stack = new int[numEdges];
-		d = new int[numVertices];
+		peeled = new boolean[numEquations];
+		edge = new int[numVariables];
+		edge2Vertex = new int[3][numEquations];
+		stack = new int[numEquations];
+		d = new int[numVariables];
 		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
 	}
@@ -363,7 +363,7 @@ public class Linear3SystemSolver {
 				final int[][] vertex2Edge = new int[d.length][];
 				for(int i = vertex2Edge.length; i-- != 0;) vertex2Edge[i] = new int[d[i]];
 				final int[] p = new int[d.length];
-				final int[] c = new int[d.length - top];
+				final long[] c = new long[d.length - top];
 				Arrays.fill(d, 0);
 
 				for (int i = 0, j = 0; i < numEdges; i++) {
@@ -375,11 +375,11 @@ public class Linear3SystemSolver {
 						final int v2 = edge2Vertex2[i];
 						vertex2Edge[v2][p[v2]++] = j;
 
-						c[j++] = (int)valueList.getLong(i);
+						c[j++] = valueList.getLong(i);
 					}
 				}
 
-				if (! Modulo3System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
+				if (! Modulo2System.lazyGaussianElimination(vertex2Edge, c, Util.identity(numVertices), solution)) {
 					unsolvable++;
 					if (LOGGER.isDebugEnabled()) LOGGER.debug("System is unsolvable");
 					return false;
@@ -436,7 +436,7 @@ public class Linear3SystemSolver {
 
 				if (DEBUG) for(int i = 0; i < nonPeeled; i++) System.err.println("<" + remEdge2Vertex0[i] + "," + remEdge2Vertex1[i] + "," + remEdge2Vertex2[i] + "> => " + hinge[i]);
 
-				final int[] c = new int[nonPeeled];
+				final long[] c = new long[nonPeeled];
 				for (int i = 0; i < nonPeeled; i++) {
 					final int h = hinge[i];
 					c[i] = h == remEdge2Vertex0[i] ? 0 : h == remEdge2Vertex1[i] ? 1 : 2;
