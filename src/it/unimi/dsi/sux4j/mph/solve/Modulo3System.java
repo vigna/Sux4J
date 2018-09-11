@@ -272,7 +272,7 @@ public class Modulo3System {
 		 *
 		 * @param x a bit vector represented as an array of longs.
 		 * @param y a bit vector represented as an array of longs.
-		 * @return the modulo-3 scalar product of {@code x} and {code y}.
+		 * @return the modulo-3 scalar product of {@code x} and {code y}, unnormalized (might be larger than 2).
 		 */
 		public static int scalarProduct(final long[] x, final long[] y) {
 			int sum = 0;

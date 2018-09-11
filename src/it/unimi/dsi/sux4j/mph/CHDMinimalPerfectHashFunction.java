@@ -263,7 +263,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** An array containing for each chunk three values: the chunk offset, the cumulative number of buckets, and the local chunk seed. */
 	private long[] offsetNumBucketsSeed;
 
-	private static long spread(long hash, long bound) {
+	private static long spread(final long hash, final long bound) {
 		final int shift = Long.numberOfLeadingZeros(bound);
 		final long value = ((hash & (1L << shift) - 1) * bound) >>> shift;
 		assert value >= 0 : value;
@@ -309,7 +309,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected CHDMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected CHDMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, final double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
