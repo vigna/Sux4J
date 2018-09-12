@@ -406,6 +406,8 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
 		if (signatureWidth != 0 && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a signature width and a data width");
+		if (values == null && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a data width but no values");
+		if (values != null && dataWidth == -1) throw new IllegalArgumentException("You cannot specify values but no data width");
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
@@ -768,7 +770,13 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
 			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
-			BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, -1, compacted, tempDir, null, false), functionName);
+
+			if (values != null) {
+				int dataWidth = -1;
+				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
+				BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
+			}
+			else BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		}
 		else {
 			final Collection<MutableString> collection;
@@ -786,9 +794,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			if (values != null) {
 				int dataWidth = -1;
 				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
-				BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
+				BinIO.storeObject(new GOV3Function<>(collection, transformationStrategy, signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
 			}
-			else BinIO.storeObject(new GOV3Function<CharSequence>(collection, transformationStrategy, signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
+			else BinIO.storeObject(new GOV3Function<>(collection, transformationStrategy, signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}
