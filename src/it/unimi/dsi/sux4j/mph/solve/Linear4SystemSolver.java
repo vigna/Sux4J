@@ -147,8 +147,6 @@ public class Linear4SystemSolver {
 	public long[] solution;
 	/** The number of generated unsolvable systems. */
 	public int unsolvable;
-	/** The number of generated unorientable graphs. */
-	public int unorientable;
 	/** The number of peeled nodes. */
 	public long numPeeled;
 
@@ -174,7 +172,6 @@ public class Linear4SystemSolver {
 			Arrays.fill(d, 0);
 			Arrays.fill(edge, 0);
 			Arrays.fill(peeled, false);
-			unorientable = unsolvable = 0;
 		}
 		neverUsed = false;
 	}

@@ -451,7 +451,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					executorService.shutdown();
 				}
 				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numChunks)) + "%)");
-				LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (unorientable.get() + numChunks) + " (" + Util.format(100.0 * unorientable.get() / (unorientable.get() + numChunks)) + "%)");
+				LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (unorientable.get() + unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unorientable.get() / (unorientable.get() + numChunks)) + "%)");
 
 				pl.done();
 				break;
