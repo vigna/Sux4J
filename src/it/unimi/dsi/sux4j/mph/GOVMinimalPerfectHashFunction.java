@@ -268,7 +268,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	}
 
 	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 7;
+	public final static int LOG2_CHUNK_SIZE = 10;
 
 	/** The number of keys. */
 	protected final long n;
