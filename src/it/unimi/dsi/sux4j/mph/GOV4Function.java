@@ -378,9 +378,10 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	protected GOV4Function(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect) throws IOException {
 		this.transform = transform;
 
+		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
 		if (signatureWidth != 0 && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a signature width and a data width");
-		if (values == null && dataWidth != -1) throw new IllegalArgumentException("You cannot specify a data width but no values");
+		if (values == null && dataWidth != -1 && !(givenChunkedHashStore || indirect)) throw new IllegalArgumentException("You cannot specify a data width but no values and no direct chunked hash store");
 		if (values != null && dataWidth == -1) throw new IllegalArgumentException("You cannot specify values but no data width");
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -389,7 +390,6 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
-		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
 			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
 			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, - Math.min(signatureWidth, 0), pl);
