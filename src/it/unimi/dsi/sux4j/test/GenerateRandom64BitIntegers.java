@@ -17,6 +17,7 @@ import com.martiansoftware.jsap.Parameter;
 import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.UnflaggedOption;
 
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
@@ -50,7 +51,7 @@ public class GenerateRandom64BitIntegers {
 		final long incr = (long)Math.floor(1.99 * (limit.divide(BigInteger.valueOf(n)).longValue())) - 1;
 
 		@SuppressWarnings("resource")
-		final DataOutputStream dos = new DataOutputStream(new FileOutputStream(output));
+		final DataOutputStream dos = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(output)));
 
 		LOGGER.info("Increment: " + incr);
 
