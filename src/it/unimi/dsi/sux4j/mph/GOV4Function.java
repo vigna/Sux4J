@@ -350,7 +350,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	protected final long globalSeed;
 	/** A long containing the start offset of each chunk in the lower 56 bits, and the local seed of each chunk in the upper 8 bits. */
 	protected final long[] offsetAndSeed;
-	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal hash function. */
+	/** The final magick&mdash;the list of values that define the output of the function. */
 	protected final LongBigList data;
 	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
 	protected final TransformationStrategy<? super T> transform;
