@@ -339,7 +339,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		if ((n >> log2NumChunks) > 1024 + 512) log2NumChunks++;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
