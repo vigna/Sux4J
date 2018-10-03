@@ -51,35 +51,7 @@
 // size of buffer of unhashed data, in bytes
 #define SC_BUFSIZE (2U * SC_BLOCKSIZE)
 
-/*struct spooky_state {
-	uint64_t data[2 * SC_NUMVARS]; // unhashed data, for partial messages
-	uint64_t state[SC_NUMVARS];    // internal state of the hash
-	size_t length;                 // total length of the input so far
-	uint8_t left;                  // length of unhashed data stashed in data
-};
-
-void
-spooky_hash128(const void *message, size_t length, uint64_t *hash1, uint64_t *hash2);
-
-uint64_t
-spooky_hash64(const void *message, size_t length, uint64_t seed);
-
-uint32_t
-spooky_hash32(const void *message, size_t length, uint32_t seed);
-
-void
-spooky_init(struct spooky_state *state, uint64_t seed1, uint64_t seed2);
-
-void
-spooky_update(struct spooky_state *state, const void *message, size_t length);
-
-void
-spooky_final(struct spooky_state *state, uint64_t *hash1, uint64_t *hash2);
-
-*/
-
 void spooky_short(const void *restrict message, size_t length, uint64_t seed, uint64_t *tuple);
 void spooky_short_rehash(const uint64_t *triple, const uint64_t seed, uint64_t * const tuple);
-
 
 #endif /* SPOOKY_H_INCLUDED */

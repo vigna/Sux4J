@@ -1,5 +1,5 @@
 #include "spooky.h"
-#include "mph.h"
+#include "sf.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <fcntl.h>
@@ -17,25 +17,10 @@ static uint64_t get_system_time(void) {
 }
 
 int main(int argc, char* argv[]) {
-/*	for(int i = 0; i < 126; i++) {
-		char b[i];
-		for(int j = 0; j < i; j++) b[j] = j;
-		uint64_t h[4];
-		spooky_short(b, i, 0, h);
-		printf("%08llx %08llx %08llx %08llx\n", h[0], h[1], h[2], h[3]);
-	}
-*/
-
 	int h = open(argv[1], O_RDONLY);
 	assert(h >= 0);
-	mph *mph = load_mph(h);
+	sf *sf = load_sf(h);
 	close(h);
-/*	printf("%lld\n", mph->size);
-	printf("%d\n", mph->chunk_shift);
-	printf("%016llx\n", mph->global_seed);
-	printf("%016llx\n", mph->edge_offset_and_seed_length);
-	printf("%016llx\n", mph->array_length);
-*/
 
 #define NKEYS 10000000
 	h = open(argv[2], O_RDONLY);
@@ -61,7 +46,8 @@ int main(int argc, char* argv[]) {
 
 	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
-		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(mph, test_buf[i], test_len[i]);
+//		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(sf, test_buf[i], test_len[i]);
+		for (int i = 0; i < 10; ++i) printf("%lld\n", get_byte_array(sf, test_buf[i], test_len[i]));
 
 		elapsed += get_system_time();
 		total += elapsed;
