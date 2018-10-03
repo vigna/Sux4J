@@ -6,13 +6,12 @@
 #include "spooky.h"
 
 mph *load_mph(int h) {
-	mph *mph = calloc(1, sizeof mph);
+	mph *mph = calloc(1, sizeof *mph);
 	read(h, &mph->size, sizeof mph->size);
 	uint64_t t;
 	read(h, &t, sizeof t);
 	mph->chunk_shift = t;
 	read(h, &mph->global_seed, sizeof mph->global_seed);
-
 	read(h, &mph->edge_offset_and_seed_length, sizeof mph->edge_offset_and_seed_length);
 	mph->edge_offset_and_seed = calloc(mph->edge_offset_and_seed_length, sizeof *mph->edge_offset_and_seed);
 	read(h, mph->edge_offset_and_seed, mph->edge_offset_and_seed_length * sizeof *mph->edge_offset_and_seed);
