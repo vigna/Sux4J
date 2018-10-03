@@ -342,7 +342,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 * @param values an iterator on values parallel to {@code elements}.
 	 * @param requiresValue2CountMap whether to build the value frequency map (associating with each value its frequency).
 	 */
-	public void addAll(final Iterator<? extends T> elements, final LongIterator values, boolean requiresValue2CountMap) throws IOException {
+	public void addAll(final Iterator<? extends T> elements, final LongIterator values, final boolean requiresValue2CountMap) throws IOException {
 		if (pl != null) {
 			pl.expectedUpdates = -1;
 			pl.start("Adding elements...");
@@ -471,7 +471,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 			}
 
 			@Override
-			public int read(ByteBuffer dst) throws IOException {
+			public int read(final ByteBuffer dst) throws IOException {
 				if (!dst.hasRemaining()) return 0;
 				for(;;) {
 					if (curr == channel.length) return -1;
@@ -483,6 +483,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		};
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	protected void finalize() throws Throwable {
 		try {
@@ -667,7 +668,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		 *
 		 * @param chunk a chunk to be copied.
 		 */
-		public Chunk(Chunk chunk) {
+		public Chunk(final Chunk chunk) {
 			index = chunk.index;
 			hashMask = chunk.hashMask;
 			start = 0;

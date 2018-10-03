@@ -340,6 +340,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		// Note: this works only when LOG2_CHUNK_SIZE == 10 (it adjusts too large chunks)
 		if ((n >> log2NumChunks) > 1024 + 512) log2NumChunks++;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
@@ -517,18 +518,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object key) {
-		if (n == 0) return defRetValue;
-		final int[] e = new int[3];
-		final long[] h = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, h);
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] >>> chunkShift);
-		final long edgeOffsetSeed = edgeOffsetAndSeed[chunk];
-		final long chunkOffset = vertexOffset(edgeOffsetSeed);
-		Linear3SystemSolver.tripleToEquation(h, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset), e);
-		if (e[0] == -1) return defRetValue;
-		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(chunkOffset, chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3], array);
-		if (signatureMask != 0) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
-		return result < n ? result : defRetValue;
+		final long[] triple = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, triple);
+		return getLongByTriple(triple);
 	}
 
 	/** Low-level access to the output of this minimal perfect hash function.
@@ -546,8 +538,10 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
 		final long edgeOffsetSeed = edgeOffsetAndSeed[chunk];
 		final long chunkOffset = vertexOffset(edgeOffsetSeed);
-		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset), e);
-		if (e[0] == -1) return defRetValue;
+		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset);
+		if (numVariables == 0) return defRetValue;
+		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
+
 		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(chunkOffset, chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3], array);
 		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		return result < n ? result : defRetValue;

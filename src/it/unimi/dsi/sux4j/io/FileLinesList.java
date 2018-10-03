@@ -1,19 +1,5 @@
 package it.unimi.dsi.sux4j.io;
 
-import java.io.Closeable;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.RandomAccess;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -33,6 +19,20 @@ import java.util.RandomAccess;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+import java.io.Closeable;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.RandomAccess;
 
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
@@ -272,6 +272,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			}
 		}
 
+		@SuppressWarnings("deprecation")
 		@Override
 		protected synchronized void finalize() throws Throwable {
 			try {

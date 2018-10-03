@@ -593,8 +593,9 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final long nextChunkOffset = offsetAndSeed[chunk + 1] & OFFSET_MASK;
 		final long chunkSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
-		Linear4SystemSolver.tripleToEquation(h, chunkSeed, (int)(nextChunkOffset - chunkOffset - w), e);
-		if (e[0] == -1) return defRetValue;
+		final int numVariables = (int)(nextChunkOffset - chunkOffset - w);
+		if (numVariables == 0) return defRetValue;
+		Linear4SystemSolver.tripleToEquation(h, chunkSeed, numVariables, e);
 		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset,
 				e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;
 		final long code = data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^

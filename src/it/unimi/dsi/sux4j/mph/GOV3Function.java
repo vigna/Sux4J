@@ -661,24 +661,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object o) {
-		if (n == 0) return defRetValue;
-		final int[] e = new int[3];
-		final long[] h = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, h);
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(h[0] >>> chunkShift);
-		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
-		Linear3SystemSolver.tripleToEquation(h, offsetAndSeed[chunk] & ~OFFSET_MASK, (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset), e);
-		if (e[0] == -1) return defRetValue;
-		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset;
-
-		final long result = rank == null ?
-				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
-				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
-				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
-				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
-		if (signatureMask == 0) return result;
-		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
-		else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
+		final long[] triple = new long[3];
+		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, triple);
+		return getLongByTriple(triple);
 	}
 
 	/** Low-level access to the output of this function.
@@ -695,9 +680,11 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[3];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
 		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
-		Linear3SystemSolver.tripleToEquation(triple, offsetAndSeed[chunk] & ~OFFSET_MASK, (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset), e);
+		final int numVariables = (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset);
+		if (numVariables == 0) return defRetValue;
+		Linear3SystemSolver.tripleToEquation(triple, offsetAndSeed[chunk] & ~OFFSET_MASK, numVariables, e);
 		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset;
-		if (e0 == -1) return defRetValue;
+
 		final long result = rank == null ?
 				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
 				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
