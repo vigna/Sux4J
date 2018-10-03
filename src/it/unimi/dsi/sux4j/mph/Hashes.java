@@ -2507,7 +2507,7 @@ public class Hashes {
 	 *            evaluations.
 	 */
 
-	public static void main(String arg[]) {
+	public static void main(final String arg[]) {
 		final int l = Integer.parseInt(arg[0]);
 		final int n = Integer.parseInt(arg[1]);
 		final LongArrayBitVector bv = LongArrayBitVector.ofLength(l);

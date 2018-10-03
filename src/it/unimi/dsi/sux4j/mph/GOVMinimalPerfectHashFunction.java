@@ -21,10 +21,14 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Iterator;
@@ -568,6 +572,34 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		array = bitVector.bits();
 	}
 
+	public void dump(final String file) throws IOException {
+		final ByteBuffer buffer = ByteBuffer.allocateDirect(edgeOffsetAndSeed.length * 8 + 32).order(ByteOrder.nativeOrder());
+		final FileOutputStream fos = new FileOutputStream(file);
+		final FileChannel channel = fos.getChannel();
+
+		buffer.clear();
+		buffer.putLong(size64());
+		buffer.putLong(chunkShift);
+		buffer.putLong(globalSeed);
+		buffer.putLong(edgeOffsetAndSeed.length);
+		for(final long l : edgeOffsetAndSeed) buffer.putLong(l);
+		buffer.flip();
+		channel.write(buffer);
+		buffer.clear();
+
+		buffer.putLong(array.length);
+		for(final long l: array) {
+			if (!buffer.hasRemaining()) {
+				buffer.flip();
+				channel.write(buffer);
+				buffer.clear();
+			}
+			buffer.putLong(l);
+		}
+		buffer.flip();
+		channel.write(buffer);
+		fos.close();
+	}
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
