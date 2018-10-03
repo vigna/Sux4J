@@ -11,4 +11,5 @@ typedef struct {
 } mph;
 
 mph *load_mph(int h);
-int64_t get(const mph *mph, char *key, uint64_t len);
+int64_t get_byte_array(const mph *mph, char *key, uint64_t len);
+int64_t get_uint64_t(const mph *mph, uint64_t key);

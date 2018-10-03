@@ -56,24 +56,12 @@ int main(int argc, char* argv[]) {
 		test_len[i] = p - test_buf[i];
 	}
 
-	// Shuffle
-/*	srand(0);
-	for(int i = 0; i< NKEYS; i++) {
-		const int j = i + rand() % (NKEYS - i);
-		char *t = test_buf[i];
-		test_buf[i] = test_buf[j];
-		test_buf[j] = t;
-		int u = test_len[i];
-		test_len[i] = test_len[j];
-		test_len[j] = u;
-	}
-*/
 	uint64_t total = 0;
 	uint64_t u = 0;
 
 	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
-		for (int i = 0; i < NKEYS; ++i) u ^= get(mph, test_buf[i], test_len[i]);
+		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(mph, test_buf[i], test_len[i]);
 
 		elapsed += get_system_time();
 		total += elapsed;
