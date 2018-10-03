@@ -35,7 +35,6 @@ public class ByteArrayFunctionSpeedTest {
 
 		final SimpleJSAP jsap = new SimpleJSAP(ByteArrayFunctionSpeedTest.class.getName(), "Test the speed of a function on byte arrays. Performs thirteen repetitions: the first three ones are warmup, and the average of the remaining ten is printed on standard output. The detailed results are logged to standard error.",
 				new Parameter[] {
-					new FlaggedOption("bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms."),
 					new FlaggedOption("n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing."),
 					new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding."),
 					new FlaggedOption("save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used."),
@@ -46,7 +45,7 @@ public class ByteArrayFunctionSpeedTest {
 					new UnflaggedOption("termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "Read terms from this file."),
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		final String functionName = jsapResult.getString("function");
@@ -70,7 +69,7 @@ public class ByteArrayFunctionSpeedTest {
 				FastBufferedInputStream fbis;
 				try {
 					fbis = new FastBufferedInputStream(zipped ? new GZIPInputStream(new FileInputStream(termFile)) : new FileInputStream(termFile));
-				} catch (Exception e) {
+				} catch (final Exception e) {
 					throw new RuntimeException(e.getMessage(), e);
 				}
 				final byte[] buffer = new byte[16384];
@@ -85,7 +84,7 @@ public class ByteArrayFunctionSpeedTest {
 						try {
 							read = fbis.readLine(buffer, FastBufferedInputStream.ALL_TERMINATORS);
 						}
-						catch (IOException e) {
+						catch (final IOException e) {
 							throw new RuntimeException(e.getMessage(), e);
 						}
 						if (read == buffer.length) throw new IllegalStateException();
@@ -108,7 +107,7 @@ public class ByteArrayFunctionSpeedTest {
 		};
 
 		long size = 0;
-		for(Iterator<byte[]> ii = lines.iterator(); ii.hasNext(); size++) ii.next();
+		for(final Iterator<byte[]> ii = lines.iterator(); ii.hasNext(); size++) ii.next();
 
 		if (random) {
 			final int n = (int)Math.min(maxStrings, size);
@@ -123,7 +122,7 @@ public class ByteArrayFunctionSpeedTest {
 
 			if (save != null) {
 				final PrintStream ps = new PrintStream(save, encoding.name());
-				for(byte[] s: test) ps.println(new String(s, Charsets.ISO_8859_1));
+				for(final byte[] s: test) ps.println(new String(s, Charsets.ISO_8859_1));
 				ps.close();
 			}
 

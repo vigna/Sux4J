@@ -1,13 +1,5 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.Util;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
-import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
-import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.lang.MutableString;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -25,13 +17,20 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
+import it.unimi.dsi.Util;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
+import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
+import it.unimi.dsi.fastutil.objects.Object2LongFunction;
+import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.lang.MutableString;
+
 public class FunctionSpeedTest {
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
 		final SimpleJSAP jsap = new SimpleJSAP(FunctionSpeedTest.class.getName(), "Test the speed of a function. Performs thirteen repetitions: the first three ones are warmup, and the average of the remaining ten is printed on standard output. The detailed results are logged to standard error.",
 				new Parameter[] {
-					new FlaggedOption("bufferSize", JSAP.INTSIZE_PARSER, "64Ki", JSAP.NOT_REQUIRED, 'b',  "buffer-size", "The size of the I/O buffer used to read terms."),
 					new FlaggedOption("n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing."),
 					new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding."),
 					new FlaggedOption("save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used."),
@@ -42,7 +41,7 @@ public class FunctionSpeedTest {
 					new UnflaggedOption("termFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "Read terms from this file."),
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		final String functionName = jsapResult.getString("function");
@@ -75,12 +74,12 @@ public class FunctionSpeedTest {
 
 			if (save != null) {
 				final PrintStream ps = new PrintStream(save, encoding.name());
-				for(MutableString s: test) s.println(ps);
+				for(final MutableString s: test) s.println(ps);
 				ps.close();
 			}
 
-			FastByteArrayOutputStream fbaos = new FastByteArrayOutputStream();
-			for(MutableString s: test) s.writeSelfDelimUTF8(fbaos);
+			final FastByteArrayOutputStream fbaos = new FastByteArrayOutputStream();
+			for(final MutableString s: test) s.writeSelfDelimUTF8(fbaos);
 			fbaos.close();
 			test = null;
 			final FastByteArrayInputStream fbais = new FastByteArrayInputStream(fbaos.array, 0, fbaos.length);
