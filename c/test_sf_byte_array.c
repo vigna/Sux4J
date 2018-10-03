@@ -46,8 +46,7 @@ int main(int argc, char* argv[]) {
 
 	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
-//		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(sf, test_buf[i], test_len[i]);
-		for (int i = 0; i < 10; ++i) printf("%lld\n", get_byte_array(sf, test_buf[i], test_len[i]));
+		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(sf, test_buf[i], test_len[i]);
 
 		elapsed += get_system_time();
 		total += elapsed;
