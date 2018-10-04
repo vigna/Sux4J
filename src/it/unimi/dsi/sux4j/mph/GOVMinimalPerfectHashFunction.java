@@ -438,6 +438,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 						synchronized(pl) {
 							pl.update();
+							LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + pl.count) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + pl.count)) + "%)");
+							LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (unorientable.get() + unsolvable.get() + pl.count) + " (" + Util.format(100.0 * unorientable.get() / (unorientable.get() + pl.count)) + "%)");
 						}
 					}
 				});
