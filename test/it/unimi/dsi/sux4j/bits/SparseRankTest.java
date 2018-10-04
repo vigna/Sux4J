@@ -1,13 +1,14 @@
 package it.unimi.dsi.sux4j.bits;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 import java.util.Random;
 
 import org.junit.Test;
+
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class SparseRankTest extends RankSelectTestCase {
 
@@ -179,8 +180,8 @@ public class SparseRankTest extends RankSelectTestCase {
 
 	@Test
 	public void testRandom() {
-		Random r = new XoRoShiRo128PlusRandom(1);
-		LongArrayBitVector bitVector = LongArrayBitVector.getInstance(1000);
+		final Random r = new XoRoShiRo128PlusRandom(1);
+		final LongArrayBitVector bitVector = LongArrayBitVector.getInstance(1000);
 		for (int i = 0; i < 1000; i++)
 			bitVector.add(r.nextBoolean());
 		SparseRank rank;
@@ -211,8 +212,16 @@ public class SparseRankTest extends RankSelectTestCase {
 
 	@Test
 	public void testGetRank() {
-		SparseSelect select = new SparseSelect(LongArrayList.wrap(new long[] { 0, 48, 128 }));
-		SparseRank rank = select.getRank();
+		final SparseSelect select = new SparseSelect(LongArrayList.wrap(new long[] { 0, 48, 128 }));
+		final SparseRank rank = select.getRank();
 		assertRankAndSelect(rank, select);
+	}
+
+	@Test
+	public void testMaxInt() {
+		final LongArrayBitVector bv = LongArrayBitVector.ofLength(Integer.MAX_VALUE + 2L);
+		bv.set(Integer.MAX_VALUE + 1L);
+		final SparseSelect select = new SparseSelect(bv);
+        assertEquals(Integer.MAX_VALUE + 1L, select.select(0));
 	}
 }
