@@ -404,17 +404,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		n = chunkedHashStore.size();
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
-		if (n == 0) {
-			m = globalSeed = chunkShift = width = 0;
-			data = null;
-			offsetAndSeed = null;
-			signatureMask = 0;
-			signatures = null;
-			if (! givenChunkedHashStore) chunkedHashStore.close();
-			return;
-		}
-
-		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		// Adjustment for the empty map
+		if (log2NumChunks < 1) log2NumChunks = 1;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
@@ -422,7 +414,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		offsetAndSeed = new long[numChunks + 1];
 
-		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
+		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Math.max(0, Fast.ceilLog2(n)) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
@@ -464,7 +456,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 							assert chunkDataSize <= Integer.MAX_VALUE;
 							synchronized(offsetAndSeed) {
 								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + chunkDataSize;
-								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
+								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1 : offsetAndSeed[i1 + 1] + " > " + (OFFSET_MASK + 1);
 							}
 							chunkQueue.put(chunk);
 						}
@@ -545,6 +537,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.itemsName = "keys";
 				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
+				offlineData.clear();
 			}
 		}
 
@@ -552,7 +545,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		globalSeed = chunkedHashStore.seed();
 		m = offsetAndSeed[offsetAndSeed.length - 1];
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance(m * this.width);
+		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((m + 1) * width);
 		this.data = dataBitVector.asLongBigList(this.width);
 
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
@@ -560,6 +553,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		iterator.close();
 
 		offlineData.close();
+		data.add(0);
 
 		LOGGER.info("Completed.");
 		LOGGER.info("Forecast bit cost per element: " + C * this.width);
@@ -599,9 +593,8 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the output of the function.
 	 */
 	public long getLongByTriple(final long[] triple) {
-		if (n == 0) return defRetValue;
 		final int[] e = new int[4];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final int chunk = (int)(triple[0] >>> chunkShift);
 		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
 		Linear4SystemSolver.tripleToEquation(triple, offsetAndSeed[chunk] & ~OFFSET_MASK, (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset), e);
 		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;

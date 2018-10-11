@@ -340,6 +340,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		// Adjustment for the empty map
+		if (log2NumChunks < 1) log2NumChunks = 1;
 		// Note: this works only when LOG2_CHUNK_SIZE == 10 (it adjusts too large chunks)
 		if ((n >> log2NumChunks) > 1024 + 512) log2NumChunks++;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
@@ -349,7 +351,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		edgeOffsetAndSeed = new long[numChunks + 1];
 
-		bitVector = LongArrayBitVector.getInstance(2 * (n * C_TIMES_256 >> 8));
+		bitVector = LongArrayBitVector.getInstance(2 * (1 + (n * C_TIMES_256 >> 8)));
 
 		int duplicates = 0;
 
@@ -438,8 +440,6 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 						synchronized(pl) {
 							pl.update();
-							LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + pl.count) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + pl.count)) + "%)");
-							LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (unorientable.get() + unsolvable.get() + pl.count) + " (" + Util.format(100.0 * unorientable.get() / (unorientable.get() + pl.count)) + "%)");
 						}
 					}
 				});
@@ -476,6 +476,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		globalSeed = chunkedHashStore.seed();
 		values = bitVector.asLongBigList(2);
+		values.add(0);
 		array = bitVector.bits();
 
 		LOGGER.info("Completed.");
@@ -535,13 +536,12 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * @return the output of the function.
 	 */
 	public long getLongByTriple(final long[] triple) {
-		if (n == 0) return defRetValue;
 		final int[] e = new int[3];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final int chunk = (int)(triple[0] >>> chunkShift);
 		final long edgeOffsetSeed = edgeOffsetAndSeed[chunk];
 		final long chunkOffset = vertexOffset(edgeOffsetSeed);
 		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset);
-		if (numVariables == 0) return defRetValue;
+		//if (numVariables == 0) return defRetValue;
 		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
 
 		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(chunkOffset, chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3], array);

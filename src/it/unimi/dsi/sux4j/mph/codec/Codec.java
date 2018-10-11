@@ -263,6 +263,67 @@ public interface Codec {
 		}
 	}
 
+	/** A degenerate stateless codec (always returns zero). */
+	public static class ZeroCodec implements Codec {
+		private static final ZeroCodec INSTANCE = new ZeroCodec();
+
+		private ZeroCodec() {}
+
+		public static ZeroCodec getInstance() {
+			return INSTANCE;
+		}
+
+		protected static class Coder implements Codec.Coder {
+			private static Coder INSTANCE = new Coder();
+
+			protected final static class Decoder implements Codec.Decoder {
+				private static Decoder INSTANCE = new Decoder();
+				private static final long serialVersionUID = 0L;
+
+				@Override
+				public long decode(final long value) {
+					return 0;
+				}
+
+				@Override
+				public long numBits() {
+					return 0;
+				}
+
+				private Object readResolve()  {
+				    return INSTANCE;
+				}
+			}
+
+			@Override
+			public long encode(final long symbol) {
+				throw new AssertionError("The zero codec cannot encode symbols");
+			}
+
+			@Override
+			public int codewordLength(final long symbol) {
+				throw new AssertionError("The zero codec cannot encode symbols");
+			}
+
+			@Override
+			public int maxCodewordLength() {
+				return 0;
+			}
+
+			@Override
+			public Decoder getDecoder() {
+				return Decoder.INSTANCE;
+			}
+		}
+
+		@Override
+		public Coder getCoder(final Long2LongMap frequencies) {
+			assert frequencies.isEmpty();
+			return Coder.INSTANCE;
+		}
+	}
+
+
 	/** A Huffman codec with length-limiting capabilities and a fast canonical decoder. */
 	public static class Huffman implements Codec {
 		private final int maxDecodingTableLength;

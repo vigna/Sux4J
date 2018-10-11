@@ -217,7 +217,6 @@ public class Linear3SystemSolver {
 	 * @param e an array to store the resulting equation.
 	 */
 	public static void tripleToEquation(final long[] triple, final long seed, final int numVariables, final int e[]) {
-		assert numVariables > 0 : numVariables;
 		final long[] hash = new long[3];
 		Hashes.spooky4(triple, seed, hash);
 		final int shift = Long.numberOfLeadingZeros(numVariables);

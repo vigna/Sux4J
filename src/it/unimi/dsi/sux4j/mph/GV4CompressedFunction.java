@@ -81,6 +81,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.codec.Codec;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
+import it.unimi.dsi.sux4j.mph.codec.Codec.ZeroCodec;
 import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
@@ -399,14 +400,6 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 		n = chunkedHashStore.size();
 		defRetValue = -1;
-		if (n == 0) {
-			this.globalSeed = chunkShift = globalMaxCodewordLength = 0;
-			data = null;
-			offsetAndSeed = null;
-			decoder = null;
-			if (!givenChunkedHashStore) chunkedHashStore.close();
-			return;
-		}
 
 		final Long2LongOpenHashMap frequencies;
 		if (indirect) {
@@ -415,11 +408,13 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 		else frequencies = chunkedHashStore.value2FrequencyMap();
 
-		final Codec.Coder coder = codec.getCoder(frequencies);
+		final Codec.Coder coder = frequencies.isEmpty() ? ZeroCodec.getInstance().getCoder(frequencies) : codec.getCoder(frequencies);
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
 
-		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		// Adjustment for the empty map
+		if (log2NumChunks < 1) log2NumChunks = 1;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 		LOGGER.debug("Number of chunks: " + numChunks);
@@ -559,6 +554,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				pl.itemsName = "keys";
 				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
+				offlineData.clear();
 			}
 		}
 
@@ -567,13 +563,14 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			System.out.println("Offsets: " + Arrays.toString(offsetAndSeed));
 		}
 		globalSeed = chunkedHashStore.seed();
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
+		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((offsetAndSeed[numChunks] & OFFSET_MASK) + 1);
 		this.data = dataBitVector;
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 		while (iterator.hasNext())
 			dataBitVector.append(iterator.next());
 		iterator.close();
 		offlineData.close();
+		data.add(0);
 		LOGGER.info("Completed.");
 
 		LOGGER.info("Actual bit cost per element: " + (double) numBits() / n);
@@ -583,18 +580,16 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object o) {
-		if (n == 0) return defRetValue;
 		final int[] e = new int[4];
 		final long[] h = new long[3];
 		Hashes.spooky4(transform.toBitVector((T) o), globalSeed, h);
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int) (h[0] >>> chunkShift);
+		final int chunk = (int)(h[0] >>> chunkShift);
 		final long olc = offsetAndSeed[chunk];
 		final long chunkOffset = olc & OFFSET_MASK;
 		final long nextChunkOffset = offsetAndSeed[chunk + 1] & OFFSET_MASK;
 		final long chunkSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
 		final int numVariables = (int)(nextChunkOffset - chunkOffset - w);
-		if (numVariables == 0) return defRetValue;
 		Linear4SystemSolver.tripleToEquation(h, chunkSeed, numVariables, e);
 		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset,
 				e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;

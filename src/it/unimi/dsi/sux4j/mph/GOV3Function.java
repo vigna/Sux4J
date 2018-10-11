@@ -430,19 +430,9 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		n = chunkedHashStore.size();
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
-		if (n == 0) {
-			m = globalSeed = chunkShift = width = 0;
-			data = null;
-			marker = null;
-			rank = null;
-			offsetAndSeed = null;
-			signatureMask = 0;
-			signatures = null;
-			if (! givenChunkedHashStore) chunkedHashStore.close();
-			return;
-		}
-
-		final int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
+		// Adjustment for the empty map
+		if (log2NumChunks < 1) log2NumChunks = 1;
 		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
 		final int numChunks = 1 << log2NumChunks;
 
@@ -450,7 +440,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		offsetAndSeed = new long[numChunks + 1];
 
-		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Fast.ceilLog2(n) : dataWidth;
+		width = signatureWidth < 0 ? -signatureWidth : dataWidth == -1 ? Math.max(0, Fast.ceilLog2(n)) : dataWidth;
 
 		// Candidate data; might be discarded for compaction.
 		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
@@ -572,6 +562,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.itemsName = "keys";
 				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
+				offlineData.clear();
 			}
 		}
 
@@ -593,9 +584,8 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			iterator.close();
 
 			marker = LongArrayBitVector.ofLength(m);
-			final LongBigList newData = LongArrayBitVector.getInstance().asLongBigList(width);
-			newData.size(nonZero);
-			nonZero = 0;
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((nonZero + 1) * width);
+			final LongBigList newData = dataBitVector.asLongBigList(width);
 
 			long j = 0;
 			for(iterator = offlineData.iterator(); iterator.hasNext();) {
@@ -604,7 +594,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 					final long value = data.getLong(i);
 					if (value != 0) {
 						marker.set(j);
-						newData.set(nonZero++, value);
+						newData.add(value);
 					}
 				}
 			}
@@ -627,7 +617,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			this.data = newData;
 		}
 		else {
-			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance(m * width);
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((m + 1) * width);
 			this.data = dataBitVector.asLongBigList(width);
 			for(iterator = offlineData.iterator(); iterator.hasNext();) dataBitVector.append(iterator.next());
 			iterator.close();
@@ -637,6 +627,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		}
 
 		offlineData.close();
+		data.add(0);
 
 		LOGGER.info("Completed.");
 		LOGGER.debug("Forecast bit cost per element: " + (marker == null ? C * width : C + width + 0.126));
@@ -676,12 +667,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 	 * @return the output of the function.
 	 */
 	public long getLongByTriple(final long[] triple) {
-		if (n == 0) return defRetValue;
 		final int[] e = new int[3];
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
+		final int chunk = (int)(triple[0] >>> chunkShift);
 		final long chunkOffset = offsetAndSeed[chunk] & OFFSET_MASK;
 		final int numVariables = (int)((offsetAndSeed[chunk + 1] & OFFSET_MASK) - chunkOffset);
-		if (numVariables == 0) return defRetValue;
 		Linear3SystemSolver.tripleToEquation(triple, offsetAndSeed[chunk] & ~OFFSET_MASK, numVariables, e);
 		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset, e2 = e[2] + chunkOffset;
 

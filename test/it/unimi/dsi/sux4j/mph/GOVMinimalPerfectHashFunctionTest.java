@@ -11,12 +11,13 @@ import org.junit.Test;
 
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction.Builder;
 
 public class GOVMinimalPerfectHashFunctionTest {
 
-	private void check(int size, String[] s, GOVMinimalPerfectHashFunction<CharSequence> mph, int w) {
+	private void check(final int size, final String[] s, final GOVMinimalPerfectHashFunction<CharSequence> mph, final int w) {
 		final int[] check = new int[s.length];
 		Arrays.fill(check, -1);
 		for (int i = s.length; i-- != 0;) {
@@ -61,6 +62,14 @@ public class GOVMinimalPerfectHashFunctionTest {
 
 				check(size, s, mph, signatureWidth);
 			}
+		}
+	}
+
+	@Test
+	public void checkEmpty() throws IOException {
+		for(final int signatureWidth: new int[] { 0, 32, 64 }) {
+			final GOVMinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys(ObjectLists.EMPTY_LIST).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
+			check(0, new String[] {}, mph, 0);
 		}
 	}
 

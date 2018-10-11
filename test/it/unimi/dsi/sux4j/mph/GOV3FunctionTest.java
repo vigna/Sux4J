@@ -20,14 +20,14 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 public class GOV3FunctionTest {
 
 
-	private void check(int size, String[] s, GOV3Function<CharSequence> mph, int signatureWidth) {
-		if (signatureWidth < 0) for (int i = s.length; i-- != 0;) assertEquals(1, mph.getLong(s[i]));
-		else for (int i = s.length; i-- != 0;) assertEquals(i, mph.getLong(s[i]));
+	private void check(final int size, final String[] s, final GOV3Function<CharSequence> function, final int signatureWidth) {
+		if (signatureWidth < 0) for (int i = s.length; i-- != 0;) assertEquals(1, function.getLong(s[i]));
+		else for (int i = s.length; i-- != 0;) assertEquals(i, function.getLong(s[i]));
 
 		// Exercise code for negative results
-		if (signatureWidth == 0) for (int i = size; i-- != 0;) mph.getLong(Integer.toString(i + size));
-		else if (signatureWidth < 0) for (int i = size; i-- != 0;) assertEquals(0, mph.getLong(Integer.toString(i + size)));
-		else for (int i = size; i-- != 0;) assertEquals(-1, mph.getLong(Integer.toString(i + size)));
+		if (signatureWidth == 0) for (int i = size; i-- != 0;) function.getLong(Integer.toString(i + size));
+		else if (signatureWidth < 0) for (int i = size; i-- != 0;) assertEquals(0, function.getLong(Integer.toString(i + size)));
+		else for (int i = size; i-- != 0;) assertEquals(-1, function.getLong(Integer.toString(i + size)));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -40,25 +40,25 @@ public class GOV3FunctionTest {
 					for (int i = s.length; i-- != 0;)
 						s[i] = Integer.toString(i);
 
-					GOV3Function<CharSequence> mph = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
+					GOV3Function<CharSequence> function = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
 
-					check(size, s, mph, signatureWidth);
+					check(size, s, function, signatureWidth);
 
 					final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 					temp.deleteOnExit();
-					BinIO.storeObject(mph, temp);
-					mph = (GOV3Function<CharSequence>)BinIO.loadObject(temp);
+					BinIO.storeObject(function, temp);
+					function = (GOV3Function<CharSequence>)BinIO.loadObject(temp);
 
-					check(size, s, mph, signatureWidth);
+					check(size, s, function, signatureWidth);
 
 					// From store
 					final ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
 					chunkedHashStore.addAll(Arrays.asList(s).iterator());
 					chunkedHashStore.checkAndRetry(Arrays.asList(s));
-					mph = new GOV3Function.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
+					function = new GOV3Function.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
 					chunkedHashStore.close();
 
-					check(size, s, mph, signatureWidth);
+					check(size, s, function, signatureWidth);
 				}
 			}
 		}
@@ -67,21 +67,21 @@ public class GOV3FunctionTest {
 	@Test
 	public void testLongNumbers() throws IOException {
 		final LongArrayList l = new LongArrayList(new long[] { 0x234904309830498L, 0xae049345e9eeeeeL, 0x23445234959234L, 0x239234eaeaeaeL });
-		GOV3Function<CharSequence> mph = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l).build();
-		assertEquals(l.getLong(0), mph.getLong("a"));
-		assertEquals(l.getLong(1), mph.getLong("b"));
-		assertEquals(l.getLong(2), mph.getLong("c"));
-		assertEquals(l.getLong(3), mph.getLong("d"));
-		mph = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l, Long.SIZE).build();
-		assertEquals(l.getLong(0), mph.getLong("a"));
-		assertEquals(l.getLong(1), mph.getLong("b"));
-		assertEquals(l.getLong(2), mph.getLong("c"));
-		assertEquals(l.getLong(3), mph.getLong("d"));
-		mph = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l, Long.SIZE).indirect().build();
-		assertEquals(l.getLong(0), mph.getLong("a"));
-		assertEquals(l.getLong(1), mph.getLong("b"));
-		assertEquals(l.getLong(2), mph.getLong("c"));
-		assertEquals(l.getLong(3), mph.getLong("d"));
+		GOV3Function<CharSequence> function = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l).build();
+		assertEquals(l.getLong(0), function.getLong("a"));
+		assertEquals(l.getLong(1), function.getLong("b"));
+		assertEquals(l.getLong(2), function.getLong("c"));
+		assertEquals(l.getLong(3), function.getLong("d"));
+		function = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l, Long.SIZE).build();
+		assertEquals(l.getLong(0), function.getLong("a"));
+		assertEquals(l.getLong(1), function.getLong("b"));
+		assertEquals(l.getLong(2), function.getLong("c"));
+		assertEquals(l.getLong(3), function.getLong("d"));
+		function = new GOV3Function.Builder<CharSequence>().keys(Arrays.asList(new String[] { "a", "b", "c", "d" })).transform(TransformationStrategies.utf16()).values(l, Long.SIZE).indirect().build();
+		assertEquals(l.getLong(0), function.getLong("a"));
+		assertEquals(l.getLong(1), function.getLong("b"));
+		assertEquals(l.getLong(2), function.getLong("c"));
+		assertEquals(l.getLong(3), function.getLong("d"));
 	}
 
 	@Test
@@ -122,11 +122,11 @@ public class GOV3FunctionTest {
 	public void testEmpty() throws IOException {
 		final List<String> emptyList = Collections.emptyList();
 		GOV3Function<String> mph = new GOV3Function.Builder<String>().keys(emptyList).transform(TransformationStrategies.utf16()).build();
-		assertEquals(-1, mph.getLong("a"));
+		assertEquals(0, mph.getLong("a"));
 		mph = new GOV3Function.Builder<String>().keys(emptyList).dictionary(10).transform(TransformationStrategies.utf16()).build();
 		assertEquals(0, mph.getLong("a"));
 		mph = new GOV3Function.Builder<String>().keys(emptyList).values(LongLists.EMPTY_LIST, 10).transform(TransformationStrategies.utf16()).build();
-		assertEquals(-1, mph.getLong("a"));
+		assertEquals(0, mph.getLong("a"));
 
 	}
 }
