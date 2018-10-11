@@ -1,5 +1,4 @@
 #include "spooky.h"
-#include "mph.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <fcntl.h>
@@ -19,21 +18,34 @@ static uint64_t get_system_time(void) {
 int main(int argc, char* argv[]) {
 	int h = open(argv[1], O_RDONLY);
 	assert(h >= 0);
-	mph *mph = load_mph(h);
+	SUX4J_MAP *SUX4J_MAP = SUX4J_LOAD_MAP(h);
 	close(h);
 
 #define NKEYS 10000000
 	h = open(argv[2], O_RDONLY);
-	uint64_t *data = calloc(NKEYS, sizeof *data);
-	read(h, data, NKEYS * sizeof *data);
+	off_t len = lseek(h, 0, SEEK_END);
+	lseek(h, 0, SEEK_SET);
+	char *data = malloc(len);
+	read(h, data, len);
 	close(h);
 	
+	static char *test_buf[NKEYS];
+	static int test_len[NKEYS];
+	
+	char *p = data;
+	for(int i = 0; i < NKEYS; i++) {
+		while(*p == 0xA || *p == 0xD) p++;
+		test_buf[i] = p;
+		while(*p != 0xA && *p != 0xD) p++;
+		test_len[i] = p - test_buf[i];
+	}
+
 	uint64_t total = 0;
 	uint64_t u = 0;
 
 	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
-		for (int i = 0; i < NKEYS; ++i) u ^= mph_get_uint64_t(mph, data[i]);
+		for (int i = 0; i < NKEYS; ++i) u += SUX4J_GET_BYTE_ARRAY(SUX4J_MAP, test_buf[i], test_len[i]);
 
 		elapsed += get_system_time();
 		total += elapsed;
