@@ -21,9 +21,13 @@ package it.unimi.dsi.sux4j.mph;
  */
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
@@ -635,6 +639,39 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	@Override
 	public boolean containsKey(final Object o) {
 		return true;
+	}
+
+	public void dump(final String file) throws IOException {
+		final ByteBuffer buffer = ByteBuffer.allocateDirect(offsetAndSeed.length * 8 + 40).order(ByteOrder.nativeOrder());
+		final FileOutputStream fos = new FileOutputStream(file);
+		final FileChannel channel = fos.getChannel();
+
+		buffer.clear();
+		buffer.putLong(size64());
+		buffer.putLong(width);
+		buffer.putLong(chunkShift);
+		buffer.putLong(globalSeed);
+		buffer.putLong(offsetAndSeed.length);
+		for(final long l : offsetAndSeed) buffer.putLong(l);
+		buffer.flip();
+		channel.write(buffer);
+		buffer.clear();
+
+		final LongArrayBitVector v = LongArrayBitVector.getInstance().ensureCapacity(data.size64() * width);
+		for(final long d: data) v.append(d, width);
+		final long[] array = v.bits();
+		buffer.putLong(array.length);
+		for(final long l: array) {
+			if (!buffer.hasRemaining()) {
+				buffer.flip();
+				channel.write(buffer);
+				buffer.clear();
+			}
+			buffer.putLong(l);
+		}
+		buffer.flip();
+		channel.write(buffer);
+		fos.close();
 	}
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {

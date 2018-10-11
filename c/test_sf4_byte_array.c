@@ -1,5 +1,3 @@
-#include "spooky.h"
-#include "sf.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <fcntl.h>
@@ -9,6 +7,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "sf4.h"
 
 static uint64_t get_system_time(void) {
 	struct timeval tv;
@@ -46,7 +45,7 @@ int main(int argc, char* argv[]) {
 
 	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
-		for (int i = 0; i < NKEYS; ++i) u ^= get_byte_array(sf, test_buf[i], test_len[i]);
+		for (int i = 0; i < NKEYS; ++i) u ^= sf4_get_byte_array(sf, test_buf[i], test_len[i]);
 
 		elapsed += get_system_time();
 		total += elapsed;

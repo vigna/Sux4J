@@ -2,27 +2,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
-#include "sf.h"
+#include "sf3.h"
 #include "spooky.h"
-
-sf *load_sf(int h) {
-	sf *sf = calloc(1, sizeof *sf);
-	read(h, &sf->size, sizeof sf->size);
-	uint64_t t;
-	read(h, &t, sizeof t);
-	sf->width = t;
-	read(h, &t, sizeof t);
-	sf->chunk_shift = t;
-	read(h, &sf->global_seed, sizeof sf->global_seed);
-	read(h, &sf->offset_and_seed_length, sizeof sf->offset_and_seed_length);
-	sf->offset_and_seed = calloc(sf->offset_and_seed_length, sizeof *sf->offset_and_seed);
-	read(h, sf->offset_and_seed, sf->offset_and_seed_length * sizeof *sf->offset_and_seed);
-
-	read(h, &sf->array_length, sizeof sf->array_length);
-	sf->array = calloc(sf->array_length, sizeof *sf->array);
-	read(h, sf->array, sf->array_length * sizeof *sf->array);
-	return sf;
-}
 
 static void inline triple_to_equation(const uint64_t *triple, const uint64_t seed, int num_variables, int *e) {
 	uint64_t hash[4];
@@ -36,11 +17,6 @@ static void inline triple_to_equation(const uint64_t *triple, const uint64_t see
 																										
 
 #define OFFSET_MASK (UINT64_C(-1) >> 8)
-#define C_TIMES_256 (int)(floor((1.09 + 0.01) * 256))
-
-static uint64_t inline vertex_offset(const uint64_t offset_seed) {
-	return ((offset_seed & OFFSET_MASK) * C_TIMES_256 >> 8);
-}
 
 static uint64_t get_value(const uint64_t * const array, uint64_t pos, const int width) {
 	pos *= width;
@@ -51,7 +27,7 @@ static uint64_t get_value(const uint64_t * const array, uint64_t pos, const int 
 	return array[start_word] >> start_bit | array[start_word + 1] << 64 + l - start_bit >> l;
 }
 
-int64_t get_byte_array(const sf *sf, char *key, uint64_t len) {
+int64_t sf3_get_byte_array(const sf *sf, char *key, uint64_t len) {
 	uint64_t h[4];
 	spooky_short(key, len, sf->global_seed, h);
 	const int chunk = h[0] >> sf->chunk_shift;
@@ -64,7 +40,7 @@ int64_t get_byte_array(const sf *sf, char *key, uint64_t len) {
 	return get_value(sf->array, e[0] + chunk_offset, sf->width) ^ get_value(sf->array, e[1] + chunk_offset, sf->width) ^ get_value(sf->array, e[2] + chunk_offset, sf->width);
 }
 
-int64_t get_uint64_t(const sf *sf, const uint64_t key) {
+int64_t sf3_get_uint64_t(const sf *sf, const uint64_t key) {
 	uint64_t h[4];
 	spooky_short(&key, 8, sf->global_seed, h);
 	const int chunk = h[0] >> sf->chunk_shift;
