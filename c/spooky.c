@@ -25,11 +25,9 @@
 
 #include "spooky.h"
 
-#include <memory.h>
+#include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-#define ALLOW_UNALIGNED_READS 1
 
 //
 // SC_CONST: a constant which:
@@ -41,11 +39,6 @@
 #define SC_CONST (0x9e3779b97f4a7c13)
 
 #define ROTL64(x, k) (((x) << (k)) | ((x) >> (64 - (k))))
-
-#ifdef _MSC_VER
-# define restrict __restrict
-# define inline __forceinline
-#endif
 
 static inline uint64_t spooky_read_le64(const uint64_t *s) {
 		const uint8_t *p = (const uint8_t *) s;
