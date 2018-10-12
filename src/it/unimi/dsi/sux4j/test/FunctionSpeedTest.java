@@ -40,8 +40,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
-import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.lang.MutableString;
@@ -54,7 +52,7 @@ public class FunctionSpeedTest {
 
 		final SimpleJSAP jsap = new SimpleJSAP(FunctionSpeedTest.class.getName(), "Tests the speed of a function on character sequences. Sequential tests (the default) read keys from disk, whereas random tests cache keys in a contiguous region of memory. Performs a few warmup repetitions, and then the median of a sample is printed on standard output. The detailed results are logged to standard error.",
 				new Parameter[] {
-					new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The term file encoding."),
+					new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
 					new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
 					new Switch("random", 'r', "random", "Test a subset of strings cached contiguously in memory."),
 					new Switch("shuffle", 'S', "shuffle", "Shuffle the subset of strings used for random tests."),
@@ -90,7 +88,7 @@ public class FunctionSpeedTest {
 
 		if (random) {
 			final int n = (int)Math.min(maxStrings, size);
-			MutableString[] test = new MutableString[n];
+			final MutableString[] test = new MutableString[n];
 			final int step = (int)(size / n) - 1;
 			final Iterator<? extends CharSequence> iterator = flc.iterator();
 			for(int i = 0; i < n; i++) {
@@ -105,12 +103,15 @@ public class FunctionSpeedTest {
 				ps.close();
 			}
 
-			final FastByteArrayOutputStream fbaos = new FastByteArrayOutputStream();
-			for(final MutableString s: test) s.writeSelfDelimUTF8(fbaos);
-			fbaos.close();
-			test = null;
-			final FastByteArrayInputStream fbais = new FastByteArrayInputStream(fbaos.array, 0, fbaos.length);
-			final MutableString s = new MutableString();
+			final int[] length = new int[n];
+			int totalLength = 0;
+			for(int i = 0; i < n; i++) totalLength += (length[i] = test[i].length());
+			final char[] a = new char[totalLength];
+			for(int i = 0, s = 0; i < n; i++) {
+				System.arraycopy(test[i].array(), 0, a, s, length[i]);
+				s += length[i];
+			}
+
 
 			System.gc();
 			System.gc();
@@ -119,10 +120,10 @@ public class FunctionSpeedTest {
 			final long[] sample = new long[NUM_SAMPLES];
 			System.err.println("Warmup...");
 			for(int k = NUM_WARMUPS + NUM_SAMPLES; k-- != 0;) {
-				fbais.position(0);
 				long time = -System.nanoTime();
-				for(int i = 0; i < n; i++) {
-					t ^= function.getLong(s.readSelfDelimUTF8(fbais));
+				for(int i = 0, s = 0; i < n; i++) {
+					t ^= function.getLong(new MutableString(a, s, length[i]));
+					s += length[i];
 					if ((i & 0xFFFFF) == 0) System.err.print('.');
 				}
 				System.err.println();
@@ -156,7 +157,7 @@ public class FunctionSpeedTest {
 				time += System.nanoTime();
 				if (k < NUM_SAMPLES) sample[k] = time;
 				System.err.println(Util.format(time / 1E9) + "s, " + Util.format((double)time / size) + " ns/item");
-				if (k == NUM_SAMPLES) System.err.println("Sampling " + size + " strings...");
+				if (k == NUM_SAMPLES) System.err.println("Scanning " + size + " strings...");
 			}
 			System.out.println("Median: " + Util.format(sample[NUM_SAMPLES / 2] / 1E9) + "s, " + Util.format(sample[NUM_SAMPLES / 2] / (double)size) + " ns/item");
 			if (t == 0) System.err.println(t);
