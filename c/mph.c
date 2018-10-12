@@ -70,7 +70,6 @@ int64_t mph_get_byte_array(const mph *mph, char *key, uint64_t len) {
 	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
 	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
 	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;
-	if (num_variables == 0) return -1;
 	int e[3];
 	triple_to_equation(h, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
 	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(chunk_offset, chunk_offset + e[(get_2bit_value(mph->array, e[0] + chunk_offset) + get_2bit_value(mph->array, e[1] + chunk_offset) + get_2bit_value(mph->array, e[2] + chunk_offset)) % 3], mph->array);
@@ -83,7 +82,6 @@ int64_t mph_get_uint64_t(const mph *mph, const uint64_t key) {
 	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
 	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
 	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;
-	if (num_variables == 0) return -1;
 	int e[3];
 	triple_to_equation(h, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
 	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(chunk_offset, chunk_offset + e[(get_2bit_value(mph->array, e[0] + chunk_offset) + get_2bit_value(mph->array, e[1] + chunk_offset) + get_2bit_value(mph->array, e[2] + chunk_offset)) % 3], mph->array);
