@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.mph.codec;
  */
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 import com.google.common.primitives.Longs;
 
@@ -342,13 +343,13 @@ public interface Codec {
 			this(Integer.MAX_VALUE, 1);
 		}
 
-		protected final static class Coder implements Codec.Coder {
+		public final static class Coder implements Codec.Coder {
 			private final long[] codeword;
 			private final int[] codewordLength;
 			private final long[] symbol;
 			private final Long2IntMap symbol2Rank;
 
-			protected final static class Decoder implements Codec.Decoder {
+			public final static class Decoder implements Codec.Decoder {
 				private static final long serialVersionUID = 0L;
 
 				private final long[] lastCodeWordPlusOne;
@@ -383,6 +384,15 @@ public interface Codec {
 				@Override
 				public long numBits() {
 					return Integer.SIZE * shift.length + Integer.SIZE * howManyUpToBlock.length + Long.SIZE * lastCodeWordPlusOne.length + Long.SIZE * symbol.length;
+				}
+
+				public void dump(final ByteBuffer buffer) {
+					buffer.putLong(lastCodeWordPlusOne.length);
+					for(final long l : lastCodeWordPlusOne) buffer.putLong(l);
+					for(final int i : howManyUpToBlock) buffer.putInt(i);
+					for(final int i : shift) buffer.putInt(i);
+					buffer.putLong(symbol.length);
+					for(final long l : symbol) buffer.putLong(l);
 				}
 
 			}
