@@ -50,6 +50,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 
 public class ByteArrayFunctionSpeedTest {
+	private final static int NUM_WARMUPS = 4;
 	private final static int NUM_SAMPLES = 11;
 
 	public static void main(final String[] arg) throws IOException, JSAPException, ClassNotFoundException {
@@ -165,7 +166,7 @@ public class ByteArrayFunctionSpeedTest {
 			long t = -1;
 			final long[] sample = new long[NUM_SAMPLES];
 			System.err.println("Warmup...");
-			for(int k = 15; k-- != 0;) {
+			for(int k = NUM_WARMUPS + NUM_SAMPLES; k-- != 0;) {
 				long time = -System.nanoTime();
 				for(int i = 0, s = 0; i < n; i++) {
 					t ^= function.getLong(Arrays.copyOfRange(a, s, s += length[i]));
@@ -188,7 +189,7 @@ public class ByteArrayFunctionSpeedTest {
 			long t = -1;
 			final long[] sample = new long[NUM_SAMPLES];
 			System.err.println("Warmup...");
-			for(int k = 15; k-- != 0;) {
+			for(int k = NUM_WARMUPS + NUM_SAMPLES; k-- != 0;) {
 				final Iterator<byte[]> iterator = lines.iterator();
 
 				long time = -System.nanoTime();

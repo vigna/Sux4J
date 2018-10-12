@@ -42,6 +42,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 
 public class LongFunctionSpeedTest {
+	private final static int NUM_WARMUPS = 4;
 	private final static int NUM_SAMPLES = 11;
 
 	public static void main(final String[] arg) throws IOException, JSAPException, ClassNotFoundException {
@@ -94,7 +95,7 @@ public class LongFunctionSpeedTest {
 			long t = -1;
 			final long[] sample = new long[NUM_SAMPLES];
 			System.err.println("Warmup...");
-			for(int k = 15; k-- != 0;) {
+			for(int k = NUM_WARMUPS + NUM_SAMPLES; k-- != 0;) {
 				long time = -System.nanoTime();
 				for(int i = 0; i < n; i++) {
 					t ^= function.getLong(Long.valueOf(test[i]));
@@ -116,7 +117,7 @@ public class LongFunctionSpeedTest {
 			long t = -1;
 			final long[] sample = new long[NUM_SAMPLES];
 			System.err.println("Warmup...");
-			for(int k = 15; k-- != 0;) {
+			for(int k = NUM_WARMUPS + NUM_SAMPLES; k-- != 0;) {
 				final Iterator<Long> iterator = lines.iterator();
 
 				long time = -System.nanoTime();
