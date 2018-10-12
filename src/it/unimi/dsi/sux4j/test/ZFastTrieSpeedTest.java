@@ -1,12 +1,24 @@
 package it.unimi.dsi.sux4j.test;
 
-import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.sux4j.util.ZFastTrie;
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2016-2018 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,6 +39,14 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
+import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.io.FastBufferedReader;
+import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.sux4j.util.ZFastTrie;
+
 public class ZFastTrieSpeedTest {
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
@@ -43,7 +63,7 @@ public class ZFastTrieSpeedTest {
 					new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input."),
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		final String trieName = jsapResult.getString("trie");
