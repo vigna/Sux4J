@@ -18,8 +18,6 @@
  *
  */
 
-#include "spooky.h"
-#include "mph.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <fcntl.h>
@@ -29,6 +27,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "mph.h"
 
 static uint64_t get_system_time(void) {
 	struct timeval tv;

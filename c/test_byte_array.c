@@ -18,7 +18,6 @@
  *
  */
 
-#include "spooky.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <fcntl.h>

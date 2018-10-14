@@ -20,6 +20,12 @@
 
 #include <inttypes.h>
 
+#ifdef USE_MMAP
+#include <sys/mman.h>
+#include <sys/resource.h>
+#define calloc(n, size) mmap((void *)(0x0UL), (n) * (size), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | (30 << MAP_HUGE_SHIFT), 0, 0)
+#endif
+
 typedef struct {
 	uint64_t size;
 	int chunk_shift;
@@ -37,9 +43,3 @@ typedef struct {
 
 csf *load_csf(int h);
 uint64_t decode(const csf * const csf, const uint64_t value);
-
-#ifdef USE_MMAP
-#include <sys/mman.h>
-#include <sys/resource.h>
-#define calloc(n, size) mmap((void *)(0x0UL), n * size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | (30 << MAP_HUGE_SHIFT), 0, 0);
-#endif

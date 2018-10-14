@@ -22,8 +22,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
-#include "mph.h"
 #include "spooky.h"
+#include "mph.h"
 
 mph *load_mph(int h) {
 	mph *mph = calloc(1, sizeof *mph);
