@@ -33,3 +33,9 @@ typedef struct {
 mph *load_mph(int h);
 int64_t mph_get_byte_array(const mph *mph, char *key, uint64_t len);
 int64_t mph_get_uint64_t(const mph *mph, uint64_t key);
+
+#ifdef USE_MMAP
+#include <sys/mman.h>
+#include <sys/resource.h>
+#define calloc(n, size) mmap((void *)(0x0UL), n * size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | (30 << MAP_HUGE_SHIFT), 0, 0);
+#endif
