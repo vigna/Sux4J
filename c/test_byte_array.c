@@ -71,5 +71,5 @@ int main(int argc, char* argv[]) {
 		printf("Elapsed: %.3fs; %.3f ns/key\n", elapsed * 1E-6, elapsed * 1000. / NKEYS);
 	}
 	const volatile int unused = u;
-	printf("\nAverage time: %.3fs; %.3f ns/key\n", (total * .1) * 1E-6, (total * .1) * 1000. / NKEYS);
+	printf("\nAverage: %.3fs; %.3f ns/key\n", (total * .1) * 1E-6, (total * .1) * 1000. / NKEYS);
 }
