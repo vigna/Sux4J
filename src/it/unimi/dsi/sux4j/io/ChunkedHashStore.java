@@ -884,11 +884,11 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 					final long start = System.nanoTime();
 					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, chunkSize, (x, y) -> {
-						int t = Long.signum(buffer0[x] - buffer0[y]);
+						int t = Long.compareUnsigned(buffer0[x], buffer0[y]);
 						if (t != 0) return t;
-						t = Long.signum(buffer1[x] - buffer1[y]);
+						t = Long.compareUnsigned(buffer1[x], buffer1[y]);
 						if (t != 0) return t;
-						return Long.signum(buffer2[x] - buffer2[y]);
+						return Long.compareUnsigned(buffer2[x], buffer2[y]);
 					},
 					(x, y) -> {
 						final long e0 = buffer0[x], e1 = buffer1[x], e2 = buffer2[x];
