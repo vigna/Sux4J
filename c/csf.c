@@ -59,7 +59,7 @@ csf *load_csf(int h) {
 	uint64_t num_symbols;
 	read(h, &num_symbols, sizeof num_symbols);
 
-	csf->symbol = calloc(decoding_table_length, sizeof *csf->symbol);
+	csf->symbol = calloc(decoding_table_length, num_symbols * sizeof *csf->symbol);
 	read(h, csf->symbol, num_symbols * sizeof *csf->symbol);
 
 	return csf;
