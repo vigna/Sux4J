@@ -25,6 +25,14 @@
 #include "csf3.h"
 #include "spooky.h"
 
+static uint64_t inline decode(const csf * const csf, const uint64_t value) {	
+	for (int curr = 0;; curr++)
+		if (value < csf->last_codeword_plus_one[curr]) {
+			const int s = csf->shift[curr];
+			return csf->symbol[(value >> s) - (csf->last_codeword_plus_one[curr] >> s) + csf->how_many_up_to_block[curr]];
+		}
+}
+
 static void inline triple_to_equation(const uint64_t *triple, const uint64_t seed, int num_variables, int *e) {
 	uint64_t hash[4];
 	spooky_short_rehash(triple, seed, hash);
@@ -38,7 +46,7 @@ static void inline triple_to_equation(const uint64_t *triple, const uint64_t see
 
 #define OFFSET_MASK (UINT64_C(-1) >> 10)
 
-static uint64_t get_value(const uint64_t * const array, uint64_t pos, const int width) {
+static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, const int width) {
 	const int l = 64 - width;
 	const int start_word = pos / 64;
 	const int start_bit = pos % 64;

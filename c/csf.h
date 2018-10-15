@@ -42,4 +42,3 @@ typedef struct {
 } csf;
 
 csf *load_csf(int h);
-uint64_t decode(const csf * const csf, const uint64_t value);

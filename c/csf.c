@@ -64,11 +64,3 @@ csf *load_csf(int h) {
 
 	return csf;
 }
-
-uint64_t decode(const csf * const csf, const uint64_t value) {	
-	for (int curr = 0;; curr++)
-		if (value < csf->last_codeword_plus_one[curr]) {
-			const int s = csf->shift[curr];
-			return csf->symbol[(value >> s) - (csf->last_codeword_plus_one[curr] >> s) + csf->how_many_up_to_block[curr]];
-		}
-}

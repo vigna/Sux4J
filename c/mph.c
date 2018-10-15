@@ -46,7 +46,7 @@ static int inline _count_nonzero_pairs(const uint64_t x) {
 	return __builtin_popcountll((x | x >> 1) & 0x5555555555555555);
 }
 
-static uint64_t count_nonzero_pairs(const uint64_t start, const uint64_t end, const uint64_t * const array) {
+static uint64_t inline count_nonzero_pairs(const uint64_t start, const uint64_t end, const uint64_t * const array) {
 	int block = start / 32;
 	const int end_block = end / 32;
 	const int start_offset = start % 32;
@@ -78,7 +78,7 @@ static uint64_t inline vertex_offset(const uint64_t edge_offset_seed) {
 	return ((edge_offset_seed & OFFSET_MASK) * C_TIMES_256 >> 8);
 }
 
-static int get_2bit_value(uint64_t *array, uint64_t pos) {
+static int inline get_2bit_value(uint64_t *array, uint64_t pos) {
 	pos *= 2;
 	return array[pos / 64] >> pos % 64 & 3;
 }

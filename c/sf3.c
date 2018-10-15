@@ -38,7 +38,7 @@ static void inline triple_to_equation(const uint64_t *triple, const uint64_t see
 
 #define OFFSET_MASK (UINT64_C(-1) >> 8)
 
-static uint64_t get_value(const uint64_t * const array, uint64_t pos, const int width) {
+static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, const int width) {
 	pos *= width;
 	const int l = 64 - width;
 	const int start_word = pos / 64;
