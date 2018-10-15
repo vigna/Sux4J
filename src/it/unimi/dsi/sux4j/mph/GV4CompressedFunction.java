@@ -559,6 +559,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 				offlineData.clear();
+				Arrays.fill(offsetAndSeed, 0);
 			}
 		}
 

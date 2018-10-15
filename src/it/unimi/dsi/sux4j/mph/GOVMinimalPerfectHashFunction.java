@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -472,6 +473,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				chunkedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
 				chunkedHashStore.addAll(keys.iterator());
+				Arrays.fill(edgeOffsetAndSeed, 0);
 			}
 		}
 

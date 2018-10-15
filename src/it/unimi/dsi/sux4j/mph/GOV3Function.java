@@ -563,6 +563,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
 				offlineData.clear();
+				Arrays.fill(offsetAndSeed, 0);
 			}
 		}
 
