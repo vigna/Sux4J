@@ -83,7 +83,7 @@ public class SparseRank extends AbstractRank {
 	 * @param m the number of ones in the underlying bit vector.
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
-	public SparseRank(final long n, long m, final LongIterator iterator) {
+	public SparseRank(final long n, final long m, final LongIterator iterator) {
 		long pos = -1;
 		this.n = n;
 		this.m = m;
@@ -96,7 +96,7 @@ public class SparseRank extends AbstractRank {
 		long last = 0;
 		for(long i = 0; i < m; i++) {
 			pos = iterator.nextLong();
-			if (pos >= n) throw new IllegalArgumentException("Too large bit poisition: " + pos + " >= " + n);
+			if (pos >= n) throw new IllegalArgumentException("Too large bit position: " + pos + " >= " + n);
 			if (pos < last) throw new IllegalArgumentException("Positions are not nondecreasing: " + pos + " < " + last);
 			if (l != 0) lowerBitsList.set(i, pos & lowerLBitsMask);
 			upperBits.set((pos >> l) + i);
