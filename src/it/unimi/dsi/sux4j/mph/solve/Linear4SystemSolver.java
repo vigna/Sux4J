@@ -151,7 +151,7 @@ public class Linear4SystemSolver {
 		peeled = new boolean[numEquations];
 		edge = new int[numVariables];
 		edge2Vertex = new int[4][numEquations];
-		stack = new int[numEquations];
+		stack = new int[numVariables];
 		d = new int[numVariables];
 		neverUsed = true;
 	}
@@ -279,7 +279,7 @@ public class Linear4SystemSolver {
 		while (pos < top) {
 			final int v = stack[pos++];
 			if (d[v] != 1) continue; // Skip no longer useful entries
-			stack[curr++] = stack[pos - 1];
+			stack[curr++] = v;
 			final int e = edge[v];
 			peeled[e] = true;
 			xorEdge(e, v);
