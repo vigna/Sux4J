@@ -66,17 +66,15 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>Besides the hashes, we store some data associated with each element:
  * if {@linkplain #add(Object) no data is specified}, we store the <em>rank</em> of each element added (the first element added has rank 0,
- * the second one has rank 1, and so on), unless you specified at {@linkplain #BucketedHashStore(TransformationStrategy)(TransformationStrategy, File, int, ProgressLogger) construction time}
+ * the second one has rank 1, and so on), unless you specified at {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) construction time}
  * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the triple
  * associated with the object (the hash width is the number of bits stored). This feature makes it possible, for example, to implement a static
  * {@linkplain Builder#dictionary(int) dictionary} using a {@link GOV3Function}.
  *
- * <p>Once all elements have been added, they can be sorted and divided into <em>buckets</em> whose
- * expected size can be set by calling {@link #bucketSize(int)}.
- *
- * <p>To obtain triples, one calls {@link #iterator()}, which returns buckets one at a time (in their
- * natural order); triples within each bucket are returned by increasing hash. Actually, the iterator
- * provided by a bucket returns a <em>quadruple</em> whose last element is the data associated with the element
+ * <p>The desired expected bucket size can be set by calling {@link #bucketSize(int)}.
+ * Once all elements have been added, one calls {@link #iterator()}, which returns buckets one at a time (in their
+ * natural order); triples within each bucket are returned by increasing hash, and hashes within different buckets are in bucket order.
+ * Actually, the iterator provided by a bucket returns a <em>quadruple</em> whose last element is the data associated with the element
  * that generated the triple.
  *
  * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
@@ -133,7 +131,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * where <code>seed</code> is the store seed.
  *
  * @author Sebastiano Vigna
- * @since 4.3.0
+ * @since 4.4.0
  */
 
 public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iterable<BucketedHashStore.Bucket> {

@@ -30,7 +30,6 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.sux4j.mph.GOV4Function;
 import it.unimi.dsi.sux4j.mph.Hashes;
@@ -96,12 +95,6 @@ import it.unimi.dsi.sux4j.mph.codec.Codec;
  * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data
  * Compression Conference 2014</i>, 2014.
  *
- * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
- * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each vertex
- * two additional values that contain a XOR of the other two vertices of each edge incident on the node. This
- * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
- * hinge) plus two additional vertices.
- *
  * <h3>Rounds and Logging</h3>
  *
  * <P>Building and sorting a large 4-regular linear system is difficult, as
@@ -119,7 +112,6 @@ import it.unimi.dsi.sux4j.mph.codec.Codec;
 
 public class Linear4SystemSolver {
 	/** The initial size of the queue used to peel the 3-hypergraph. */
-	private static final int INITIAL_QUEUE_SIZE = 1024;
 	private static final boolean DEBUG = false;
 	private final static Logger LOGGER = LoggerFactory.getLogger(Linear4SystemSolver.class);
 
@@ -137,8 +129,6 @@ public class Linear4SystemSolver {
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
 	private int top;
-	/** The stack used for peeling the graph. */
-	private final IntArrayList visitStack;
 	/** Three parallel arrays containing each one of the three vertices of a hyperedge. */
 	private final int[][] edge2Vertex;
 	/** For each edge, whether it has been peeled. */
@@ -163,7 +153,6 @@ public class Linear4SystemSolver {
 		edge2Vertex = new int[4][numEquations];
 		stack = new int[numEquations];
 		d = new int[numVariables];
-		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
 	}
 
@@ -277,32 +266,36 @@ public class Linear4SystemSolver {
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
-		final IntArrayList visitStack = this.visitStack;
 
+		int pos = top, curr = top;
 		// Stack initialization
-		int v;
-		visitStack.clear();
-		visitStack.push(x);
+		stack[top++] = x;
 
 		final int[] edge2Vertex0 = edge2Vertex[0];
 		final int[] edge2Vertex1 = edge2Vertex[1];
 		final int[] edge2Vertex2 = edge2Vertex[2];
 		final int[] edge2Vertex3 = edge2Vertex[3];
 
-		while (! visitStack.isEmpty()) {
-			v = visitStack.popInt();
-			if (d[v] == 1) {
-				stack[top++] = v;
-				// System.err.println("Stripping <" + v + ", " + vertex1[v] + ", " + vertex2[v] + ">");
-				final int e = edge[v];
-				peeled[e] = true;
-				xorEdge(e, v);
-				if (--d[edge2Vertex0[e]] == 1) visitStack.add(edge2Vertex0[e]);
-				if (--d[edge2Vertex1[e]] == 1) visitStack.add(edge2Vertex1[e]);
-				if (--d[edge2Vertex2[e]] == 1) visitStack.add(edge2Vertex2[e]);
-				if (--d[edge2Vertex3[e]] == 1) visitStack.add(edge2Vertex3[e]);
-			}
+		while (pos < top) {
+			final int v = stack[pos++];
+			if (d[v] != 1) continue; // Skip no longer useful entries
+			stack[curr++] = stack[pos - 1];
+			final int e = edge[v];
+			peeled[e] = true;
+			xorEdge(e, v);
+			final int v0 = edge2Vertex0[e], v1 = edge2Vertex1[e], v2 = edge2Vertex2[e], v3 = edge2Vertex3[e];
+			assert v0 == v || v1 == v || v2 == v || v3 == v;
+			d[v0]--;
+			d[v1]--;
+			d[v2]--;
+			d[v3]--;
+			if (d[v0] == 1) stack[top++] = v0;
+			if (d[v1] == 1 && v1 != v0) stack[top++] = v1;
+			if (d[v2] == 1 && v2 != v1 && v2 != v0) stack[top++] = v2;
+			if (d[v3] == 1 && v3 != v2 && v3 != v1 && v3 != v0) stack[top++] = v3;
 		}
+
+		top = curr;
 	}
 
 	private boolean solve(final LongBigList valueList) {

@@ -140,8 +140,10 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * @author Sebastiano Vigna
  * @since 1.0.4
+ * @deprecated Please use a {@link BucketedHashStore}, which provides accurate bucket sizing.
  */
 
+@Deprecated
 public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Iterable<ChunkedHashStore.Chunk> {
     public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(ChunkedHashStore.class);
@@ -483,7 +485,6 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 		};
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	protected void finalize() throws Throwable {
 		try {

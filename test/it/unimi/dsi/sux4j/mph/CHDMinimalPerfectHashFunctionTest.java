@@ -15,9 +15,10 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.mph.CHDMinimalPerfectHashFunction.Builder;
 
+@SuppressWarnings("deprecation")
 public class CHDMinimalPerfectHashFunctionTest {
 
-	private void check(int size, String[] s, CHDMinimalPerfectHashFunction<CharSequence> mph, int w) {
+	private void check(final int size, final String[] s, final CHDMinimalPerfectHashFunction<CharSequence> mph, final int w) {
 		final int[] check = new int[s.length];
 		Arrays.fill(check, -1);
 		for (int i = s.length; i-- != 0;) {

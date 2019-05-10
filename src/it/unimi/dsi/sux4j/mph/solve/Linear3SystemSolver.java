@@ -30,7 +30,6 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction;
@@ -108,12 +107,6 @@ import it.unimi.dsi.sux4j.mph.codec.Codec;
  * Djamal Belazzougui, Paolo Boldi, Giuseppe Ottaviano, Rossano Venturini, and Sebastiano Vigna, <i>Proc.&nbsp;Data
  * Compression Conference 2014</i>, 2014.
  *
- * <p>We push further this idea by observing that since one of the vertices of an edge incident to <var>x</var>
- * is exactly <var>x</var>, we can even avoid storing the edges at all and just store for each vertex
- * two additional values that contain a XOR of the other two vertices of each edge incident on the node. This
- * approach further simplifies the code as every 3-hyperedge is presented to us as a distinguished vertex (the
- * hinge) plus two additional vertices.
- *
  * <h3>Rounds and Logging</h3>
  *
  * <P>Building and sorting a large 3-regular linear system is difficult, as
@@ -135,9 +128,6 @@ public class Linear3SystemSolver {
 	private static final boolean ASSERTS = false;
 	private static final boolean DEBUG = false;
 
-	/** The initial size of the queue used to peel the 3-hypergraph. */
-	private static final int INITIAL_QUEUE_SIZE = 1024;
-
 	/** The number of vertices in the hypergraph. */
 	private final int numVertices;
 	/** The number of edges in the hypergraph. */
@@ -152,8 +142,6 @@ public class Linear3SystemSolver {
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
 	private int top;
-	/** The stack used for peeling the graph. */
-	private final IntArrayList visitStack;
 	/** Three parallel arrays containing each one of the three vertices of a hyperedge. */
 	private final int[][] edge2Vertex;
 	/** For each edge, whether it has been peeled. */
@@ -181,7 +169,6 @@ public class Linear3SystemSolver {
 		edge2Vertex = new int[3][numEquations];
 		stack = new int[numEquations];
 		d = new int[numVariables];
-		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
 	}
 
@@ -279,7 +266,7 @@ public class Linear3SystemSolver {
 		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling hypergraph (" + numVertices + " vertices, " + numEdges + " edges)...");
 
 		top = 0;
-		for(int i = 0; i < numVertices; i++) if (d[i] == 1) peel(i);
+		for(int x = 0; x < numVertices; x++) if (d[x] == 1) peel(x);
 
 		if (top == numEdges) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling completed.");
@@ -295,30 +282,33 @@ public class Linear3SystemSolver {
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
-		final IntArrayList visitStack = this.visitStack;
 
+		int pos = top, curr = top;
 		// Stack initialization
-		int v;
-		visitStack.clear();
-		visitStack.push(x);
+		stack[top++] = x;
 
 		final int[] edge2Vertex0 = edge2Vertex[0];
 		final int[] edge2Vertex1 = edge2Vertex[1];
 		final int[] edge2Vertex2 = edge2Vertex[2];
 
-		while (! visitStack.isEmpty()) {
-			v = visitStack.popInt();
-			if (d[v] == 1) {
-				stack[top++] = v;
-				// System.err.println("Stripping <" + v + ", " + vertex1[v] + ", " + vertex2[v] + ">");
-				final int e = edge[v];
-				peeled[e] = true;
-				xorEdge(e, v);
-				if (--d[edge2Vertex0[e]] == 1) visitStack.add(edge2Vertex0[e]);
-				if (--d[edge2Vertex1[e]] == 1) visitStack.add(edge2Vertex1[e]);
-				if (--d[edge2Vertex2[e]] == 1) visitStack.add(edge2Vertex2[e]);
-			}
+		while (pos < top) {
+			final int v = stack[pos++];
+			if (d[v] != 1) continue; // Skip no longer useful entries
+			stack[curr++] = stack[pos - 1];
+			final int e = edge[v];
+			peeled[e] = true;
+			xorEdge(e, v);
+			final int a = edge2Vertex0[e], b = edge2Vertex1[e], c = edge2Vertex2[e];
+			assert a == v || b == v || c == v;
+			d[a]--;
+			d[b]--;
+			d[c]--;
+			if (d[a] == 1) stack[top++] = a;
+			if (d[b] == 1 && b != a) stack[top++] = b;
+			if (d[c] == 1 && c != a && c != b) stack[top++] = c;
 		}
+
+		top = curr;
 	}
 
 	private boolean solve(final LongBigList valueList) {

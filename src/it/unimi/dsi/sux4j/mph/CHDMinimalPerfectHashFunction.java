@@ -127,6 +127,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * @since 3.2.0
  */
 
+@SuppressWarnings("deprecation")
 public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CHDMinimalPerfectHashFunction.class);
 	private static final boolean ASSERTS = true;
