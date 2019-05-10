@@ -405,8 +405,8 @@ public class Linear4SystemSolver {
 				vertex2Edge[i] = new int[d[i]];
 			}
 			final int[] p = new int[numVertices];
-			final long[] c = new long[stack.length];
-			for (int i = 0; i < stack.length; i++) {
+			final long[] c = new long[numEdges];
+			for (int i = 0; i < numEdges; i++) {
 				if (! peeled[i]) {
 					final int v0 = edge2Vertex0[i];
 					final int v1 = edge2Vertex1[i];

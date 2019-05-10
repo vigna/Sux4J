@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 /** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
  * Majewski-Wormald-Havas-Czech technique.
@@ -122,8 +121,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 
 public class HypergraphSorter<T> {
-	/** The initial size of the queue used to peel the 3-hypergraph. */
-	private static final int INITIAL_QUEUE_SIZE = 1024;
 	private final static Logger LOGGER = LoggerFactory.getLogger(HypergraphSorter.class);
 
 	/** The mythical threshold (or better, a very closed upper bound of): random 3-hypergraphs
@@ -151,8 +148,6 @@ public class HypergraphSorter<T> {
 	private boolean neverUsed;
 	/** Initial top of the edge stack. */
 	private int top;
-	/** The stack used for peeling the graph. */
-	private final IntArrayList visitStack;
 
 	/** Creates a hypergraph sorter for a given number of edges.
 	 *
@@ -172,7 +167,6 @@ public class HypergraphSorter<T> {
 		edge = computeEdges ? new int[numVertices] : null;
 		stack = new int[numVertices];
 		d = new int[numVertices];
-		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
 	}
 
