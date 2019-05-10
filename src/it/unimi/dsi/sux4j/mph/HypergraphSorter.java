@@ -20,15 +20,15 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
-import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.TransformationStrategy;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-
 import java.util.Arrays;
 import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import it.unimi.dsi.bits.BitVector;
+import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 /** A class implementing the 3-hypergraph edge sorting procedure that is necessary for the
  * Majewski-Wormald-Havas-Czech technique.
@@ -170,7 +170,7 @@ public class HypergraphSorter<T> {
 		vertex1 = new int[numVertices];
 		vertex2 = new int[numVertices];
 		edge = computeEdges ? new int[numVertices] : null;
-		stack = new int[numEdges];
+		stack = new int[numVertices];
 		d = new int[numVertices];
 		visitStack = new IntArrayList(INITIAL_QUEUE_SIZE);
 		neverUsed = true;
@@ -264,7 +264,7 @@ public class HypergraphSorter<T> {
 		neverUsed = false;
 	}
 
-	private final void xorEdge(final int k, final int x, final int y, final int z, boolean partial) {
+	private final void xorEdge(final int k, final int x, final int y, final int z, final boolean partial) {
 		//if (partial) System.err.println("Stripping <" + x + ", " + y + ", " + z + ">: " + Arrays.toString(edge) + " " + Arrays.toString(hinge));
 		if (computeEdges) {
 			if (! partial) edge[x] ^= k;
@@ -367,7 +367,7 @@ public class HypergraphSorter<T> {
 		if (LOGGER.isDebugEnabled()) LOGGER.debug("Peeling hypergraph...");
 
 		top = 0;
-		for(int i = 0; i < numVertices; i++) if (d[i] == 1) peel(i);
+		for(int x = 0; x < numVertices; x++) if (d[x] == 1) peel(x);
 
 		if (LOGGER.isDebugEnabled()) LOGGER.debug(top == numEdges ? "Peeling completed." : "Visit failed: peeled " + top + " edges out of " + numEdges + ".");
 
@@ -381,24 +381,23 @@ public class HypergraphSorter<T> {
 		final int[] edge = this.edge;
 		final int[] stack = this.stack;
 		final int[] d = this.d;
-		final IntArrayList visitStack = this.visitStack;
 
-		// Queue initialization
-		int v;
-		visitStack.clear();
-		visitStack.push(x);
+		int pos = top, curr = top;
+		// Stack initialization
+		stack[top++] = x;
 
-		while (! visitStack.isEmpty()) {
-			v = visitStack.popInt();
-			if (d[v] == 1) {
-				stack[top++] = v;
-				--d[v];
-				// System.err.println("Stripping <" + v + ", " + vertex1[v] + ", " + vertex2[v] + ">");
-				xorEdge(computeEdges ? edge[v] : -1, v, vertex1[v], vertex2[v], true);
-				if (--d[vertex1[v]] == 1) visitStack.add(vertex1[v]);
-				if (--d[vertex2[v]] == 1) visitStack.add(vertex2[v]);
-			}
+		while (pos < top) {
+			final int v = stack[pos++];
+			if (d[v] != 1) continue; // Skip no longer useful entries
+			stack[curr++] = v;
+			--d[v];
+			// System.err.println("Stripping <" + v + ", " + vertex1[v] + ", " + vertex2[v] + ">");
+			xorEdge(computeEdges ? edge[v] : -1, v, vertex1[v], vertex2[v], true);
+			if (--d[vertex1[v]] == 1) stack[top++] = vertex1[v];
+			if (--d[vertex2[v]] == 1) stack[top++] = vertex2[v];
 		}
+
+		top = curr;
 	}
 }
 
