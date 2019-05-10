@@ -12,7 +12,7 @@ import org.junit.Test;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction.Builder;
 
 public class GOVMinimalPerfectHashFunctionTest {
@@ -54,11 +54,11 @@ public class GOVMinimalPerfectHashFunctionTest {
 				check(size, s, mph, signatureWidth);
 
 				// From store
-				final ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
-				chunkedHashStore.addAll(Arrays.asList(s).iterator());
-				chunkedHashStore.checkAndRetry(Arrays.asList(s));
-				mph = new GOVMinimalPerfectHashFunction.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
-				chunkedHashStore.close();
+				final BucketedHashStore<CharSequence> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
+				bucketedHashStore.addAll(Arrays.asList(s).iterator());
+				bucketedHashStore.checkAndRetry(Arrays.asList(s));
+				mph = new GOVMinimalPerfectHashFunction.Builder<CharSequence>().store(bucketedHashStore).signed(signatureWidth).build();
+				bucketedHashStore.close();
 
 				check(size, s, mph, signatureWidth);
 			}

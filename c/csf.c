@@ -30,7 +30,7 @@ csf *load_csf(int h) {
 	uint64_t t;
 
 	read(h, &t, sizeof t);
-	csf->chunk_shift = t;
+	csf->multiplier = t;
 
 	read(h, &t, sizeof t);
 	csf->global_max_codeword_length = t;

@@ -15,7 +15,7 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongLists;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 
 public class GOV3FunctionTest {
 
@@ -52,11 +52,11 @@ public class GOV3FunctionTest {
 					check(size, s, function, signatureWidth);
 
 					// From store
-					final ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
-					chunkedHashStore.addAll(Arrays.asList(s).iterator());
-					chunkedHashStore.checkAndRetry(Arrays.asList(s));
-					function = new GOV3Function.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
-					chunkedHashStore.close();
+					final BucketedHashStore<CharSequence> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
+					bucketedHashStore.addAll(Arrays.asList(s).iterator());
+					bucketedHashStore.checkAndRetry(Arrays.asList(s));
+					function = new GOV3Function.Builder<CharSequence>().store(bucketedHashStore).signed(signatureWidth).build();
+					bucketedHashStore.close();
 
 					check(size, s, function, signatureWidth);
 				}

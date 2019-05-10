@@ -62,7 +62,6 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -80,9 +79,9 @@ import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
+import it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.codec.Codec;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 import it.unimi.dsi.sux4j.mph.codec.Codec.ZeroCodec;
@@ -111,28 +110,28 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
  * To exploit the various possibilities, you must understand some details of the construction.
  *
- * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
+ * <p>In a first phase, we build a {@link BucketedHashStore} containing hashes of the keys. By default,
  * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable) specify values},
  * the store will associate with each hash the corresponding value.
  *
  * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
  * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
  * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
- * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
- * Storing values in the {@link ChunkedHashStore}
+ * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link BucketedHashStore}.
+ * Storing values in the {@link BucketedHashStore}
  * is extremely scalable because the values must just be a {@link LongIterable} that
  * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
  * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
  * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store.
  *
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} is
+ * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException}),
+ * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException} is
  * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
  * Note that it is your responsibility to pass a correct store.
  *
  * <h2>Multithreading</h2>
  *
- * <p>This implementation is multithreaded: each chunk returned by the {@link ChunkedHashStore} is processed independently. By
+ * <p>This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is processed independently. By
  * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 16. If you wish to
  * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
  *
@@ -160,7 +159,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
 	private static final long serialVersionUID = 1L;
 	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
-	private static final Pair<Chunk, Integer> END_OF_CHUNK_QUEUE = new Pair<>(new Chunk(), Integer.valueOf(0));
+	private static final Pair<Bucket, Integer> END_OF_BUCKET_QUEUE = new Pair<>(new Bucket(), Integer.valueOf(0));
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV4CompressedFunction.class);
 	private static final boolean DEBUG = false;
 	protected static final int SEED_BITS = 10;
@@ -172,7 +171,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	private static final long SEED_STEP = 1L << Long.SIZE - SEED_BITS;
 	/**
 	 * The lowest 54 bits of {@link #offsetAndSeed} contain the number of
-	 * keys stored up to the given chunk.
+	 * keys stored up to the given bucket.
 	 */
 	private static final long OFFSET_MASK = -1L >>> SEED_BITS;
 	private static final long SEED_MASK = -1L << Long.SIZE - SEED_BITS;
@@ -184,7 +183,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
 		protected File tempDir;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected BucketedHashStore<T> bucketedHashStore;
 		protected LongIterable values;
 		protected boolean indirect;
 		/** Whether {@link #build()} has already been called. */
@@ -193,7 +192,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		/**
 		 * Specifies the keys of the function; if you have specified a
-		 * {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be
+		 * {@link #store(BucketedHashStore) BucketedHashStore}, it can be
 		 * {@code null}.
 		 *
 		 * @param keys
@@ -222,11 +221,11 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		/**
 		 * Specifies a temporary directory for the
-		 * {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		 * {@link #store(BucketedHashStore) BucketedHashStore}.
 		 *
 		 * @param tempDir
 		 *            a temporary directory for the
-		 *            {@link #store(ChunkedHashStore) ChunkedHashStore} files,
+		 *            {@link #store(BucketedHashStore) BucketedHashStore} files,
 		 *            or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
@@ -236,7 +235,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 
 		/**
-		 * Specifies a chunked hash store containing the keys.
+		 * Specifies a bucketed hash store containing the keys.
 		 *
 		 * <p>
 		 * Note that if you specify a store, it is your responsibility that it
@@ -244,8 +243,8 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		 * specify {@linkplain #values(LongIterable) values} or if you use the
 		 * {@linkplain #indirect() indirect} feature, values otherwise.
 		 *
-		 * @param chunkedHashStore
-		 *            a chunked hash store containing the keys associated with their
+		 * @param bucketedHashStore
+		 *            a bucketed hash store containing the keys associated with their
 		 *            values and counting value frequencies, or {@code null}; the
 		 *            store can be unchecked, but in this case you must
 		 *            specify {@linkplain #keys(Iterable) keys} and a
@@ -254,8 +253,8 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		 *            {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
-			this.chunkedHashStore = chunkedHashStore;
+		public Builder<T> store(final BucketedHashStore<T> bucketedHashStore) {
+			this.bucketedHashStore = bucketedHashStore;
 			return this;
 		}
 
@@ -280,7 +279,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		/**
 		 * Specifies that the function construction must be indirect: a provided
-		 * {@linkplain #store(ChunkedHashStore) store} contains indices that
+		 * {@linkplain #store(BucketedHashStore) store} contains indices that
 		 * must be used to access the {@linkplain #values(LongIterable) values}.
 		 *
 		 * <p>
@@ -320,19 +319,19 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			if (codec == null) codec = new Codec.Huffman();
 			built = true;
 			if (transform == null) {
-				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+				if (bucketedHashStore != null) transform = bucketedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given BucketedHashStore");
 			}
-			return new GV4CompressedFunction<>(keys, transform, values, indirect, tempDir, chunkedHashStore, codec);
+			return new GV4CompressedFunction<>(keys, transform, values, indirect, tempDir, bucketedHashStore, codec);
 		}
 	}
 
 	public final static double DELTA = 1.03;
 	public final static int DELTA_TIMES_256 = (int) Math.floor(DELTA * 256);
-	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 10;
-	/** The shift for chunks. */
-	private final int chunkShift;
+	/** The expected bucket size. */
+	public final static int BUCKET_SIZE = 1000;
+	/** The multiplier for buckets. */
+	private final long multiplier;
 	/** The number of keys. */
 	protected final long n;
 	/** Length of longest codeword **/
@@ -340,12 +339,12 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	/** The seed used to generate the initial hash triple. */
 	protected long globalSeed;
 	/**
-	 * A long containing three values per chunk:
+	 * A long containing three values per bucket:
 	 * <ul>
 	 * <li>the top {@link #SEED_BITS} bits contain the seed (note that it must
 	 * not be shifted right);
 	 * <li>the remaining lower bits contain the starting position in
-	 * {@link #data} of the bits associated with the chunk.
+	 * {@link #data} of the bits associated with the bucket.
 	 * </ul>
 	 */
 	protected final long[] offsetAndSeed;
@@ -372,20 +371,20 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 *            the assigned value will the ordinal number of each
 	 *            element.
 	 * @param indirect
-	 *            if true, <code>chunkedHashStore</code> contains ordinal
+	 *            if true, <code>bucketedHashStore</code> contains ordinal
 	 *            positions, and <code>values</code> is a {@link LongIterable}
 	 *            that must be accessed to retrieve the actual values.
 	 * @param tempDir
 	 *            a temporary directory for the store files, or {@code null} for
 	 *            the standard temporary directory.
-	 * @param chunkedHashStore
-	 *            a chunked hash store containing the keys associated with their
+	 * @param bucketedHashStore
+	 *            a bucketed hash store containing the keys associated with their
 	 *            values and counting value frequencies, or {@code null}; the
 	 *            store can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be
 	 *            non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected GV4CompressedFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final boolean indirect, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final Codec codec) throws IOException {
+	protected GV4CompressedFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final boolean indirect, final File tempDir, BucketedHashStore<T> bucketedHashStore, final Codec codec) throws IOException {
 		Objects.requireNonNull(codec, "Null codec");
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -393,16 +392,16 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		pl.displayFreeMemory = true;
 		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
-		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if (!givenChunkedHashStore) {
-			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
-			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, -1, pl);
-			chunkedHashStore.reset(r.nextLong());
-			if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
-			else chunkedHashStore.addAll(keys.iterator(), values.iterator());
+		final boolean givenBucketedHashStore = bucketedHashStore != null;
+		if (!givenBucketedHashStore) {
+			if (keys == null) throw new IllegalArgumentException("If you do not provide a bucketed hash store, you must provide the keys");
+			bucketedHashStore = new BucketedHashStore<>(transform, tempDir, -1, pl);
+			bucketedHashStore.reset(r.nextLong());
+			if (values == null || indirect) bucketedHashStore.addAll(keys.iterator());
+			else bucketedHashStore.addAll(keys.iterator(), values.iterator());
 
 		}
-		n = chunkedHashStore.size();
+		n = bucketedHashStore.size();
 		defRetValue = -1;
 
 		final Long2LongOpenHashMap frequencies;
@@ -410,33 +409,32 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			frequencies = new Long2LongOpenHashMap();
 			for(final long v : values) frequencies.addTo(v, 1);
 		}
-		else frequencies = chunkedHashStore.value2FrequencyMap();
+		else frequencies = bucketedHashStore.value2FrequencyMap();
 
 		final Codec.Coder coder = frequencies.isEmpty() ? ZeroCodec.getInstance().getCoder(frequencies) : codec.getCoder(frequencies);
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
 
-		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
-		// Adjustment for the empty map
-		if (log2NumChunks < 1) log2NumChunks = 1;
-		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
-		final int numChunks = 1 << log2NumChunks;
-		LOGGER.debug("Number of chunks: " + numChunks);
-		offsetAndSeed = new long[numChunks + 1];
+		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
+		multiplier = numBuckets * 2L;
+
+		LOGGER.debug("Number of buckets: " + numBuckets);
+		offsetAndSeed = new long[numBuckets + 1];
 
 		final OfflineIterable<BitVector, LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
 
 		int duplicates = 0;
 
 		for (;;) {
-			pl.expectedUpdates = numChunks;
-			pl.itemsName = "chunks";
-			pl.start("Analysing chunks... ");
+			pl.expectedUpdates = numBuckets;
+			pl.itemsName = "buckets";
+			pl.start("Analysing buckets... ");
 			final AtomicLong unsolvable = new AtomicLong();
 
 			try {
 				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
-				final ArrayBlockingQueue<Pair<Chunk, Integer>> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads);
+				final ArrayBlockingQueue<Pair<Bucket, Integer>> bucketQueue = new ArrayBlockingQueue<>(numberOfThreads);
 				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
@@ -449,16 +447,16 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 					}
 				});
 
-				final ChunkedHashStore<T> chs = chunkedHashStore;
+				final BucketedHashStore<T> chs = bucketedHashStore;
 				executorCompletionService.submit(() -> {
 					try {
-						final Iterator<Chunk> iterator = chs.iterator();
+						final Iterator<Bucket> iterator = chs.iterator();
 						for(int i1 = 0; iterator.hasNext(); i1++) {
-							final Chunk chunk = new Chunk(iterator.next());
-							assert i1 == chunk.index();
-							final LongBigList valueList = chunk.valueList(indirect ? values : null);
+							final Bucket bucket = new Bucket(iterator.next());
+							assert i1 == bucket.index();
+							final LongBigList valueList = bucket.valueList(indirect ? values : null);
 							long sumOfLengths = 0;
-							for(int i = 0; i < chunk.size(); i++)
+							for(int i = 0; i < bucket.size(); i++)
 								sumOfLengths += coder.codewordLength(valueList.getLong(i));
 
 							// We add the length of the longest keyword to avoid wrapping up indices
@@ -467,11 +465,11 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
 								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
-							chunkQueue.put(new Pair<>(chunk, Integer.valueOf((int)sumOfLengths)));
+							bucketQueue.put(new Pair<>(bucket, Integer.valueOf((int)sumOfLengths)));
 						}
 					}
 					finally {
-						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+						for(int i2 = numberOfThreads; i2-- != 0;) bucketQueue.put(END_OF_BUCKET_QUEUE);
 					}
 					return null;
 				});
@@ -479,26 +477,26 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-					long chunkTime = 0;
+					long bucketTime = 0;
 					long outputTime = 0;
 					for(;;) {
 						long start = System.nanoTime();
-						final Pair<Chunk, Integer> chunkLength = chunkQueue.take();
-						chunkTime += System.nanoTime() - start;
-						if (chunkLength == END_OF_CHUNK_QUEUE) {
-							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+						final Pair<Bucket, Integer> bucketLength = bucketQueue.take();
+						bucketTime += System.nanoTime() - start;
+						if (bucketLength == END_OF_BUCKET_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numBuckets);
+							LOGGER.debug("Queue waiting time: " + Util.format(bucketTime / 1E9) + "s");
 							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
-						final Chunk chunk = chunkLength.getFirst();
-						final int numEquations = chunkLength.getSecond().intValue();
-						final int numVariables = (int) (offsetAndSeed[chunk.index() + 1] - offsetAndSeed[chunk.index()] & OFFSET_MASK);
+						final Bucket bucket = bucketLength.getFirst();
+						final int numEquations = bucketLength.getSecond().intValue();
+						final int numVariables = (int) (offsetAndSeed[bucket.index() + 1] - offsetAndSeed[bucket.index()] & OFFSET_MASK);
 						long seed = 0;
 						final Linear4SystemSolver solver = new Linear4SystemSolver(numVariables, numEquations);
 
 						for(;;) {
-							final boolean solved = solver.generateAndSolve(chunk, seed, chunk.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength);
+							final boolean solved = solver.generateAndSolve(bucket, seed, bucket.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength);
 							unsolvable.addAndGet(solver.unsolvable);
 							if (solved) break;
 							seed += SEED_STEP;
@@ -506,7 +504,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						}
 
 						synchronized (offsetAndSeed) {
-							offsetAndSeed[chunk.index()] |= seed;
+							offsetAndSeed[bucket.index()] |= seed;
 						}
 
 						final LongArrayBitVector data = LongArrayBitVector.getInstance();
@@ -515,7 +513,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						for (int j = 0; j < solution.length; j++) data.set(j, (int)solution[j]);
 
 						start = System.nanoTime();
-						queue.put(data, chunk.index());
+						queue.put(data, bucket.index());
 						outputTime += System.nanoTime() - start;
 						synchronized(pl) {
 							pl.update();
@@ -538,7 +536,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 					executorService.shutdown();
 				}
 
-				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numChunks) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numChunks)) + "%)");
+				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numBuckets) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numBuckets)) + "%)");
 //				LOGGER.info("Mean node peeled for solved systems: " + Util.format((double) peeledSumSolved / totalNodesSolvable * 100) + "%");
 
 //				if (unsolvable == 0) {
@@ -550,14 +548,14 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				pl.done();
 				break;
 			}
-			catch (final ChunkedHashStore.DuplicateException e) {
-				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+			catch (final BucketedHashStore.DuplicateException e) {
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
-				chunkedHashStore.reset(r.nextLong());
+				bucketedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
-				if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
-				else chunkedHashStore.addAll(keys.iterator(), values.iterator());
+				if (values == null || indirect) bucketedHashStore.addAll(keys.iterator());
+				else bucketedHashStore.addAll(keys.iterator(), values.iterator());
 				offlineData.clear();
 				Arrays.fill(offsetAndSeed, 0);
 			}
@@ -567,8 +565,8 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			System.out.println("MaxCodeword: " + globalMaxCodewordLength);
 			System.out.println("Offsets: " + Arrays.toString(offsetAndSeed));
 		}
-		globalSeed = chunkedHashStore.seed();
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((offsetAndSeed[numChunks] & OFFSET_MASK) + 1);
+		globalSeed = bucketedHashStore.seed();
+		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1);
 		this.data = dataBitVector;
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 		while (iterator.hasNext())
@@ -579,7 +577,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		LOGGER.info("Completed.");
 
 		LOGGER.info("Actual bit cost per element: " + (double) numBits() / n);
-		if (!givenChunkedHashStore) chunkedHashStore.close();
+		if (!givenBucketedHashStore) bucketedHashStore.close();
 	}
 
 	@Override
@@ -588,16 +586,16 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final int[] e = new int[4];
 		final long[] h = new long[3];
 		Hashes.spooky4(transform.toBitVector((T) o), globalSeed, h);
-		final int chunk = (int)(h[0] >>> chunkShift);
-		final long olc = offsetAndSeed[chunk];
-		final long chunkOffset = olc & OFFSET_MASK;
-		final long nextChunkOffset = offsetAndSeed[chunk + 1] & OFFSET_MASK;
-		final long chunkSeed = olc & SEED_MASK;
+		final int bucket = (int)Math.multiplyHigh(h[0] >>> 1, multiplier);
+		final long olc = offsetAndSeed[bucket];
+		final long bucketOffset = olc & OFFSET_MASK;
+		final long nextBucketOffset = offsetAndSeed[bucket + 1] & OFFSET_MASK;
+		final long bucketSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
-		final int numVariables = (int)(nextChunkOffset - chunkOffset - w);
-		Linear4SystemSolver.tripleToEquation(h, chunkSeed, numVariables, e);
-		final long e0 = e[0] + chunkOffset, e1 = e[1] + chunkOffset,
-				e2 = e[2] + chunkOffset, e3 = e[3] + chunkOffset;
+		final int numVariables = (int)(nextBucketOffset - bucketOffset - w);
+		Linear4SystemSolver.tripleToEquation(h, bucketSeed, numVariables, e);
+		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset,
+				e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 		final long code = data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^
 				data.getLong(e2, e2 + w) ^ data.getLong(e3, e3 + w);
 		return decoder.decode(code);
@@ -641,7 +639,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		buffer.clear();
 		buffer.putLong(size64());
-		buffer.putLong(chunkShift);
+		buffer.putLong(multiplier);
 		buffer.putLong(globalMaxCodewordLength);
 		buffer.putLong(globalSeed);
 		buffer.putLong(offsetAndSeed.length);

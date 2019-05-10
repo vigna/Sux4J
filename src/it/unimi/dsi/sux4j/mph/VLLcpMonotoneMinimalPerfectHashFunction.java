@@ -59,7 +59,8 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
@@ -71,7 +72,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(VLLcpMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean DEBUG = false;
 
@@ -159,8 +160,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		long maxLength = 0, totalLength = 0;
 
 		@SuppressWarnings("resource")
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), pl);
-		chunkedHashStore.reset(r.nextLong());
+		final BucketedHashStore<BitVector> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity(), pl);
+		bucketedHashStore.reset(r.nextLong());
 		@SuppressWarnings("resource")
 		final
 		OfflineIterable<BitVector,LongArrayBitVector> lcps = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
@@ -170,7 +171,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		final Iterator<? extends T> iterator = iterable.iterator();
 		for(long b = 0; b < numBuckets; b++) {
 			prev.replace(transform.toBitVector(iterator.next()));
-			chunkedHashStore.add(prev);
+			bucketedHashStore.add(prev);
 			pl.lightUpdate();
 			maxLength = Math.max(maxLength, prev.length());
 			totalLength += Fast.length(1 + prev.length());
@@ -179,7 +180,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 			for(int i = 0; i < currBucketSize - 1; i++) {
 				curr.replace(transform.toBitVector(iterator.next()));
-				chunkedHashStore.add(curr);
+				bucketedHashStore.add(curr);
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength(prev);
 				if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct");
@@ -221,8 +222,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(iterable, transform);
 		// Build mph on elements.
-		mph = new GOVMinimalPerfectHashFunction.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).store(chunkedHashStore).build();
-		this.seed = chunkedHashStore.seed();
+		mph = new GOVMinimalPerfectHashFunction.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).store(bucketedHashStore).build();
+		this.seed = bucketedHashStore.seed();
 
 		// Build function assigning the lcp length and the bucketing data to each element.
 		(offsets = LongArrayBitVector.getInstance().asLongBigList(log2BucketSize)).size(n);
@@ -231,7 +232,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 		LOGGER.info("Generating data tables...");
 
-		for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
+		for(final Bucket chunk: bucketedHashStore) {
 			for(final long[] quadruple: chunk) {
 				final long index = mph.getLongByTriple(quadruple);
 				offsets.set(index, quadruple[3] & bucketSizeMask);
@@ -239,7 +240,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			}
 		}
 
-		chunkedHashStore.close();
+		bucketedHashStore.close();
 
 		lcpLengths = new EliasFanoLongBigList(lcpLengthsTemp.iterator(), minLcp, true);
 

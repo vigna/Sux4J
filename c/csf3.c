@@ -57,7 +57,7 @@ static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, con
 int64_t csf3_get_byte_array(const csf *csf, char *key, uint64_t len) {
 	uint64_t h[4];
 	spooky_short(key, len, csf->global_seed, h);
-	const int chunk = h[0] >> csf->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
 	const uint64_t offset_seed = csf->offset_and_seed[chunk];
 	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
 	const int w = csf->global_max_codeword_length;
@@ -70,7 +70,7 @@ int64_t csf3_get_byte_array(const csf *csf, char *key, uint64_t len) {
 int64_t csf3_get_uint64_t(const csf *csf, const uint64_t key) {
 	uint64_t h[4];
 	spooky_short(&key, 8, csf->global_seed, h);
-	const int chunk = h[0] >> csf->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
 	const uint64_t offset_seed = csf->offset_and_seed[chunk];
 	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
 	const int w = csf->global_max_codeword_length;

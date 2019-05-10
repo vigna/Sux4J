@@ -56,7 +56,7 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /** A version of a {@link PaCoTrieDistributorMonotoneMinimalPerfectHashFunction} whose space usage depends on the <em>average</em>
@@ -66,7 +66,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable, Size64 {
-    public static final long serialVersionUID = 3L;
+    public static final long serialVersionUID = 4L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean ASSERTS = false;
 
@@ -115,11 +115,11 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		pl.itemsName = "keys";
 
 		pl.start("Creating chunked hash store...");
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity());
-		chunkedHashStore.reset(random.nextLong());
+		final BucketedHashStore<BitVector> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity());
+		bucketedHashStore.reset(random.nextLong());
 		for(final T s: elements) {
 			bv = transform.toBitVector(s);
-			chunkedHashStore.add(bv);
+			bucketedHashStore.add(bv);
 			maxLength = Math.max(maxLength, bv.length());
 			totalLength += bv.length();
 			pl.lightUpdate();
@@ -127,13 +127,13 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 
 		pl.done();
 
-		size = chunkedHashStore.size();
+		size = bucketedHashStore.size();
 
 		if (size == 0)	{
 			bucketSize = log2BucketSize = 0;
 			distributor = null;
 			offset = null;
-			chunkedHashStore.close();
+			bucketedHashStore.close();
 			return;
 		}
 
@@ -184,9 +184,9 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 
 		if (size > 0) {
-			offset = new GOV3Function.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).store(chunkedHashStore).values(new AbstractLongBigList() {
+			offset = new GOV3Function.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).store(bucketedHashStore).values(new AbstractLongBigList() {
 				@Override
-				public long getLong(long index) {
+				public long getLong(final long index) {
 					final long rank = sparseRank == null ? 0 : sparseRank.rank(index);
 					if (ASSERTS) {
 						assert rank == 0 || distributor.offset.getLong(rank - 1) <= index : distributor.offset.getLong(rank - 1)  + " >= " + index + "(rank=" + rank + ")";
@@ -203,7 +203,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		}
 		else offset = null;
 
-		chunkedHashStore.close();
+		bucketedHashStore.close();
 
 		LOGGER.debug("Forecast distributor bit cost: " + (size / bucketSize) * (maxLength + log2BucketSize - Math.log(size)));
 		LOGGER.debug("Actual distributor bit cost: " + distributor.numBits());

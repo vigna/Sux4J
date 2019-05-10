@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "sf.h"
 
 sf *load_sf(int h) {
@@ -30,7 +31,7 @@ sf *load_sf(int h) {
 	read(h, &t, sizeof t);
 	sf->width = t;
 	read(h, &t, sizeof t);
-	sf->chunk_shift = t;
+	sf->multiplier = t;
 	read(h, &sf->global_seed, sizeof sf->global_seed);
 	read(h, &sf->offset_and_seed_length, sizeof sf->offset_and_seed_length);
 	sf->offset_and_seed = calloc(sf->offset_and_seed_length, sizeof *sf->offset_and_seed);

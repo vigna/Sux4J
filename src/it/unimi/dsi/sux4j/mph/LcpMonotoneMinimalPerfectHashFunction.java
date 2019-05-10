@@ -66,7 +66,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses
  * longest common prefixes as distributors.
@@ -76,7 +76,7 @@ import it.unimi.dsi.sux4j.io.ChunkedHashStore;
  */
 
 public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(LcpMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -96,7 +96,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
-	/** The seed returned by the {@link ChunkedHashStore}. */
+	/** The seed returned by the {@link BucketedHashStore}. */
 	protected final long seed;
 	/** The mask to compare signatures, or zero for no signatures. */
 	protected final long signatureMask;
@@ -158,9 +158,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link ChunkedHashStore}.
+		/** Specifies a temporary directory for the {@link BucketedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link BucketedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -238,15 +238,15 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		pl.expectedUpdates = n;
 
 		@SuppressWarnings("resource")
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), tempDir, pl);
-		chunkedHashStore.reset(Util.randomSeed());
+		final BucketedHashStore<BitVector> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity(), tempDir, pl);
+		bucketedHashStore.reset(Util.randomSeed());
 
 		pl.start("Scanning collection...");
 
 		final Iterator<? extends T> iterator = keys.iterator();
 		for(long b = 0; b < numBuckets; b++) {
 			prev.replace(transform.toBitVector(iterator.next()));
-			chunkedHashStore.add(prev);
+			bucketedHashStore.add(prev);
 			pl.lightUpdate();
 			maxLength = Math.max(maxLength, prev.length());
 			currLcp = (int)prev.length();
@@ -254,7 +254,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 			for(int i = 0; i < currBucketSize - 1; i++) {
 				curr.replace(transform.toBitVector(iterator.next()));
-				chunkedHashStore.add(curr);
+				bucketedHashStore.add(curr);
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength(prev);
 				if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct@" + (b * bucketSize + i) + " (\"" + curr + "\" = \"" + prev + "\")");
@@ -282,9 +282,9 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		LOGGER.info("Generating the map from keys to LCP lengths and offsets...");
 		// Build function assigning the lcp length and the bucketing data to each element.
-		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(keys, transform)).transform(TransformationStrategies.identity()).store(chunkedHashStore).values(new AbstractLongBigList() {
+		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(keys, transform)).transform(TransformationStrategies.identity()).store(bucketedHashStore).values(new AbstractLongBigList() {
 			@Override
-			public long getLong(long index) {
+			public long getLong(final long index) {
 				return IntBigArrays.get(lcpLengths, index >>> log2BucketSize) << log2BucketSize | index & bucketSizeMask;
 			}
 			@Override
@@ -310,7 +310,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		}
 
 		lcps.close();
-		this.seed = chunkedHashStore.seed();
+		this.seed = bucketedHashStore.seed();
 
 		if (DEBUG) {
 			int p = 0;
@@ -334,14 +334,14 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 
 		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures(signatureWidth, pl);
+			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else {
 			signatureMask = 0;
 			signatures = null;
 		}
 
-		chunkedHashStore.close();
+		bucketedHashStore.close();
 	}
 
 	@Override

@@ -59,7 +59,6 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
-import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
@@ -70,9 +69,9 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
+import it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
 import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
@@ -92,10 +91,10 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * that -1 will be returned on keys not in the original list. The class can then be
  * saved by serialisation and reused later.
  *
- * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
- * you can {@linkplain Builder#store(ChunkedHashStore) pass a ChunkedHashStore}
+ * <p>This class uses a {@linkplain BucketedHashStore bucketed hash store} to provide highly scalable construction. Note that at construction time
+ * you can {@linkplain Builder#store(BucketedHashStore) pass a BucketedHashStore}
  * containing the keys (associated with any value); however, if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
  *
  * <P>For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
@@ -109,7 +108,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  *
  * <h2>Multithreading</h2>
  *
- * <p>This implementation is multithreaded: each chunk returned by the {@link ChunkedHashStore} is processed independently. By
+ * <p>This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is processed independently. By
  * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 16. If you wish to
  * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
  *
@@ -130,7 +129,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
  * output value for some key. The final value of the minimal perfect hash function is the number
  * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
- * number, we use use in each chunk {@linkplain #countNonzeroPairs(long) broadword programming}.
+ * number, we use use in each bucket {@linkplain #countNonzeroPairs(long) broadword programming}.
  *
  * Since the system must have &#8776;10% more variables than equations to be solvable,
  * a {@link GOVMinimalPerfectHashFunction} on <var>n</var> keys requires 2.2<var>n</var>
@@ -144,11 +143,11 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	public static final long serialVersionUID = 6L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(GOVMinimalPerfectHashFunction.class);
 	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
-	private static final Chunk END_OF_CHUNK_QUEUE = new Chunk();
+	private static final Bucket END_OF_BUCKET_QUEUE = new Bucket();
 
 	/** The local seed is generated using this step, so to be easily embeddable in {@link #edgeOffsetAndSeed}. */
 	private static final long SEED_STEP = 1L << 56;
-	/** The lowest 56 bits of {@link #edgeOffsetAndSeed} contain the number of keys stored up to the given chunk. */
+	/** The lowest 56 bits of {@link #edgeOffsetAndSeed} contain the number of keys stored up to the given bucket. */
 	private static final long OFFSET_MASK = -1L >>> 8;
 
 	/** The ratio between vertices and hyperedges. */
@@ -200,11 +199,11 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected BucketedHashStore<T> bucketedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys to hash; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		/** Specifies the keys to hash; if you have specified a {@link #store(BucketedHashStore) BucketedHashStore}, it can be {@code null}.
 		 *
 		 * @param keys the keys to hash.
 		 * @return this builder.
@@ -234,9 +233,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		/** Specifies a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -244,15 +243,15 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			return this;
 		}
 
-		/** Specifies a chunked hash store containing the keys.
+		/** Specifies a bucketed hash store containing the keys.
 		 *
-		 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+		 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
 		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
-			this.chunkedHashStore = chunkedHashStore;
+		public Builder<T> store(final BucketedHashStore<T> bucketedHashStore) {
+			this.bucketedHashStore = bucketedHashStore;
 			return this;
 		}
 
@@ -265,28 +264,28 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
 			if (transform == null) {
-				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+				if (bucketedHashStore != null) transform = bucketedHashStore.transform();
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given BucketedHashStore");
 			}
-			return new GOVMinimalPerfectHashFunction<>(keys, transform, signatureWidth, tempDir, chunkedHashStore);
+			return new GOVMinimalPerfectHashFunction<>(keys, transform, signatureWidth, tempDir, bucketedHashStore);
 		}
 	}
 
-	/** The logarithm of the desired chunk size. */
-	public final static int LOG2_CHUNK_SIZE = 10;
+	/** The expected bucket size. */
+	public final static int BUCKET_SIZE = 2000;
+
+	/** The multiplier for buckets. */
+	private final long multiplier;
 
 	/** The number of keys. */
 	protected final long n;
 
-	/** The shift for chunks. */
-	private final int chunkShift;
-
 	/** The seed used to generate the initial hash triple. */
 	protected final long globalSeed;
 
-	/** A long containing the cumulating function of the chunk edges (i.e., keys) in the lower 56 bits,
-	 * and the local seed of each chunk in the upper 8 bits. The method {@link #vertexOffset(long)}
-	 * returns the chunk (i.e., vertex) cumulative value starting from the edge cumulative value. */
+	/** A long containing the cumulating function of the bucket edges (i.e., keys) in the lower 56 bits,
+	 * and the local seed of each bucket in the upper 8 bits. The method {@link #vertexOffset(long)}
+	 * returns the bucket (i.e., vertex) cumulative value starting from the edge cumulative value. */
 	protected final long[] edgeOffsetAndSeed;
 
 	/** The final magick&mdash;the list of modulo-3 values that define the output of the minimal perfect hash function. */
@@ -318,10 +317,10 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * @param transform a transformation strategy for the keys.
 	 * @param signatureWidth a signature width, or 0 for no signature.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
-	 * @param chunkedHashStore a chunked hash store containing the keys, or {@code null}; the store
+	 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
-	protected GOVMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected GOVMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, BucketedHashStore<T> bucketedHashStore) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -330,27 +329,23 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		pl.itemsName = "keys";
 
-		final boolean givenChunkedHashStore = chunkedHashStore != null;
-		if (chunkedHashStore == null) {
-			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, pl);
-			chunkedHashStore.reset(r.nextLong());
-			chunkedHashStore.addAll(keys.iterator());
+		final boolean givenBucketedHashStore = bucketedHashStore != null;
+		if (bucketedHashStore == null) {
+			bucketedHashStore = new BucketedHashStore<>(transform, tempDir, pl);
+			bucketedHashStore.reset(r.nextLong());
+			bucketedHashStore.addAll(keys.iterator());
 		}
-		n = chunkedHashStore.size();
+		n = bucketedHashStore.size();
 
 		defRetValue = -1; // For the very few cases in which we can decide
 
-		int log2NumChunks = Math.max(0, Fast.mostSignificantBit(n >> LOG2_CHUNK_SIZE));
-		// Adjustment for the empty map
-		if (log2NumChunks < 1) log2NumChunks = 1;
-		// Note: this works only when LOG2_CHUNK_SIZE == 10 (it adjusts too large chunks)
-		if ((n >> log2NumChunks) > 1024 + 512) log2NumChunks++;
-		chunkShift = chunkedHashStore.log2Chunks(log2NumChunks);
-		final int numChunks = 1 << log2NumChunks;
+		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
+		multiplier = numBuckets * 2L;
 
-		LOGGER.debug("Number of chunks: " + numChunks);
+		LOGGER.debug("Number of buckets: " + numBuckets);
 
-		edgeOffsetAndSeed = new long[numChunks + 1];
+		edgeOffsetAndSeed = new long[numBuckets + 1];
 
 		bitVector = LongArrayBitVector.getInstance(2 * (1 + (n * C_TIMES_256 >> 8)));
 
@@ -359,14 +354,14 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		for (;;) {
 			LOGGER.debug("Generating minimal perfect hash function...");
 
-			pl.expectedUpdates = numChunks;
-			pl.itemsName = "chunks";
-			pl.start("Analysing chunks... ");
+			pl.expectedUpdates = numBuckets;
+			pl.itemsName = "buckets";
+			pl.start("Analysing buckets... ");
 			final AtomicLong unsolvable = new AtomicLong(), unorientable = new AtomicLong();
 
 			try {
 				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
-				final ArrayBlockingQueue<Chunk> chunkQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
+				final ArrayBlockingQueue<Bucket> bucketQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
 				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
@@ -379,22 +374,22 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					}
 				});
 
-				final ChunkedHashStore<T> chs = chunkedHashStore;
+				final BucketedHashStore<T> chs = bucketedHashStore;
 				executorCompletionService.submit(() -> {
 					try {
-						final Iterator<Chunk> iterator = chs.iterator();
+						final Iterator<Bucket> iterator = chs.iterator();
 						for(int i1 = 0; iterator.hasNext(); i1++) {
-							final Chunk chunk = new Chunk(iterator.next());
-							assert i1 == chunk.index();
+							final Bucket bucket = new Bucket(iterator.next());
+							assert i1 == bucket.index();
 							synchronized(edgeOffsetAndSeed) {
-								edgeOffsetAndSeed[i1 + 1] = edgeOffsetAndSeed[i1] + chunk.size();
+								edgeOffsetAndSeed[i1 + 1] = edgeOffsetAndSeed[i1] + bucket.size();
 								assert edgeOffsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
-							chunkQueue.put(chunk);
+							bucketQueue.put(bucket);
 						}
 					}
 					finally {
-						for(int i2 = numberOfThreads; i2-- != 0;) chunkQueue.put(END_OF_CHUNK_QUEUE);
+						for(int i2 = numberOfThreads; i2-- != 0;) bucketQueue.put(END_OF_BUCKET_QUEUE);
 					}
 					return null;
 				});
@@ -402,26 +397,26 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
 				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-					long chunkTime = 0;
+					long bucketTime = 0;
 					final long outputTime = 0;
 					for(;;) {
 						final long start = System.nanoTime();
-						final Chunk chunk = chunkQueue.take();
-						chunkTime += System.nanoTime() - start;
-						if (chunk == END_OF_CHUNK_QUEUE) {
-							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numChunks);
-							LOGGER.debug("Queue waiting time: " + Util.format(chunkTime / 1E9) + "s");
+						final Bucket bucket = bucketQueue.take();
+						bucketTime += System.nanoTime() - start;
+						if (bucket == END_OF_BUCKET_QUEUE) {
+							if (activeThreads.decrementAndGet() == 0) queue.put(END_OF_SOLUTION_QUEUE, numBuckets);
+							LOGGER.debug("Queue waiting time: " + Util.format(bucketTime / 1E9) + "s");
 							LOGGER.debug("Output waiting time: " + Util.format(outputTime / 1E9) + "s");
 							return null;
 						}
 						long seed = 0;
 
-						final long off = vertexOffset(edgeOffsetAndSeed[chunk.index()]);
+						final long off = vertexOffset(edgeOffsetAndSeed[bucket.index()]);
 						final Linear3SystemSolver solver =
-								new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[chunk.index() + 1]) - off), chunk.size());
+								new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[bucket.index() + 1]) - off), bucket.size());
 
 						for(;;) {
-							final boolean solved = solver.generateAndSolve(chunk, seed, null);
+							final boolean solved = solver.generateAndSolve(bucket, seed, null);
 							unorientable.addAndGet(solver.unorientable);
 							unsolvable.addAndGet(solver.unsolvable);
 							if (solved) break;
@@ -430,14 +425,14 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						}
 
 						synchronized (edgeOffsetAndSeed) {
-							edgeOffsetAndSeed[chunk.index()] |= seed;
+							edgeOffsetAndSeed[bucket.index()] |= seed;
 						}
 
 						final long[] solution = solver.solution;
 						final LongArrayBitVector dataBitVector = LongArrayBitVector.ofLength(solution.length * 2);
 						final LongBigList dataList = dataBitVector.asLongBigList(2);
 						for(int j = 0; j < solution.length; j++) dataList.set(j, solution[j]);
-						queue.put(dataBitVector, chunk.index());
+						queue.put(dataBitVector, bucket.index());
 
 						synchronized(pl) {
 							pl.update();
@@ -459,7 +454,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				finally {
 					executorService.shutdown();
 				}
-				final long orientable = unsolvable.get() + numChunks;
+				final long orientable = unsolvable.get() + numBuckets;
 				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + orientable + " (" + Util.format(100.0 * unsolvable.get() / orientable) + "%)");
 				LOGGER.info("Unorientable systems: " + unorientable.get() + "/" + (orientable + unorientable.get()) + " (" + Util.format(100.0 * unorientable.get() / (orientable + unorientable.get())) + "%)");
 
@@ -467,23 +462,23 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				break;
 			}
 			catch(final DuplicateException e) {
-				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
+				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
-				chunkedHashStore.reset(r.nextLong());
+				bucketedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
-				chunkedHashStore.addAll(keys.iterator());
+				bucketedHashStore.addAll(keys.iterator());
 				Arrays.fill(edgeOffsetAndSeed, 0);
 			}
 		}
 
-		globalSeed = chunkedHashStore.seed();
+		globalSeed = bucketedHashStore.seed();
 		values = bitVector.asLongBigList(2);
 		values.add(0);
 		array = bitVector.bits();
 
 		LOGGER.info("Completed.");
-		LOGGER.debug("Forecast bit cost per key: " + 2 * C + 64. / (1 << LOG2_CHUNK_SIZE));
+		LOGGER.debug("Forecast bit cost per key: " + 2 * C + 64. / BUCKET_SIZE);
 		LOGGER.info("Actual bit cost per key: " + (double)numBits() / n);
 
 
@@ -493,9 +488,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
 			pl.start("Signing...");
-			for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
-				final Iterator<long[]> iterator = chunk.iterator();
-				for(int i = chunk.size(); i-- != 0;) {
+			for (final BucketedHashStore.Bucket bucket : bucketedHashStore) {
+				final Iterator<long[]> iterator = bucket.iterator();
+				for(int i = bucket.size(); i-- != 0;) {
 					final long[] triple = iterator.next();
 					final int[] e = new int[3];
 					signatures.set(getLongByTripleNoCheck(triple, e), signatureMask & triple[0]);
@@ -509,7 +504,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			signatures = null;
 		}
 
-		if (!givenChunkedHashStore) chunkedHashStore.close();
+		if (!givenBucketedHashStore) bucketedHashStore.close();
 	}
 
 	/**
@@ -531,23 +526,23 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 	/** Low-level access to the output of this minimal perfect hash function.
 	 *
-	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
+	 * <p>This method makes it possible to build several kind of functions on the same {@link BucketedHashStore} and
 	 * then retrieve the resulting values by generating a single triple of hashes. The method
 	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
-	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
+	 * @param triple a triple generated as documented in {@link BucketedHashStore}.
 	 * @return the output of the function.
 	 */
 	public long getLongByTriple(final long[] triple) {
 		final int[] e = new int[3];
-		final int chunk = (int)(triple[0] >>> chunkShift);
-		final long edgeOffsetSeed = edgeOffsetAndSeed[chunk];
-		final long chunkOffset = vertexOffset(edgeOffsetSeed);
-		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset);
+		final int bucket = (int)Math.multiplyHigh(triple[0] >>> 1, multiplier);
+		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
+		final long bucketOffset = vertexOffset(edgeOffsetSeed);
+		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset);
 		//if (numVariables == 0) return defRetValue;
 		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
 
-		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(chunkOffset, chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3], array);
+		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
 		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		return result < n ? result : defRetValue;
 	}
@@ -555,11 +550,11 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
 	private long getLongByTripleNoCheck(final long[] triple, final int[] e) {
-		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
-		final long edgeOffsetSeed = edgeOffsetAndSeed[chunk];
-		final long chunkOffset = vertexOffset(edgeOffsetSeed);
-		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[chunk + 1]) - chunkOffset), e);
-		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(chunkOffset, chunkOffset + e[(int)(values.getLong(e[0] + chunkOffset) + values.getLong(e[1] + chunkOffset) + values.getLong(e[2] + chunkOffset)) % 3], array);
+		final int bucket = (int)Math.multiplyHigh(triple[0] >>> 1, multiplier);
+		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
+		final long bucketOffset = vertexOffset(edgeOffsetSeed);
+		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
+		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
 	}
 
 	@Override
@@ -579,7 +574,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		buffer.clear();
 		buffer.putLong(size64());
-		buffer.putLong(chunkShift);
+		buffer.putLong(multiplier);
 		buffer.putLong(globalSeed);
 		buffer.putLong(edgeOffsetAndSeed.length);
 		for(final long l : edgeOffsetAndSeed) buffer.putLong(l);

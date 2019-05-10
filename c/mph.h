@@ -28,7 +28,7 @@
 
 typedef struct {
 	uint64_t size;
-	int chunk_shift;
+	uint64_t multiplier;
 	uint64_t global_seed;
 	uint64_t edge_offset_and_seed_length;
 	uint64_t *edge_offset_and_seed;

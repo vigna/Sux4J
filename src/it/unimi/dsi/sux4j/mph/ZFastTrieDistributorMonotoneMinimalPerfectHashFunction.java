@@ -60,7 +60,7 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses
@@ -71,7 +71,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.class);
 
 	/** The number of elements. */
@@ -84,7 +84,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 	private final ZFastTrieDistributor<BitVector> distributor;
 	/** The offset of each element into his bucket. */
 	private final GOV3Function<BitVector> offset;
-	/** The seed returned by the {@link ChunkedHashStore}. */
+	/** The seed returned by the {@link BucketedHashStore}. */
 	private long seed;
 	/** The mask to compare signatures, or zero for no signatures. */
 	protected final long signatureMask;
@@ -131,9 +131,9 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link ChunkedHashStore}.
+		/** Specifies a temporary directory for the {@link BucketedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link BucketedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -172,8 +172,8 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		long maxLength = 0;
 		long totalLength = 0;
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), tempDir);
-		chunkedHashStore.reset(r.nextLong());
+		final BucketedHashStore<BitVector> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity(), tempDir);
+		bucketedHashStore.reset(r.nextLong());
 		final Iterable<BitVector> bitVectors = TransformationStrategies.wrap(keys, transform);
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
@@ -183,14 +183,14 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		for(final BitVector bv: bitVectors) {
 			maxLength = Math.max(maxLength, bv.length());
 			totalLength += bv.length();
-			chunkedHashStore.add(bv);
+			bucketedHashStore.add(bv);
 			pl.lightUpdate();
 		}
 
 		pl.done();
 
-		chunkedHashStore.checkAndRetry(bitVectors);
-		size = chunkedHashStore.size();
+		bucketedHashStore.checkAndRetry(bitVectors);
+		size = bucketedHashStore.size();
 
 		if (size == 0) {
 			this.log2BucketSize = -1;
@@ -198,7 +198,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			offset = null;
 			signatureMask = 0;
 			signatures = null;
-			chunkedHashStore.close();
+			bucketedHashStore.close();
 			return;
 		}
 
@@ -211,13 +211,13 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		LOGGER.debug("Max length: " + maxLength);
 		LOGGER.debug("Bucket size: " + (1L << this.log2BucketSize));
 		LOGGER.info("Computing z-fast trie distributor...");
-		distributor = new ZFastTrieDistributor<>(bitVectors, this.log2BucketSize, TransformationStrategies.identity(), chunkedHashStore);
+		distributor = new ZFastTrieDistributor<>(bitVectors, this.log2BucketSize, TransformationStrategies.identity(), bucketedHashStore);
 
 		LOGGER.info("Computing offsets...");
-		offset = new GOV3Function.Builder<BitVector>().store(chunkedHashStore).values(new AbstractLongBigList() {
+		offset = new GOV3Function.Builder<BitVector>().store(bucketedHashStore).values(new AbstractLongBigList() {
 			final long bucketSizeMask = (1L << ZFastTrieDistributorMonotoneMinimalPerfectHashFunction.this.log2BucketSize) - 1;
 			@Override
-			public long getLong(long index) {
+			public long getLong(final long index) {
 				return index & bucketSizeMask;
 			}
 			@Override
@@ -226,7 +226,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 			}
 		}, this.log2BucketSize).indirect().build();
 
-		seed = chunkedHashStore.seed();
+		seed = bucketedHashStore.seed();
 		final double logU = averageLength * log(2);
 		LOGGER.info("Forecast bit cost per element: "
 				+ 1.0 / forecastBucketSize
@@ -238,14 +238,14 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 
 		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures(signatureWidth, pl);
+			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else {
 			signatureMask = 0;
 			signatures = null;
 		}
 
-		chunkedHashStore.close();
+		bucketedHashStore.close();
 
 	}
 

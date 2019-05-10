@@ -30,7 +30,7 @@ mph *load_mph(int h) {
 	read(h, &mph->size, sizeof mph->size);
 	uint64_t t;
 	read(h, &t, sizeof t);
-	mph->chunk_shift = t;
+	mph->multiplier = t;
 	read(h, &mph->global_seed, sizeof mph->global_seed);
 	read(h, &mph->edge_offset_and_seed_length, sizeof mph->edge_offset_and_seed_length);
 	mph->edge_offset_and_seed = calloc(mph->edge_offset_and_seed_length, sizeof *mph->edge_offset_and_seed);
@@ -86,7 +86,7 @@ static int inline get_2bit_value(uint64_t *array, uint64_t pos) {
 int64_t mph_get_byte_array(const mph *mph, char *key, uint64_t len) {
 	uint64_t h[4];
 	spooky_short(key, len, mph->global_seed, h);
-	const int chunk = h[0] >> mph->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
 	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
 	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
 	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;
@@ -98,7 +98,7 @@ int64_t mph_get_byte_array(const mph *mph, char *key, uint64_t len) {
 int64_t mph_get_uint64_t(const mph *mph, const uint64_t key) {
 	uint64_t h[4];
 	spooky_short(&key, 8, mph->global_seed, h);
-	const int chunk = h[0] >> mph->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
 	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
 	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
 	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;

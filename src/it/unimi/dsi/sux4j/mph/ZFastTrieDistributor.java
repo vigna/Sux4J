@@ -49,13 +49,13 @@ import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank9;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 
 /** A distributor based on a z-fast trie. */
 
 public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> implements Size64 {
 	private final static Logger LOGGER = LoggerFactory.getLogger(ZFastTrieDistributor.class);
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 4L;
 	private static final boolean DEBUG = false;
 	private static final boolean DDEBUG = false;
 	private static final boolean DDDEBUG = false;
@@ -420,11 +420,11 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	 * @param log2BucketSize the logarithm of the size of a bucket.
 	 * @param transformationStrategy a transformation strategy that must turn the elements in <code>elements</code> into a list of
 	 * distinct, lexicographically increasing (in iteration order) bit vectors.
-	 * @param chunkedHashStore a store containing the keys already transformed into bit vectors.
+	 * @param bucketedHashStore a store containing the keys already transformed into bit vectors.
 	 */
-	public ZFastTrieDistributor(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final ChunkedHashStore<BitVector> chunkedHashStore) throws IOException {
+	public ZFastTrieDistributor(final Iterable<? extends T> elements, final int log2BucketSize, final TransformationStrategy<? super T> transformationStrategy, final BucketedHashStore<BitVector> bucketedHashStore) throws IOException {
 		this.transformationStrategy = transformationStrategy;
-		this.seed = chunkedHashStore.seed();
+		this.seed = bucketedHashStore.seed();
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
 		pl.displayFreeMemory = true;
@@ -446,7 +446,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		signatureMask =  intermediateTrie.signatureMask;
 
 		LOGGER.info("Computing behaviour function...");
-		behaviour = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(elements, transformationStrategy)).transform(TransformationStrategies.identity()).store(chunkedHashStore).values(intermediateTrie.externalValues, 1).indirect().build();
+		behaviour = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(elements, transformationStrategy)).transform(TransformationStrategies.identity()).store(bucketedHashStore).values(intermediateTrie.externalValues, 1).indirect().build();
 		intermediateTrie.externalValues = null;
 
 		if (! emptyTrie) {
@@ -523,15 +523,15 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 			LOGGER.info("Computing length/signature map...");
 
-			final ChunkedHashStore<BitVector> intermediateTrieChunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), chunkedHashStore.tempDir());
-			intermediateTrieChunkedHashStore.reset(seed);
-			intermediateTrieChunkedHashStore.addAll(intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator());
+			final BucketedHashStore<BitVector> intermediateTrieBucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity(), bucketedHashStore.tempDir());
+			intermediateTrieBucketedHashStore.reset(seed);
+			intermediateTrieBucketedHashStore.addAll(intermediateTrie.internalNodeKeys.iterator(), intermediateTrie.internalNodeSignatures.iterator());
 
-			signatures = new GOV3Function.Builder<BitVector>().store(intermediateTrieChunkedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize).build();
+			signatures = new GOV3Function.Builder<BitVector>().store(intermediateTrieBucketedHashStore, intermediateTrie.logW + intermediateTrie.signatureSize).build();
 			intermediateTrie.internalNodeSignatures = null;
 			intermediateTrie.internalNodeKeys.close();
 			intermediateTrie.internalNodeKeys = null;
-			intermediateTrieChunkedHashStore.close();
+			intermediateTrieBucketedHashStore.close();
 
 			// Compute errors to be corrected
 			this.mistakeSignatures = new IntOpenHashSet();
@@ -620,11 +620,11 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	}
 
-	private long getNodeStringLength(BitVector v) {
+	private long getNodeStringLength(final BitVector v) {
 		return getNodeStringLength(v, Hashes.preprocessSpooky4(v, seed));
 	}
 
-	private long getNodeStringLength(BitVector v, final long[] state) {
+	private long getNodeStringLength(final BitVector v, final long[] state) {
 		if (DEBUG) System.err.println("getNodeStringLength(" + v + ")...");
 
 		final long corr = Hashes.spooky4(v, v.length(), seed, state);
@@ -737,7 +737,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	}
 
 	@Override
-	public boolean containsKey(Object o) {
+	public boolean containsKey(final Object o) {
 		return true;
 	}
 

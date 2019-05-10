@@ -62,7 +62,7 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
+import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /** A monotone minimal perfect hash implementation based on fixed-size bucketing that uses
@@ -76,7 +76,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 4L;
+    public static final long serialVersionUID = 5L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(TwoStepsLcpMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -136,9 +136,9 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link ChunkedHashStore}.
+		/** Specifies a temporary directory for the {@link BucketedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link ChunkedHashStore}. files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link BucketedHashStore}. files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -175,7 +175,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
-	/** The seed returned by the {@link ChunkedHashStore}. */
+	/** The seed returned by the {@link BucketedHashStore}. */
 	protected final long seed;
 	/** The mask to compare signatures, or zero for no signatures. */
 	protected final long signatureMask;
@@ -241,15 +241,15 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		long maxLength = 0;
 
 		@SuppressWarnings("resource")
-		final ChunkedHashStore<BitVector> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.identity(), pl);
-		chunkedHashStore.reset(r.nextLong());
+		final BucketedHashStore<BitVector> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.identity(), pl);
+		bucketedHashStore.reset(r.nextLong());
 		pl.expectedUpdates = n;
 		pl.start("Scanning collection...");
 
 		final Iterator<? extends T> iterator = keys.iterator();
 		for(long b = 0; b < numBuckets; b++) {
 			prev.replace(transform.toBitVector(iterator.next()));
-			chunkedHashStore.add(prev);
+			bucketedHashStore.add(prev);
 			pl.lightUpdate();
 			maxLength = Math.max(maxLength, prev.length());
 			currLcp = (int)prev.length();
@@ -257,7 +257,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 			for(int i = 0; i < currBucketSize - 1; i++) {
 				curr.replace(transform.toBitVector(iterator.next()));
-				chunkedHashStore.add(curr);
+				bucketedHashStore.add(curr);
 				pl.lightUpdate();
 				final int prefix = (int)curr.longestCommonPrefixLength(prev);
 				if (prefix == prev.length() && prefix == curr.length()) throw new IllegalArgumentException("The input bit vectors are not distinct");
@@ -278,8 +278,8 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		pl.done();
 
 		// We must be sure that both functions are built on the same store.
-		chunkedHashStore.checkAndRetry(TransformationStrategies.wrap(keys, transform));
-		this.seed = chunkedHashStore.seed();
+		bucketedHashStore.checkAndRetry(TransformationStrategies.wrap(keys, transform));
+		this.seed = bucketedHashStore.seed();
 
 		if (ASSERTS) {
 			final ObjectOpenHashSet<BitVector> s = new ObjectOpenHashSet<>();
@@ -305,9 +305,9 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		lcps.close();
 
 		// Build function assigning the bucket offset to each element.
-		offsets = new GOV3Function.Builder<BitVector>().store(chunkedHashStore).values(new AbstractLongBigList() {
+		offsets = new GOV3Function.Builder<BitVector>().store(bucketedHashStore).values(new AbstractLongBigList() {
 			@Override
-			public long getLong(long index) {
+			public long getLong(final long index) {
 				return index & bucketSizeMask;
 			}
 			@Override
@@ -317,9 +317,9 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		}, log2BucketSize).indirect().build();
 
 		// Build function assigning the lcp length to each element.
-		this.lcpLengths = new TwoStepsGOV3Function.Builder<BitVector>().store(chunkedHashStore).values(new AbstractLongBigList() {
+		this.lcpLengths = new TwoStepsGOV3Function.Builder<BitVector>().store(bucketedHashStore).values(new AbstractLongBigList() {
 			@Override
-			public long getLong(long index) {
+			public long getLong(final long index) {
 				return IntBigArrays.get(lcpLengths, index >>> log2BucketSize);
 			}
 			@Override
@@ -358,23 +358,23 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		if (signatureWidth != 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			chunkedHashStore.filter(null); // two-steps functions use filtering.
-			signatures = chunkedHashStore.signatures(signatureWidth, pl);
+			bucketedHashStore.filter(null); // two-steps functions use filtering.
+			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else {
 			signatureMask = 0;
 			signatures = null;
 		}
 
-		chunkedHashStore.close();
+		bucketedHashStore.close();
 	}
 
 
-	private static double W(double x) {
+	private static double W(final double x) {
 		return - Math.log(-1/x) - Math.log(Math.log(-1/x));
 	}
 
-	private static double s(double p, int r) {
+	private static double s(final double p, final int r) {
 		return Fast.log2(W(1 / (Math.log(2) * (r + GOV3Function.C) * (p - 1))) / Math.log(1 - p));
 	}
 

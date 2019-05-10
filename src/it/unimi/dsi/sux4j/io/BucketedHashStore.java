@@ -249,7 +249,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		this.transform = transform;
 		this.pl = pl;
 		this.tempDir = tempDir;
-		this.bucketSize = -1;
+		this.bucketSize = 1;
 		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> Long.SIZE - hashWidthOrCountValues;
 		if (hashWidthOrCountValues < 0) value2FrequencyMap = new Long2LongOpenHashMap();
 
@@ -747,9 +747,10 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		}
 
 		int m = 0;
-		for(int i = 0; i < DISK_CHUNKS; i++)
-			if (m < count[i]) m = count[i];
+		for(int i = 0; i < DISK_CHUNKS; i++) if (m < count[i]) m = count[i];
+
 		final int maxCount = m + 16 * bucketSize; // Some headroom for partial buckets
+
 		try {
 			numBuckets = 1 + size() / bucketSize;
 			multiplier = numBuckets * 2;
@@ -794,7 +795,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					System.arraycopy(buffer0, start, buffer0, 0, residual);
 					System.arraycopy(buffer1, start, buffer1, 0, residual);
 					System.arraycopy(buffer2, start, buffer2, 0, residual);
-					System.arraycopy(data, start, data, 0, residual);
+					if (data != null) System.arraycopy(data, start, data, 0, residual);
 
 					try {
 						channel = new FileInputStream(file[nextDiskChunk]).getChannel();

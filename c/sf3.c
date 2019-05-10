@@ -50,7 +50,7 @@ static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, con
 int64_t sf3_get_byte_array(const sf *sf, char *key, uint64_t len) {
 	uint64_t h[4];
 	spooky_short(key, len, sf->global_seed, h);
-	const int chunk = h[0] >> sf->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)sf->multiplier) >> 64;
 	const uint64_t offset_seed = sf->offset_and_seed[chunk];
 	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
 	const int num_variables = (sf->offset_and_seed[chunk + 1] & OFFSET_MASK) - chunk_offset;
@@ -62,7 +62,7 @@ int64_t sf3_get_byte_array(const sf *sf, char *key, uint64_t len) {
 int64_t sf3_get_uint64_t(const sf *sf, const uint64_t key) {
 	uint64_t h[4];
 	spooky_short(&key, 8, sf->global_seed, h);
-	const int chunk = h[0] >> sf->chunk_shift;
+	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)sf->multiplier) >> 64;
 	const uint64_t offset_seed = sf->offset_and_seed[chunk];
 	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
 	const int num_variables = (sf->offset_and_seed[chunk + 1] & OFFSET_MASK) - chunk_offset;
