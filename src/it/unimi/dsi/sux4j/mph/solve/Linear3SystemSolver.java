@@ -194,18 +194,18 @@ public class Linear3SystemSolver {
 		edge[edge2Vertex[2][e]] ^= e;
 	}
 
-	/** Turns a triple of longs into an equation.
+	/** Turns a signature into an equation.
 	 *
 	 * <p>If there are no variables the vector <code>e</code> will be filled with -1.
 	 *
-	 * @param triple a triple of intermediate hashes.
+	 * @param signature a signature (two longs).
 	 * @param seed the seed for the hash function.
 	 * @param numVariables the nonzero number of variables in the system.
 	 * @param e an array to store the resulting equation.
 	 */
-	public static void tripleToEquation(final long[] triple, final long seed, final int numVariables, final int e[]) {
+	public static void tripleToEquation(final long[] signature, final long seed, final int numVariables, final int e[]) {
 		final long[] hash = new long[3];
-		Hashes.spooky4(triple, seed, hash);
+		Hashes.spooky4(signature[0], signature[1], seed, hash);
 		final int shift = Long.numberOfLeadingZeros(numVariables);
 		final long mask = (1L << shift) - 1;
 		e[0] = (int)(((hash[0] & mask) * numVariables) >>> shift);

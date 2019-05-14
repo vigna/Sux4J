@@ -350,7 +350,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	protected final long m;
 	/** The data width. */
 	protected final int width;
-	/** The seed used to generate the initial hash triple. */
+	/** The seed used to generate the initial signature. */
 	protected final long globalSeed;
 	/** A long containing the start offset of each bucket in the lower 56 bits, and the local seed of each bucket in the upper 8 bits. */
 	protected final long[] offsetAndSeed;
@@ -530,7 +530,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			catch(final DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
-				LOGGER.warn("Found duplicate. Recomputing triples...");
+				LOGGER.warn("Found duplicate. Recomputing signatures...");
 				bucketedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
 				if (values == null || indirect) bucketedHashStore.addAll(keys.iterator());
@@ -577,31 +577,31 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object o) {
-		final long[] triple = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, triple);
-		return getLongByTriple(triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector((T)o), globalSeed, signature);
+		return getLongBySignature(signature);
 	}
 
 	/** Low-level access to the output of this function.
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link BucketedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method
+	 * then retrieve the resulting values by generating a single signature. The method
 	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
-	 * @param triple a triple generated as documented in {@link BucketedHashStore}.
+	 * @param signature a signature generated as documented in {@link BucketedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple(final long[] triple) {
+	public long getLongBySignature(final long[] signature) {
 		final int[] e = new int[4];
-		final int bucket = (int) Math.multiplyHigh(triple[0] >>> 1, multiplier);
+		final int bucket = (int) Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long bucketOffset = offsetAndSeed[bucket] & OFFSET_MASK;
-		Linear4SystemSolver.tripleToEquation(triple, offsetAndSeed[bucket] & ~OFFSET_MASK, (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset), e);
+		Linear4SystemSolver.tripleToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset), e);
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 
 		final long result = data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) ^ data.getLong(e3);
 		if (signatureMask == 0) return result;
-		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ triple[0]) & signatureMask) != 0 ? defRetValue : result;
-		else return ((result ^ triple[0]) & signatureMask) != 0 ? defRetValue : 1;
+		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ signature[0]) & signatureMask) != 0 ? defRetValue : result;
+		else return ((result ^ signature[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Returns the number of keys in the function domain.

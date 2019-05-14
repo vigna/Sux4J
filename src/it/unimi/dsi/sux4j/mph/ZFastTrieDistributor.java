@@ -645,7 +645,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			if ((l & mask) != (r - 1 & mask)) {
 				final long f = (r - 1) & (-1L << i);
 				Hashes.spooky4(v, f, seed, state, triple);
-				final long data = signatures.getLongByTriple(triple);
+				final long data = signatures.getLongBySignature(triple);
 				assert signatures.getLong(v.subVector(0, f)) == data : signatures.getLong(v.subVector(0, f)) + " != " + data + " (prefix: " + f + ")";
 
 				if (data == -1) {
@@ -691,7 +691,7 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 
 	public long getLongByBitVectorTripleAndState(final BitVector v, final long[] triple, final long[] state) {
 		if (noDelimiters) return 0;
-		final int b = (int)behaviour.getLongByTriple(triple);
+		final int b = (int)behaviour.getLongBySignature(triple);
 		if (emptyTrie) return b;
 		final long length = getNodeStringLength(v, state);
 		if (DDDEBUG) System.err.println("getNodeStringLength(v)=" + length);

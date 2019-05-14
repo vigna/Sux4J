@@ -341,7 +341,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		return secondFunction.getLongByTriple(triple);
 	}
 
-	public long getLongByTriple(final long[] triple) {
+	public long getLongBySignature(final long[] triple) {
 		if (firstFunction != null) {
 			final int firstValue = (int)firstFunction.getLongByTriple(triple);
 			if (firstValue == -1) return defRetValue;

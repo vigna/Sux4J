@@ -596,8 +596,8 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return result < n ? result : defRetValue;
 	}
 
-	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
-	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
+	/** A dirty function replicating the behaviour of {@link #getLongBySignature(long[])} but skipping the
+	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongBySignature(long[])}. */
 	private long getLongByTripleNoCheck(final long[] triple) {
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);
 		final int index = chunk * 3;

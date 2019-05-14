@@ -280,7 +280,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	/** The number of keys. */
 	protected final long n;
 
-	/** The seed used to generate the initial hash triple. */
+	/** The seed used to generate the initial signature. */
 	protected final long globalSeed;
 
 	/** A long containing the cumulating function of the bucket edges (i.e., keys) in the lower 56 bits,
@@ -464,7 +464,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			catch(final DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
-				LOGGER.warn("Found duplicate. Recomputing triples...");
+				LOGGER.warn("Found duplicate. Recomputing signatures...");
 				bucketedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
 				bucketedHashStore.addAll(keys.iterator());
@@ -491,9 +491,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			for (final BucketedHashStore.Bucket bucket : bucketedHashStore) {
 				final Iterator<long[]> iterator = bucket.iterator();
 				for(int i = bucket.size(); i-- != 0;) {
-					final long[] triple = iterator.next();
+					final long[] signature = iterator.next();
 					final int[] e = new int[3];
-					signatures.set(getLongByTripleNoCheck(triple, e), signatureMask & triple[0]);
+					signatures.set(getLongBySignatureNoCheck(signature, e), signatureMask & signature[0]);
 					pl.lightUpdate();
 				}
 			}
@@ -519,41 +519,41 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	@Override
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object key) {
-		final long[] triple = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, triple);
-		return getLongByTriple(triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector((T)key), globalSeed, signature);
+		return getLongBySignature(signature);
 	}
 
 	/** Low-level access to the output of this minimal perfect hash function.
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link BucketedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method
+	 * then retrieve the resulting values by generating a single signature. The method
 	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
 	 *
-	 * @param triple a triple generated as documented in {@link BucketedHashStore}.
+	 * @param signature a signature generated as documented in {@link BucketedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple(final long[] triple) {
+	public long getLongBySignature(final long[] signature) {
 		final int[] e = new int[3];
-		final int bucket = (int)Math.multiplyHigh(triple[0] >>> 1, multiplier);
+		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
 		final long bucketOffset = vertexOffset(edgeOffsetSeed);
 		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset);
 		//if (numVariables == 0) return defRetValue;
-		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
+		Linear3SystemSolver.tripleToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
 
 		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
-		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		return result < n ? result : defRetValue;
 	}
 
 	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
-	private long getLongByTripleNoCheck(final long[] triple, final int[] e) {
-		final int bucket = (int)Math.multiplyHigh(triple[0] >>> 1, multiplier);
+	private long getLongBySignatureNoCheck(final long[] signature, final int[] e) {
+		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
 		final long bucketOffset = vertexOffset(edgeOffsetSeed);
-		Linear3SystemSolver.tripleToEquation(triple, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
+		Linear3SystemSolver.tripleToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
 		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
 	}
 

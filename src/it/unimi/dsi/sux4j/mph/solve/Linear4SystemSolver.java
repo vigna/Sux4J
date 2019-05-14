@@ -183,14 +183,14 @@ public class Linear4SystemSolver {
 	 *
 	 * <p>If there are no variables the vector <code>e</code> will be filled with -1.
 	 *
-	 * @param triple a triple of intermediate hashes.
+	 * @param signature a triple of intermediate hashes.
 	 * @param seed the seed for the hash function.
 	 * @param numVariables the nonzero number of variables in the system.
 	 * @param e an array to store the resulting equation.
 	 */
-	public static void tripleToEquation(final long[] triple, final long seed, final int numVariables, final int e[]) {
+	public static void tripleToEquation(final long[] signature, final long seed, final int numVariables, final int e[]) {
 		final long[] hash = new long[4];
-		Hashes.spooky4(triple, seed, hash);
+		Hashes.spooky4(signature[0], signature[1], seed, hash);
 		final int shift = Long.numberOfLeadingZeros(numVariables);
 		final long mask = (1L << shift) - 1;
 		e[0] = (int)(((hash[0] & mask) * numVariables) >>> shift);
@@ -208,7 +208,7 @@ public class Linear4SystemSolver {
 	 *
 	 * <p>The constant part is provided by {@code valueList}.
 	 *
-	 * @param iterable an iterable returning triples of longs.
+	 * @param iterable an iterable returning signatures.
 	 * @param seed a 64-bit random seed.
 	 * @param valueList a value list containing the constant part.
 	 * @return true if a solution was found.

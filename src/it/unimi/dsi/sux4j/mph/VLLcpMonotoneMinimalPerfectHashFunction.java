@@ -94,7 +94,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	protected final GOV3Function<BitVector> lcp2Bucket;
 	/** The transformation strategy. */
 	protected final TransformationStrategy<? super T> transform;
-	/** The seed to be used when converting keys to triples. */
+	/** The seed to be used when converting keys to signatures. */
 	private long seed;
 
 	@Override
@@ -102,9 +102,9 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 	public long getLong(final Object o) {
 		if (n == 0) return defRetValue;
 		final BitVector bitVector = transform.toBitVector((T)o).fast();
-		final long[] triple = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)o), seed, triple);
-		final long index = mph.getLongByTriple(triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector((T)o), seed, signature);
+		final long index = mph.getLongBySignature(signature);
 		if (index == -1) return defRetValue;
 		final long prefix = lcpLengths.getLong(index);
 		if (prefix == -1 || prefix > bitVector.length()) return defRetValue;
@@ -233,10 +233,10 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		LOGGER.info("Generating data tables...");
 
 		for(final Bucket chunk: bucketedHashStore) {
-			for(final long[] quadruple: chunk) {
-				final long index = mph.getLongByTriple(quadruple);
-				offsets.set(index, quadruple[3] & bucketSizeMask);
-				lcpLengthsTemp.set(index, IntBigArrays.get(lcpLength, (int)(quadruple[3] >> log2BucketSize)));
+			for(final long[] triple: chunk) {
+				final long index = mph.getLongBySignature(triple);
+				offsets.set(index, triple[2] & bucketSizeMask);
+				lcpLengthsTemp.set(index, IntBigArrays.get(lcpLength, (int)(triple[2] >> log2BucketSize)));
 			}
 		}
 

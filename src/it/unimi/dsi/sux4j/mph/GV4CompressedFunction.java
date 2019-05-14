@@ -336,7 +336,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	protected final long n;
 	/** Length of longest codeword **/
 	protected final int globalMaxCodewordLength;
-	/** The seed used to generate the initial hash triple. */
+	/** The seed used to generate the initial signature. */
 	protected long globalSeed;
 	/**
 	 * A long containing three values per bucket:
@@ -551,7 +551,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			catch (final BucketedHashStore.DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
-				LOGGER.warn("Found duplicate. Recomputing triples...");
+				LOGGER.warn("Found duplicate. Recomputing signatures...");
 				bucketedHashStore.reset(r.nextLong());
 				pl.itemsName = "keys";
 				if (values == null || indirect) bucketedHashStore.addAll(keys.iterator());
@@ -584,16 +584,16 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object o) {
 		final int[] e = new int[4];
-		final long[] h = new long[3];
-		Hashes.spooky4(transform.toBitVector((T) o), globalSeed, h);
-		final int bucket = (int)Math.multiplyHigh(h[0] >>> 1, multiplier);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector((T) o), globalSeed, signature);
+		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long olc = offsetAndSeed[bucket];
 		final long bucketOffset = olc & OFFSET_MASK;
 		final long nextBucketOffset = offsetAndSeed[bucket + 1] & OFFSET_MASK;
 		final long bucketSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
 		final int numVariables = (int)(nextBucketOffset - bucketOffset - w);
-		Linear4SystemSolver.tripleToEquation(h, bucketSeed, numVariables, e);
+		Linear4SystemSolver.tripleToEquation(signature, bucketSeed, numVariables, e);
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset,
 				e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 		final long code = data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^

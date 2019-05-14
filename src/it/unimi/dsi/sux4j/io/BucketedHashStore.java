@@ -55,11 +55,11 @@ import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
-/** A temporary store of hash triples virtually divided into buckets.
+/** A temporary store of signatures virtually divided into buckets.
  *
  * <p>A bucketed hash store accumulates elements (objects of type {@code T})
  * by turning them into bit vectors (using a provided {@link TransformationStrategy})
- * and then hashing such vectors into a triple of longs (i.e., overall we get a hash of 192 bits).
+ * and then hashing such vectors into a signature (a pair of longs, i.e., overall we get a hash of 128 bits).
  * Elements can be added {@linkplain #add(Object, long) one by one}
  * or {@linkplain #addAll(Iterator, LongIterator) in batches}.
  * Elements must be distinct, or, more precisely, they must be transformed into distinct bit vectors.
@@ -67,15 +67,15 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * <p>Besides the hashes, we store some data associated with each element:
  * if {@linkplain #add(Object) no data is specified}, we store the <em>rank</em> of each element added (the first element added has rank 0,
  * the second one has rank 1, and so on), unless you specified at {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) construction time}
- * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the triple
+ * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the signature
  * associated with the object (the hash width is the number of bits stored). This feature makes it possible, for example, to implement a static
  * {@linkplain Builder#dictionary(int) dictionary} using a {@link GOV3Function}.
  *
  * <p>The desired expected bucket size can be set by calling {@link #bucketSize(int)}.
  * Once all elements have been added, one calls {@link #iterator()}, which returns buckets one at a time (in their
- * natural order); triples within each bucket are returned by increasing hash, and hashes within different buckets are in bucket order.
- * Actually, the iterator provided by a bucket returns a <em>quadruple</em> whose last element is the data associated with the element
- * that generated the triple.
+ * natural order); signatures within each bucket are returned by increasing value, and signatures within different buckets are in bucket order.
+ * Actually, the iterator provided by a bucket returns a <em>triple</em> whose last element is the data associated with the element
+ * that generated the signature.
  *
  * <p>Note that the main difference between an instance of this class and one of a {@link ChunkedHashStore} is that
  * the latter can only guarantee that the average chunk (here, bucket) size will be within a factor of two from the
@@ -88,7 +88,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable},
  * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked bucketed hash store.
  *
- * <p>Every {@link #reset(long)} changes the seed used by the store to generate triples. So, if this seed has to be
+ * <p>Every {@link #reset(long)} changes the seed used by the store to generate signatures. So, if this seed has to be
  * stored this must happen <em>after</em> the last call to {@link #reset(long)}. To help tracking this fact, a call to
  * {@link #seed()} will <em>lock</em> the store; any further call to {@link #reset(long)} will throw an {@link IllegalStateException}.
  * In case the store needs to be reused, you can call {@link #clear()}, that will bring back the store to after-creation state.
@@ -98,7 +98,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <h2>Filtering</h2>
  *
- * <p>You can at any time {@linkplain #filter(Predicate) set a predicate} that will filter the triples returned by the store.
+ * <p>You can at any time {@linkplain #filter(Predicate) set a predicate} that will filter the signatures returned by the store.
  *
  * <h2>Computing frequencies</h2>
  *
@@ -107,7 +107,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <h2>Implementation details</h2>
  *
- * <p>Internally, a bucketed hash store save triples into different <em>disk segments</em> using
+ * <p>Internally, a bucketed hash store save signatures into different <em>disk segments</em> using
  * the highest bits (performing, in fact, the first phase of a bucket sort).
  * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk segments or splitting them
  * into buckets. This process is transparent to the user.
@@ -135,14 +135,14 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * <h2>Intended usage</h2>
  *
  * <p>bucketed hash stores should be built by classes that need to manipulate elements in buckets of approximate given
- * size without needing access to the elements themselves, but just to their triples, a typical
- * example being {@link GOV3Function}, which uses the triples to compute a 3-hyperedge. Once a bucketed hash
+ * size without needing access to the elements themselves, but just to their signatures, a typical
+ * example being {@link GOV3Function}, which uses the signatures to compute a 3-hyperedge. Once a bucketed hash
  * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
  * collection need not to be scanned again).
  *
  * <p>To compute the bucket corresponding to a given element, use
  * <pre>
- * final long[] h = new long[3];
+ * final long[] h = new long[2];
  * Hashes.spooky4(transform.toBitVector(key), seed, h);
  * final int bucket = Math.multiplyHigh(h[0] &gt;&gt;&gt; 1, (1 + n / bucketSize) &lt;&lt; 1);
  * </pre>
@@ -159,7 +159,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
     private static final Logger LOGGER = LoggerFactory.getLogger(BucketedHashStore.class);
 	private static final boolean DEBUG = false;
 
-	/** Denotes that the bucketed hash store contains a duplicate hash triple. */
+	/** Denotes that the bucketed hash store contains a duplicate signature. */
 	public static class DuplicateException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 	}
@@ -182,9 +182,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	protected long size;
 	/** The number of elements that pass the current filter, or -1 we it must be recomputed. */
 	protected long filteredSize;
-	/** The seed used to generate the hash triples. */
+	/** The seed used to generate the hash signatures. */
 	protected long seed;
-	/** The number of triples in each disk segment. */
+	/** The number of signatures in each disk segment. */
 	private int[] count;
 	/** The files containing disk segments. */
 	private File file[];
@@ -202,7 +202,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	private WritableByteChannel[] writableByteChannel;
 	/** The file channels for the disk segments. */
 	private ByteBuffer[] byteBuffer;
-	/** If not {@code null}, a filter that will be used to select triples. */
+	/** If not {@code null}, a filter that will be used to select signatures. */
 	private Predicate filter;
 	/** Whether this store is locked. Any attempt to {@link #reset(long)} the store will cause an {@link IllegalStateException} if this variable is true.*/
 	private boolean locked;
@@ -329,9 +329,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 * @param value the associated value.
 	 */
 	public void add(final T o, final long value) throws IOException {
-		final long[] triple = new long[3];
-		Hashes.spooky4(transform.toBitVector(o), seed, triple);
-		add(triple, value);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector(o), seed, signature);
+		add(signature, value);
 	}
 
 	/** Adds an element to this store, associating it with its ordinal position.
@@ -342,21 +342,20 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		add(o, filteredSize);
 	}
 
-	/** Adds a triple to this store.
+	/** Adds a signature to this store.
 	 *
-	 * @param triple the triple to be added.
+	 * @param signature the signature to be added.
 	 * @param value the associated value.
 	 */
-	private void add(final long[] triple, final long value) throws IOException {
-		final int segment = (int)(triple[0] >>> DISK_CHUNKS_SHIFT);
+	private void add(final long[] signature, final long value) throws IOException {
+		final int segment = (int)(signature[0] >>> DISK_CHUNKS_SHIFT);
 		count[segment]++;
 		checkedForDuplicates = false;
-		if (DEBUG) System.err.println("Adding " + Arrays.toString(triple));
-		writeLong(triple[0], byteBuffer[segment], writableByteChannel[segment]);
-		writeLong(triple[1], byteBuffer[segment], writableByteChannel[segment]);
-		writeLong(triple[2], byteBuffer[segment], writableByteChannel[segment]);
+		if (DEBUG) System.err.println("Adding " + Arrays.toString(signature));
+		writeLong(signature[0], byteBuffer[segment], writableByteChannel[segment]);
+		writeLong(signature[1], byteBuffer[segment], writableByteChannel[segment]);
 		if (hashMask == 0) writeLong(value, byteBuffer[segment], writableByteChannel[segment]);
-		if (filteredSize != -1 && (filter == null || filter.evaluate(triple))) filteredSize++;
+		if (filteredSize != -1 && (filter == null || filter.evaluate(signature))) filteredSize++;
 		if (value2FrequencyMap != null) value2FrequencyMap.addTo(value, 1);
 		size++;
 	}
@@ -373,10 +372,10 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			pl.expectedUpdates = -1;
 			pl.start("Adding elements...");
 		}
-		final long[] triple = new long[3];
+		final long[] signature = new long[2];
 		while(elements.hasNext()) {
-			Hashes.spooky4(transform.toBitVector(elements.next()), seed, triple);
-			add(triple, values != null ? values.nextLong() : filteredSize);
+			Hashes.spooky4(transform.toBitVector(elements.next()), seed, signature);
+			add(signature, values != null ? values.nextLong() : filteredSize);
 			if (pl != null) pl.lightUpdate();
 		}
 		if (values != null && values.hasNext()) throw new IllegalStateException("The iterator on values contains more entries than the iterator on keys");
@@ -408,14 +407,14 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 * a {@linkplain #filter(Predicate) filter}, the first call to
 	 * this method will require a scan to the whole store.
 	 *
-	 * @return the number of (possibly filtered) triples of this store.
+	 * @return the number of (possibly filtered) pairs of this store.
 	 */
 
 	public long size() throws IOException {
 		if (filter == null) return size;
 		if (filteredSize == - 1) {
 			long c = 0;
-			final long[] triple = new long[3];
+			final long[] signature = new long[2];
 			final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			for(int i = 0; i < DISK_CHUNKS; i++) {
 				if (filter == null) c += count[i];
@@ -425,11 +424,10 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					final ReadableByteChannel channel = new FileInputStream(file[i]).getChannel();
 					iteratorByteBuffer.clear().flip();
 					for(int j = 0; j < count[i]; j++) {
-						triple[0] = readLong(iteratorByteBuffer, channel);
-						triple[1] = readLong(iteratorByteBuffer, channel);
-						triple[2] = readLong(iteratorByteBuffer, channel);
+						signature[0] = readLong(iteratorByteBuffer, channel);
+						signature[1] = readLong(iteratorByteBuffer, channel);
 						if (hashMask == 0) readLong(iteratorByteBuffer, channel);
-						if (filter.evaluate(triple)) c++;
+						if (filter.evaluate(signature)) c++;
 					}
 					channel.close();
 				}
@@ -523,9 +521,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		}
 	}
 
-	/** Checks that this store has no duplicate triples, throwing an exception if this fails to happen.
+	/** Checks that this store has no duplicate signatures, throwing an exception if this fails to happen.
 	 *
-	 * @throws DuplicateException if this store contains duplicate triples.
+	 * @throws DuplicateException if this store contains duplicate signatures.
 	 */
 
 
@@ -533,11 +531,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		for(final BucketedHashStore.Bucket b: this) b.iterator();
 	}
 
-	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
+	/** Checks that this store has no duplicate signatures, and try to rebuild if this fails to happen.
 	 *
-	 * @param iterable the elements with which the store will be refilled if there are duplicate triples.
+	 * @param iterable the elements with which the store will be refilled if there are duplicate signatures.
 	 * @param values the values that will be associated with the elements returned by <code>iterable</code>.
-	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
+	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate signatures.
 	 */
 	public void checkAndRetry(final Iterable<? extends T> iterable, final LongIterable values) throws IOException {
 		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator();
@@ -550,7 +548,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			}
 			catch (final DuplicateException e) {
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
-				LOGGER.warn("Found duplicate. Recomputing triples...");
+				LOGGER.warn("Found duplicate. Recomputing signatures...");
 				reset(random.nextLong());
 				addAll(iterable.iterator(), values.iterator());
 			}
@@ -558,13 +556,13 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		checkedForDuplicates = true;
 	}
 
-	/** Checks that this store has no duplicate triples, and try to rebuild if this fails to happen.
+	/** Checks that this store has no duplicate signatures, and try to rebuild if this fails to happen.
 	 *
 	 * <p><strong>Warning</strong>: the actions are executed exactly in the specified order&mdash;<em>first</em>
 	 * check, <em>then</em> retry. If you invoke this method on an empty store you'll get a checked empty store.
 	 *
-	 * @param iterable the elements with which the store will be refilled if there are duplicate triples.
-	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate triples.
+	 * @param iterable the elements with which the store will be refilled if there are duplicate signatures.
+	 * @throws IllegalArgumentException if after a few trials the store still contains duplicate signatures.
 	 */
 	public void checkAndRetry(final Iterable<? extends T> iterable) throws IOException {
 		checkAndRetry(iterable, null);
@@ -588,8 +586,8 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		for (final Bucket bucket: this) {
 			final Iterator<long[]> bucketIterator = bucket.iterator();
 			for(int i = bucket.size(); i-- != 0;) {
-				final long[] quadruple = bucketIterator.next();
-				signatures.set(quadruple[3], signatureMask & quadruple[0]);
+				final long[] triple = bucketIterator.next();
+				signatures.set(triple[2], signatureMask & triple[0]);
 				pl.lightUpdate();
 			}
 		}
@@ -602,17 +600,16 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	public final static class Bucket implements Iterable<long[]> {
 		/** The index of this bucket (the ordinal position in the bucket enumeration). */
 		private final int index;
-		/** The start position of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
+		/** The start position of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, and {@link #data}. */
 		private final int start;
-		/** The final position (excluded) of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, {@link #buffer2}, and {@link #data}. */
+		/** The final position (excluded) of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, and {@link #data}. */
 		private final int end;
 		private final long[] buffer0;
 		private final long[] buffer1;
-		private final long[] buffer2;
 		private final long[] data;
 		private final long hashMask;
 
-		private Bucket(final int index, final long[] buffer0, final long[] buffer1, final long[] buffer2, final long[] data, final long hashMask, final int start, final int end) {
+		private Bucket(final int index, final long[] buffer0, final long[] buffer1, final long[] data, final long hashMask, final int start, final int end) {
 			this.index = index;
 			this.start = start;
 			this.end = end;
@@ -620,7 +617,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			this.hashMask = hashMask;
 			this.buffer0 = buffer0;
 			this.buffer1 = buffer1;
-			this.buffer2 = buffer2;
 		}
 
 		/** Copy constructor for multi-threaded bucket analysis.
@@ -634,7 +630,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			end = bucket.end - bucket.start;
 			buffer0 = Arrays.copyOfRange(bucket.buffer0, bucket.start, bucket.end);
 			buffer1 = Arrays.copyOfRange(bucket.buffer1, bucket.start, bucket.end);
-			buffer2 = Arrays.copyOfRange(bucket.buffer2, bucket.start, bucket.end);
 			data = bucket.data == null ? null : Arrays.copyOfRange(bucket.data, bucket.start, bucket.end);
 		}
 
@@ -647,12 +642,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			this.hashMask = 0;
 			this.buffer0 = null;
 			this.buffer1 = null;
-			this.buffer2 = null;
 		}
 
-		/** The number of triples in this bucket.
+		/** The number of signatures in this bucket.
 		 *
-		 * @return the number of triples in this bucket.
+		 * @return the number of signatures in this bucket.
 		 */
 		public int size() {
 			return end - start;
@@ -666,12 +660,12 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			return index;
 		}
 
-		/** Returns the data of the <code>k</code>-th triple returned by this bucket.
+		/** Returns the data of the <code>k</code>-th signature returned by this bucket.
 		 *
 		 * <p>This method provides an alternative random access to data (w.r.t. indexing the fourth element of the
 		 * quadruples returned by {@link #iterator()}).
 		 *
-		 * @param k the index (in iteration order) of a triple.
+		 * @param k the index (in iteration order) of a signature.
 		 * @return the corresponding data.
 		 */
 
@@ -680,9 +674,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		}
 
 
-		/** Returns an iterator over the quadruples associated with this bucket; the returned array of longs is reused at each call.
+		/** Returns an iterator over the triples associated with this bucket; the returned array of longs is reused at each call.
 		 *
-		 * @return an iterator over quadruples formed by a triple (indices 0, 1, 2) and the associated data (index 3).
+		 * @return an iterator over triples formed by a signature (indices 0, 1) and the associated data (index 2).
 		 */
 
 		@Override
@@ -702,8 +696,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					final long[] quadruple = this.quadruple;
 					quadruple[0] = buffer0[pos];
 					quadruple[1] = buffer1[pos];
-					quadruple[2] = buffer2[pos];
-					quadruple[3] = data != null ? data[pos] : buffer0[pos] & hashMask;
+					quadruple[2] = data != null ? data[pos] : buffer0[pos] & hashMask;
 					pos++;
 					return quadruple;
 				}
@@ -738,7 +731,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 	/** Sets a filter for this store.
 	 *
-	 * @param filter a predicate that will be used to filter triples.
+	 * @param filter a predicate that will be used to filter signatures.
 	 */
 	public void filter(final Predicate filter) {
 		this.filter = filter;
@@ -786,7 +779,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			private int nextDiskSegment;
 			private final long[] buffer0 = new long[maxCount];
 			private final long[] buffer1 = new long[maxCount];
-			private final long[] buffer2 = new long[maxCount];
 			private final long[] data = hashMask != 0 ? null : new long[maxCount];
 
 			@Override
@@ -808,12 +800,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					for(incr = 1; last + incr < diskSegmentSize && Math.multiplyHigh(buffer0[last + incr] >>> 1, multiplier) == bucket; incr <<= 1);
 
 					if (last + incr < diskSegmentSize || nextDiskSegment == DISK_CHUNKS) break;
-					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
+					final long[] buffer1 = this.buffer1;
 					// Move partial data to the beginning
 					final int residual = diskSegmentSize - start;
 					System.arraycopy(buffer0, start, buffer0, 0, residual);
 					System.arraycopy(buffer1, start, buffer1, 0, residual);
-					System.arraycopy(buffer2, start, buffer2, 0, residual);
 					if (data != null) System.arraycopy(data, start, data, 0, residual);
 
 					try {
@@ -821,19 +812,17 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 						int pos = residual;
 
 						iteratorByteBuffer.clear().flip();
-						final long triple[] = new long[3];
+						final long signature[] = new long[2];
 						final int nextSegmentSize = count[nextDiskSegment];
 						for(int j = 0; j < nextSegmentSize; j++) {
-							triple[0] = readLong(iteratorByteBuffer, channel);
-							triple[1] = readLong(iteratorByteBuffer, channel);
-							triple[2] = readLong(iteratorByteBuffer, channel);
+							signature[0] = readLong(iteratorByteBuffer, channel);
+							signature[1] = readLong(iteratorByteBuffer, channel);
 
-							if (DEBUG) System.err.println("From disk: " + Arrays.toString(triple));
+							if (DEBUG) System.err.println("From disk: " + Arrays.toString(signature));
 
-							if (filter == null || filter.evaluate(triple)) {
-								buffer0[pos] = triple[0];
-								buffer1[pos] = triple[1];
-								buffer2[pos] = triple[2];
+							if (filter == null || filter.evaluate(signature)) {
+								buffer0[pos] = signature[0];
+								buffer1[pos] = signature[1];
 								if (hashMask == 0) data[pos] = readLong(iteratorByteBuffer, channel);
 								pos++;
 							}
@@ -848,20 +837,16 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					}
 
 					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(residual, diskSegmentSize, (x, y) -> {
-						int t = Long.compareUnsigned(buffer0[x], buffer0[y]);
+						final int t = Long.compareUnsigned(buffer0[x], buffer0[y]);
 						if (t != 0) return t;
-						t = Long.compareUnsigned(buffer1[x], buffer1[y]);
-						if (t != 0) return t;
-						return Long.compareUnsigned(buffer2[x], buffer2[y]);
+						return Long.compareUnsigned(buffer1[x], buffer1[y]);
 					},
 					(x, y) -> {
-						final long e0 = buffer0[x], e1 = buffer1[x], e2 = buffer2[x];
+						final long e0 = buffer0[x], e1 = buffer1[x];
 						buffer0[x] = buffer0[y];
 						buffer1[x] = buffer1[y];
-						buffer2[x] = buffer2[y];
 						buffer0[y] = e0;
 						buffer1[y] = e1;
-						buffer2[y] = e2;
 						if (hashMask == 0) {
 							final long v = data[x];
 							data[x] = data[y];
@@ -883,11 +868,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 				if (!checkedForDuplicates && start < last)
 					for (int i = start + 1; i < last; i++)
-						if (buffer0[i - 1] == buffer0[i] && buffer1[i - 1] == buffer1[i] && buffer2[i - 1] == buffer2[i])
+						if (buffer0[i - 1] == buffer0[i] && buffer1[i - 1] == buffer1[i])
 							throw new DuplicateException();
 				if (bucket == numBuckets - 1 && last == diskSegmentSize) checkedForDuplicates = true;
 
-				return new Bucket(bucket++, buffer0, buffer1, buffer2, data, hashMask, start, last);
+				return new Bucket(bucket++, buffer0, buffer1, data, hashMask, start, last);
 			}
 		};
 	}

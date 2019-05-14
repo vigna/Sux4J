@@ -259,7 +259,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		Hashes.spooky4(bv, bv.length(), seed, state, triple);
 
 		final long bucket = distributor.getLongByBitVectorTripleAndState(bv, triple, state);
-		final long result = (bucket << log2BucketSize) + offset.getLongByTriple(triple);
+		final long result = (bucket << log2BucketSize) + offset.getLongBySignature(triple);
 		if (signatureMask != 0) return result < 0 || result >= size || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= size ? defRetValue : result;

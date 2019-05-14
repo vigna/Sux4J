@@ -511,7 +511,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
-	public long getLongByTriple(final long[] triple) {
+	public long getLongBySignature(final long[] triple) {
 		if (n == 0) return defRetValue;
 		final int[] e = new int[3];
 		final int chunk = chunkShift == Long.SIZE ? 0 : (int)(triple[0] >>> chunkShift);

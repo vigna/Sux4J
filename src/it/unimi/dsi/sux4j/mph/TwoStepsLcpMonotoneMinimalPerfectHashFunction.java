@@ -1,5 +1,25 @@
 package it.unimi.dsi.sux4j.mph;
 
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008-2018 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -23,26 +43,6 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-
-/*
- * Sux4J: Succinct data structures for Java
- *
- * Copyright (C) 2008-2018 Sebastiano Vigna
- *
- *  This library is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- */
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
@@ -76,7 +76,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Size64, Serializable {
-    public static final long serialVersionUID = 5L;
+    public static final long serialVersionUID = 6L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(TwoStepsLcpMonotoneMinimalPerfectHashFunction.class);
 	private static final boolean DEBUG = false;
 	private static final boolean ASSERTS = false;
@@ -397,21 +397,21 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 	public long getLong(final Object o) {
 		if (n == 0) return defRetValue;
 		final BitVector bitVector = transform.toBitVector((T)o).fast();
-		final long[] triple = new long[3];
-		Hashes.spooky4(bitVector, seed, triple);
-		final long prefix = lcpLengths.getLongByTriple(triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(bitVector, seed, signature);
+		final long prefix = lcpLengths.getLongBySignature(signature);
 		if (prefix == -1 || prefix > bitVector.length()) return defRetValue;
-		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongByTriple(triple);
-		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongBySignature(signature);
+		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= n ? defRetValue : result;
 	}
 
 	public long getLongByBitVectorAndTriple(final BitVector bitVector, final long[] triple) {
 		if (n == 0) return defRetValue;
-		final long prefix = lcpLengths.getLongByTriple(triple);
+		final long prefix = lcpLengths.getLongBySignature(triple);
 		if (prefix == -1 || prefix > bitVector.length()) return defRetValue;
-		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongByTriple(triple);
+		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongBySignature(triple);
 		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= n ? defRetValue : result;

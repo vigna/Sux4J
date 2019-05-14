@@ -310,7 +310,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		else firstFunction = null;
 
-		bucketedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongByTriple((long[])triple) == escape);
+		bucketedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongBySignature((long[])triple) == escape);
 
 		secondFunction = new GOV3Function.Builder<T>().store(bucketedHashStore).values(values, w).indirect().build();
 
@@ -332,20 +332,20 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		final long[] triple = new long[3];
 		Hashes.spooky4(transform.toBitVector((T)o), seed, triple);
 		if (firstFunction != null) {
-			final int firstValue = (int)firstFunction.getLongByTriple(triple);
+			final int firstValue = (int)firstFunction.getLongBySignature(triple);
 			if (firstValue == -1) return defRetValue;
 			if (firstValue != escape) return remap[firstValue];
 		}
-		return secondFunction.getLongByTriple(triple);
+		return secondFunction.getLongBySignature(triple);
 	}
 
-	public long getLongByTriple(final long[] triple) {
+	public long getLongBySignature(final long[] triple) {
 		if (firstFunction != null) {
-			final int firstValue = (int)firstFunction.getLongByTriple(triple);
+			final int firstValue = (int)firstFunction.getLongBySignature(triple);
 			if (firstValue == -1) return defRetValue;
 			if (firstValue != escape) return remap[firstValue];
 		}
-		return secondFunction.getLongByTriple(triple);
+		return secondFunction.getLongBySignature(triple);
 	}
 
 	@Override
