@@ -2499,6 +2499,76 @@ public class Hashes {
 	}
 
 	/**
+	 * SpookyHash (up to four values produced) for a pair of longs.
+	 *
+	 * @param x
+	 *            the first long.
+	 * @param y
+	 *            the second long.
+	 * @param seed
+	 *            a seed for the hash.
+	 * @param tuple
+	 *            a tuple of longs in which up to four generated hashes will be
+	 *            saved.
+	 */
+	@SuppressWarnings({"fallthrough"})
+	public static void spooky4(final long x, final long y, final long seed, final long[] tuple) {
+		long h0, h1, h2, h3;
+		h0 = seed;
+		h1 = ARBITRARY_BITS + x;
+		h2 = ARBITRARY_BITS + y;
+		h3 = ARBITRARY_BITS;
+
+		h2 = Long.rotateLeft(h2, 50);
+		h2 += h3;
+		h0 ^= h2;
+		h3 = Long.rotateLeft(h3, 52);
+		h3 += h0;
+		h1 ^= h3;
+		h0 = Long.rotateLeft(h0, 30);
+		h0 += h1;
+		h2 ^= h0;
+		h1 = Long.rotateLeft(h1, 41);
+		h1 += h2;
+		h3 ^= h1;
+		h2 = Long.rotateLeft(h2, 54);
+		h2 += h3;
+		h0 ^= h2;
+		h3 = Long.rotateLeft(h3, 48);
+		h3 += h0;
+		h1 ^= h3;
+		h0 = Long.rotateLeft(h0, 38);
+		h0 += h1;
+		h2 ^= h0;
+		h1 = Long.rotateLeft(h1, 37);
+		h1 += h2;
+		h3 ^= h1;
+		h2 = Long.rotateLeft(h2, 62);
+		h2 += h3;
+		h0 ^= h2;
+		h3 = Long.rotateLeft(h3, 34);
+		h3 += h0;
+		h1 ^= h3;
+		h0 = Long.rotateLeft(h0, 5);
+		h0 += h1;
+		h2 ^= h0;
+		h1 = Long.rotateLeft(h1, 36);
+		h1 += h2;
+		h3 ^= h1;
+
+		switch (tuple.length) {
+		case 4:
+			tuple[3] = h3;
+		case 3:
+			tuple[2] = h2;
+		case 2:
+			tuple[1] = h1;
+		case 1:
+			tuple[0] = h0;
+		}
+	}
+
+	/**
 	 * A simple test to check the relative speed of various hashes on your
 	 * architecture.
 	 *

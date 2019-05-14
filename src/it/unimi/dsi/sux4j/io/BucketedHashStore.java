@@ -77,6 +77,10 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * Actually, the iterator provided by a bucket returns a <em>quadruple</em> whose last element is the data associated with the element
  * that generated the triple.
  *
+ * <p>Note that the main difference between an instance of this class and one of a {@link ChunkedHashStore} is that
+ * the latter can only guarantee that the average chunk (here, bucket) size will be within a factor of two from the
+ * desired one, as the number of chunks can be specified only as a {@linkplain ChunkedHashStore#log2Chunks(int) power of two}.
+ *
  * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
  * during bucket iteration (not while accumulating hashes), and it will throw a {@link BucketedHashStore.DuplicateException}.
  * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
@@ -103,12 +107,26 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <h2>Implementation details</h2>
  *
- * <p>Internally, a bucketed hash store save triples into different <em>disk chunks</em> using
+ * <p>Internally, a bucketed hash store save triples into different <em>disk segments</em> using
  * the highest bits (performing, in fact, the first phase of a bucket sort).
- * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk chunks or splitting them
+ * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk segments or splitting them
  * into buckets. This process is transparent to the user.
  *
- * <p>Triples have to be loaded into memory only chunk by chunk, so to be sorted and tested for uniqueness. As long as
+ * <p>The assignment to a bucket happens conceptually by using the first 64-bit hash (shifted by one to the right, to avoid sign issues)
+ * to define a number &alpha; in the interval [0..1).
+ * Then, the bucket assigned is &lfloor;&alpha;<var>m</var>&rfloor;,
+ * where <var>m</var> = 1 + {@link #size()} / {@link #bucketSize()} is the number of buckets.
+ * Conceptually, we are mapping &alpha;, a uniform random number in the unit interval, into
+ * &lfloor;&alpha;<var>m</var>&rfloor;, a uniform integer number in the range [0..<var>m</var>),
+ * by <em>inversion</em>.
+ * As show below, the whole computation can
+ * be carried out using a fixed-point representation,
+ * as it has been done for pseudorandom number generators since the early days, using only
+ * a multiplication and shift.
+ * The assignment is monotone nondecreasing, which makes it possible
+ * to emit the buckets one at a time scanning the keys in sorted order.
+ *
+ * <p>Triples have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
  * {@link #DISK_CHUNKS} is larger than eight, the store will need less than one bit per element of main
  * memory. {@link #DISK_CHUNKS} can be increased arbitrarily at compile time, but each store
  * will open {@link #DISK_CHUNKS} files at the same time. (For the same reason, it is
@@ -122,13 +140,15 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
  * collection need not to be scanned again).
  *
- * <p>To compute the bucket corresponding to given element, use
+ * <p>To compute the bucket corresponding to a given element, use
  * <pre>
  * final long[] h = new long[3];
  * Hashes.spooky4(transform.toBitVector(key), seed, h);
- * final int bucket = Math.multiplyHigh(h[0] &gt;&gt;&gt; 1, 1 + size() / bucketSize);
+ * final int bucket = Math.multiplyHigh(h[0] &gt;&gt;&gt; 1, (1 + n / bucketSize) &lt;&lt; 1);
  * </pre>
- * where <code>seed</code> is the store seed.
+ * where <code>seed</code> is the {@linkplain #seed() store seed},
+ * <code>n</code> is the {@linkplain #size() number of keys},
+ * and <code>bucketSize</code> is the {@linkplain #bucketSize(int) provided bucket size}.
  *
  * @author Sebastiano Vigna
  * @since 4.4.0
@@ -146,11 +166,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 	/** The size of the output buffers. */
 	public final static int BUFFER_SIZE = 16 * 1024;
-	/** The logarithm of the number of disk chunks. */
+	/** The logarithm of the number of disk segments. */
 	public final static int LOG2_DISK_CHUNKS = 8;
-	/** The number of disk chunks. */
+	/** The number of disk segments. */
 	public final static int DISK_CHUNKS = 1 << LOG2_DISK_CHUNKS;
-	/** The shift for disk chunks. */
+	/** The shift for disk segments. */
 	public final static int DISK_CHUNKS_SHIFT = Long.SIZE - LOG2_DISK_CHUNKS;
 	/** The expected bucket size. */
 	private int bucketSize;
@@ -164,9 +184,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	protected long filteredSize;
 	/** The seed used to generate the hash triples. */
 	protected long seed;
-	/** The number of triples in each disk chunk. */
+	/** The number of triples in each disk segment. */
 	private int[] count;
-	/** The files containing disk chunks. */
+	/** The files containing disk segments. */
 	private File file[];
 	/** If true, this store has been checked for duplicates. */
 	private boolean checkedForDuplicates;
@@ -178,9 +198,9 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	private final long hashMask;
 	/** The temporary directory for this bucketed hash store, or {@code null}. */
 	private final File tempDir;
-	/** The file channels for the disk chunks. */
+	/** The file channels for the disk segments. */
 	private WritableByteChannel[] writableByteChannel;
-	/** The file channels for the disk chunks. */
+	/** The file channels for the disk segments. */
 	private ByteBuffer[] byteBuffer;
 	/** If not {@code null}, a filter that will be used to select triples. */
 	private Predicate filter;
@@ -254,7 +274,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		file = new File[DISK_CHUNKS];
 		writableByteChannel = new WritableByteChannel[DISK_CHUNKS];
 		byteBuffer = new ByteBuffer[DISK_CHUNKS];
-		// Create disk chunks
+		// Create disk segments
 		for(int i = 0; i < DISK_CHUNKS; i++) {
 			byteBuffer[i] = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			writableByteChannel[i] = new FileOutputStream(file[i] = File.createTempFile(BucketedHashStore.class.getSimpleName(), String.valueOf(i), tempDir)).getChannel();
@@ -302,6 +322,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		return transform;
 	}
 
+
 	/** Adds an element to this store, associating it with a specified value.
 	 *
 	 * @param o the element to be added.
@@ -327,14 +348,14 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 * @param value the associated value.
 	 */
 	private void add(final long[] triple, final long value) throws IOException {
-		final int chunk = (int)(triple[0] >>> DISK_CHUNKS_SHIFT);
-		count[chunk]++;
+		final int segment = (int)(triple[0] >>> DISK_CHUNKS_SHIFT);
+		count[segment]++;
 		checkedForDuplicates = false;
 		if (DEBUG) System.err.println("Adding " + Arrays.toString(triple));
-		writeLong(triple[0], byteBuffer[chunk], writableByteChannel[chunk]);
-		writeLong(triple[1], byteBuffer[chunk], writableByteChannel[chunk]);
-		writeLong(triple[2], byteBuffer[chunk], writableByteChannel[chunk]);
-		if (hashMask == 0) writeLong(value, byteBuffer[chunk], writableByteChannel[chunk]);
+		writeLong(triple[0], byteBuffer[segment], writableByteChannel[segment]);
+		writeLong(triple[1], byteBuffer[segment], writableByteChannel[segment]);
+		writeLong(triple[2], byteBuffer[segment], writableByteChannel[segment]);
+		if (hashMask == 0) writeLong(value, byteBuffer[segment], writableByteChannel[segment]);
 		if (filteredSize != -1 && (filter == null || filter.evaluate(triple))) filteredSize++;
 		if (value2FrequencyMap != null) value2FrequencyMap.addTo(value, 1);
 		size++;
@@ -761,8 +782,8 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			private ReadableByteChannel channel;
 			private final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			private int last;
-			private int diskChunkSize;
-			private int nextDiskChunk;
+			private int diskSegmentSize;
+			private int nextDiskSegment;
 			private final long[] buffer0 = new long[maxCount];
 			private final long[] buffer1 = new long[maxCount];
 			private final long[] buffer2 = new long[maxCount];
@@ -770,7 +791,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 			@Override
 			public boolean hasNext() {
-				return last < diskChunkSize || nextDiskChunk != DISK_CHUNKS;
+				return last < diskSegmentSize || nextDiskSegment != DISK_CHUNKS;
 			}
 
 			@SuppressWarnings("resource")
@@ -784,25 +805,25 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 				for(;;) {
 					start = last;
 					// Galloping search for the next bucket
-					for(incr = 1; last + incr < diskChunkSize && Math.multiplyHigh(buffer0[last + incr] >>> 1, multiplier) == bucket; incr <<= 1);
+					for(incr = 1; last + incr < diskSegmentSize && Math.multiplyHigh(buffer0[last + incr] >>> 1, multiplier) == bucket; incr <<= 1);
 
-					if (last + incr < diskChunkSize || nextDiskChunk == DISK_CHUNKS) break;
+					if (last + incr < diskSegmentSize || nextDiskSegment == DISK_CHUNKS) break;
 					final long[] buffer1 = this.buffer1, buffer2 = this.buffer2;
 					// Move partial data to the beginning
-					final int residual = diskChunkSize - start;
+					final int residual = diskSegmentSize - start;
 					System.arraycopy(buffer0, start, buffer0, 0, residual);
 					System.arraycopy(buffer1, start, buffer1, 0, residual);
 					System.arraycopy(buffer2, start, buffer2, 0, residual);
 					if (data != null) System.arraycopy(data, start, data, 0, residual);
 
 					try {
-						channel = new FileInputStream(file[nextDiskChunk]).getChannel();
+						channel = new FileInputStream(file[nextDiskSegment]).getChannel();
 						int pos = residual;
 
 						iteratorByteBuffer.clear().flip();
 						final long triple[] = new long[3];
-						final int nextChunkSize = count[nextDiskChunk];
-						for(int j = 0; j < nextChunkSize; j++) {
+						final int nextSegmentSize = count[nextDiskSegment];
+						for(int j = 0; j < nextSegmentSize; j++) {
 							triple[0] = readLong(iteratorByteBuffer, channel);
 							triple[1] = readLong(iteratorByteBuffer, channel);
 							triple[2] = readLong(iteratorByteBuffer, channel);
@@ -819,14 +840,14 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 							else if (hashMask == 0) readLong(iteratorByteBuffer, channel); // Discard data
 						}
 
-						diskChunkSize = pos;
+						diskSegmentSize = pos;
 						channel.close();
 					}
 					catch (final IOException e) {
 						throw new RuntimeException(e);
 					}
 
-					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(residual, diskChunkSize, (x, y) -> {
+					it.unimi.dsi.fastutil.Arrays.parallelQuickSort(residual, diskSegmentSize, (x, y) -> {
 						int t = Long.compareUnsigned(buffer0[x], buffer0[y]);
 						if (t != 0) return t;
 						t = Long.compareUnsigned(buffer1[x], buffer1[y]);
@@ -849,10 +870,10 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					});
 
 					last = 0;
-					nextDiskChunk++;
+					nextDiskSegment++;
 				}
 
-				int to = Math.min(diskChunkSize, last + incr);
+				int to = Math.min(diskSegmentSize, last + incr);
 				last += incr >>> 1;
 				while(last < to) {
 					final int mid = (last + to) >>> 1;
@@ -864,7 +885,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					for (int i = start + 1; i < last; i++)
 						if (buffer0[i - 1] == buffer0[i] && buffer1[i - 1] == buffer1[i] && buffer2[i - 1] == buffer2[i])
 							throw new DuplicateException();
-				if (bucket == numBuckets - 1 && last == diskChunkSize) checkedForDuplicates = true;
+				if (bucket == numBuckets - 1 && last == diskSegmentSize) checkedForDuplicates = true;
 
 				return new Bucket(bucket++, buffer0, buffer1, buffer2, data, hashMask, start, last);
 			}
