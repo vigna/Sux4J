@@ -341,7 +341,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	}
 
 	/** The expected bucket size. */
-	public final static int BUCKET_SIZE = 1000;
+	public final static int BUCKET_SIZE = 1500;
 	/** The multiplier for buckets. */
 	private final long multiplier;
 	/** The number of keys. */

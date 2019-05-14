@@ -272,7 +272,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	}
 
 	/** The expected bucket size. */
-	public final static int BUCKET_SIZE = 2000;
+	public final static int BUCKET_SIZE = 1500;
 
 	/** The multiplier for buckets. */
 	private final long multiplier;
