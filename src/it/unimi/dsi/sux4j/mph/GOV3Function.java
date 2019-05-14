@@ -670,7 +670,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final int bucket = (int) Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long bucketOffset = offsetAndSeed[bucket] & OFFSET_MASK;
 		final int numVariables = (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset);
-		Linear3SystemSolver.tripleToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, numVariables, e);
+		Linear3SystemSolver.signatureToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, numVariables, e);
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset;
 
 		final long result = rank == null ?

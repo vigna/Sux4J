@@ -74,7 +74,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * <p>The desired expected bucket size can be set by calling {@link #bucketSize(int)}.
  * Once all elements have been added, one calls {@link #iterator()}, which returns buckets one at a time (in their
  * natural order); signatures within each bucket are returned by increasing value, and signatures within different buckets are in bucket order.
- * Actually, the iterator provided by a bucket returns a <em>triple</em> whose last element is the data associated with the element
+ * Actually, the iterator provided by a bucket returns a <em>triple</em> of longs whose last element is the data associated with the element
  * that generated the signature.
  *
  * <p>Note that the main difference between an instance of this class and one of a {@link ChunkedHashStore} is that
@@ -126,7 +126,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * The assignment is monotone nondecreasing, which makes it possible
  * to emit the buckets one at a time scanning the keys in sorted order.
  *
- * <p>Triples have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
+ * <p>Signatures have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
  * {@link #DISK_CHUNKS} is larger than eight, the store will need less than one bit per element of main
  * memory. {@link #DISK_CHUNKS} can be increased arbitrarily at compile time, but each store
  * will open {@link #DISK_CHUNKS} files at the same time. (For the same reason, it is

@@ -595,7 +595,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		final int[] e = new int[4];
 		final int bucket = (int) Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long bucketOffset = offsetAndSeed[bucket] & OFFSET_MASK;
-		Linear4SystemSolver.tripleToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset), e);
+		Linear4SystemSolver.signatureToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset), e);
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 
 		final long result = data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) ^ data.getLong(e3);

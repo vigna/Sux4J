@@ -540,7 +540,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final long bucketOffset = vertexOffset(edgeOffsetSeed);
 		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset);
 		//if (numVariables == 0) return defRetValue;
-		Linear3SystemSolver.tripleToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
+		Linear3SystemSolver.signatureToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
 
 		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
 		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
@@ -553,7 +553,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
 		final long bucketOffset = vertexOffset(edgeOffsetSeed);
-		Linear3SystemSolver.tripleToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
+		Linear3SystemSolver.signatureToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
 		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
 	}
 

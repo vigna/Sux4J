@@ -593,7 +593,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final long bucketSeed = olc & SEED_MASK;
 		final int w = globalMaxCodewordLength;
 		final int numVariables = (int)(nextBucketOffset - bucketOffset - w);
-		Linear4SystemSolver.tripleToEquation(signature, bucketSeed, numVariables, e);
+		Linear4SystemSolver.signatureToEquation(signature, bucketSeed, numVariables, e);
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset,
 				e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 		final long code = data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^
