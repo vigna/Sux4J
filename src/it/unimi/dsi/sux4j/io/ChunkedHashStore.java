@@ -85,7 +85,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
  * during chunk iteration (not while accumulating hashes), and it will throw a {@link ChunkedHashStore.DuplicateException}.
- * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
+ * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} and trying again
  * from scratch. Note that after a few (say, three) exceptions you can safely assume that there are duplicate elements. If you
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable},
  * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked chunked hash store.

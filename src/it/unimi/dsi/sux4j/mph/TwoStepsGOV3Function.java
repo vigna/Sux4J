@@ -184,7 +184,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	protected final long[] remap;
 	/** The escape value returned by {@link #firstFunction} to suggest that {@link #secondFunction} should be queried instead, provided that there is a {@linkplain #firstFunction first function}. */
 	protected final int escape;
-	/** The seed to be used when converting keys to triples. */
+	/** The seed to be used when converting keys to signatures. */
 	protected long seed;
 	/** The width of the output of this function, in bits. */
 	protected final int width;
@@ -329,23 +329,23 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	@SuppressWarnings("unchecked")
 	public long getLong(final Object o) {
 		if (n == 0) return defRetValue;
-		final long[] triple = new long[3];
-		Hashes.spooky4(transform.toBitVector((T)o), seed, triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(transform.toBitVector((T)o), seed, signature);
 		if (firstFunction != null) {
-			final int firstValue = (int)firstFunction.getLongBySignature(triple);
+			final int firstValue = (int)firstFunction.getLongBySignature(signature);
 			if (firstValue == -1) return defRetValue;
 			if (firstValue != escape) return remap[firstValue];
 		}
-		return secondFunction.getLongBySignature(triple);
+		return secondFunction.getLongBySignature(signature);
 	}
 
-	public long getLongBySignature(final long[] triple) {
+	public long getLongBySignature(final long[] signature) {
 		if (firstFunction != null) {
-			final int firstValue = (int)firstFunction.getLongBySignature(triple);
+			final int firstValue = (int)firstFunction.getLongBySignature(signature);
 			if (firstValue == -1) return defRetValue;
 			if (firstValue != escape) return remap[firstValue];
 		}
-		return secondFunction.getLongBySignature(triple);
+		return secondFunction.getLongBySignature(signature);
 	}
 
 	@Override

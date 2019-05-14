@@ -547,7 +547,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return result < n ? result : defRetValue;
 	}
 
-	/** A dirty function replicating the behaviour of {@link #getLongByTriple(long[])} but skipping the
+	/** A dirty function replicating the behaviour of {@link #getLongBySignature(long[])} but skipping the
 	 * signature test. Used in the constructor. <strong>Must</strong> be kept in sync with {@link #getLongByTriple(long[])}. */
 	private long getLongBySignatureNoCheck(final long[] signature, final int[] e) {
 		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);

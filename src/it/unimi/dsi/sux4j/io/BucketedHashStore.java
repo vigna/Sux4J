@@ -83,7 +83,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
  * during bucket iteration (not while accumulating hashes), and it will throw a {@link BucketedHashStore.DuplicateException}.
- * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} ant trying again
+ * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} and trying again
  * from scratch. Note that after a few (say, three) exceptions you can safely assume that there are duplicate elements. If you
  * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable},
  * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked bucketed hash store.
@@ -127,7 +127,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * to emit the buckets one at a time scanning the keys in sorted order.
  *
  * <p>Signatures have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
- * {@link #DISK_CHUNKS} is larger than eight, the store will need less than one bit per element of main
+ * {@link #DISK_CHUNKS} is larger than eight, the store will need less than 0.75 bits per element of main
  * memory. {@link #DISK_CHUNKS} can be increased arbitrarily at compile time, but each store
  * will open {@link #DISK_CHUNKS} files at the same time. (For the same reason, it is
  * <strong>strongly</strong> suggested that you close your stores as soon as you do not need them).
@@ -142,16 +142,16 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>To compute the bucket corresponding to a given element, use
  * <pre>
- * final long[] h = new long[2];
- * Hashes.spooky4(transform.toBitVector(key), seed, h);
- * final int bucket = Math.multiplyHigh(h[0] &gt;&gt;&gt; 1, (1 + n / bucketSize) &lt;&lt; 1);
+ * final long[] signature = new long[2];
+ * Hashes.spooky4(transform.toBitVector(key), seed, signature);
+ * final int bucket = Math.multiplyHigh(signature[0] &gt;&gt;&gt; 1, (1 + n / bucketSize) &lt;&lt; 1);
  * </pre>
  * where <code>seed</code> is the {@linkplain #seed() store seed},
  * <code>n</code> is the {@linkplain #size() number of keys},
  * and <code>bucketSize</code> is the {@linkplain #bucketSize(int) provided bucket size}.
  *
  * @author Sebastiano Vigna
- * @since 4.4.0
+ * @since 5.0.0
  */
 
 public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iterable<BucketedHashStore.Bucket> {

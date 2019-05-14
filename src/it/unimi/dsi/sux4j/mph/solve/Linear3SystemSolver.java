@@ -198,7 +198,7 @@ public class Linear3SystemSolver {
 	 *
 	 * <p>If there are no variables the vector <code>e</code> will be filled with -1.
 	 *
-	 * @param signature a signature (two longs).
+	 * @param signature a signature (two longs). Note that if a longer vector is provided, only the first two elements will be used.
 	 * @param seed the seed for the hash function.
 	 * @param numVariables the nonzero number of variables in the system.
 	 * @param e an array to store the resulting equation.
@@ -224,7 +224,7 @@ public class Linear3SystemSolver {
 	 * will be on <b>F</b><sub>3</sub> and the constant
 	 * part will be obtained by orientation, otherwise the system will be on <b>F</b><sub>2</sub>.
 	 *
-	 * @param iterable an iterable returning signatures (two longs).
+	 * @param iterable an iterable returning signatures (two longs). Note that if a longer vectors are returned, only the first two elements will be used.
 	 * @param seed a 64-bit random seed.
 	 * @param valueList a value list containing the constant part, or {@code null} if the
 	 * constant part should be computed by orientation.

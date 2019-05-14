@@ -407,12 +407,12 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		return result < 0 || result >= n ? defRetValue : result;
 	}
 
-	public long getLongByBitVectorAndTriple(final BitVector bitVector, final long[] triple) {
+	public long getLongByBitVectorAndSignature(final BitVector bitVector, final long[] signature) {
 		if (n == 0) return defRetValue;
-		final long prefix = lcpLengths.getLongBySignature(triple);
+		final long prefix = lcpLengths.getLongBySignature(signature);
 		if (prefix == -1 || prefix > bitVector.length()) return defRetValue;
-		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongBySignature(triple);
-		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + offsets.getLongBySignature(signature);
+		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= n ? defRetValue : result;
 	}

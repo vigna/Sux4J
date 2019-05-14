@@ -349,13 +349,13 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 	public long getLong(final Object o) {
 		if (n == 0) return defRetValue;
 		final BitVector bitVector = transform.toBitVector((T)o);
-		final long[] triple = new long[3];
-		Hashes.spooky4(bitVector, seed, triple);
-		final long value = offsetLcpLength.getLongBySignature(triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(bitVector, seed, signature);
+		final long value = offsetLcpLength.getLongBySignature(signature);
 		final long prefix = value >>> log2BucketSize;
 		if (prefix > bitVector.length()) return defRetValue;
 		final long result = (lcp2Bucket.getLong(bitVector.subVector(0, prefix)) << log2BucketSize) + (value & bucketSizeMask);
-		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		if (signatureMask != 0) return result < 0 || result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= n ? defRetValue : result;
 	}

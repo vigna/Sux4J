@@ -232,8 +232,8 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 
 		LOGGER.info("Generating data tables...");
 
-		for(final Bucket chunk: bucketedHashStore) {
-			for(final long[] triple: chunk) {
+		for(final Bucket bucket: bucketedHashStore) {
+			for(final long[] triple: bucket) {
 				final long index = mph.getLongBySignature(triple);
 				offsets.set(index, triple[2] & bucketSizeMask);
 				lcpLengthsTemp.set(index, IntBigArrays.get(lcpLength, (int)(triple[2] >> log2BucketSize)));

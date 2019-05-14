@@ -637,15 +637,15 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 		long l = 0;
 		int i = Fast.mostSignificantBit(r);
 		long mask = 1L << i;
-		final long triple[] = new long[3];
+		final long signature[] = new long[2];
 		while(r - l > 1) {
 			assert i > -1;
 			if (DDDEBUG) System.err.println("[" + l + ".." + r + "]; i = " + i);
 
 			if ((l & mask) != (r - 1 & mask)) {
 				final long f = (r - 1) & (-1L << i);
-				Hashes.spooky4(v, f, seed, state, triple);
-				final long data = signatures.getLongBySignature(triple);
+				Hashes.spooky4(v, f, seed, state, signature);
+				final long data = signatures.getLongBySignature(signature);
 				assert signatures.getLong(v.subVector(0, f)) == data : signatures.getLong(v.subVector(0, f)) + " != " + data + " (prefix: " + f + ")";
 
 				if (data == -1) {
@@ -684,14 +684,14 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 	public long getLong(final Object o) {
 		final BitVector bv = (BitVector)o;
 		final long state[] = Hashes.preprocessSpooky4(bv, seed);
-		final long[] triple = new long[3];
-		Hashes.spooky4(bv, bv.length(), seed, state, triple);
-		return getLongByBitVectorTripleAndState(bv, triple, state);
+		final long[] signature = new long[2];
+		Hashes.spooky4(bv, bv.length(), seed, state, signature);
+		return getLongByBitVectorSignatureAndState(bv, signature, state);
 	}
 
-	public long getLongByBitVectorTripleAndState(final BitVector v, final long[] triple, final long[] state) {
+	public long getLongByBitVectorSignatureAndState(final BitVector v, final long[] signature, final long[] state) {
 		if (noDelimiters) return 0;
-		final int b = (int)behaviour.getLongBySignature(triple);
+		final int b = (int)behaviour.getLongBySignature(signature);
 		if (emptyTrie) return b;
 		final long length = getNodeStringLength(v, state);
 		if (DDDEBUG) System.err.println("getNodeStringLength(v)=" + length);

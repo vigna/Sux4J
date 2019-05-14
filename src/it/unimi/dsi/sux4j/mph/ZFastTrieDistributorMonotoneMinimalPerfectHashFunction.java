@@ -255,12 +255,12 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		if (size == 0) return defRetValue;
 		final BitVector bv = transform.toBitVector((T)o).fast();
 		final long state[] = Hashes.preprocessSpooky4(bv, seed);
-		final long[] triple = new long[3];
-		Hashes.spooky4(bv, bv.length(), seed, state, triple);
+		final long[] signature = new long[2];
+		Hashes.spooky4(bv, bv.length(), seed, state, signature);
 
-		final long bucket = distributor.getLongByBitVectorTripleAndState(bv, triple, state);
-		final long result = (bucket << log2BucketSize) + offset.getLongBySignature(triple);
-		if (signatureMask != 0) return result < 0 || result >= size || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+		final long bucket = distributor.getLongByBitVectorSignatureAndState(bv, signature, state);
+		final long result = (bucket << log2BucketSize) + offset.getLongBySignature(signature);
+		if (signatureMask != 0) return result < 0 || result >= size || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		// Out-of-set strings can generate bizarre 3-hyperedges.
 		return result < 0 || result >= size ? defRetValue : result;
 	}
