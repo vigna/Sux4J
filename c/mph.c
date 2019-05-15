@@ -60,9 +60,9 @@ static uint64_t inline count_nonzero_pairs(const uint64_t start, const uint64_t 
 	return pairs;
 }						 	 	 	 	 	 	 																						
 
-static void inline triple_to_equation(const uint64_t *triple, const uint64_t seed, int num_variables, int *e) {
+static void inline signature_to_equation(const uint64_t *signature, const uint64_t seed, int num_variables, int *e) {
 	uint64_t hash[4];
-	spooky_short_rehash(triple, seed, hash);
+	spooky_short_rehash(signature, seed, hash);
 	const int shift = __builtin_clzll(num_variables);
 	const uint64_t mask = (UINT64_C(1) << shift) - 1;
 	e[0] = ((hash[0] & mask) * num_variables) >> shift;
@@ -84,25 +84,25 @@ static int inline get_2bit_value(uint64_t *array, uint64_t pos) {
 }
 
 int64_t mph_get_byte_array(const mph *mph, char *key, uint64_t len) {
-	uint64_t h[4];
-	spooky_short(key, len, mph->global_seed, h);
-	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
-	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
-	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
-	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;
+	uint64_t signature[4];
+	spooky_short(key, len, mph->global_seed, signature);
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
+	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[bucket];
+	const uint64_t bucket_offset = vertex_offset(edge_offset_seed);
+	const int num_variables = vertex_offset(mph->edge_offset_and_seed[bucket + 1]) - bucket_offset;
 	int e[3];
-	triple_to_equation(h, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
-	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(chunk_offset, chunk_offset + e[(get_2bit_value(mph->array, e[0] + chunk_offset) + get_2bit_value(mph->array, e[1] + chunk_offset) + get_2bit_value(mph->array, e[2] + chunk_offset)) % 3], mph->array);
+	signature_to_equation(signature, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
+	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(bucket_offset, bucket_offset + e[(get_2bit_value(mph->array, e[0] + bucket_offset) + get_2bit_value(mph->array, e[1] + bucket_offset) + get_2bit_value(mph->array, e[2] + bucket_offset)) % 3], mph->array);
 }
 
 int64_t mph_get_uint64_t(const mph *mph, const uint64_t key) {
-	uint64_t h[4];
-	spooky_short(&key, 8, mph->global_seed, h);
-	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
-	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[chunk];
-	const uint64_t chunk_offset = vertex_offset(edge_offset_seed);
-	const int num_variables = vertex_offset(mph->edge_offset_and_seed[chunk + 1]) - chunk_offset;
+	uint64_t signature[4];
+	spooky_short(&key, 8, mph->global_seed, signature);
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
+	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[bucket];
+	const uint64_t bucket_offset = vertex_offset(edge_offset_seed);
+	const int num_variables = vertex_offset(mph->edge_offset_and_seed[bucket + 1]) - bucket_offset;
 	int e[3];
-	triple_to_equation(h, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
-	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(chunk_offset, chunk_offset + e[(get_2bit_value(mph->array, e[0] + chunk_offset) + get_2bit_value(mph->array, e[1] + chunk_offset) + get_2bit_value(mph->array, e[2] + chunk_offset)) % 3], mph->array);
+	signature_to_equation(signature, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
+	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(bucket_offset, bucket_offset + e[(get_2bit_value(mph->array, e[0] + bucket_offset) + get_2bit_value(mph->array, e[1] + bucket_offset) + get_2bit_value(mph->array, e[2] + bucket_offset)) % 3], mph->array);
 }

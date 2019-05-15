@@ -83,14 +83,12 @@ static inline void spooky_short_end(uint64_t *h) {
 	h[1] ^= h[0];  h[0] = ROTL64(h[0], 63);  h[1] += h[0];
 }
 
-void spooky_short_rehash(const uint64_t *triple, const uint64_t seed, uint64_t * const tuple) {
-	uint64_t h[4];
-	h[0] = seed;
-	h[1] = SC_CONST + triple[0];
-	h[2] = SC_CONST + triple[1];
-	h[3] = SC_CONST + triple[2];
-	spooky_short_mix(h);
-	memcpy(tuple, h, sizeof h);
+void spooky_short_rehash(const uint64_t *signature, const uint64_t seed, uint64_t * const tuple) {
+	tuple[0] = seed;
+	tuple[1] = SC_CONST + signature[0];
+	tuple[2] = SC_CONST + signature[1];
+	tuple[3] = SC_CONST;
+	spooky_short_mix(tuple);
 }
 
 void spooky_short(const void *restrict message, size_t length, uint64_t seed, uint64_t *tuple) {

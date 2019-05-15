@@ -33,9 +33,9 @@ static uint64_t inline decode(const csf * const csf, const uint64_t value) {
 		}
 }
 
-static void inline triple_to_equation(const uint64_t *triple, const uint64_t seed, int num_variables, int *e) {
+static void inline signature_to_equation(const uint64_t *signature, const uint64_t seed, int num_variables, int *e) {
 	uint64_t hash[4];
-	spooky_short_rehash(triple, seed, hash);
+	spooky_short_rehash(signature, seed, hash);
 	const int shift = __builtin_clzll(num_variables);
 	const uint64_t mask = (UINT64_C(1) << shift) - 1;
 	e[0] = ((hash[0] & mask) * num_variables) >> shift;
@@ -55,27 +55,27 @@ static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, con
 }
 
 int64_t csf3_get_byte_array(const csf *csf, char *key, uint64_t len) {
-	uint64_t h[4];
-	spooky_short(key, len, csf->global_seed, h);
-	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
-	const uint64_t offset_seed = csf->offset_and_seed[chunk];
-	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
+	uint64_t signature[4];
+	spooky_short(key, len, csf->global_seed, signature);
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
+	const uint64_t offset_seed = csf->offset_and_seed[bucket];
+	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
 	const int w = csf->global_max_codeword_length;
-	const int num_variables = (csf->offset_and_seed[chunk + 1] & OFFSET_MASK) - chunk_offset - w;
+	const int num_variables = (csf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset - w;
 	int e[3];
-	triple_to_equation(h, offset_seed & ~OFFSET_MASK, num_variables, e);
-	return decode(csf, get_value(csf->array, e[0] + chunk_offset, w) ^ get_value(csf->array, e[1] + chunk_offset, w) ^ get_value(csf->array, e[2] + chunk_offset, w));
+	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+	return decode(csf, get_value(csf->array, e[0] + bucket_offset, w) ^ get_value(csf->array, e[1] + bucket_offset, w) ^ get_value(csf->array, e[2] + bucket_offset, w));
 }
 
 int64_t csf3_get_uint64_t(const csf *csf, const uint64_t key) {
-	uint64_t h[4];
-	spooky_short(&key, 8, csf->global_seed, h);
-	const int chunk = ((__uint128_t)(h[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
-	const uint64_t offset_seed = csf->offset_and_seed[chunk];
-	const uint64_t chunk_offset = offset_seed & OFFSET_MASK;
+	uint64_t signature[4];
+	spooky_short(&key, 8, csf->global_seed, signature);
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)csf->multiplier) >> 64;
+	const uint64_t offset_seed = csf->offset_and_seed[bucket];
+	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
 	const int w = csf->global_max_codeword_length;
-	const int num_variables = (csf->offset_and_seed[chunk + 1] & OFFSET_MASK) - chunk_offset - w;
+	const int num_variables = (csf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset - w;
 	int e[3];
-	triple_to_equation(h, offset_seed & ~OFFSET_MASK, num_variables, e);
-	return decode(csf, get_value(csf->array, e[0] + chunk_offset, w) ^ get_value(csf->array, e[1] + chunk_offset, w) ^ get_value(csf->array, e[2] + chunk_offset, w));
+	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+	return decode(csf, get_value(csf->array, e[0] + bucket_offset, w) ^ get_value(csf->array, e[1] + bucket_offset, w) ^ get_value(csf->array, e[2] + bucket_offset, w));
 }

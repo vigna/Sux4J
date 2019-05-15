@@ -52,6 +52,6 @@
 #define SC_BUFSIZE (2U * SC_BLOCKSIZE)
 
 void spooky_short(const void *restrict message, size_t length, uint64_t seed, uint64_t *tuple);
-void spooky_short_rehash(const uint64_t *triple, const uint64_t seed, uint64_t * const tuple);
+void spooky_short_rehash(const uint64_t *signature, const uint64_t seed, uint64_t * const tuple);
 
 #endif /* SPOOKY_H_INCLUDED */
