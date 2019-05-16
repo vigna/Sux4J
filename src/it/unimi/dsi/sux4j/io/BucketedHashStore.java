@@ -683,7 +683,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		public Iterator<long[]> iterator() {
 			return new ObjectIterator<long[]>() {
 				private int pos = start;
-				private final long[] quadruple = new long[4];
+				private final long[] triple = new long[3];
 
 				@Override
 				public boolean hasNext() {
@@ -693,12 +693,12 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 				@Override
 				public long[] next() {
 					if (! hasNext()) throw new NoSuchElementException();
-					final long[] quadruple = this.quadruple;
-					quadruple[0] = buffer0[pos];
-					quadruple[1] = buffer1[pos];
-					quadruple[2] = data != null ? data[pos] : buffer0[pos] & hashMask;
+					final long[] triple = this.triple;
+					triple[0] = buffer0[pos];
+					triple[1] = buffer1[pos];
+					triple[2] = data != null ? data[pos] : buffer0[pos] & hashMask;
 					pos++;
-					return quadruple;
+					return triple;
 				}
 
 			};
