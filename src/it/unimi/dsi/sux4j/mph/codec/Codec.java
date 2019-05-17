@@ -574,7 +574,7 @@ public interface Codec {
 				int currentLength = 0, d = 1;
 				for (cutpoint = 0; cutpoint < size; cutpoint++) {
 					if (currentLength != length[cutpoint]) {
-						if (++d > maxDecodingTableLength) break;
+						if (++d >= maxDecodingTableLength) break;
 						currentLength = length[cutpoint];
 					}
 					accumulatedOverallLength += length[cutpoint] * frequencies.get(symbol[cutpoint]);
