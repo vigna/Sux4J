@@ -127,9 +127,9 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * to emit the buckets one at a time scanning the keys in sorted order.
  *
  * <p>Signatures have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
- * {@link #DISK_CHUNKS} is larger than eight, the store will need less than 0.75 bits per element of main
- * memory. {@link #DISK_CHUNKS} can be increased arbitrarily at compile time, but each store
- * will open {@link #DISK_CHUNKS} files at the same time. (For the same reason, it is
+ * {@link #DISK_SEGMENTS} is larger than eight, the store will need less than 0.75 bits per element of main
+ * memory. {@link #DISK_SEGMENTS} can be increased arbitrarily at compile time, but each store
+ * will open {@link #DISK_SEGMENTS} files at the same time. (For the same reason, it is
  * <strong>strongly</strong> suggested that you close your stores as soon as you do not need them).
  *
  * <h2>Intended usage</h2>
@@ -167,11 +167,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** The size of the output buffers. */
 	public final static int BUFFER_SIZE = 16 * 1024;
 	/** The logarithm of the number of disk segments. */
-	public final static int LOG2_DISK_CHUNKS = 8;
+	public final static int LOG2_DISK_SEGMENTS = 8;
 	/** The number of disk segments. */
-	public final static int DISK_CHUNKS = 1 << LOG2_DISK_CHUNKS;
+	public final static int DISK_SEGMENTS = 1 << LOG2_DISK_SEGMENTS;
 	/** The shift for disk segments. */
-	public final static int DISK_CHUNKS_SHIFT = Long.SIZE - LOG2_DISK_CHUNKS;
+	public final static int DISK_SEGMENTS_SHIFT = Long.SIZE - LOG2_DISK_SEGMENTS;
 	/** The expected bucket size. */
 	private int bucketSize;
 	/** The number of buckets: 1 + {@link #size()} / {@link #bucketSize()}. */
@@ -271,17 +271,17 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> Long.SIZE - hashWidthOrCountValues;
 		if (hashWidthOrCountValues < 0) value2FrequencyMap = new Long2LongOpenHashMap();
 
-		file = new File[DISK_CHUNKS];
-		writableByteChannel = new WritableByteChannel[DISK_CHUNKS];
-		byteBuffer = new ByteBuffer[DISK_CHUNKS];
+		file = new File[DISK_SEGMENTS];
+		writableByteChannel = new WritableByteChannel[DISK_SEGMENTS];
+		byteBuffer = new ByteBuffer[DISK_SEGMENTS];
 		// Create disk segments
-		for(int i = 0; i < DISK_CHUNKS; i++) {
+		for(int i = 0; i < DISK_SEGMENTS; i++) {
 			byteBuffer[i] = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			writableByteChannel[i] = new FileOutputStream(file[i] = File.createTempFile(BucketedHashStore.class.getSimpleName(), String.valueOf(i), tempDir)).getChannel();
 			file[i].deleteOnExit();
 		}
 
-		count = new int[DISK_CHUNKS];
+		count = new int[DISK_SEGMENTS];
 	}
 
 	/** Returns the expected bucket size.
@@ -348,7 +348,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 * @param value the associated value.
 	 */
 	private void add(final long[] signature, final long value) throws IOException {
-		final int segment = (int)(signature[0] >>> DISK_CHUNKS_SHIFT);
+		final int segment = (int)(signature[0] >>> DISK_SEGMENTS_SHIFT);
 		count[segment]++;
 		checkedForDuplicates = false;
 		if (DEBUG) System.err.println("Adding " + Arrays.toString(signature));
@@ -400,7 +400,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	}
 
 	private void flushAll() throws IOException {
-		for(int i = 0; i < DISK_CHUNKS; i++) flush(byteBuffer[i], writableByteChannel[i]);
+		for(int i = 0; i < DISK_SEGMENTS; i++) flush(byteBuffer[i], writableByteChannel[i]);
 	}
 
 	/** Returns the size of this store. Note that if you set up
@@ -416,7 +416,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			long c = 0;
 			final long[] signature = new long[2];
 			final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
-			for(int i = 0; i < DISK_CHUNKS; i++) {
+			for(int i = 0; i < DISK_SEGMENTS; i++) {
 				if (filter == null) c += count[i];
 				else {
 					flushAll();
@@ -514,7 +514,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		this.seed = seed;
 		checkedForDuplicates = false;
 		Arrays.fill(count, 0);
-		for (int i = 0; i < DISK_CHUNKS; i++) {
+		for (int i = 0; i < DISK_SEGMENTS; i++) {
 			writableByteChannel[i].close();
 			byteBuffer[i].clear();
 			writableByteChannel[i] = new FileOutputStream(file[i]).getChannel();
@@ -759,7 +759,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		}
 
 		int m = 0;
-		for(int i = 0; i < DISK_CHUNKS; i++) if (m < count[i]) m = count[i];
+		for(int i = 0; i < DISK_SEGMENTS; i++) if (m < count[i]) m = count[i];
 
 		final int maxCount = m + 16 * bucketSize; // Some headroom for partial buckets
 
@@ -783,7 +783,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 			@Override
 			public boolean hasNext() {
-				return last < diskSegmentSize || nextDiskSegment != DISK_CHUNKS;
+				return last < diskSegmentSize || nextDiskSegment != DISK_SEGMENTS;
 			}
 
 			@SuppressWarnings("resource")
@@ -799,7 +799,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 					// Galloping search for the next bucket
 					for(incr = 1; last + incr < diskSegmentSize && Math.multiplyHigh(buffer0[last + incr] >>> 1, multiplier) == bucket; incr <<= 1);
 
-					if (last + incr < diskSegmentSize || nextDiskSegment == DISK_CHUNKS) break;
+					if (last + incr < diskSegmentSize || nextDiskSegment == DISK_SEGMENTS) break;
 					final long[] buffer1 = this.buffer1;
 					// Move partial data to the beginning
 					final int residual = diskSegmentSize - start;

@@ -109,7 +109,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * <h2>Multithreading</h2>
  *
  * <p>This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is processed independently. By
- * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 16. If you wish to
+ * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but never more than 8. If you wish to
  * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
  *
  * <h3>How it Works</h3>
@@ -360,7 +360,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			final AtomicLong unsolvable = new AtomicLong(), unorientable = new AtomicLong();
 
 			try {
-				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(16, Runtime.getRuntime().availableProcessors()))));
+				final int numberOfThreads = Integer.parseInt(System.getProperty(NUMBER_OF_THREADS_PROPERTY, Integer.toString(Math.min(8, Runtime.getRuntime().availableProcessors()))));
 				final ArrayBlockingQueue<Bucket> bucketQueue = new ArrayBlockingQueue<>(numberOfThreads * 8);
 				final ReorderingBlockingQueue<LongArrayBitVector> queue = new ReorderingBlockingQueue<>(numberOfThreads * 128);
 				final ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads + 2);
