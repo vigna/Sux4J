@@ -382,6 +382,8 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 *            values and counting value frequencies, or {@code null}; the
 	 *            store can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be
 	 *            non-{@code null}.
+	 * @param codec
+	 *            the {@link Codec} used to encode values.
 	 */
 	@SuppressWarnings("resource")
 	protected GV4CompressedFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final boolean indirect, final File tempDir, BucketedHashStore<T> bucketedHashStore, final Codec codec) throws IOException {

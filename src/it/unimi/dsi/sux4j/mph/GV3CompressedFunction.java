@@ -100,6 +100,10 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * of bits close to the empirical entropy of the value list (with an additional &#8776;10%). It is faster than a {@link GV4CompressedFunction},
  * and it can be built more quickly, but it uses more space.
  *
+ * <p>In addition to the standard construction, which uses lazy Gaussian elimination to solve a number of random linear systems,
+ * this implementation has the option of enlarging slightly the space used by the structure (+12%) and use a <em>peeling</em>
+ * procedure (essentially, triangulation) to solve the systems. The construction time can be significantly shorter in this case.
+ *
  * <P>For convenience, this class provides a main method that reads from
  * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
  * writes a serialised function mapping each element of the list to its position, or to a given list of values.
@@ -189,6 +193,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 		protected Codec codec;
+		protected boolean peeled;
 
 		/**
 		 * Specifies the keys of the function; if you have specified a
@@ -304,6 +309,17 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 
 		/**
+		 * Specifies to use peeling rather than lazy Gaussian elimination; the resulting
+		 * structure uses +12% space, but it can be constructed much more quickly.
+		 *
+		 * @return this builder.
+		 */
+		public Builder<T> peeled() {
+			this.peeled = true;
+			return this;
+		}
+
+		/**
 		 * Builds a new function.
 		 *
 		 * @return a {@link GOV3Function} instance with the specified
@@ -319,14 +335,13 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				if (bucketedHashStore != null) transform = bucketedHashStore.transform();
 				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given BucketedHashStore");
 			}
-			return new GV3CompressedFunction<>(keys, transform, values, indirect, tempDir, bucketedHashStore, codec);
+			return new GV3CompressedFunction<>(keys, transform, values, indirect, tempDir, bucketedHashStore, codec, peeled);
 		}
 	}
 
-	public final static double DELTA = 1.10;
-	public final static int DELTA_TIMES_256 = (int) Math.floor(DELTA * 256);
-	/** The expected bucket size. */
-	public final static int BUCKET_SIZE = 1000;
+	public static final double DELTA_PEEL = 1.23;
+	public static final double DELTA_GAUSSIAN = 1.10;
+	public final int delta_times_256;
 	/** The multiplier for buckets. */
 	private final long multiplier;
 	/** The number of keys. */
@@ -379,9 +394,14 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 *            values and counting value frequencies, or {@code null}; the
 	 *            store can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be
 	 *            non-{@code null}.
+	 * @param codec
+	 *            the {@link Codec} used to encode values.
+	 * @param peeled
+	 *            whether to use peeling rather than lazy Gaussian elimination; the resulting
+	 *            structure uses +12% space, but it can be constructed much more quickly.
 	 */
 	@SuppressWarnings("resource")
-	protected GV3CompressedFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final boolean indirect, final File tempDir, BucketedHashStore<T> bucketedHashStore, final Codec codec) throws IOException {
+	protected GV3CompressedFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongIterable values, final boolean indirect, final File tempDir, BucketedHashStore<T> bucketedHashStore, final Codec codec, final boolean peeled) throws IOException {
 		Objects.requireNonNull(codec, "Null codec");
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -399,7 +419,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 		n = bucketedHashStore.size();
 		defRetValue = -1;
-
+		delta_times_256 = (int) Math.floor((peeled ? DELTA_PEEL : DELTA_GAUSSIAN) * 256);
 		final Long2LongOpenHashMap frequencies;
 		if (indirect) {
 			frequencies = new Long2LongOpenHashMap();
@@ -410,9 +430,9 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
-
-		bucketedHashStore.bucketSize(BUCKET_SIZE);
-		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
+		final int bucketSize = peeled ? 2000 : 1000;
+		bucketedHashStore.bucketSize(bucketSize);
+		final int numBuckets = (int) (n / bucketSize + 1);
 		multiplier = numBuckets * 2L;
 
 		LOGGER.debug("Number of buckets: " + numBuckets);
@@ -456,9 +476,9 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 								sumOfLengths += coder.codewordLength(valueList.getLong(i));
 
 							// We add the length of the longest keyword to avoid wrapping up indices
-							assert (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength <= Integer.MAX_VALUE;
+							assert (sumOfLengths * delta_times_256 >>> 8) + globalMaxCodewordLength <= Integer.MAX_VALUE;
 							synchronized(offsetAndSeed) {
-								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
+								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * delta_times_256 >>> 8) + globalMaxCodewordLength;
 								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
 							bucketQueue.put(new Pair<>(bucket, Integer.valueOf((int)sumOfLengths)));
@@ -492,7 +512,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						final Linear3SystemSolver solver = new Linear3SystemSolver(numVariables, numEquations);
 
 						for(;;) {
-							final boolean solved = solver.generateAndSolve(bucket, seed, bucket.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength, DELTA >= 1.23);
+							final boolean solved = solver.generateAndSolve(bucket, seed, bucket.valueList(indirect ? values : null), coder, numVariables - globalMaxCodewordLength, globalMaxCodewordLength, peeled);
 							unsolvable.addAndGet(solver.unsolvable);
 							if (solved) break;
 							seed += SEED_STEP;
@@ -673,6 +693,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 							new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
 							new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
 							new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+							new Switch("peel", 'p', "peel", "Use peeling instead of lazy Gaussian elimination (+12% space, much faster construction)."),
 							new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
 							new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
 							new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
@@ -692,6 +713,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final File tempDir = jsapResult.getFile("tempDir");
 		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		final boolean peeled = jsapResult.getBoolean("peel");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int limit = jsapResult.getInt("limit");
@@ -723,7 +745,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
 			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);
-			BinIO.storeObject(new GV3CompressedFunction<>(collection, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec), functionName);
+			BinIO.storeObject(new GV3CompressedFunction<>(collection, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec, peeled), functionName);
 		} else {
 			final Collection<MutableString> collection;
 			if ("-".equals(stringFile)) {
@@ -737,7 +759,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject(new GV3CompressedFunction<>(collection, transformationStrategy, values, false, tempDir, null, codec), functionName);
+			BinIO.storeObject(new GV3CompressedFunction<>(collection, transformationStrategy, values, false, tempDir, null, codec, peeled), functionName);
 		}
 		LOGGER.info("Completed.");
 	}
