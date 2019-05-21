@@ -343,7 +343,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	public static final double DELTA_GAUSSIAN = 1.10;
 	public final int delta_times_256;
 	/** The expected bucket size. */
-	public final static int BUCKET_SIZE = 1000;
+	public final static int BUCKET_SIZE = 1000; // This should be larger when peeling and using large pages
 	/** The multiplier for buckets. */
 	private final long multiplier;
 	/** The number of keys. */
