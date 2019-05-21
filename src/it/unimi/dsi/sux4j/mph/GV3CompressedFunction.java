@@ -342,6 +342,8 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	public static final double DELTA_PEEL = 1.23;
 	public static final double DELTA_GAUSSIAN = 1.10;
 	public final int delta_times_256;
+	/** The expected bucket size. */
+	public final static int BUCKET_SIZE = 1000;
 	/** The multiplier for buckets. */
 	private final long multiplier;
 	/** The number of keys. */
@@ -430,9 +432,8 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
-		final int bucketSize = peeled ? 2000 : 1000;
-		bucketedHashStore.bucketSize(bucketSize);
-		final int numBuckets = (int) (n / bucketSize + 1);
+		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
 
 		LOGGER.debug("Number of buckets: " + numBuckets);
