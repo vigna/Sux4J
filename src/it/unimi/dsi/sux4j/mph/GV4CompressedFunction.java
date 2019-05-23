@@ -600,7 +600,11 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
 		final long code = data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^
 				data.getLong(e2, e2 + w) ^ data.getLong(e3, e3 + w);
-		return decoder.decode(code);
+		final long t = decoder.decode(code);
+		if (t != -1) return t;
+		final int escapeLength = decoder.escapeLength();
+		final int end = escapeLength + decoder.escapedSymbolLength();
+		return data.getLong(e0 + w - end, e0 + w - escapeLength) ^ data.getLong(e1 + w - end, e1 + w - escapeLength) ^ data.getLong(e2 + w - end, e2 + w - escapeLength) ^ data.getLong(e3 + w - end, e3 + w - escapeLength);
 	}
 
 	/**

@@ -367,15 +367,21 @@ public class Linear4SystemSolver {
 		int j = 0, i = 0;
 		final Iterator<long[]> iterator = signatures.iterator();
 		while (iterator.hasNext()) {
-			final long[] next = iterator.next();
+			final long[] signature = iterator.next();
+			signatureToEquation(signature, seed, m, e);
+
 			final long v = valueList.getLong(i++);
 			final long convertedLong = coder.encode(v);
 			final int lenCodeword = coder.codewordLength(v);
-			convertedValues.append(convertedLong, lenCodeword);
-			signatureToEquation(next, seed, m, e);
+			if (convertedLong == -1) {
+				convertedValues.append(coder.escape(), lenCodeword - coder.escapedSymbolLength());
+				convertedValues.append(Long.reverse(v) >>> 64 - coder.escapedSymbolLength(), coder.escapedSymbolLength());
+			}
+			else convertedValues.append(convertedLong, lenCodeword);
+
 			if (DEBUG) {
-				System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "," + e[3] + "> = " + "chiave " + next[3]);
-				System.err.println("hash(bv) = " + next[3]);
+				System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "," + e[3] + "> = " + "chiave " + signature[3]);
+				System.err.println("hash(bv) = " + signature[3]);
 			}
 			for (int l = 0; l < lenCodeword; l++) {
 				if (DEBUG) System.err.println("	 [" + (e[0] + l) + "," + (e[1] + l) + "," + (e[2] + l) + "," + (e[3] + l) + "] = " + Long.toBinaryString(convertedLong));

@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.mph.codec;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import com.google.common.primitives.Longs;
 
@@ -42,25 +43,42 @@ import it.unimi.dsi.sux4j.mph.GV3CompressedFunction;
 public interface Codec {
 	/** A coder: provides methods to turn symbols into codewords. */
 	public interface Coder {
-		/** Returns the codeword associated with a symbol.
+		/** Returns the codeword associated with a symbol, or -1 if the provided symbol should be escaped.
 		 *
 		 * @param symbol a symbol.
 		 * @return the associated codeword.
 		 */
 		long encode(long symbol);
 
-		/** Returns the length of the codeword associated with the given symbol.
+		/** Returns the length of the codeword associated with the given symbol, or the length of the escape codeword if the provided symbol should be escaped.
 		 *
 		 * @param symbol a symbol provided at construction time.
 		 * @return the length of the codeword associated with the given symbol.
 		 */
 		int codewordLength(long symbol);
 
-		/** Returns the maximum length of a codeword.
+		/** Returns the maximum length of a codeword (including escaped symbols).
 		 *
-		 * @return the maximum length of a codeword.
+		 * @return the maximum length of a codeword (including escaped symbols).
 		 */
 		int maxCodewordLength();
+
+		/** Returns the length in bit of an escaped symbol, or zero if there are no escaped symbols.
+		 *
+		 * @return the length in bit of an escaped symbol, or zero if there are no escaped symbols.
+		 */
+		default int escapedSymbolLength() {
+			return 0;
+		}
+
+		/** Returns the escape codeword, if it exists.
+		 *
+		 * @return the escape codeword, if it exists.
+		 */
+		default long escape() {
+			return 0;
+		}
+
 		Decoder getDecoder();
 	}
 
@@ -85,6 +103,22 @@ public interface Codec {
 		 * @return the number of bits used by this decoder.
 		 */
 		long numBits();
+
+		/** Returns the length in bit of an escaped symbol, or zero if there are no escaped symbols.
+		 *
+		 * @return the length in bit of an escaped symbol, or zero if there are no escaped symbols.
+		 */
+		default int escapedSymbolLength() {
+			return 0;
+		}
+
+		/** Returns the length of the escape codeword, if it exists, or zero.
+		 *
+		 * @return the escape codeword, if it exists, or zero.
+		 */
+		default int escapeLength() {
+			return 0;
+		}
 	}
 
 	/** Returns a coder for a specific map from symbols to frequencies.
@@ -348,6 +382,8 @@ public interface Codec {
 			private final int[] codewordLength;
 			private final long[] symbol;
 			private final Long2IntMap symbol2Rank;
+			private final int escapedSymbolLength;
+			private final int escapeLength;
 
 			public final static class Decoder implements Codec.Decoder {
 				private static final long serialVersionUID = 0L;
@@ -356,27 +392,46 @@ public interface Codec {
 				private final int[] howManyUpToBlock;
 				private final int[] shift;
 				private final long[] symbol;
+				private final int escapedSymbolLength;
 
-				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final long[] symbol) {
+				private final int escapeLength;
+
+				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final int escapeLength, final int escapedSymbolLength, final long[] symbol) {
 					this.lastCodeWordPlusOne = lastCodeWordPlusOne;
 					this.howManyUpToBlock = howManyUpToBlock;
 					this.shift = shift;
+					this.escapeLength = escapeLength;
+					this.escapedSymbolLength = escapedSymbolLength;
 					this.symbol = symbol;
+				}
+
+				@Override
+				public int escapedSymbolLength() {
+					return escapedSymbolLength;
+				}
+
+				@Override
+				public int escapeLength() {
+					return escapeLength;
 				}
 
 				@Override
 				public long decode(final long value) {
 					//System.err.println("value: " + StringUtils.leftPad(Long.toBinaryString(value), 64, '0'));
 					final long[] lastCodeWordPlusOne = this.lastCodeWordPlusOne;
-
 					for (int curr = 0;; curr++) {
+						// System.err.println("Checking " + Long.toHexString(value) + " against " + Long.toHexString(lastCodeWordPlusOne[curr]));
 						if (value < lastCodeWordPlusOne[curr]) {
 							//System.err.println("LC:" + StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[curr]), 64, '0'));
 							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> (shift[curr]))), 64, '0'));
 							//System.err.println(howManyUpToBlock[curr]);
 							//System.err.println(curr);
-							final int s = shift[curr];
-							return symbol[(int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr]];
+							if (curr < lastCodeWordPlusOne.length - 1) {
+								final int s = shift[curr];
+								final int rank = (int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr];
+								return symbol[rank];
+							}
+							else return -1;
 						}
 					}
 				}
@@ -397,26 +452,41 @@ public interface Codec {
 
 			}
 
-			public Coder(final long[] codeWord, final int[] codewordLength, final long[] symbol, final Long2IntMap symbol2Rank) {
+			public Coder(final long[] codeWord, final int[] codewordLength, final long[] symbol, final Long2IntMap symbol2Rank, final int escapedSymbolLength) {
 				this.codeword = codeWord;
 				this.codewordLength = codewordLength;
 				this.symbol = symbol;
 				this.symbol2Rank = symbol2Rank;
+				this.escapedSymbolLength = escapedSymbolLength;
+				this.escapeLength = codewordLength[codewordLength.length - 1];
 			}
 
 			@Override
 			public long encode(final long symbol) {
-				return codeword[symbol2Rank.get(symbol)];
+				final int rank = symbol2Rank.get(symbol);
+				return rank == -1 ? -1 : codeword[rank];
 			}
 
 			@Override
 			public int codewordLength(final long symbol) {
-				return codewordLength[symbol2Rank.get(symbol)];
+				final int rank = symbol2Rank.get(symbol);
+				return rank == -1 ? escapeLength + escapedSymbolLength : codewordLength[rank];
 			}
 
 			@Override
 			public int maxCodewordLength() {
-				return codewordLength[codewordLength.length - 1];
+				if (codewordLength.length == 0) return 0;
+				return codewordLength[codewordLength.length - 1] + escapedSymbolLength;
+			}
+
+			@Override
+			public long escape() {
+				return codeword[codeword.length - 1];
+			}
+
+			@Override
+			public int escapedSymbolLength() {
+				return escapedSymbolLength;
 			}
 
 			@Override
@@ -434,6 +504,8 @@ public interface Codec {
 					if (codewordLength[i] != codewordLength[i + 1]) decodingTableLength++;
 				}
 
+				decodingTableLength++; // For the escape codeword
+
 				final int[] shift = new int[decodingTableLength];
 				final int[] howManyUpToBlock = new int[decodingTableLength];
 				final long[] lastCodeWordPlusOne = new long[decodingTableLength];
@@ -446,10 +518,10 @@ public interface Codec {
 				for (int i = 0; i < size; i++) {
 					//System.err.println("Codeword: " + codeWord[i]);
 					l = codewordLength[i];
-					if (l != prevL) {
+					if (l != prevL || i == size - 1) {
 						if (i != 0) {
 							lastCodeWordPlusOne[p] = word << w - prevL;
-						//System.err.println("lastCodeWordPlusPone[p] : " +StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[p]), 64, '0') + " l: "+ l	);
+							// System.err.println("lastCodeWordPlusPone[p] : " +StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[p]), 64, '0') + " l: "+ l	);
 							howManyUpToBlock[p] = i;
 						}
 						shift[++p] = w - l;
@@ -463,19 +535,17 @@ public interface Codec {
 
 				if (p != -1) {
 					assert p == decodingTableLength - 1 : p + " != " + (decodingTableLength - 1);
-					howManyUpToBlock[p] = size;
-					lastCodeWordPlusOne[p] = word << w - l;
-					//System.err.println("lastCodeWordPlusPone[p] : " +StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[p]), 64, '0') + " l: "+ l	);
+					lastCodeWordPlusOne[p] = -1L >>> 1;
 				} else {
 					// This covers the case size = 1 TODO
 					howManyUpToBlock[0] = 1;
-					lastCodeWordPlusOne[0] = -1L >>> 2;
+					lastCodeWordPlusOne[0] = -1L >>> 1;
 				}
 
 				//System.err.println("Symbol: " + Arrays.toString(symbol));
 				//System.err.println("Last code word plus one: " + Arrays.toString(LongArrayList.wrap(lastCodeWordPlusOne).stream().map(x -> StringUtils.leftPad(Long.toBinaryString(x), 64, '0')).toArray(String[]::new)));
 
-				return new Decoder(lastCodeWordPlusOne, howManyUpToBlock, shift, symbol);
+				return new Decoder(lastCodeWordPlusOne, howManyUpToBlock, shift, l, escapedSymbolLength, symbol);
 			}
 		}
 
@@ -483,117 +553,103 @@ public interface Codec {
 		public Coder getCoder(final Long2LongMap frequencies) {
 			assert Longs.min(frequencies.values().toLongArray()) > 0;
 			final int size = frequencies.size();
-			if (size == 0 || size == 1) return new Coder(new long[0], new int[0], new long[0], Long2IntMaps.EMPTY_MAP);
+			if (size == 0 || size == 1) return new Coder(new long[0], new int[0], new long[0], Long2IntMaps.EMPTY_MAP, 0);
 			final long[] symbol = new long[size];
 			frequencies.keySet().toArray(symbol);
 			// Sort symbols by frequency
 			LongArrays.quickSort(symbol, (x,y) -> Long.compare(frequencies.get(y), frequencies.get(x)));
-			final Long2IntOpenHashMap symbol2Rank = new Long2IntOpenHashMap();
-			for (int i = 0; i < size; i++) symbol2Rank.put(symbol[i], i);
 
 			//System.err.println("a:" + Arrays.toString(a));
 
-			final int[] length = new int[size];
 			final long[] a = new long[size];
-			for(int cutpoint = -1;;) {
-				for (int i = 0; i < size; i++) a[size - 1 - i] = frequencies.get(symbol[i]);
-				if (cutpoint != -1) {
-					// Second pass. Let's fix the frequencies
-					long overallNumerosityBeyondCutpoint = 0;
-					for(int i = size - cutpoint; i-- != 0;) overallNumerosityBeyondCutpoint += a[i];
-					final long fakeNumerosity = overallNumerosityBeyondCutpoint / (size - cutpoint);
-					final long threshold = size - cutpoint - overallNumerosityBeyondCutpoint % (size - cutpoint);
-					for(int i = size - cutpoint; i-- != 0;) a[i] = fakeNumerosity + (i < threshold ? 0 : 1);
-				}
+			for (int i = 0; i < size; i++) a[size - 1 - i] = frequencies.get(symbol[i]);
 
-				//System.err.println("a: " + Arrays.toString(a));
+			//System.err.println("a: " + Arrays.toString(a));
 
-				// The following lines are from Moffat & Katajainen sample code.
-				// Please refer to their paper.
+			// The following lines are from Moffat & Katajainen sample code.
+			// Please refer to their paper.
 
-				// First pass, left to right, setting parent pointers.
-				a[0] += a[1];
-				int root = 0;
-				int leaf = 2;
-				for (int next = 1; next < size - 1; next++) {
-					// Select first item for a pairing.
-					if (leaf >= size || a[root] < a[leaf]) {
-						a[next] = a[root];
-						a[root++] = next;
-					} else a[next] = a[leaf++];
+			// First pass, left to right, setting parent pointers.
+			a[0] += a[1];
+			int root = 0;
+			int leaf = 2;
+			for (int next = 1; next < size - 1; next++) {
+				// Select first item for a pairing.
+				if (leaf >= size || a[root] < a[leaf]) {
+					a[next] = a[root];
+					a[root++] = next;
+				} else a[next] = a[leaf++];
 
-					// Add on the second item.
-					if (leaf >= size || (root < next && a[root] < a[leaf])) {
-						a[next] += a[root];
-						a[root++] = next;
-					} else a[next] += a[leaf++];
-				}
-
-				// Second pass, right to left, setting internal depths.
-				a[size - 2] = 0;
-				for (int next = size - 3; next >= 0; next--)
-					a[next] = a[(int) a[next]] + 1;
-
-				// Third pass, right to left, setting leaf depths.
-				int available = 1, used = 0, depth = 0;
-				root = size - 2;
-				int next = size - 1;
-
-				long overallLength = 0;
-
-				// We now compute depth and the overall length of all symbols
-				while (available > 0) {
-					while (root >= 0 && a[root] == depth) {
-						used++;
-						root--;
-					}
-					while (available > used) {
-						overallLength += depth * frequencies.get(symbol[size - next - 1]);
-						//System.err.println(depth + " => " + frequencies.get(symbol[size - next - 1]));
-						a[next--] = depth;
-						available--;
-					}
-					available = 2 * used;
-					depth++;
-					used = 0;
-				}
-
-				//System.err.println("Coded length : " + overallLength);
-
-				// Reverse the order of symbol lengths, and store them into an int array.
-				for (int i = size; i-- != 0;) length[i] = (int) a[size - 1 - i];
-
-				if (cutpoint != -1) break; // Second pass, we have computed the real code lengths
-
-				/* We now progress through the symbols, from more frequent
-				 * to less frequent, computing for each prefix of symbols
-				 * the length of the decoding table and the cumulative
-				 * length of such symbols. If we pass the table length limit
-				 * or the empirical entropy threshold be break the loop. */
- 				long accumulatedOverallLength = 0;
-				int currentLength = 0, d = 1;
-				for (cutpoint = 0; cutpoint < size; cutpoint++) {
-					if (currentLength != length[cutpoint]) {
-						if (++d >= maxDecodingTableLength) break;
-						currentLength = length[cutpoint];
-					}
-					accumulatedOverallLength += length[cutpoint] * frequencies.get(symbol[cutpoint]);
-					if (accumulatedOverallLength / (double)overallLength > entropyThreshold) break;
-				}
-
-				// System.err.println("Length: " + length.length + " Cutpoint: " + cutpoint + " Depth: " + d + " Codeword length: " + length[cutpoint - 1] + " Accumulated length: " + accumulatedOverallLength + " (" + Util.format(100. * accumulatedOverallLength / overallLength) + "%)");
-
-				if (cutpoint >= size - 2) break; // No need for a second pass.
+				// Add on the second item.
+				if (leaf >= size || (root < next && a[root] < a[leaf])) {
+					a[next] += a[root];
+					a[root++] = next;
+				} else a[next] += a[leaf++];
 			}
 
-			final long[] codeword = new long[size];
+			// Second pass, right to left, setting internal depths.
+			a[size - 2] = 0;
+			for (int next = size - 3; next >= 0; next--)
+				a[next] = a[(int) a[next]] + 1;
+
+			// Third pass, right to left, setting leaf depths.
+			int available = 1, used = 0, depth = 0;
+			root = size - 2;
+			int next = size - 1;
+
+			long overallLength = 0;
+
+			// We now compute depth and the overall length of all symbols
+			while (available > 0) {
+				while (root >= 0 && a[root] == depth) {
+					used++;
+					root--;
+				}
+				while (available > used) {
+					overallLength += depth * frequencies.get(symbol[size - next - 1]);
+					//System.err.println(depth + " => " + frequencies.get(symbol[size - next - 1]));
+					a[next--] = depth;
+					available--;
+				}
+				available = 2 * used;
+				depth++;
+				used = 0;
+			}
+
+			// Reverse the order of symbol lengths, and store them into an int array.
+			final int[] length = new int[size + 1];
+			for (int i = 0; i < size; i++) length[size - 1 - i] = (int) a[i];
+
+			/* We now progress through the symbols, from more frequent
+			 * to less frequent, computing for each prefix of symbols
+			 * the length of the decoding table and the cumulative
+			 * length of such symbols. If we pass the table length limit
+			 * or the empirical entropy threshold be break the loop. */
+			long accumulatedOverallLength = 0;
+			int currentLength = length[0], d = 1;
+			int cutpoint;
+			for (cutpoint = 0; cutpoint < size; cutpoint++) {
+				if (currentLength != length[cutpoint]) {
+					if (++d >= maxDecodingTableLength) break;
+					if (accumulatedOverallLength / (double)overallLength > entropyThreshold) break;
+					currentLength = length[cutpoint];
+				}
+				accumulatedOverallLength += length[cutpoint] * frequencies.get(symbol[cutpoint]);
+			}
+
+			//System.err.println("Coded length : " + overallLength);
+
+
+			// System.err.println("Length: " + length.length + " Cutpoint: " + cutpoint + " Depth: " + d + " Codeword length: " + length[cutpoint - 1] + " Accumulated length: " + accumulatedOverallLength + " (" + Util.format(100. * accumulatedOverallLength / overallLength) + "%)");
+			// We leave space for the escape codeword, if necessary
+			final long[] codeword = new long[cutpoint + 1];
 
 			int s = 0;
 			long value = 0;
-			int currentLength = length[0];
+			currentLength = length[0];
 			codeword[0] = 0;
 
-			for (int i = 1; i < size; i++) {
+			for (int i = 1; i < cutpoint; i++) {
 				s = i;
 				if (length[i] == currentLength) value++;
 				else {
@@ -604,7 +660,17 @@ public interface Codec {
 				codeword[s] = Long.reverse(value) >>> 64 - currentLength;
 			}
 
-			return new Coder(codeword, length, symbol, symbol2Rank);
+			// Escape keyword (even if not necessary)
+			codeword[cutpoint] = -1 >>> 64 - currentLength;
+			length[cutpoint] = currentLength;
+
+			int maxLengthEscaped = 0;
+			for(int i = cutpoint; i < size; i++) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(symbol[i]));
+			final Long2IntOpenHashMap symbol2Rank = new Long2IntOpenHashMap();
+			for (int i = 0; i < cutpoint; i++) symbol2Rank.put(symbol[i], i);
+			symbol2Rank.defaultReturnValue(-1);
+
+			return new Coder(codeword, Arrays.copyOf(length, cutpoint + 1), Arrays.copyOf(symbol, cutpoint), symbol2Rank, maxLengthEscaped);
 		}
 	}
 }

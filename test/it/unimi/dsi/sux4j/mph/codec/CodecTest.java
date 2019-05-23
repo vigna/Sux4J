@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.sux4j.mph.codec.Codec;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Binary;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Coder;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Decoder;
@@ -44,15 +44,21 @@ public class CodecTest {
 	@Test
 	public void testLengthLimitedLengthHuffman() {
 		final Long2LongOpenHashMap frequencies = new Long2LongOpenHashMap(new long[] { 6, 9, 1, 2, 4, 5, 3, 4, 7, 1000 }, new long[] { 64, 32, 16, 1, 8, 4, 20, 2, 1, 10 });
-		final Huffman huffman = new Codec.Huffman(2);
+		final Huffman huffman = new Codec.Huffman(3);
 		final Coder coder = huffman.getCoder(frequencies);
 		final Decoder decoder = coder.getDecoder();
+		int maxLengthEscaped = 0;
 		for (final long l: frequencies.keySet()) {
 			final long encoded = coder.encode(l);
-			final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
-			final long decoded = decoder.decode(longEncoded);
-			assertEquals(l, decoded);
+			if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
+			else {
+				final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+				final long decoded = decoder.decode(longEncoded);
+				assertEquals(l, decoded);
+			}
 		}
+
+		assertEquals(maxLengthEscaped, coder.escapedSymbolLength());
 	}
 
 	@Test
@@ -69,12 +75,18 @@ public class CodecTest {
 		final Long2LongOpenHashMap frequencies = new Long2LongOpenHashMap(symbols, frequency);
 		final Coder coder = huffman.getCoder(frequencies);
 		final Decoder decoder = coder.getDecoder();
+		int maxLengthEscaped = 0;
 		for (final long l: frequencies.keySet()) {
 			final long encoded = coder.encode(l);
-			final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
-			final long decoded = decoder.decode(longEncoded);
-			assertEquals(l, decoded);
+			if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
+			else {
+				final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+				final long decoded = decoder.decode(longEncoded);
+				assertEquals(l, decoded);
+			}
 		}
+
+		assertEquals(maxLengthEscaped, coder.escapedSymbolLength());
 	}
 
 	@Test

@@ -478,14 +478,17 @@ public class Linear3SystemSolver {
 		int j = 0, i = 0;
 		final Iterator<long[]> iterator = signatures.iterator();
 		while (iterator.hasNext()) {
-			final long[] next = iterator.next();
+			final long[] signature = iterator.next();
+			signatureToEquation(signature, seed, m, e);
+
 			final long v = valueList.getLong(i++);
 			final long convertedLong = coder.encode(v);
 			final int lenCodeword = coder.codewordLength(v);
-			convertedValues.append(convertedLong, lenCodeword);
-
-			signatureToEquation(next, seed, m, e);
-
+			if (convertedLong == -1) {
+				convertedValues.append(coder.escape(), lenCodeword - coder.escapedSymbolLength());
+				convertedValues.append(Long.reverse(v) >>> 64 - coder.escapedSymbolLength(), coder.escapedSymbolLength());
+			}
+			else convertedValues.append(convertedLong, lenCodeword);
 			if (DEBUG) {
 				System.err.println("Edge <" + e[0] + "," + e[1] + "," + e[2] + "> = " + "chiave " + v);
 				System.err.println("hash(bv) = " + v);
