@@ -460,11 +460,12 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 							long sumOfLengths = 0;
 							for(int i = 0; i < bucket.size(); i++)
 								sumOfLengths += coder.codewordLength(valueList.getLong(i));
+							final long numVariables = Math.max(3, (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength);
 
 							// We add the length of the longest keyword to avoid wrapping up indices
-							assert (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength <= Integer.MAX_VALUE;
+							assert numVariables <= Integer.MAX_VALUE;
 							synchronized(offsetAndSeed) {
-								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * DELTA_TIMES_256 >>> 8) + globalMaxCodewordLength;
+								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + numVariables;
 								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
 							bucketQueue.put(new Pair<>(bucket, Integer.valueOf((int)sumOfLengths)));

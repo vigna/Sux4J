@@ -34,7 +34,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGammaValues() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);
@@ -55,7 +55,7 @@ public class GV4CompressedFunctionTest {
 	public void testUniformNumbers() throws IOException, ClassNotFoundException {
 		// TODO: restore working codec for size 1
 		for (final int maxLength : new int[] { 2, 3, 4, 8, 16, 32, 64 }) {
-			for (final int size : new int[] { 0, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 1000, 10000 }) {
 				final String[] s = new String[size];
 
 				for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
@@ -81,7 +81,7 @@ public class GV4CompressedFunctionTest {
 	public void testUniformBinary() throws IOException, ClassNotFoundException {
 		// TODO: restore working codec for size 1
 		for (final int maxLength : new int[] { 2, 3, 4, 8, 16, 32, 64 }) {
-			for (final int size : new int[] { 0, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 1000, 10000 }) {
 				final String[] s = new String[size];
 
 				for (int i = s.length; i-- != 0;)
@@ -108,7 +108,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGeometricValuesHuffman() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);
@@ -132,7 +132,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGeometricValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);
@@ -157,7 +157,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGeometricValuesUnary() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);
@@ -181,7 +181,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testZipfianValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);
@@ -207,7 +207,7 @@ public class GV4CompressedFunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testZipfianValuesGamma() throws IOException, ClassNotFoundException {
-		for (final int size : new int[] { 100, 1000, 10000 }) {
+		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
 			for (int i = s.length; i-- != 0;)
 				s[i] = Integer.toString(i);

@@ -341,9 +341,10 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 	public static final double DELTA_PEEL = 1.23;
 	public static final double DELTA_GAUSSIAN = 1.10;
-	public final int delta_times_256;
 	/** The expected bucket size. */
 	public final static int BUCKET_SIZE = 1000; // This should be larger when peeling and using large pages
+
+	private final int deltaTimes256;
 	/** The multiplier for buckets. */
 	private final long multiplier;
 	/** The number of keys. */
@@ -421,7 +422,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		}
 		n = bucketedHashStore.size();
 		defRetValue = -1;
-		delta_times_256 = (int) Math.floor((peeled ? DELTA_PEEL : DELTA_GAUSSIAN) * 256);
+		deltaTimes256 = (int) Math.floor((peeled ? DELTA_PEEL : DELTA_GAUSSIAN) * 256);
 		final Long2LongOpenHashMap frequencies;
 		if (indirect) {
 			frequencies = new Long2LongOpenHashMap();
@@ -475,11 +476,11 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 							long sumOfLengths = 0;
 							for(int i = 0; i < bucket.size(); i++)
 								sumOfLengths += coder.codewordLength(valueList.getLong(i));
-
+							final long numVariables = Math.max(3, (sumOfLengths * deltaTimes256 >>> 8) + globalMaxCodewordLength);
 							// We add the length of the longest keyword to avoid wrapping up indices
-							assert (sumOfLengths * delta_times_256 >>> 8) + globalMaxCodewordLength <= Integer.MAX_VALUE;
+							assert numVariables <= Integer.MAX_VALUE;
 							synchronized(offsetAndSeed) {
-								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + (sumOfLengths * delta_times_256 >>> 8) + globalMaxCodewordLength;
+								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + numVariables;
 								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1;
 							}
 							bucketQueue.put(new Pair<>(bucket, Integer.valueOf((int)sumOfLengths)));

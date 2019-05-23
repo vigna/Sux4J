@@ -5,6 +5,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
+import it.unimi.dsi.fastutil.longs.Long2LongMaps;
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Binary;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Coder;
@@ -71,22 +73,24 @@ public class CodecTest {
 			frequency[i] = 1 << i;
 		}
 
-		final Huffman huffman = new Codec.Huffman(5);
-		final Long2LongOpenHashMap frequencies = new Long2LongOpenHashMap(symbols, frequency);
-		final Coder coder = huffman.getCoder(frequencies);
-		final Decoder decoder = coder.getDecoder();
-		int maxLengthEscaped = 0;
-		for (final long l: frequencies.keySet()) {
-			final long encoded = coder.encode(l);
-			if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
-			else {
-				final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
-				final long decoded = decoder.decode(longEncoded);
-				assertEquals(l, decoded);
+		for(int t = 0; t < 5; t++) {
+			final Huffman huffman = new Codec.Huffman(t);
+			final Long2LongOpenHashMap frequencies = new Long2LongOpenHashMap(symbols, frequency);
+			final Coder coder = huffman.getCoder(frequencies);
+			final Decoder decoder = coder.getDecoder();
+			int maxLengthEscaped = 0;
+			for (final long l: frequencies.keySet()) {
+				final long encoded = coder.encode(l);
+				if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
+				else {
+					final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+			final long decoded = decoder.decode(longEncoded);
+			assertEquals(l, decoded);
+				}
 			}
-		}
 
-		assertEquals(maxLengthEscaped, coder.escapedSymbolLength());
+			assertEquals(maxLengthEscaped, coder.escapedSymbolLength());
+		}
 	}
 
 	@Test
@@ -115,4 +119,35 @@ public class CodecTest {
 			assertEquals(i, decoded);
 		}
 	}
+
+	@Test
+	public void testEmpty() {
+		Codec.Huffman huffman = new Codec.Huffman();
+		final Long2LongMap frequencies = Long2LongMaps.EMPTY_MAP;
+		Coder coder = huffman.getCoder(frequencies);
+		Decoder decoder = coder.getDecoder();
+		assertEquals(0, decoder.escapeLength());
+
+		huffman = new Codec.Huffman(1);
+		coder = huffman.getCoder(frequencies);
+		decoder = coder.getDecoder();
+		assertEquals(0, decoder.escapeLength());
+	}
+
+	@Test
+	public void testSingleton() {
+		Codec.Huffman huffman = new Codec.Huffman();
+		final Long2LongMap frequencies = new Long2LongOpenHashMap(new long[] { 0 }, new long[] { 1 });
+		Coder coder = huffman.getCoder(frequencies);
+		Decoder decoder = coder.getDecoder();
+		assertEquals(0, coder.codewordLength(0));
+		assertEquals(0, decoder.escapeLength());
+
+		huffman = new Codec.Huffman(0);
+		coder = huffman.getCoder(frequencies);
+		decoder = coder.getDecoder();
+		assertEquals(0, coder.codewordLength(0));
+		assertEquals(0, decoder.escapeLength());
 }
+}
+

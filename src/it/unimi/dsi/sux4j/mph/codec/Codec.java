@@ -426,7 +426,7 @@ public interface Codec {
 							//System.err.println("LC:" + StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[curr]), 64, '0'));
 							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> (shift[curr]))), 64, '0'));
 							//System.err.println(howManyUpToBlock[curr]);
-							//System.err.println(curr);
+							//System.err.println(curr + " " + listLength);
 							if (curr < listLength) {
 								final int s = shift[curr];
 								return symbol[(int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr]];
@@ -498,7 +498,7 @@ public interface Codec {
 
 				// We compute how many different codeword lengths are present. We
 				// check also for excessive or nondecreasing length.
-				int decodingTableLength = 1;
+				int decodingTableLength = size < 2 ? 0 : 1;
 				if (size > 1) for (int i = size - 1; i-- != 0;) {
 					assert codewordLength[i] <= codewordLength[i + 1];
 					if (codewordLength[i] != codewordLength[i + 1]) decodingTableLength++;
@@ -532,15 +532,7 @@ public interface Codec {
 					//System.err.println("word*: " + StringUtils.leftPad(Long.toBinaryString(word), 64, '0'));
 				}
 
-
-				if (p != -1) {
-					assert p == decodingTableLength - 1 : p + " != " + (decodingTableLength - 1);
-					lastCodeWordPlusOne[p] = -1L >>> 1; // Escape, if necessary
-				} else {
-					// This covers the case size = 1 TODO
-					howManyUpToBlock[0] = 1;
-					lastCodeWordPlusOne[0] = -1L >>> 1;
-				}
+				lastCodeWordPlusOne[p] = -1L >>> 1; // Escape, if necessary
 
 				//System.err.println("Symbol: " + Arrays.toString(symbol));
 				//System.err.println("Last code word plus one: " + Arrays.toString(LongArrayList.wrap(lastCodeWordPlusOne).stream().map(x -> StringUtils.leftPad(Long.toBinaryString(x), 64, '0')).toArray(String[]::new)));
@@ -551,9 +543,9 @@ public interface Codec {
 
 		@Override
 		public Coder getCoder(final Long2LongMap frequencies) {
-			assert Longs.min(frequencies.values().toLongArray()) > 0;
+			assert frequencies.isEmpty() || Longs.min(frequencies.values().toLongArray()) > 0;
 			final int size = frequencies.size();
-			if (size == 0 || size == 1) return new Coder(new long[0], new int[0], new long[0], Long2IntMaps.EMPTY_MAP, 0);
+			if (size == 0) return new Coder(new long[1], new int[1], new long[0], Long2IntMaps.EMPTY_MAP, 0);
 			final long[] symbol = new long[size];
 			frequencies.keySet().toArray(symbol);
 			// Sort symbols by frequency
@@ -568,53 +560,54 @@ public interface Codec {
 
 			// The following lines are from Moffat & Katajainen sample code.
 			// Please refer to their paper.
-
-			// First pass, left to right, setting parent pointers.
-			a[0] += a[1];
-			int root = 0;
-			int leaf = 2;
-			for (int next = 1; next < size - 1; next++) {
-				// Select first item for a pairing.
-				if (leaf >= size || a[root] < a[leaf]) {
-					a[next] = a[root];
-					a[root++] = next;
-				} else a[next] = a[leaf++];
-
-				// Add on the second item.
-				if (leaf >= size || (root < next && a[root] < a[leaf])) {
-					a[next] += a[root];
-					a[root++] = next;
-				} else a[next] += a[leaf++];
-			}
-
-			// Second pass, right to left, setting internal depths.
-			a[size - 2] = 0;
-			for (int next = size - 3; next >= 0; next--)
-				a[next] = a[(int) a[next]] + 1;
-
-			// Third pass, right to left, setting leaf depths.
-			int available = 1, used = 0, depth = 0;
-			root = size - 2;
-			int next = size - 1;
-
 			long overallLength = 0;
+			if (size > 1) {
+				// First pass, left to right, setting parent pointers.
+				a[0] += a[1];
+				int root = 0;
+				int leaf = 2;
+				for (int next = 1; next < size - 1; next++) {
+					// Select first item for a pairing.
+					if (leaf >= size || a[root] < a[leaf]) {
+						a[next] = a[root];
+						a[root++] = next;
+					} else a[next] = a[leaf++];
 
-			// We now compute depth and the overall length of all symbols
-			while (available > 0) {
-				while (root >= 0 && a[root] == depth) {
-					used++;
-					root--;
+					// Add on the second item.
+					if (leaf >= size || (root < next && a[root] < a[leaf])) {
+						a[next] += a[root];
+						a[root++] = next;
+					} else a[next] += a[leaf++];
 				}
-				while (available > used) {
-					overallLength += depth * frequencies.get(symbol[size - next - 1]);
-					//System.err.println(depth + " => " + frequencies.get(symbol[size - next - 1]));
-					a[next--] = depth;
-					available--;
+
+				// Second pass, right to left, setting internal depths.
+				a[size - 2] = 0;
+				for (int next = size - 3; next >= 0; next--)
+					a[next] = a[(int) a[next]] + 1;
+
+				// Third pass, right to left, setting leaf depths.
+				int available = 1, used = 0, depth = 0;
+				root = size - 2;
+				int next = size - 1;
+
+				// We now compute depth and the overall length of all symbols
+				while (available > 0) {
+					while (root >= 0 && a[root] == depth) {
+						used++;
+						root--;
+					}
+					while (available > used) {
+						overallLength += depth * frequencies.get(symbol[size - next - 1]);
+						//System.err.println(depth + " => " + frequencies.get(symbol[size - next - 1]));
+						a[next--] = depth;
+						available--;
+					}
+					available = 2 * used;
+					depth++;
+					used = 0;
 				}
-				available = 2 * used;
-				depth++;
-				used = 0;
 			}
+			else a[0] = 1;
 
 			// Reverse the order of symbol lengths, and store them into an int array.
 			final int[] length = new int[size + 1];

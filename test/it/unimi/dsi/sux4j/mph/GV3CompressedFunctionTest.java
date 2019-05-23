@@ -25,7 +25,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 public class GV3CompressedFunctionTest {
 
 	private void check(final int size, final String[] s, final GV3CompressedFunction<CharSequence> function, final long[] value) {
-		for (int i = size; i-- != 0;) assertEquals("globalSeed " + function.globalSeed + " i = " + i, value[i], function.getLong(s[i]));
+		for (int i = size; i-- != 0;) assertEquals("size " + size + " globalSeed " + function.globalSeed + " i = " + i, value[i], function.getLong(s[i]));
 		// test for string outside keyset
 		function.defaultReturnValue(-1);
 		for (int i = 0; i < 100; i++) function.getLong("DEAD" + size + i);
@@ -35,7 +35,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testGammaValues() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 				final long[] values = new long[size];
@@ -59,7 +59,7 @@ public class GV3CompressedFunctionTest {
 		for(final boolean peeled: new boolean[] { false, true } ) {
 			// TODO: restore working codec for size 1
 			for (final int maxLength : new int[] { 2, 3, 4, 8, 16, 32, 64 }) {
-				for (final int size : new int[] { 0, 1000, 10000 }) {
+				for (final int size : new int[] { 0, 1, 1000, 10000 }) {
 					final String[] s = new String[size];
 
 					for (int i = s.length; i-- != 0;)
@@ -91,7 +91,7 @@ public class GV3CompressedFunctionTest {
 		for(final boolean peeled: new boolean[] { false, true } ) {
 			// TODO: restore working codec for size 1
 			for (final int maxLength : new int[] { 2, 3, 4, 8, 16, 32, 64 }) {
-				for (final int size : new int[] { 0, 1000, 10000 }) {
+				for (final int size : new int[] { 0, 1, 1000, 10000 }) {
 					final String[] s = new String[size];
 
 					for (int i = s.length; i-- != 0;)
@@ -121,7 +121,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testGeometricValuesHuffman() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
@@ -146,7 +146,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testGeometricValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
@@ -174,7 +174,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testGeometricValuesUnary() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
@@ -202,7 +202,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testZipfianValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
@@ -230,7 +230,7 @@ public class GV3CompressedFunctionTest {
 	@Test
 	public void testZipfianValuesGamma() throws IOException, ClassNotFoundException {
 		for(final boolean peeled: new boolean[] { false, true } ) {
-			for (final int size : new int[] { 100, 1000, 10000 }) {
+			for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 				final String[] s = new String[size];
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
