@@ -393,8 +393,8 @@ public interface Codec {
 				private final int[] shift;
 				private final long[] symbol;
 				private final int escapedSymbolLength;
-
 				private final int escapeLength;
+				private final int listLength;
 
 				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final int escapeLength, final int escapedSymbolLength, final long[] symbol) {
 					this.lastCodeWordPlusOne = lastCodeWordPlusOne;
@@ -403,6 +403,7 @@ public interface Codec {
 					this.escapeLength = escapeLength;
 					this.escapedSymbolLength = escapedSymbolLength;
 					this.symbol = symbol;
+					listLength = lastCodeWordPlusOne.length - 1;
 				}
 
 				@Override
@@ -426,10 +427,9 @@ public interface Codec {
 							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> (shift[curr]))), 64, '0'));
 							//System.err.println(howManyUpToBlock[curr]);
 							//System.err.println(curr);
-							if (curr < lastCodeWordPlusOne.length - 1) {
+							if (curr < listLength) {
 								final int s = shift[curr];
-								final int rank = (int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr];
-								return symbol[rank];
+								return symbol[(int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr]];
 							}
 							else return -1;
 						}
@@ -535,7 +535,7 @@ public interface Codec {
 
 				if (p != -1) {
 					assert p == decodingTableLength - 1 : p + " != " + (decodingTableLength - 1);
-					lastCodeWordPlusOne[p] = -1L >>> 1;
+					lastCodeWordPlusOne[p] = -1L >>> 1; // Escape, if necessary
 				} else {
 					// This covers the case size = 1 TODO
 					howManyUpToBlock[0] = 1;

@@ -78,6 +78,35 @@ public class GV4CompressedFunctionTest {
 
 	@SuppressWarnings("unchecked")
 	@Test
+	public void testUniformBinary() throws IOException, ClassNotFoundException {
+		// TODO: restore working codec for size 1
+		for (final int maxLength : new int[] { 2, 3, 4, 8, 16, 32, 64 }) {
+			for (final int size : new int[] { 0, 1000, 10000 }) {
+				final String[] s = new String[size];
+
+				for (int i = s.length; i-- != 0;)
+					s[i] = Integer.toString(i);
+				final XoRoShiRo128PlusRandom r = new XoRoShiRo128PlusRandom(0);
+				final long[] v = new long[size];
+				for (int i = 0; i < size; i++) v[i] = r.nextInt(maxLength);
+				final Codec codec = new Codec.Binary();
+				final LongArrayList values = LongArrayList.wrap(v);
+				GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(codec).transform(TransformationStrategies.utf16()).values(values).build();
+				check(size, s, function, v);
+				final File temp = File.createTempFile(getClass().getSimpleName(), "test");
+				temp.deleteOnExit();
+				BinIO.storeObject(function, temp);
+				function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+
+				check(size, s, function, v);
+
+			}
+		}
+	}
+
+
+	@SuppressWarnings("unchecked")
+	@Test
 	public void testGeometricValuesHuffman() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 100, 1000, 10000 }) {
 			final String[] s = new String[size];
