@@ -62,10 +62,9 @@ int main(int argc, char* argv[]) {
 	uint64_t total = 0;
 	uint64_t u = 0;
 
-	for(int k = 1; k-- != 0; ) {
+	for(int k = 10; k-- != 0; ) {
 		int64_t elapsed = - get_system_time();
 		for (int i = 0; i < NKEYS; ++i) u += SUX4J_GET_BYTE_ARRAY(SUX4J_MAP, test_buf[i], test_len[i]);
-		for (int i = 0; i < NKEYS; ++i) printf("%lld\n", SUX4J_GET_BYTE_ARRAY(SUX4J_MAP, test_buf[i], test_len[i]));
 
 		elapsed += get_system_time();
 		total += elapsed;
