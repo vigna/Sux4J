@@ -83,6 +83,7 @@ import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
 import it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException;
 import it.unimi.dsi.sux4j.mph.codec.Codec;
+import it.unimi.dsi.sux4j.mph.codec.Codec.Decoder;
 import it.unimi.dsi.sux4j.mph.codec.Codec.Huffman;
 import it.unimi.dsi.sux4j.mph.codec.Codec.ZeroCodec;
 import it.unimi.dsi.sux4j.mph.solve.Linear3SystemSolver;
@@ -371,7 +372,11 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 */
 	protected final TransformationStrategy<? super T> transform;
 	/** The decoder that will be used to yield output values. */
-	protected final Codec.Decoder decoder;
+	protected final Decoder decoder;
+	/** {@link Decoder#escapeLength()} from {@link #decoder}, cached. */
+	protected final int escapeLength;
+	/** {@link Decoder#escapedSymbolLength()} from {@link #decoder}, cached. */
+	protected final int escapedSymbolLength;
 
 	/**
 	 * Creates a new function for the given keys and values.
@@ -433,6 +438,9 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 
 		globalMaxCodewordLength = coder.maxCodewordLength();
 		decoder = coder.getDecoder();
+		escapedSymbolLength = decoder.escapedSymbolLength();
+		escapeLength = decoder.escapeLength();
+
 		bucketedHashStore.bucketSize(BUCKET_SIZE);
 		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
@@ -616,8 +624,8 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset;
 		final long t = decoder.decode(data.getLong(e0, e0 + w) ^ data.getLong(e1, e1 + w) ^ data.getLong(e2, e2 + w));
 		if (t != -1) return t;
-		final int end = w - decoder.escapeLength();
-		final int start = end - decoder.escapedSymbolLength();
+		final int end = w - escapeLength;
+		final int start = end - escapedSymbolLength;
 		return data.getLong(e0 + start, e0 + end) ^ data.getLong(e1 + start, e1 + end) ^ data.getLong(e2 + start, e2 + end);
 	}
 
@@ -683,7 +691,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		channel.write(buffer);
 		buffer.clear();
 
-		((Huffman.Coder.Decoder)decoder).dump(buffer);
+		((Codec.Huffman.Coder.Decoder)decoder).dump(buffer);
 		buffer.flip();
 		channel.write(buffer);
 
