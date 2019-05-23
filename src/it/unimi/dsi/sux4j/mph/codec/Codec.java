@@ -394,7 +394,6 @@ public interface Codec {
 				private final long[] symbol;
 				private final int escapedSymbolLength;
 				private final int escapeLength;
-				private final int listLength;
 
 				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final int escapeLength, final int escapedSymbolLength, final long[] symbol) {
 					this.lastCodeWordPlusOne = lastCodeWordPlusOne;
@@ -403,7 +402,6 @@ public interface Codec {
 					this.escapeLength = escapeLength;
 					this.escapedSymbolLength = escapedSymbolLength;
 					this.symbol = symbol;
-					listLength = lastCodeWordPlusOne.length - 1;
 				}
 
 				@Override
@@ -445,6 +443,8 @@ public interface Codec {
 					for(final int i : shift) buffer.putInt(i);
 					buffer.putLong(symbol.length);
 					for(final long l : symbol) buffer.putLong(l);
+					buffer.putLong(escapedSymbolLength);
+					buffer.putLong(escapeLength);
 				}
 
 			}

@@ -29,7 +29,9 @@
 typedef struct {
 	uint64_t size;
 	uint64_t multiplier;
-	int global_max_codeword_length;
+	uint64_t global_max_codeword_length;
+	uint64_t escaped_symbol_length;
+	uint64_t escape_length;
 	uint64_t global_seed;
 	uint64_t offset_and_seed_length;
 	uint64_t *offset_and_seed;

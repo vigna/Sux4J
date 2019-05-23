@@ -28,7 +28,7 @@
 
 typedef struct {
 	uint64_t size;
-	int width;
+	uint64_t width;
 	uint64_t multiplier;
 	uint64_t global_seed;
 	uint64_t offset_and_seed_length;

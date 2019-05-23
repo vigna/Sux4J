@@ -62,5 +62,11 @@ csf *load_csf(int h) {
 	csf->symbol = calloc(decoding_table_length, num_symbols * sizeof *csf->symbol);
 	read(h, csf->symbol, num_symbols * sizeof *csf->symbol);
 
+	read(h, &t, sizeof t);
+	csf->escaped_symbol_length = t;
+
+	read(h, &t, sizeof t);
+	csf->escape_length = t;
+
 	return csf;
 }
