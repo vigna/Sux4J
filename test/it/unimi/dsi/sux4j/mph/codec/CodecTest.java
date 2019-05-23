@@ -140,14 +140,14 @@ public class CodecTest {
 		final Long2LongMap frequencies = new Long2LongOpenHashMap(new long[] { 0 }, new long[] { 1 });
 		Coder coder = huffman.getCoder(frequencies);
 		Decoder decoder = coder.getDecoder();
-		assertEquals(0, coder.codewordLength(0));
-		assertEquals(0, decoder.escapeLength());
+		assertEquals(1, coder.codewordLength(0));
+		assertEquals(1, decoder.escapeLength());
 
 		huffman = new Codec.Huffman(0);
 		coder = huffman.getCoder(frequencies);
 		decoder = coder.getDecoder();
-		assertEquals(0, coder.codewordLength(0));
-		assertEquals(0, decoder.escapeLength());
-}
+		assertEquals(1, coder.codewordLength(0));
+		assertEquals(1, decoder.escapeLength());
+	}
 }
 

@@ -427,11 +427,8 @@ public interface Codec {
 							//System.err.println("Diff: " + StringUtils.leftPad(Long.toBinaryString((lastCodeWordPlusOne[curr] >>> (shift[curr])) - (x >>> (shift[curr]))), 64, '0'));
 							//System.err.println(howManyUpToBlock[curr]);
 							//System.err.println(curr + " " + listLength);
-							if (curr < listLength) {
-								final int s = shift[curr];
-								return symbol[(int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr]];
-							}
-							else return -1;
+							final int s = shift[curr];
+							return symbol[(int)((value >>> s) - (lastCodeWordPlusOne[curr] >>> s)) + howManyUpToBlock[curr]];
 						}
 					}
 				}
@@ -533,6 +530,9 @@ public interface Codec {
 				}
 
 				lastCodeWordPlusOne[p] = -1L >>> 1; // Escape, if necessary
+				shift[p] = 63;
+				if (symbol.length != 0) symbol[size - 1] = -1;
+				howManyUpToBlock[p] = size - 1;
 
 				//System.err.println("Symbol: " + Arrays.toString(symbol));
 				//System.err.println("Last code word plus one: " + Arrays.toString(LongArrayList.wrap(lastCodeWordPlusOne).stream().map(x -> StringUtils.leftPad(Long.toBinaryString(x), 64, '0')).toArray(String[]::new)));
@@ -663,7 +663,7 @@ public interface Codec {
 			for (int i = 0; i < cutpoint; i++) symbol2Rank.put(symbol[i], i);
 			symbol2Rank.defaultReturnValue(-1);
 
-			return new Coder(codeword, Arrays.copyOf(length, cutpoint + 1), Arrays.copyOf(symbol, cutpoint), symbol2Rank, maxLengthEscaped);
+			return new Coder(codeword, Arrays.copyOf(length, cutpoint + 1), Arrays.copyOf(symbol, cutpoint + 1), symbol2Rank, maxLengthEscaped);
 		}
 	}
 }
