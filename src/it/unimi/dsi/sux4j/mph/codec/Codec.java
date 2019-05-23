@@ -43,14 +43,21 @@ import it.unimi.dsi.sux4j.mph.GV3CompressedFunction;
 public interface Codec {
 	/** A coder: provides methods to turn symbols into codewords. */
 	public interface Coder {
-		/** Returns the codeword associated with a symbol, or -1 if the provided symbol should be escaped.
+		/** Returns the codeword associated with a symbol, or &minus;1 if the provided symbol should be escaped.
+		 *
+		 * <p>If a symbol needs to be escaped, it must be encoded using
+		 * the {@linkplain #escape() escape codeword} followed by
+		 * the symbol written in a field of {@link #escapedSymbolLength()} bits.
 		 *
 		 * @param symbol a symbol.
 		 * @return the associated codeword.
 		 */
 		long encode(long symbol);
 
-		/** Returns the length of the codeword associated with the given symbol, or the length of the escape codeword if the provided symbol should be escaped.
+		/** Returns the length of the codeword associated with the given symbol.
+		 *
+		 * <p>For escaped symbols, the returned values is the length of
+		 * the escape codeword plus {@link #escapedSymbolLength()}.
 		 *
 		 * @param symbol a symbol provided at construction time.
 		 * @return the length of the codeword associated with the given symbol.
@@ -73,30 +80,42 @@ public interface Codec {
 
 		/** Returns the escape codeword, if it exists.
 		 *
+		 * <p>Note that the length of the escape codeword can be recovered
+		 * by subtracting from the {@linkplain #codewordLength(long) length of the codeword of an escaped symbol}
+		 * the {@linkplain #escapedSymbolLength() length of an escaped symbol}.
 		 * @return the escape codeword, if it exists.
 		 */
 		default long escape() {
 			return 0;
 		}
 
+		/** Return a decoder associated with this coder.
+		 *
+		 * @return a decoder associated with this coder.
+		 */
 		Decoder getDecoder();
 	}
 
-	/** A decoder: provides a {@linkplain #decode(long) method} to turn stream of bits into symbols.
+	/** A decoder: provides a {@linkplain #decode(long) method} to turn sequences of bits into symbols.
 	 * <p>Note that a decoder can only built using {@link Coder#getDecoder()}.
 	 */
 	public interface Decoder extends Serializable {
-		/** Decodes a stream of bits.
+		/** Decodes a sequence of bits.
 		 *
-		 * <p>This method assumes that its input is
-		 * stream of {@link Coder#maxCodewordLength()} bits, and that the first
+		 * <p>If the first codeword appearing in the sequence is the
+		 * {@linkplain Coder#escape() escape codeword}, this method returns &minus;1 and the actual
+		 * symbol must be retrieved by reading {@link #escapedSymbolLength()}
+		 * further bits.
+		 *
+		 * <p>This method assumes that the first
 		 * bit of the code is the leftmost bit (i.e., the bit of index
 		 * {@link Coder#maxCodewordLength()} &minus; 1).
 		 *
-		 * @param stream a stream of bits.
-		 * @return the symbol associated with the first instantaneous code appearing in the stream.
+		 * @param sequence a sequence of bits.
+		 * @return the symbol associated with the first codeword appearing in the sequence,
+		 * or &minus;1 if the codeword is an escape.
 		 */
-		long decode(long stream);
+		long decode(long sequence);
 
 		/** The number of bits used by this decoder.
 		 *
