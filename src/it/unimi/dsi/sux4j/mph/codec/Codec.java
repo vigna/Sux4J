@@ -380,18 +380,30 @@ public interface Codec {
 
 	/** A Huffman codec with length-limiting capabilities and a fast canonical decoder. */
 	public static class Huffman implements Codec {
+		/** Hard limit for the length of the decoding table. */
 		private final int maxDecodingTableLength;
+		/** The decoding table will be truncated if the accumulated entropy (starting from the most frequent symbols) exceeds this fraction of the overall entropy. */
 		private final double entropyThreshold;
 
+		/** Creates a new Huffman codec with specified limit and entropy threshold.
+		 *
+		 * @param maxDecodingTableLength a hard limit for the length of the decoding table.
+		 * @param entropyThreshold the decoding table will be truncated if the accumulated entropy (starting from the most frequent symbols) exceeds this fraction of the overall entropy.
+		 */
 		public Huffman(final int maxDecodingTableLength, final double entropyThreshold) {
 			this.maxDecodingTableLength = maxDecodingTableLength;
 			this.entropyThreshold = entropyThreshold;
 		}
 
+		/** Creates a new Huffman codec with specified limit and entropy threshold equal to 0.999.
+		 *
+		 * @param maxDecodingTableLength a hard limit for the length of the decoding table.
+		 */
 		public Huffman(final int maxDepth) {
 			this(maxDepth, 0.999);
 		}
 
+		/** Creates a new Huffman codec no length limitations. */
 		public Huffman() {
 			this(Integer.MAX_VALUE, 1);
 		}
