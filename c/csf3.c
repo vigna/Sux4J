@@ -65,7 +65,7 @@ int64_t csf3_get_byte_array(const csf *csf, char *key, uint64_t len) {
 	int e[3];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
 	const int64_t t = decode(csf, get_value(csf->array, e[0] + bucket_offset, w) ^ get_value(csf->array, e[1] + bucket_offset, w) ^ get_value(csf->array, e[2] + bucket_offset, w));
-	if (__builtin_expect(t != -1, 1)) return t;
+	if (t != -1) return t;
 	const uint64_t end = csf->global_max_codeword_length - csf->escape_length;
 	const uint64_t start = end - csf->escaped_symbol_length;
 	return get_value(csf->array, e[0] + start, e[0] + end) ^ get_value(csf->array, e[1] + start, e[1] + end) ^ get_value(csf->array, e[2] + start, e[2] + end);
@@ -82,7 +82,7 @@ int64_t csf3_get_uint64_t(const csf *csf, const uint64_t key) {
 	int e[3];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
 	const int64_t t = decode(csf, get_value(csf->array, e[0] + bucket_offset, w) ^ get_value(csf->array, e[1] + bucket_offset, w) ^ get_value(csf->array, e[2] + bucket_offset, w));
-	if (__builtin_expect(t != -1, 1)) return t;
+	if (t != -1) return t;
 	const uint64_t end = csf->global_max_codeword_length - csf->escape_length;
 	const uint64_t start = end - csf->escaped_symbol_length;
 	return get_value(csf->array, e[0] + start, e[0] + end) ^ get_value(csf->array, e[1] + start, e[1] + end) ^ get_value(csf->array, e[2] + start, e[2] + end);
