@@ -389,7 +389,7 @@ public interface Codec {
 		}
 
 		public Huffman(final int maxDepth) {
-			this(maxDepth, 0.99);
+			this(maxDepth, 0.999);
 		}
 
 		public Huffman() {
