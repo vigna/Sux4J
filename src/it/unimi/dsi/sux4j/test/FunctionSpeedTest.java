@@ -40,6 +40,7 @@ import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.lang.MutableString;
@@ -132,6 +133,7 @@ public class FunctionSpeedTest {
 				System.err.println(Util.format(time / 1E9) + "s, " + Util.format((double)time / n) + " ns/item");
 				if (k == NUM_SAMPLES) System.err.println("Sampling " + n + " strings...");
 			}
+			LongArrays.quickSort(sample);
 			System.out.println("Median: " + Util.format(sample[NUM_SAMPLES / 2] / 1E9) + "s, " + Util.format(sample[NUM_SAMPLES / 2] / (double)n) + " ns/item");
 			if (t == 0) System.err.println(t);
 		}
@@ -159,6 +161,7 @@ public class FunctionSpeedTest {
 				System.err.println(Util.format(time / 1E9) + "s, " + Util.format((double)time / size) + " ns/item");
 				if (k == NUM_SAMPLES) System.err.println("Scanning " + size + " strings...");
 			}
+			LongArrays.quickSort(sample);
 			System.out.println("Median: " + Util.format(sample[NUM_SAMPLES / 2] / 1E9) + "s, " + Util.format(sample[NUM_SAMPLES / 2] / (double)size) + " ns/item");
 			if (t == 0) System.err.println(t);
 		}

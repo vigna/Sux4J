@@ -206,6 +206,7 @@ public class ByteArrayFunctionSpeedTest {
 				System.err.println(Util.format(time / 1E9) + "s, " + Util.format((double)time / size) + " ns/item");
 				if (k == NUM_SAMPLES) System.err.println("Scanning " + size + " strings...");
 			}
+			LongArrays.quickSort(sample);
 			System.out.println("Median: " + Util.format(sample[NUM_SAMPLES / 2] / 1E9) + "s, " + Util.format(sample[NUM_SAMPLES / 2] / (double)size) + " ns/item");
 			if (t == 0) System.err.println(t);
 		}
