@@ -22,7 +22,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include "csf.h"
+
+static void *aligned_calloc(uint64_t size) {
+	void *t;
+	posix_memalign(&t, 1024, size);
+	return t;
+}
 
 csf *load_csf(int h) {
 	csf *csf = calloc(1, sizeof *csf);
@@ -37,36 +44,40 @@ csf *load_csf(int h) {
 
 	read(h, &csf->global_seed, sizeof csf->global_seed);
 	read(h, &csf->offset_and_seed_length, sizeof csf->offset_and_seed_length);
-	csf->offset_and_seed = calloc(csf->offset_and_seed_length, sizeof *csf->offset_and_seed);
+	csf->offset_and_seed = aligned_calloc(csf->offset_and_seed_length * sizeof *csf->offset_and_seed);
 	read(h, csf->offset_and_seed, csf->offset_and_seed_length * sizeof *csf->offset_and_seed);
 
 	read(h, &csf->array_length, sizeof csf->array_length);
 
-	csf->array = calloc(csf->array_length, sizeof *csf->array);
+	csf->array = aligned_calloc(csf->array_length * sizeof *csf->array);
 	read(h, csf->array, csf->array_length * sizeof *csf->array);
+
+	// Decoder
+	read(h, &csf->escaped_symbol_length, sizeof csf->escaped_symbol_length);
+	read(h, &csf->escape_length, sizeof csf->escape_length);
 
 	uint64_t decoding_table_length;
 	read(h, &decoding_table_length, sizeof decoding_table_length);
 
-	csf->last_codeword_plus_one = calloc(decoding_table_length, sizeof *csf->last_codeword_plus_one);
-	csf->how_many_up_to_block = calloc(decoding_table_length, sizeof *csf->how_many_up_to_block);
-	csf->shift = calloc(decoding_table_length, sizeof *csf->shift);
-
-	read(h, csf->last_codeword_plus_one, decoding_table_length * sizeof *csf->last_codeword_plus_one);
-	read(h, csf->how_many_up_to_block, decoding_table_length * sizeof *csf->how_many_up_to_block);
-	read(h, csf->shift, decoding_table_length * sizeof *csf->shift);
-
 	uint64_t num_symbols;
 	read(h, &num_symbols, sizeof num_symbols);
 
-	csf->symbol = calloc(decoding_table_length, num_symbols * sizeof *csf->symbol);
+	char *p = aligned_calloc(sizeof *csf + decoding_table_length * sizeof *csf->last_codeword_plus_one + decoding_table_length * sizeof *csf->how_many_up_to_block + (decoding_table_length + 7 & ~7ULL) * sizeof *csf->shift + num_symbols * sizeof *csf->symbol);
+	csf = memcpy(p, csf, sizeof *csf);
+	p += sizeof *csf;
+
+	csf->last_codeword_plus_one = p;
+	p += read(h, csf->last_codeword_plus_one, decoding_table_length * sizeof *csf->last_codeword_plus_one);
+
+	csf->how_many_up_to_block = p;
+	p += read(h, csf->how_many_up_to_block, decoding_table_length * sizeof *csf->how_many_up_to_block);
+
+	csf->shift = p;
+	read(h, csf->shift, decoding_table_length * sizeof *csf->shift);
+	p += decoding_table_length + 7 & ~7ULL; // Realign
+
+	csf->symbol = p;
 	read(h, csf->symbol, num_symbols * sizeof *csf->symbol);
-
-	read(h, &t, sizeof t);
-	csf->escaped_symbol_length = t;
-
-	read(h, &t, sizeof t);
-	csf->escape_length = t;
 
 	return csf;
 }

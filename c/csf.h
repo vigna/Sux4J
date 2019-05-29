@@ -40,7 +40,7 @@ typedef struct {
 	uint64_t *symbol;
 	uint64_t *last_codeword_plus_one;
 	uint32_t *how_many_up_to_block;
-	uint32_t *shift;
+	uint8_t *shift;
 } csf;
 
 csf *load_csf(int h);
