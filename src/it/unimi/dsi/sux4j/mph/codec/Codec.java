@@ -471,10 +471,10 @@ public interface Codec {
 					buffer.putLong(escapedSymbolLength);
 					buffer.putLong(escapeLength);
 					buffer.putLong(lastCodeWordPlusOne.length);
+					buffer.putLong(symbol.length);
 					for(final long l : lastCodeWordPlusOne) buffer.putLong(l);
 					for(final int i : howManyUpToBlock) buffer.putInt(i);
 					for(final byte i : shift) buffer.put(i);
-					buffer.putLong(symbol.length);
 					for(final long l : symbol) buffer.putLong(l);
 				}
 
