@@ -419,14 +419,14 @@ public interface Codec {
 			public final static class Decoder implements Codec.Decoder {
 				private static final long serialVersionUID = 0L;
 
-				private final long[] lastCodeWordPlusOne;
-				private final int[] howManyUpToBlock;
-				private final int[] shift;
-				private final long[] symbol;
 				private final int escapedSymbolLength;
 				private final int escapeLength;
+				private final long[] lastCodeWordPlusOne;
+				private final int[] howManyUpToBlock;
+				private final long[] symbol;
+				private final byte[] shift;
 
-				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final int[] shift, final int escapeLength, final int escapedSymbolLength, final long[] symbol) {
+				public Decoder(final long[] lastCodeWordPlusOne, final int[] howManyUpToBlock, final byte[] shift, final int escapeLength, final int escapedSymbolLength, final long[] symbol) {
 					this.lastCodeWordPlusOne = lastCodeWordPlusOne;
 					this.howManyUpToBlock = howManyUpToBlock;
 					this.shift = shift;
@@ -468,14 +468,14 @@ public interface Codec {
 				}
 
 				public void dump(final ByteBuffer buffer) {
+					buffer.putLong(escapedSymbolLength);
+					buffer.putLong(escapeLength);
 					buffer.putLong(lastCodeWordPlusOne.length);
 					for(final long l : lastCodeWordPlusOne) buffer.putLong(l);
 					for(final int i : howManyUpToBlock) buffer.putInt(i);
-					for(final int i : shift) buffer.putInt(i);
+					for(final byte i : shift) buffer.put(i);
 					buffer.putLong(symbol.length);
 					for(final long l : symbol) buffer.putLong(l);
-					buffer.putLong(escapedSymbolLength);
-					buffer.putLong(escapeLength);
 				}
 
 			}
@@ -534,7 +534,7 @@ public interface Codec {
 
 				decodingTableLength++; // For the escape codeword
 
-				final int[] shift = new int[decodingTableLength];
+				final byte[] shift = new byte[decodingTableLength];
 				final int[] howManyUpToBlock = new int[decodingTableLength];
 				final long[] lastCodeWordPlusOne = new long[decodingTableLength];
 
@@ -552,7 +552,7 @@ public interface Codec {
 							// System.err.println("lastCodeWordPlusPone[p] : " +StringUtils.leftPad(Long.toBinaryString(lastCodeWordPlusOne[p]), 64, '0') + " l: "+ l	);
 							howManyUpToBlock[p] = i;
 						}
-						shift[++p] = w - l;
+						shift[++p] = (byte) (w - l);
 						word <<= l - prevL;
 						prevL = l;
 					}
