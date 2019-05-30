@@ -25,12 +25,6 @@
 #include <string.h>
 #include "csf.h"
 
-static void *aligned_calloc(uint64_t size) {
-	void *t;
-	posix_memalign(&t, 1024, size);
-	return t;
-}
-
 csf *load_csf(int h) {
 	csf *csf = calloc(1, sizeof *csf);
 	read(h, &csf->size, sizeof csf->size);
@@ -44,12 +38,12 @@ csf *load_csf(int h) {
 
 	read(h, &csf->global_seed, sizeof csf->global_seed);
 	read(h, &csf->offset_and_seed_length, sizeof csf->offset_and_seed_length);
-	csf->offset_and_seed = aligned_calloc(csf->offset_and_seed_length * sizeof *csf->offset_and_seed);
+	csf->offset_and_seed = malloc(csf->offset_and_seed_length * sizeof *csf->offset_and_seed);
 	read(h, csf->offset_and_seed, csf->offset_and_seed_length * sizeof *csf->offset_and_seed);
 
 	read(h, &csf->array_length, sizeof csf->array_length);
 
-	csf->array = aligned_calloc(csf->array_length * sizeof *csf->array);
+	csf->array = malloc(csf->array_length * sizeof *csf->array);
 	read(h, csf->array, csf->array_length * sizeof *csf->array);
 
 	// Decoder
@@ -62,21 +56,22 @@ csf *load_csf(int h) {
 	uint64_t num_symbols;
 	read(h, &num_symbols, sizeof num_symbols);
 
-	char *p = aligned_calloc(sizeof *csf + decoding_table_length * sizeof *csf->last_codeword_plus_one + decoding_table_length * sizeof *csf->how_many_up_to_block + (decoding_table_length + 7 & ~7ULL) * sizeof *csf->shift + num_symbols * sizeof *csf->symbol);
+	// Compact
+	char *p = malloc(sizeof *csf + decoding_table_length * sizeof *csf->last_codeword_plus_one + decoding_table_length * sizeof *csf->how_many_up_to_block + (decoding_table_length + 7 & ~7ULL) * sizeof *csf->shift + num_symbols * sizeof *csf->symbol);
 	csf = memcpy(p, csf, sizeof *csf);
 	p += sizeof *csf;
 
-	csf->last_codeword_plus_one = p;
+	csf->last_codeword_plus_one = (uint64_t *)p;
 	p += read(h, csf->last_codeword_plus_one, decoding_table_length * sizeof *csf->last_codeword_plus_one);
 
-	csf->how_many_up_to_block = p;
+	csf->how_many_up_to_block = (uint32_t *)p;
 	p += read(h, csf->how_many_up_to_block, decoding_table_length * sizeof *csf->how_many_up_to_block);
 
-	csf->shift = p;
+	csf->shift = (uint8_t *)p;
 	read(h, csf->shift, decoding_table_length * sizeof *csf->shift);
 	p += decoding_table_length + 7 & ~7ULL; // Realign
 
-	csf->symbol = p;
+	csf->symbol = (uint64_t *)p;
 	read(h, csf->symbol, num_symbols * sizeof *csf->symbol);
 
 	return csf;
