@@ -91,6 +91,16 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
 
+
+	/** Returns true if this class can accommodate a list with the given number of elements and upper bound.
+	 *
+	 * @return true if this class can accommodate a list with the given number of elements and upper bound.
+	 */
+	public static boolean fits(final long length, final long upperBound) {
+		final int l = length == 0 ? 0 : Math.max(0, Fast.mostSignificantBit(upperBound / length));
+		return length * l < Long.SIZE * ((1L << 31) - 16);
+	}
+
 	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
 		this.length = length;
 		this.l = l;
@@ -222,7 +232,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneLongBigList(long[] a, final LongIterator iterator) {
+	protected EliasFanoMonotoneLongBigList(final long[] a, final LongIterator iterator) {
 		length = a[0];
 		long v = -1;
 		final long upperBound = a[1];
