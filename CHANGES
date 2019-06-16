@@ -1,3 +1,9 @@
+5.0.1
+
+- New EliasFanoMonotoneLongBigList16 class supporting very large
+  lists with fixed lower-bits width 16 (bypassing the LongArrayBitVector
+  128Gib limit).
+
 5.0.0
 
 - Major revamp of the it.unimi.dsi.sux4j.mph package.
