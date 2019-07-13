@@ -2,6 +2,7 @@
 
 gcc $@ -O3 -g -march=native -fomit-frame-pointer test_mph_byte_array.c mph.c spooky.c -o test_mph_byte_array
 gcc $@ -O3 -g -march=native -fomit-frame-pointer test_mph_uint64_t.c mph.c spooky.c -o test_mph_uint64_t
+gcc $@ -O3 -g -march=native -fomit-frame-pointer test_mph_uint128_t.c mph.c spooky.c -o test_mph_uint128_t
 
 gcc $@ -O3 -g -march=native -fomit-frame-pointer test_sf3_byte_array.c sf.c sf3.c spooky.c -o test_sf3_byte_array
 gcc $@ -O3 -g -march=native -fomit-frame-pointer test_sf4_byte_array.c sf.c sf4.c spooky.c -o test_sf4_byte_array

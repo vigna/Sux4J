@@ -106,3 +106,15 @@ int64_t mph_get_uint64_t(const mph *mph, const uint64_t key) {
 	signature_to_equation(signature, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
 	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(bucket_offset, bucket_offset + e[(get_2bit_value(mph->array, e[0] + bucket_offset) + get_2bit_value(mph->array, e[1] + bucket_offset) + get_2bit_value(mph->array, e[2] + bucket_offset)) % 3], mph->array);
 }
+
+int64_t mph_get_uint128_t(const mph *mph, const __uint128_t key) {
+	uint64_t signature[4];
+	spooky_short(&key, 16, mph->global_seed, signature);
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)mph->multiplier) >> 64;
+	const uint64_t edge_offset_seed = mph->edge_offset_and_seed[bucket];
+	const uint64_t bucket_offset = vertex_offset(edge_offset_seed);
+	const int num_variables = vertex_offset(mph->edge_offset_and_seed[bucket + 1]) - bucket_offset;
+	int e[3];
+	signature_to_equation(signature, edge_offset_seed & ~OFFSET_MASK, num_variables, e);
+	return (edge_offset_seed & OFFSET_MASK) + count_nonzero_pairs(bucket_offset, bucket_offset + e[(get_2bit_value(mph->array, e[0] + bucket_offset) + get_2bit_value(mph->array, e[1] + bucket_offset) + get_2bit_value(mph->array, e[2] + bucket_offset)) % 3], mph->array);
+}
