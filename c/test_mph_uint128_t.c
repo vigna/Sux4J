@@ -40,7 +40,7 @@ static inline uint64_t rotl(const uint64_t x, int k) {
     return (x << k) | (x >> (64 - k));
 }
 
-static uint64_t s[2] = { 0x5603141978c51071, 0x3bbddc01ebdf4b72 };
+static uint64_t s[2];
 
 uint64_t next(void) {
     const uint64_t s0 = s[0];
@@ -72,6 +72,9 @@ int main(int argc, char* argv[]) {
 	uint64_t sample[SAMPLES];
 
 	for(int k = SAMPLES; k-- != 0; ) {
+		s[0] = 0x5603141978c51071;
+		s[1] = 0x3bbddc01ebdf4b72;
+
 		int64_t elapsed = - get_system_time();
 		for (int i = 0; i < NKEYS; ++i) u ^= mph_get_uint64_t(mph, (__uint128_t)next() << 64 | (next() ^ u));
 
