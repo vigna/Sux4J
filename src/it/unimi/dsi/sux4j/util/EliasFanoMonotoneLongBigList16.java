@@ -25,6 +25,7 @@ import java.io.Serializable;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
@@ -196,7 +197,7 @@ public class EliasFanoMonotoneLongBigList16 extends AbstractLongBigList implemen
 			v = iterator.nextLong();
 			if (v > upperBound) throw new IllegalArgumentException("Too large value: " + v + " > " + upperBound);
 			if (v < last) throw new IllegalArgumentException("Values are not nondecreasing: " + v + " < " + last);
-			ShortBigArrays.set(lowerBits, i, (short)v);
+			BigArrays.set(lowerBits, i, (short)v);
 			upperBits.set((v >>> Short.SIZE) + i);
 			last = v;
 		}
@@ -208,12 +209,12 @@ public class EliasFanoMonotoneLongBigList16 extends AbstractLongBigList implemen
 
 
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + ShortBigArrays.length(lowerBits) * Short.SIZE;
+		return selectUpper.numBits() + selectUpper.bitVector().length() + BigArrays.length(lowerBits) * Short.SIZE;
 	}
 
 	@Override
 	public long getLong(final long index) {
-		return (selectUpper.select(index) - index) << Short.SIZE | ShortBigArrays.get(lowerBits, index) & 0xFFFF;
+		return (selectUpper.select(index) - index) << Short.SIZE | BigArrays.get(lowerBits, index) & 0xFFFF;
 	}
 
 
@@ -229,7 +230,7 @@ public class EliasFanoMonotoneLongBigList16 extends AbstractLongBigList implemen
 	public long[] get(long index, final long dest[], final int offset, final int length) {
 		selectUpper.select(index, dest, offset, length);
 		for(int i = 0; i < length; i++)
-			dest[offset + i] = dest[offset + i] - index << Short.SIZE | ShortBigArrays.get(lowerBits, index++) & 0xFFFF;
+			dest[offset + i] = dest[offset + i] - index << Short.SIZE | BigArrays.get(lowerBits, index++) & 0xFFFF;
 
 		return dest;
 	}

@@ -54,6 +54,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
@@ -268,7 +269,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			}
 
 			lcps.add(prev.subVector(0, currLcp));
-			IntBigArrays.set(lcpLengths, b, currLcp);
+			BigArrays.set(lcpLengths, b, currLcp);
 			maxLcp = Math.max(maxLcp, currLcp);
 		}
 
@@ -285,7 +286,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		offsetLcpLength = new GOV3Function.Builder<BitVector>().keys(TransformationStrategies.wrap(keys, transform)).transform(TransformationStrategies.identity()).store(bucketedHashStore).values(new AbstractLongBigList() {
 			@Override
 			public long getLong(final long index) {
-				return IntBigArrays.get(lcpLengths, index >>> log2BucketSize) << log2BucketSize | index & bucketSizeMask;
+				return BigArrays.get(lcpLengths, index >>> log2BucketSize) << log2BucketSize | index & bucketSizeMask;
 			}
 			@Override
 			public long size64() {

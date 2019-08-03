@@ -49,6 +49,7 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
@@ -205,7 +206,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 		lcp2Bucket = new GOV3Function.Builder<BitVector>().keys(lcps).transform(TransformationStrategies.identity()).build();
 		final int[][] lcpLength = IntBigArrays.newBigArray(lcps.size64());
 		long p = 0;
-		for(final LongArrayBitVector bv : lcps) IntBigArrays.set(lcpLength, p++, (int)bv.length());
+		for(final LongArrayBitVector bv : lcps) BigArrays.set(lcpLength, p++, (int)bv.length());
 
 		if (DEBUG) {
 			for(final BitVector v: lcps) System.err.println(v  + " " + v.length());
@@ -236,7 +237,7 @@ public class VLLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFunc
 			for(final long[] triple: bucket) {
 				final long index = mph.getLongBySignature(triple);
 				offsets.set(index, triple[2] & bucketSizeMask);
-				lcpLengthsTemp.set(index, IntBigArrays.get(lcpLength, (int)(triple[2] >> log2BucketSize)));
+				lcpLengthsTemp.set(index, BigArrays.get(lcpLength, (int)(triple[2] >> log2BucketSize)));
 			}
 		}
 
