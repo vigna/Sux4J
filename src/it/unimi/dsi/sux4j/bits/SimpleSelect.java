@@ -1,8 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -22,6 +17,11 @@ import java.io.ObjectInputStream;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.bits;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -97,7 +97,7 @@ public class SimpleSelect implements Select {
 	 * @param bits an array of longs representing a bit array.
 	 * @param length the number of bits to use from <code>bits</code>.
 	 */
-	public SimpleSelect(long[] bits, long length) {
+	public SimpleSelect(final long[] bits, final long length) {
 		this(LongArrayBitVector.wrap(bits, length));
 	}
 
@@ -221,7 +221,7 @@ public class SimpleSelect implements Select {
 	}
 
 	@Override
-	public long select(long rank) {
+	public long select(final long rank) {
 		if (rank >= numOnes) return -1;
 
 		final int inventoryIndex = (int)(rank >>> log2OnesPerInventory);
@@ -256,7 +256,7 @@ public class SimpleSelect implements Select {
 			residual -= bitCount;
 		}
 
-		return wordIndex * 64L + Fast.select(word, residual);
+		return wordIndex * (long)Long.SIZE + Fast.select(word, residual);
 	}
 
 	/** Performs a bulk select of consecutive ranks into a given array fragment.
@@ -268,7 +268,7 @@ public class SimpleSelect implements Select {
 	 * @return {@code dest}
 	 * @see #select(long, long[])
 	 */
-	public long[] select(long rank, long[] dest, final int offset, final int length) {
+	public long[] select(final long rank, final long[] dest, final int offset, final int length) {
 		if (length == 0) return dest;
 		final long s = select(rank);
 		dest[offset] = s;
@@ -279,7 +279,7 @@ public class SimpleSelect implements Select {
 
 		for(int i = 1; i < length; i++) {
 			while(window == 0) window = bits[++curr];
-			dest[offset + i] = curr * Long.SIZE + Long.numberOfTrailingZeros(window);
+			dest[offset + i] = curr * (long)Long.SIZE + Long.numberOfTrailingZeros(window);
 			window &= window - 1;
 		}
 
@@ -293,7 +293,7 @@ public class SimpleSelect implements Select {
 	 * @return {@code dest}
 	 * @see #select(long, long[], int, int)
 	 */
-	public long[] select(long rank, long[] dest) {
+	public long[] select(final long rank, final long[] dest) {
 		return select(rank, dest, 0, dest.length);
 	}
 
