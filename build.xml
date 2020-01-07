@@ -12,7 +12,7 @@
 	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant"/>
 
 	<target name="ivy-setupjars" description="Downloads dependencies with ivy and generate report">
-		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact].[ext]"/>
+		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact]-[type]-[revision].[ext]"/>
 		<ivy:report todir="${dist}/ivy-report"/>
 	</target>
 
@@ -131,13 +131,13 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="compile.classpath">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.9" target="1.9" classpathref="compile.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath">
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.9" target="1.9" classpathref="test.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>
@@ -164,7 +164,7 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					source="1.8" 
+					source="1.9" 
 					windowtitle="Sux4J ${version}"
 					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>
