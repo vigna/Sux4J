@@ -91,9 +91,9 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
  * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
- * you can {@linkplain Builder#dictionary(int) turn the function into a dictionary}. In this case, the value associated
+ * you can {@linkplain Builder#dictionary(int) turn the function into an approximate dictionary}. In this case, the value associated
  * by the function with a key is exactly its signature, which means that the only space used by the function is
- * that occupied by signatures: this is one of the fastest and most compact way of storing a static dictionary.
+ * that occupied by signatures: this is one of the fastest and most compact way of storing a static approximate dictionary.
  * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
  *
  * <h2>Building a function</h2>
@@ -192,7 +192,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies that the resulting {@link MWHCFunction} should be a dictionary: the output value will be a signature,
+		/** Specifies that the resulting {@link MWHCFunction} should be an approximate dictionary: the output value will be a signature,
 		 * and {@link MWHCFunction#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
 		 *
@@ -286,10 +286,8 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		public MWHCFunction<T> build() throws IOException {
 			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if (transform == null) {
-				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
-			}
+			if (transform == null) if (chunkedHashStore != null) transform = chunkedHashStore.transform();
+			else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
 			return new MWHCFunction<>(keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect);
 		}
 	}
@@ -410,9 +408,9 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				final LongBigList data = dataBitVector.asLongBigList(this.width);
 				for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
 					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>(chunk.size());
-					do {
+					do
 						seed = r.nextLong();
-					} while (! sorter.generateAndSort(chunk.iterator(), seed));
+					while (! sorter.generateAndSort(chunk.iterator(), seed));
 
 					this.seed[q] = seed;
 					dataBitVector.fill(false);
@@ -534,11 +532,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		if (signatureWidth > 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = chunkedHashStore.signatures(signatureWidth, pl);
+		signatures = chunkedHashStore.signatures(signatureWidth, pl);
 		}
 		else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
-			signatures = null;
+		signatures = null;
 		}
 		else {
 			signatureMask = 0;
@@ -563,13 +561,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		final long result = rank == null ?
 				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
-				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
-				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
-				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
-		if (signatureMask == 0) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if (signatures != null) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
-		else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
+					(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
+					(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
+					(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
+				if (signatureMask == 0) return result;
+				// Out-of-set strings can generate bizarre 3-hyperedges.
+				if (signatures != null) return result >= n || ((signatures.getLong(result) ^ h[0]) & signatureMask) != 0 ? defRetValue : result;
+				else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Low-level access to the output of this function.
@@ -591,13 +589,13 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		if (e0 == -1) return defRetValue;
 		final long result = rank == null ?
 				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
-				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
-				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
-				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
-		if (signatureMask == 0) return result;
-		// Out-of-set strings can generate bizarre 3-hyperedges.
-		if (signatures != null) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
-		else return ((result ^ triple[0]) & signatureMask) != 0 ? defRetValue : 1;
+					(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
+					(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
+					(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
+				if (signatureMask == 0) return result;
+				// Out-of-set strings can generate bizarre 3-hyperedges.
+				if (signatures != null) return result >= n || signatures.getLong(result) != (triple[0] & signatureMask) ? defRetValue : result;
+				else return ((result ^ triple[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Returns the number of keys in the function domain.
@@ -633,16 +631,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 
 		final SimpleJSAP jsap = new SimpleJSAP(MWHCFunction.class.getName(), "Builds an MWHC function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
-			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
-			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
-			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
-			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
-			new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
-			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
-			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
-			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
-			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function."),
-			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
+						new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+						new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+						new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+						new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+						new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+						new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be an approximate dictionary."),
+						new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+						new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
+						new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised MWHC function."),
+						new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
 		final JSAPResult jsapResult = jsap.parse(arg);
@@ -688,11 +686,11 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
-						: utf32
-						? TransformationStrategies.rawUtf32()
-							: TransformationStrategies.rawUtf16();
+							: utf32
+							? TransformationStrategies.rawUtf32()
+									: TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject(new MWHCFunction<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false), functionName);
+							BinIO.storeObject(new MWHCFunction<CharSequence>(collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

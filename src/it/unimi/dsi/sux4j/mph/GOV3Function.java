@@ -107,9 +107,9 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
  * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
- * you can {@linkplain Builder#dictionary(int) turn the function into a dictionary}. In this case, the value associated
+ * you can {@linkplain Builder#dictionary(int) turn the function into an approximate dictionary}. In this case, the value associated
  * by the function with a key is exactly its signature, which means that the only space used by the function is
- * that occupied by signatures: this is one of the fastest and most compact way of storing a static dictionary.
+ * that occupied by signatures: this is one of the fastest and most compact way of storing a static approximate dictionary.
  * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
  *
  * <h2>Building a function</h2>
@@ -231,7 +231,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies that the resulting {@link GOV3Function} should be a dictionary: the output value will be a signature,
+		/** Specifies that the resulting {@link GOV3Function} should be an approximate dictionary: the output value will be a signature,
 		 * and {@link GOV3Function#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
 		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
 		 *
@@ -351,10 +351,8 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		public GOV3Function<T> build() throws IOException {
 			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
-			if (transform == null) {
-				if (bucketedHashStore != null) transform = bucketedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given BucketedHashStore");
-			}
+			if (transform == null) if (bucketedHashStore != null) transform = bucketedHashStore.transform();
+			else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given BucketedHashStore");
 			return new GOV3Function<>(keys, transform, signatureWidth, values, outputWidth, compacted, tempDir, bucketedHashStore, indirect);
 		}
 	}
@@ -634,7 +632,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		if (signatureWidth > 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
-			signatures = bucketedHashStore.signatures(signatureWidth, pl);
+				signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
@@ -675,12 +673,12 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		final long result = rank == null ?
 				data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) :
-				(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
-				(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
-				(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
-		if (signatureMask == 0) return result;
-		if (signatures != null) return result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
-		else return ((result ^ signature[0]) & signatureMask) != 0 ? defRetValue : 1;
+					(marker.getBoolean(e0) ? data.getLong(rank.rank(e0)) : 0) ^
+					(marker.getBoolean(e1) ? data.getLong(rank.rank(e1)) : 0) ^
+					(marker.getBoolean(e2) ? data.getLong(rank.rank(e2)) : 0);
+				if (signatureMask == 0) return result;
+				if (signatures != null) return result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
+				else return ((result ^ signature[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
 	/** Returns the number of keys in the function domain.
@@ -750,17 +748,17 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		final SimpleJSAP jsap = new SimpleJSAP(GOV3Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
 				new Parameter[] {
-			new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
-			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
-			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
-			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
-			new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
-			new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be a dictionary."),
-			new Switch("compacted", 'c', "compacted", "Whether the resulting function should be compacted."),
-			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
-			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
-			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."),
-			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
+						new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+						new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
+						new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
+						new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+						new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
+						new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be an approximate dictionary."),
+						new Switch("compacted", 'c', "compacted", "Whether the resulting function should be compacted."),
+						new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+						new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
+						new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."),
+						new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
 		});
 
 		final JSAPResult jsapResult = jsap.parse(arg);
