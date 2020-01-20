@@ -1,3 +1,11 @@
+5.0.4
+
+- We now use the classifier in naming artifacts.
+
+5.0.3
+
+- Fixed build.xml: moved to Java 9, more explicit dependency naming.
+
 5.0.2
 
 - Fixed old bug in SimpleSelect. Thanks to Richard Webb for reporting
