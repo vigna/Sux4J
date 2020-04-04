@@ -176,7 +176,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  */
 
 public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 1L;
 	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
 	private static final Pair<Bucket, Integer> END_OF_BUCKET_QUEUE = new Pair<>(new Bucket(), Integer.valueOf(0));
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV4CompressedFunction.class);
@@ -665,16 +665,19 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		buffer.clear();
 
 		final LongBigList list = data.asLongBigList(Long.SIZE);
-		buffer.putLong(list.size64());
+		buffer.putLong((data.length() + Long.SIZE - 1) / Long.SIZE);
 
 		for (final long l : list) {
+			buffer.putLong(l);
 			if (!buffer.hasRemaining()) {
 				buffer.flip();
 				channel.write(buffer);
 				buffer.clear();
 			}
-			buffer.putLong(l);
 		}
+
+		if (data.length() % Long.SIZE != 0) buffer.putLong(data.getLong(data.length() & -Long.SIZE, data.length()));
+
 		buffer.flip();
 		channel.write(buffer);
 		buffer.clear();

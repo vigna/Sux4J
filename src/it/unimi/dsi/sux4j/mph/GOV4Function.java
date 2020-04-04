@@ -739,8 +739,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		channel.write(buffer);
 		buffer.clear();
 
-		final LongBigArrayBitVector v = LongBigArrayBitVector.getInstance().ensureCapacity(data.size64() * width);
+		final LongBigArrayBitVector v = LongBigArrayBitVector.getInstance().ensureCapacity(data.size64() * width + Long.SIZE - 1 & -Long.SIZE);
 		for (final long d : data) v.append(d, width);
+		v.length(data.size64() * width + Long.SIZE - 1 & -Long.SIZE);
 		final LongBigList list = v.asLongBigList(Long.SIZE);
 		buffer.putLong(list.size64());
 		for (final long l : list) {
