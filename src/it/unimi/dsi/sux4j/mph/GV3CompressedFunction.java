@@ -182,7 +182,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  */
 
 public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> implements Serializable, Size64 {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 	private static final LongArrayBitVector END_OF_SOLUTION_QUEUE = LongArrayBitVector.getInstance();
 	private static final Pair<Bucket, Integer> END_OF_BUCKET_QUEUE = new Pair<>(new Bucket(), Integer.valueOf(0));
 	private static final Logger LOGGER = LoggerFactory.getLogger(GV3CompressedFunction.class);
