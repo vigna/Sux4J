@@ -29,15 +29,12 @@ public class GV4CompressedFunctionTest {
 		for (int i = 0; i < 100; i++) function.getLong("DEAD" + size + i);
 	}
 
-
-
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGammaValues() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final long[] values = new long[size];
 			GV3CompressedFunctionTest.generateGamma(values);
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(new Codec.Huffman(20)).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
@@ -45,7 +42,7 @@ public class GV4CompressedFunctionTest {
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 	}
@@ -68,7 +65,7 @@ public class GV4CompressedFunctionTest {
 				final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 				temp.deleteOnExit();
 				BinIO.storeObject(function, temp);
-				function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+				function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 
 				check(size, s, function, v);
 
@@ -84,8 +81,7 @@ public class GV4CompressedFunctionTest {
 			for (final int size : new int[] { 0, 1, 1000, 10000 }) {
 				final String[] s = new String[size];
 
-				for (int i = s.length; i-- != 0;)
-					s[i] = Integer.toString(i);
+				for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 				final XoRoShiRo128PlusRandom r = new XoRoShiRo128PlusRandom(0);
 				final long[] v = new long[size];
 				for (int i = 0; i < size; i++) v[i] = r.nextInt(maxLength);
@@ -96,7 +92,7 @@ public class GV4CompressedFunctionTest {
 				final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 				temp.deleteOnExit();
 				BinIO.storeObject(function, temp);
-				function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+				function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 
 				check(size, s, function, v);
 
@@ -104,26 +100,22 @@ public class GV4CompressedFunctionTest {
 		}
 	}
 
-
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGeometricValuesHuffman() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final XoRoShiRo128PlusRandom r = new XoRoShiRo128PlusRandom(0);
 			final long[] values = new long[size];
-			for (int i = 0; i < size; i++) {
-				values[i] = Integer.numberOfTrailingZeros(r.nextInt());
-			}
+			for (int i = 0; i < size; i++) values[i] = Integer.numberOfTrailingZeros(r.nextInt());
 			final Codec.Huffman cdc = new Codec.Huffman();
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(cdc).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
 			check(size, s, function, values);
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 
@@ -134,13 +126,10 @@ public class GV4CompressedFunctionTest {
 	public void testGeometricValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final XoRoShiRo128PlusRandom r = new XoRoShiRo128PlusRandom(0);
 			final long[] values = new long[size];
-			for (int i = 0; i < size; i++) {
-				values[i] = Integer.numberOfTrailingZeros(r.nextInt());
-			}
+			for (int i = 0; i < size; i++) values[i] = Integer.numberOfTrailingZeros(r.nextInt());
 			System.err.println(Arrays.toString(values));
 			final Codec.Huffman cdc = new Codec.Huffman(5);
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(cdc).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
@@ -148,7 +137,7 @@ public class GV4CompressedFunctionTest {
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 
@@ -159,20 +148,17 @@ public class GV4CompressedFunctionTest {
 	public void testGeometricValuesUnary() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final XoRoShiRo128PlusRandom r = new XoRoShiRo128PlusRandom(0);
 			final long[] values = new long[size];
-			for (int i = 0; i < size; i++) {
-				values[i] = Integer.numberOfTrailingZeros(r.nextInt());
-			}
+			for (int i = 0; i < size; i++) values[i] = Integer.numberOfTrailingZeros(r.nextInt());
 			final Codec.Unary cdc = new Codec.Unary();
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(cdc).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
 			check(size, s, function, values);
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 
@@ -183,47 +169,40 @@ public class GV4CompressedFunctionTest {
 	public void testZipfianValuesLengthLimitedHuffman() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 			final long[] values = new long[size];
 			final ZipfDistribution z = new org.apache.commons.math3.distribution.ZipfDistribution(r, 100000, 2);
-			for (int i = 0; i < size; i++) {
-				values[i] = z.sample();
-			}
+			for (int i = 0; i < size; i++) values[i] = z.sample();
 			final Codec.Huffman cdc = new Codec.Huffman(100);
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(cdc).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
 			check(size, s, function, values);
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 
 	}
-
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testZipfianValuesGamma() throws IOException, ClassNotFoundException {
 		for (final int size : new int[] { 0, 1, 100, 1000, 10000 }) {
 			final String[] s = new String[size];
-			for (int i = s.length; i-- != 0;)
-				s[i] = Integer.toString(i);
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 			final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 			final long[] values = new long[size];
 			final ZipfDistribution z = new org.apache.commons.math3.distribution.ZipfDistribution(r, 100000, 2);
-			for (int i = 0; i < size; i++) {
-				values[i] = z.sample();
-			}
+			for (int i = 0; i < size; i++) values[i] = z.sample();
 			final Codec.Gamma cdc = new Codec.Gamma();
 			GV4CompressedFunction<CharSequence> function = new GV4CompressedFunction.Builder<CharSequence>().keys(Arrays.asList(s)).codec(cdc).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(values)).build();
 			check(size, s, function, values);
 			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
-			function = (GV4CompressedFunction<CharSequence>) BinIO.loadObject(temp);
+			function = (GV4CompressedFunction<CharSequence>)BinIO.loadObject(temp);
 			check(size, s, function, values);
 		}
 
@@ -239,13 +218,13 @@ public class GV4CompressedFunctionTest {
 		GV4CompressedFunction<String> function = new GV4CompressedFunction.Builder<String>().keys(emptyList).codec(new Unary()).transform(TransformationStrategies.utf16()).build();
 		assertEquals(0, function.getLong("a"));
 		BinIO.storeObject(function, temp);
-		function = (GV4CompressedFunction<String>) BinIO.loadObject(temp);
+		function = (GV4CompressedFunction<String>)BinIO.loadObject(temp);
 		assertEquals(0, function.getLong("a"));
 
 		function = new GV4CompressedFunction.Builder<String>().keys(emptyList).codec(new Unary()).values(LongLists.EMPTY_LIST).transform(TransformationStrategies.utf16()).build();
 		assertEquals(0, function.getLong("a"));
 		BinIO.storeObject(function, temp);
-		function = (GV4CompressedFunction<String>) BinIO.loadObject(temp);
+		function = (GV4CompressedFunction<String>)BinIO.loadObject(temp);
 		assertEquals(0, function.getLong("a"));
 	}
 

@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2008-2019 Sebastiano Vigna
+ * Copyright (C) 2008-2020 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free

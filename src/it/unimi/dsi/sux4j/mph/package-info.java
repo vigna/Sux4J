@@ -63,7 +63,7 @@
  * method in builders.
  *
  * <p>There are also external signing classes for character sequences provided
- * by the <a href="http://dsiutils.dsi.unimi.it/">DSI utilities</a> which actually implement the interface
+ * by the <a href="http://dsiutils.di.unimi.it/">DSI utilities</a> which actually implement the interface
  * {@link it.unimi.dsi.util.StringMap StringMap}; in particular, {@link it.unimi.dsi.util.LiterallySignedStringMap LiterallySignedStringMap}
  * will provide a full {@link it.unimi.dsi.util.StringMap StringMap} implementation.
  *

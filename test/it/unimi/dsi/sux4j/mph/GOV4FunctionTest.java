@@ -19,7 +19,6 @@ import it.unimi.dsi.sux4j.io.BucketedHashStore;
 
 public class GOV4FunctionTest {
 
-
 	private void check(final int size, final String[] s, final GOV4Function<CharSequence> function, final int signatureWidth) {
 		if (signatureWidth < 0) for (int i = s.length; i-- != 0;) assertEquals(1, function.getLong(s[i]));
 		else for (int i = s.length; i-- != 0;) assertEquals(i, function.getLong(s[i]));
@@ -33,34 +32,29 @@ public class GOV4FunctionTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
-		for (int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8) {
-			for (final int signatureWidth: new int[] { -32, 0, 32, 64 }) {
-				for (final int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 64, 95, 96, 97, 98, 99, 100, 101, 1000, 10000, 100000 }) {
-					final String[] s = new String[size];
-					for (int i = s.length; i-- != 0;)
-						s[i] = Integer.toString(i);
+		for (int outputWidth = 20; outputWidth < Long.SIZE; outputWidth += 8) for (final int signatureWidth : new int[] { -32, 0, 32, 64 }) for (final int size : new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 64, 95, 96, 97, 98, 99, 100, 101, 1000, 10000, 100000 }) {
+			final String[] s = new String[size];
+			for (int i = s.length; i-- != 0;) s[i] = Integer.toString(i);
 
-					GOV4Function<CharSequence> function = new GOV4Function.Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
+			GOV4Function<CharSequence> function = new GOV4Function.Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
 
-					check(size, s, function, signatureWidth);
+			check(size, s, function, signatureWidth);
 
-					final File temp = File.createTempFile(getClass().getSimpleName(), "test");
-					temp.deleteOnExit();
-					BinIO.storeObject(function, temp);
-					function = (GOV4Function<CharSequence>)BinIO.loadObject(temp);
+			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
+			temp.deleteOnExit();
+			BinIO.storeObject(function, temp);
+			function = (GOV4Function<CharSequence>)BinIO.loadObject(temp);
 
-					check(size, s, function, signatureWidth);
+			check(size, s, function, signatureWidth);
 
-					// From store
-					final BucketedHashStore<CharSequence> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
-					bucketedHashStore.addAll(Arrays.asList(s).iterator());
-					bucketedHashStore.checkAndRetry(Arrays.asList(s));
-					function = new GOV4Function.Builder<CharSequence>().store(bucketedHashStore).signed(signatureWidth).build();
-					bucketedHashStore.close();
+			// From store
+			final BucketedHashStore<CharSequence> bucketedHashStore = new BucketedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
+			bucketedHashStore.addAll(Arrays.asList(s).iterator());
+			bucketedHashStore.checkAndRetry(Arrays.asList(s));
+			function = new GOV4Function.Builder<CharSequence>().store(bucketedHashStore).signed(signatureWidth).build();
+			bucketedHashStore.close();
 
-					check(size, s, function, signatureWidth);
-				}
-			}
+			check(size, s, function, signatureWidth);
 		}
 	}
 
@@ -96,16 +90,15 @@ public class GOV4FunctionTest {
 
 	@Test
 	public void testDuplicates() throws IOException {
-		final GOV4Function<String> mph = new GOV4Function.Builder<String>().keys(
-				new Iterable<String>() {
-					int iteration;
+		final GOV4Function<String> mph = new GOV4Function.Builder<String>().keys(new Iterable<String>() {
+			int iteration;
 
-					@Override
-					public Iterator<String> iterator() {
-						if (iteration++ > 2) return Arrays.asList(new String[] { "a", "b", "c" }).iterator();
-						return Arrays.asList(new String[] { "a", "b", "a" }).iterator();
-					}
-				}).transform(TransformationStrategies.utf16()).build();
+			@Override
+			public Iterator<String> iterator() {
+				if (iteration++ > 2) return Arrays.asList(new String[] { "a", "b", "c" }).iterator();
+				return Arrays.asList(new String[] { "a", "b", "a" }).iterator();
+			}
+		}).transform(TransformationStrategies.utf16()).build();
 		assertEquals(0, mph.getLong("a"));
 		assertEquals(1, mph.getLong("b"));
 		assertEquals(2, mph.getLong("c"));

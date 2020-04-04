@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2016-2019 Sebastiano Vigna
+ * Copyright (C) 2016-2020 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -307,7 +307,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	protected final LongBigList signatures;
 
 	protected static long vertexOffset(final long edgeOffsetSeed) {
-		 return ((edgeOffsetSeed & OFFSET_MASK) * C_TIMES_256 >> 8);
+		return ((edgeOffsetSeed & OFFSET_MASK) * C_TIMES_256 >> 8);
 	}
 
 	/**
@@ -646,7 +646,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 							? TransformationStrategies.rawUtf32()
 									: TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject(new GOVMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, signatureWidth, tempDir, null), functionName);
+							BinIO.storeObject(new GOVMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, signatureWidth, tempDir, null), functionName);
 		}
 		LOGGER.info("Saved.");
 	}

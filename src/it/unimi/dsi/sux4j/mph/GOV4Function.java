@@ -3,7 +3,7 @@ package it.unimi.dsi.sux4j.mph;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2016-2019 Sebastiano Vigna
+ * Copyright (C) 2016-2020 Sebastiano Vigna
  *
  *  This library is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU Lesser General Public License as published by the Free
@@ -62,6 +62,7 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
@@ -85,73 +86,97 @@ import it.unimi.dsi.sux4j.mph.solve.Linear4SystemSolver;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
-/** An immutable function stored quasi-succinctly using the
- * {@linkplain Linear4SystemSolver Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}.
- * With respect to a {@link GOV3Function}, instances of this class have slightly slower lookups and are slightly slower to build, but use less space.
+/**
+ * An immutable function stored quasi-succinctly using the {@linkplain Linear4SystemSolver
+ * Genuzio-Ottaviano-Vigna method to solve <b>F</b><sub>2</sub>-linear systems}. With respect to a
+ * {@link GOV3Function}, instances of this class have slightly slower lookups and are slightly
+ * slower to build, but use less space.
  *
- * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
- * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do not specify
- * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
+ * <p>
+ * Instances of this class store a function from keys to values. Keys are provided by an
+ * {@linkplain Iterable iterable object} (whose iterators must return elements in a consistent
+ * order), whereas values are provided by a {@link LongIterable}. If you do not specify values, each
+ * key will be assigned its rank (e.g., its position in iteration order starting from zero).
  *
- * <P>For convenience, this class provides a main method that reads from
- * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
- * writes a serialised function mapping each element of the list to its position, or to a given list of values.
+ * <P>
+ * For convenience, this class provides a main method that reads from standard input a (possibly
+ * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised function
+ * mapping each element of the list to its position, or to a given list of values.
  *
  * <h3>Signing</h3>
  *
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a {@link GOV4Function}.
- * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
- * is no way to associate a key with its signature). A <var>w</var>-bit signature will
- * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
- * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
+ * <p>
+ * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a
+ * {@link GOV4Function}. Signing {@linkplain Builder#signed(int) is possible if no list of values
+ * has been specified} (otherwise, there is no way to associate a key with its signature). A
+ * <var>w</var>-bit signature will be associated with each key, so that {@link #getLong(Object)}
+ * will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings
+ * that are not in the original key set. As usual, false positives are possible with probability
+ * 2<sup>-<var>w</var></sup>.
  *
- * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
- * you can {@linkplain Builder#dictionary(int) turn the function into an approximate dictionary}. In this case, the value associated
- * by the function with a key is exactly its signature, which means that the only space used by the function is
- * that occupied by signatures: this is one of the fastest and most compact way of storing a static approximate dictionary.
- * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
+ * <p>
+ * If you're not interested in the rank of a key, but just to know whether the key was in the
+ * original set, you can {@linkplain Builder#dictionary(int) turn the function into an approximate
+ * dictionary}. In this case, the value associated by the function with a key is exactly its
+ * signature, which means that the only space used by the function is that occupied by signatures:
+ * this is one of the fastest and most compact way of storing a static approximate dictionary. In
+ * this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default
+ * return value} is set to zero.
  *
  * <h2>Building a function</h2>
  *
- * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
- * To exploit the various possibilities, you must understand some details of the construction.
+ * <p>
+ * This class provides a great amount of flexibility when creating a new function; such flexibility
+ * is exposed through the {@linkplain Builder builder}. To exploit the various possibilities, you
+ * must understand some details of the construction.
  *
- * <p>In a first phase, we build a {@link BucketedHashStore} containing hashes of the keys. By default,
- * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
- * the store will associate with each hash the corresponding value.
+ * <p>
+ * In a first phase, we build a {@link BucketedHashStore} containing hashes of the keys. By default,
+ * the store will associate each hash with the rank of the key. If you
+ * {@linkplain Builder#values(LongIterable, int) specify values}, the store will associate with each
+ * hash the corresponding value.
  *
- * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
- * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
- * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
- * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link BucketedHashStore}.
- * Storing values in the {@link BucketedHashStore}
- * is extremely scalable because the values must just be a {@link LongIterable} that
- * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
- * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
- * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store.
+ * <p>
+ * However, if you further require an {@linkplain Builder#indirect() indirect} construction the
+ * store will associate again each hash with the rank of the corresponding key, and access randomly
+ * the values (which must be either a {@link LongList} or a {@link LongBigList}). Indirect
+ * construction is useful only in complex, multi-layer hashes (such as an
+ * {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked
+ * {@link BucketedHashStore}. Storing values in the {@link BucketedHashStore} is extremely scalable
+ * because the values must just be a {@link LongIterable} that will be scanned sequentially during
+ * the store construction. On the other hand, if you have already a store that associates ordinal
+ * positions, and you want to build a new function for which a {@link LongList} or
+ * {@link LongBigList} of values needs little space (e.g., because it is described implicitly), you
+ * can opt for an {@linkplain Builder#indirect() indirect} construction using the already built
+ * store.
  *
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException} is
- * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
- * Note that it is your responsibility to pass a correct store.
+ * <p>
+ * Note that if you specify a store it will be used before building a new one (possibly because of a
+ * {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException}), with
+ * obvious benefits in terms of performance. If the store is not checked, and a
+ * {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException DuplicateException} is thrown,
+ * the constructor will try to rebuild the store, but this requires, of course, that the keys, and
+ * possibly the values, are available. Note that it is your responsibility to pass a correct store.
  *
  * <h2>Multithreading</h2>
  *
- * <p>This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is processed independently. By
- * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but by default no more than 4. If you wish to
- * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
+ * <p>
+ * This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is
+ * processed independently. By default, this class uses {@link Runtime#availableProcessors()}
+ * parallel threads, but by default no more than 4. If you wish to set a specific number of threads,
+ * you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
  *
  * <h2>Implementation Details</h2>
  *
- * <p>The detail of the data structure
- * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
- * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
- * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>,
- * Lecture Notes in Computer Science, Springer, 2016. We generate a random 4-regular linear system on <b>F</b><sub>2</sub>, where
- * the known term of the <var>k</var>-th equation is the output value for the <var>k</var>-th key.
- * Then, we {@linkplain Linear4SystemSolver solve} it and store the solution. Since the system must have &#8776;3% more variables than equations to be solvable,
- * an <var>r</var>-bit {@link GOV4Function} on <var>n</var> keys requires 1.03<var>rn</var>
- * bits.
+ * <p>
+ * The detail of the data structure can be found in &ldquo;Fast Scalable Construction of (Minimal
+ * Perfect Hash) Functions&rdquo;, by Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, Lecture Notes in
+ * Computer Science, Springer, 2016. We generate a random 4-regular linear system on
+ * <b>F</b><sub>2</sub>, where the known term of the <var>k</var>-th equation is the output value
+ * for the <var>k</var>-th key. Then, we {@linkplain Linear4SystemSolver solve} it and store the
+ * solution. Since the system must have &#8776;3% more variables than equations to be solvable, an
+ * <var>r</var>-bit {@link GOV4Function} on <var>n</var> keys requires 1.03<var>rn</var> bits.
  *
  * @see GOV3Function
  * @author Sebastiano Vigna
@@ -165,9 +190,15 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	private static final Logger LOGGER = LoggerFactory.getLogger(GOV4Function.class);
 	private static final boolean DEBUG = false;
 
-	/** The local seed is generated using this step, so to be easily embeddable in {@link #offsetAndSeed}. */
+	/**
+	 * The local seed is generated using this step, so to be easily embeddable in
+	 * {@link #offsetAndSeed}.
+	 */
 	private static final long SEED_STEP = 1L << 56;
-	/** The lowest 56 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given bucket. */
+	/**
+	 * The lowest 56 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given
+	 * bucket.
+	 */
 	private static final long OFFSET_MASK = -1L >>> 8;
 
 	/** The ratio between variables and equations. */
@@ -191,7 +222,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys of the function; if you have specified a {@link #store(BucketedHashStore) BucketedHashStore}, it can be {@code null}.
+		/**
+		 * Specifies the keys of the function; if you have specified a {@link #store(BucketedHashStore)
+		 * BucketedHashStore}, it can be {@code null}.
 		 *
 		 * @param keys the keys of the function.
 		 * @return this builder.
@@ -201,9 +234,11 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		/**
+		 * Specifies the transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
 		 *
-		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the function}.
+		 * @param transform a transformation strategy for the {@linkplain #keys(Iterable) keys of the
+		 *            function}.
 		 * @return this builder.
 		 */
 		public Builder<T> transform(final TransformationStrategy<? super T> transform) {
@@ -211,10 +246,12 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies that the resulting {@link GOV4Function} should be signed using a given number of bits per element;
-		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
+		/**
+		 * Specifies that the resulting {@link GOV4Function} should be signed using a given number of bits
+		 * per element; in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
 		 *
-		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #dictionary(int)} with the opposite argument).
+		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the
+		 *            same effect of {@link #dictionary(int)} with the opposite argument).
 		 * @return this builder.
 		 */
 		public Builder<T> signed(final int signatureWidth) {
@@ -222,23 +259,29 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies that the resulting {@link GOV4Function} should be an approximate dictionary: the output value will be a signature,
-		 * and {@link GOV4Function#getLong(Object)} will return 1 or 0 depending on whether the argument was in the key set or not;
-		 * in this case, you cannot specify {@linkplain #values(LongIterable, int) values}.
+		/**
+		 * Specifies that the resulting {@link GOV4Function} should be an approximate dictionary: the output
+		 * value will be a signature, and {@link GOV4Function#getLong(Object)} will return 1 or 0 depending
+		 * on whether the argument was in the key set or not; in this case, you cannot specify
+		 * {@linkplain #values(LongIterable, int) values}.
 		 *
-		 * <p>Note that checking against a signature has the usual probability of a false positive.
+		 * <p>
+		 * Note that checking against a signature has the usual probability of a false positive.
 		 *
-		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the same effect of {@link #signed(int)} with the opposite argument).
+		 * @param signatureWidth a signature width, or 0 for no signature (a negative value will have the
+		 *            same effect of {@link #signed(int)} with the opposite argument).
 		 * @return this builder.
 		 */
 		public Builder<T> dictionary(final int signatureWidth) {
-			this.signatureWidth = - signatureWidth;
+			this.signatureWidth = -signatureWidth;
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore}.
+		/**
+		 * Specifies a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link #store(BucketedHashStore) BucketedHashStore}
+		 *            files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -246,14 +289,18 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies a bucketed hash store containing the keys.
+		/**
+		 * Specifies a bucketed hash store containing the keys.
 		 *
-		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks if you
-		 * do not specify {@linkplain #values(LongIterable,int) values} or if you use the {@linkplain #indirect() indirect} feature, values otherwise.
+		 * <p>
+		 * Note that if you specify a store, it is your responsibility that it conforms to the rest of the
+		 * data: it must contain ranks if you do not specify {@linkplain #values(LongIterable,int) values}
+		 * or if you use the {@linkplain #indirect() indirect} feature, values otherwise.
 		 *
 		 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
-		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
+		 *            can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys}
+		 *            and a {@linkplain #transform(TransformationStrategy) transform} (otherwise, in case of
+		 *            a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
 		public Builder<T> store(final BucketedHashStore<T> bucketedHashStore) {
@@ -261,15 +308,20 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies a bucketed hash store containing keys and values, and an output width.
+		/**
+		 * Specifies a bucketed hash store containing keys and values, and an output width.
 		 *
-		 * <p>Note that if you specify a store, it is your responsibility that it conforms to the rest of the data: it must contain ranks
-		 * if you use the {@linkplain #indirect() indirect} feature, values representable in at most the specified number of bits otherwise.
+		 * <p>
+		 * Note that if you specify a store, it is your responsibility that it conforms to the rest of the
+		 * data: it must contain ranks if you use the {@linkplain #indirect() indirect} feature, values
+		 * representable in at most the specified number of bits otherwise.
 		 *
 		 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
-		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
-		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all values contained in the store.
+		 *            can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys}
+		 *            and a {@linkplain #transform(TransformationStrategy) transform} (otherwise, in case of
+		 *            a hash collision in the store an {@link IllegalStateException} will be thrown).
+		 * @param outputWidth the bit width of the output of the function, which must be enough to represent
+		 *            all values contained in the store.
 		 * @return this builder.
 		 */
 		public Builder<T> store(final BucketedHashStore<T> bucketedHashStore, final int outputWidth) {
@@ -278,13 +330,17 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}.
+		/**
+		 * Specifies the values assigned to the {@linkplain #keys(Iterable) keys}.
 		 *
-		 * <p>Contrarily to {@link #values(LongIterable)}, this method does not require a complete scan of the value
-		 * to determine the output width.
+		 * <p>
+		 * Contrarily to {@link #values(LongIterable)}, this method does not require a complete scan of the
+		 * value to determine the output width.
 		 *
-		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
-		 * @param outputWidth the bit width of the output of the function, which must be enough to represent all {@code values}.
+		 * @param values values to be assigned to each element, in the same order of the
+		 *            {@linkplain #keys(Iterable) keys}.
+		 * @param outputWidth the bit width of the output of the function, which must be enough to represent
+		 *            all {@code values}.
 		 * @return this builder.
 		 * @see #values(LongIterable)
 		 */
@@ -294,28 +350,35 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the function will
-		 * be the minimum width needed to represent all values.
+		/**
+		 * Specifies the values assigned to the {@linkplain #keys(Iterable) keys}; the output width of the
+		 * function will be the minimum width needed to represent all values.
 		 *
-		 * <p>Contrarily to {@link #values(LongIterable, int)}, this method requires a complete scan of the value
-		 * to determine the output width.
+		 * <p>
+		 * Contrarily to {@link #values(LongIterable, int)}, this method requires a complete scan of the
+		 * value to determine the output width.
 		 *
-		 * @param values values to be assigned to each element, in the same order of the {@linkplain #keys(Iterable) keys}.
+		 * @param values values to be assigned to each element, in the same order of the
+		 *            {@linkplain #keys(Iterable) keys}.
 		 * @return this builder.
 		 * @see #values(LongIterable,int)
 		 */
 		public Builder<T> values(final LongIterable values) {
 			this.values = values;
 			int outputWidth = 0;
-			for(final LongIterator i = values.iterator(); i.hasNext();) outputWidth = Math.max(outputWidth, Fast.length(i.nextLong()));
+			for (final LongIterator i = values.iterator(); i.hasNext();) outputWidth = Math.max(outputWidth, Fast.length(i.nextLong()));
 			this.outputWidth = outputWidth;
 			return this;
 		}
 
-		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(BucketedHashStore) store} contains
-		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
+		/**
+		 * Specifies that the function construction must be indirect: a provided
+		 * {@linkplain #store(BucketedHashStore) store} contains indices that must be used to access the
+		 * {@linkplain #values(LongIterable, int) values}.
 		 *
-		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
+		 * <p>
+		 * If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a
+		 * {@link LongBigList}.
 		 *
 		 * @return this builder.
 		 */
@@ -324,7 +387,8 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Builds a new function.
+		/**
+		 * Builds a new function.
 		 *
 		 * @return a {@link GOV4Function} instance with the specified parameters.
 		 * @throws IllegalStateException if called more than once.
@@ -350,32 +414,46 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	protected final int width;
 	/** The seed used to generate the initial signature. */
 	protected final long globalSeed;
-	/** A long containing the start offset of each bucket in the lower 56 bits, and the local seed of each bucket in the upper 8 bits. */
+	/**
+	 * A long containing the start offset of each bucket in the lower 56 bits, and the local seed of
+	 * each bucket in the upper 8 bits.
+	 */
 	protected final long[] offsetAndSeed;
-	/** The final magick&mdash;the list of values that define the output of the function. */
+	/**
+	 * The final magick&mdash;the list of values that define the output of the function.
+	 */
 	protected final LongBigList data;
-	/** The transformation strategy to turn objects of type <code>T</code> into bit vectors. */
+	/**
+	 * The transformation strategy to turn objects of type <code>T</code> into bit vectors.
+	 */
 	protected final TransformationStrategy<? super T> transform;
 	/** The mask to compare signatures, or zero for no signatures. */
 	protected final long signatureMask;
 	/** The signatures. */
 	protected final LongBigList signatures;
 
-
-	/** Creates a new function for the given keys and values.
+	/**
+	 * Creates a new function for the given keys and values.
 	 *
 	 * @param keys the keys in the domain of the function, or {@code null}.
 	 * @param transform a transformation strategy for the keys.
-	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative value for a self-signed function; if nonzero, {@code values} must be {@code null} and {@code width} must be -1.
-	 * @param values values to be assigned to each element, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
-	 * assigned value will the ordinal number of each element.
-	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is {@code null}.
-	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
-	 * @param bucketedHashStore a bucketed hash store containing the keys associated with their ranks (if there are no values, or {@code indirect} is true)
-	 * or values, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
-	 * @param indirect if true, <code>bucketedHashStore</code> contains ordinal positions, and <code>values</code> is a {@link LongIterable} that
-	 * must be accessed to retrieve the actual values.
+	 * @param signatureWidth a positive number for a signature width, 0 for no signature, a negative
+	 *            value for a self-signed function; if nonzero, {@code values} must be {@code null} and
+	 *            {@code width} must be -1.
+	 * @param values values to be assigned to each element, in the same order of the iterator returned
+	 *            by <code>keys</code>; if {@code null}, the assigned value will the ordinal number of
+	 *            each element.
+	 * @param dataWidth the bit width of the <code>values</code>, or -1 if <code>values</code> is
+	 *            {@code null}.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard
+	 *            temporary directory.
+	 * @param bucketedHashStore a bucketed hash store containing the keys associated with their ranks
+	 *            (if there are no values, or {@code indirect} is true) or values, or {@code null}; the
+	 *            store can be unchecked, but in this case <code>keys</code> and <code>transform</code>
+	 *            must be non-{@code null}.
+	 * @param indirect if true, <code>bucketedHashStore</code> contains ordinal positions, and
+	 *            <code>values</code> is a {@link LongIterable} that must be accessed to retrieve the
+	 *            actual values.
 	 */
 	protected GOV4Function(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, BucketedHashStore<T> bucketedHashStore, final boolean indirect) throws IOException {
 		this.transform = transform;
@@ -394,7 +472,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		if (bucketedHashStore == null) {
 			if (keys == null) throw new IllegalArgumentException("If you do not provide a bucketed hash store, you must provide the keys");
-			bucketedHashStore = new BucketedHashStore<>(transform, tempDir, - Math.min(signatureWidth, 0), pl);
+			bucketedHashStore = new BucketedHashStore<>(transform, tempDir, -Math.min(signatureWidth, 0), pl);
 			bucketedHashStore.reset(r.nextLong());
 			if (values == null || indirect) bucketedHashStore.addAll(keys.iterator());
 			else bucketedHashStore.addAll(keys.iterator(), values.iterator());
@@ -403,7 +481,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
 		bucketedHashStore.bucketSize(BUCKET_SIZE);
-		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
+		final int numBuckets = (int)(n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
 
 		LOGGER.debug("Number of buckets: " + numBuckets);
@@ -414,11 +492,11 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		// Candidate data; might be discarded for compaction.
 		@SuppressWarnings("resource")
-		final OfflineIterable<BitVector,LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
+		final OfflineIterable<BitVector, LongArrayBitVector> offlineData = new OfflineIterable<>(BitVectors.OFFLINE_SERIALIZER, LongArrayBitVector.getInstance());
 
 		int duplicates = 0;
 
-		for(;;) {
+		for (;;) {
 			LOGGER.debug("Generating GOV function with " + width + " output bits...");
 
 			pl.expectedUpdates = numBuckets;
@@ -434,7 +512,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				final ExecutorCompletionService<Void> executorCompletionService = new ExecutorCompletionService<>(executorService);
 
 				executorCompletionService.submit(() -> {
-					for(;;) {
+					for (;;) {
 						final LongArrayBitVector data = queue.take();
 						if (data == END_OF_SOLUTION_QUEUE) return null;
 						offlineData.add(data);
@@ -445,29 +523,28 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				executorCompletionService.submit(() -> {
 					try {
 						final Iterator<Bucket> iterator = chs.iterator();
-						for(int i1 = 0; iterator.hasNext(); i1++) {
+						for (int i1 = 0; iterator.hasNext(); i1++) {
 							final Bucket bucket = new Bucket(iterator.next());
 							assert i1 == bucket.index();
 							final long bucketDataSize = Math.max(C_TIMES_256 * bucket.size() >>> 8, bucket.size() + 1);
 							assert bucketDataSize <= Integer.MAX_VALUE;
-							synchronized(offsetAndSeed) {
+							synchronized (offsetAndSeed) {
 								offsetAndSeed[i1 + 1] = offsetAndSeed[i1] + bucketDataSize;
 								assert offsetAndSeed[i1 + 1] <= OFFSET_MASK + 1 : offsetAndSeed[i1 + 1] + " > " + (OFFSET_MASK + 1);
 							}
 							bucketQueue.put(bucket);
 						}
-					}
-					finally {
-						for(int i2 = numberOfThreads; i2-- != 0;) bucketQueue.put(END_OF_BUCKET_QUEUE);
+					} finally {
+						for (int i2 = numberOfThreads; i2-- != 0;) bucketQueue.put(END_OF_BUCKET_QUEUE);
 					}
 					return null;
 				});
 
 				final AtomicInteger activeThreads = new AtomicInteger(numberOfThreads);
-				for(int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
+				for (int i = numberOfThreads; i-- != 0;) executorCompletionService.submit(() -> {
 					Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 					long bucketTime = 0, outputTime = 0;
-					for(;;) {
+					for (;;) {
 						long start = System.nanoTime();
 						final Bucket bucket = bucketQueue.take();
 						bucketTime += System.nanoTime() - start;
@@ -478,10 +555,9 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 							return null;
 						}
 						long seed = 0;
-						final Linear4SystemSolver solver =
-								new Linear4SystemSolver((int) (offsetAndSeed[bucket.index() + 1] - offsetAndSeed[bucket.index()] & OFFSET_MASK), bucket.size());
+						final Linear4SystemSolver solver = new Linear4SystemSolver((int)(offsetAndSeed[bucket.index() + 1] - offsetAndSeed[bucket.index()] & OFFSET_MASK), bucket.size());
 
-						for(;;) {
+						for (;;) {
 							final boolean solved = solver.generateAndSolve(bucket, seed, bucket.valueList(indirect ? values : null));
 							unsolvable.addAndGet(solver.unsolvable);
 							if (solved) break;
@@ -495,20 +571,19 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 						final LongBigList data = dataBitVector.asLongBigList(width);
-						for(final long l : solver.solution) data.add(l);
+						for (final long l : solver.solution) data.add(l);
 
 						start = System.nanoTime();
 						queue.put(dataBitVector, bucket.index());
 						outputTime += System.nanoTime() - start;
-						synchronized(pl) {
+						synchronized (pl) {
 							pl.update();
 						}
 					}
 				});
 
 				try {
-					for(int i = numberOfThreads + 2; i-- != 0;)
-						executorCompletionService.take().get();
+					for (int i = numberOfThreads + 2; i-- != 0;) executorCompletionService.take().get();
 				} catch (final InterruptedException e) {
 					throw new RuntimeException(e);
 				} catch (final ExecutionException e) {
@@ -516,16 +591,14 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 					if (cause instanceof DuplicateException) throw (DuplicateException)cause;
 					if (cause instanceof IOException) throw (IOException)cause;
 					throw new RuntimeException(cause);
-				}
-				finally {
+				} finally {
 					executorService.shutdown();
 				}
 				LOGGER.info("Unsolvable systems: " + unsolvable.get() + "/" + (unsolvable.get() + numBuckets) + " (" + Util.format(100.0 * unsolvable.get() / (unsolvable.get() + numBuckets)) + "%)");
 
 				pl.done();
 				break;
-			}
-			catch(final DuplicateException e) {
+			} catch (final DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the bucketed hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing signatures...");
@@ -542,11 +615,17 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		globalSeed = bucketedHashStore.seed();
 		m = offsetAndSeed[offsetAndSeed.length - 1];
-		final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((m + 1) * width);
-		this.data = dataBitVector.asLongBigList(this.width);
-
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-		while(iterator.hasNext()) dataBitVector.append(iterator.next());
+		if ((m + 1) * width < (Integer.MAX_VALUE - 8L) * Long.SIZE) {
+			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((m + 1) * width);
+			this.data = dataBitVector.asLongBigList(this.width);
+			while (iterator.hasNext()) dataBitVector.append(iterator.next());
+		} else {
+			final LongBigArrayBitVector dataBitVector = LongBigArrayBitVector.getInstance((m + 1) * width);
+			this.data = dataBitVector.asLongBigList(this.width);
+			while (iterator.hasNext()) dataBitVector.append(iterator.next());
+		}
+
 		iterator.close();
 
 		offlineData.close();
@@ -559,17 +638,15 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if (signatureWidth > 0) {
 			signatureMask = -1L >>> Long.SIZE - signatureWidth;
 			signatures = bucketedHashStore.signatures(signatureWidth, pl);
-		}
-		else if (signatureWidth < 0) {
+		} else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
 			signatures = null;
-		}
-		else {
+		} else {
 			signatureMask = 0;
 			signatures = null;
 		}
 
-		if (! givenBucketedHashStore) bucketedHashStore.close();
+		if (!givenBucketedHashStore) bucketedHashStore.close();
 	}
 
 	@Override
@@ -580,21 +657,25 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		return getLongBySignature(signature);
 	}
 
-	/** Low-level access to the output of this function.
+	/**
+	 * Low-level access to the output of this function.
 	 *
-	 * <p>This method makes it possible to build several kind of functions on the same {@link BucketedHashStore} and
-	 * then retrieve the resulting values by generating a single signature. The method
-	 * {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this technique.
+	 * <p>
+	 * This method makes it possible to build several kind of functions on the same
+	 * {@link BucketedHashStore} and then retrieve the resulting values by generating a single
+	 * signature. The method {@link TwoStepsGOV3Function#getLong(Object)} is a good example of this
+	 * technique.
 	 *
 	 * @param signature a signature generated as documented in {@link BucketedHashStore}.
 	 * @return the output of the function.
 	 */
 	public long getLongBySignature(final long[] signature) {
 		final int[] e = new int[4];
-		final int bucket = (int) Math.multiplyHigh(signature[0] >>> 1, multiplier);
+		final int bucket = (int)Math.multiplyHigh(signature[0] >>> 1, multiplier);
 		final long bucketOffset = offsetAndSeed[bucket] & OFFSET_MASK;
 		Linear4SystemSolver.signatureToEquation(signature, offsetAndSeed[bucket] & ~OFFSET_MASK, (int)((offsetAndSeed[bucket + 1] & OFFSET_MASK) - bucketOffset), e);
-		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset, e3 = e[3] + bucketOffset;
+		final long e0 = e[0] + bucketOffset, e1 = e[1] + bucketOffset, e2 = e[2] + bucketOffset,
+				e3 = e[3] + bucketOffset;
 
 		final long result = data.getLong(e0) ^ data.getLong(e1) ^ data.getLong(e2) ^ data.getLong(e3);
 		if (signatureMask == 0) return result;
@@ -602,7 +683,8 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		else return ((result ^ signature[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
-	/** Returns the number of keys in the function domain.
+	/**
+	 * Returns the number of keys in the function domain.
 	 *
 	 * @return the number of the keys in the function domain.
 	 */
@@ -617,7 +699,8 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		return n > Integer.MAX_VALUE ? -1 : (int)n;
 	}
 
-	/** Returns the number of bits used by this structure.
+	/**
+	 * Returns the number of bits used by this structure.
 	 *
 	 * @return the number of bits used by this structure.
 	 */
@@ -632,7 +715,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 	}
 
 	public void dump(final String file) throws IOException {
-		final ByteBuffer buffer = ByteBuffer.allocateDirect(offsetAndSeed.length * 8 + 40).order(ByteOrder.nativeOrder());
+		final ByteBuffer buffer = ByteBuffer.allocateDirect(1024 * 1024).order(ByteOrder.nativeOrder());
 		final FileOutputStream fos = new FileOutputStream(file);
 		final FileChannel channel = fos.getChannel();
 
@@ -642,16 +725,25 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		buffer.putLong(multiplier);
 		buffer.putLong(globalSeed);
 		buffer.putLong(offsetAndSeed.length);
-		for(final long l : offsetAndSeed) buffer.putLong(l);
+
+		for (final long l : offsetAndSeed) {
+			if (!buffer.hasRemaining()) {
+				buffer.flip();
+				channel.write(buffer);
+				buffer.clear();
+			}
+			buffer.putLong(l);
+		}
+
 		buffer.flip();
 		channel.write(buffer);
 		buffer.clear();
 
-		final LongArrayBitVector v = LongArrayBitVector.getInstance().ensureCapacity(data.size64() * width);
-		for(final long d: data) v.append(d, width);
-		final long[] array = v.bits();
-		buffer.putLong(array.length);
-		for(final long l: array) {
+		final LongBigArrayBitVector v = LongBigArrayBitVector.getInstance().ensureCapacity(data.size64() * width);
+		for (final long d : data) v.append(d, width);
+		final LongBigList list = v.asLongBigList(Long.SIZE);
+		buffer.putLong(list.size64());
+		for (final long l : list) {
 			if (!buffer.hasRemaining()) {
 				buffer.flip();
 				channel.write(buffer);
@@ -666,19 +758,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP(GOV4Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.",
-				new Parameter[] {
-						new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
-						new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
-						new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
-						new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
-						new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
-						new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be an approximate dictionary."),
-						new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
-						new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
-						new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."),
-						new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."),
-		});
+		final SimpleJSAP jsap = new SimpleJSAP(GOV4Function.class.getName(), "Builds a GOV function mapping a newline-separated list of strings to their ordinal position, or to specific values.", new Parameter[] { new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."), new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."), new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."), new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."), new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."), new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be an approximate dictionary."), new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."), new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."), new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."), new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the first case, strings will not be loaded into core memory."), });
 
 		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
@@ -698,15 +778,13 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);
 			if (values != null) {
 				int dataWidth = -1;
-				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
+				for (final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
 				BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, tempDir, null, false), functionName);
-			}
-			else BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false), functionName);
-		}
-		else {
+			} else BinIO.storeObject(new GOV4Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, tempDir, null, false), functionName);
+		} else {
 			final Collection<MutableString> collection;
 			if ("-".equals(stringFile)) {
 				final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -715,16 +793,14 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 				pl.start("Loading strings...");
 				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
-			}
-			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			} else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
 			if (values != null) {
 				int dataWidth = -1;
-				for(final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
+				for (final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
 				BinIO.storeObject(new GOV4Function<>(collection, transformationStrategy, signatureWidth, values, dataWidth, tempDir, null, false), functionName);
-			}
-			else BinIO.storeObject(new GOV4Function<>(collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false), functionName);
+			} else BinIO.storeObject(new GOV4Function<>(collection, transformationStrategy, signatureWidth, null, -1, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}
