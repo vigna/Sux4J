@@ -48,7 +48,7 @@ static void inline signature_to_equation(const uint64_t *signature, const uint64
 
 static uint64_t inline get_value(const uint64_t * const array, uint64_t pos, const int width) {
 	const int l = 64 - width;
-	const int start_word = pos / 64;
+	const uint64_t start_word = pos / 64;
 	const int start_bit = pos % 64;
 	if (start_bit <= l) return array[start_word] << l - start_bit >> l;
 	return array[start_word] >> start_bit | array[start_word + 1] << 64 + l - start_bit >> l;
