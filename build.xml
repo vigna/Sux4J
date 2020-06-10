@@ -176,7 +176,6 @@
 			<link href="${commons-io.apiurl}"/>
 			<link href="${commons-lang.apiurl}"/>
 			<link href="${commons-configuration.apiurl}"/>
-			<link href="${commons-collections.apiurl}"/>
 		</javadoc>
 	</target>
 	

@@ -134,8 +134,10 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		final HollowTrieMonotoneMinimalPerfectHashFunction<T> intermediateTrie = new HollowTrieMonotoneMinimalPerfectHashFunction<>(new ObjectIterator<T>() {
 			final Iterator<? extends T> iterator = elements.iterator();
 			boolean toAdvance = true;
+			@SuppressWarnings("null")
 			private T curr;
 
+			@SuppressWarnings("null")
 			@Override
 			public boolean hasNext() {
 				if (toAdvance) {
@@ -451,7 +453,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 					throw new RuntimeException(e);
 				}
 			}
-		};
+		}
 
 		externalBehaviour = new GOV3Function.Builder<BitVector>().keys(new IterableStream(new InputBitStream(externalKeysFile), externalTestFunction, externalValues)).transform(TransformationStrategies.identity()).values(externalValues, 1).build();
 		falseFollowsDetector = new GOV3Function.Builder<BitVector>().keys(new IterableStream(new InputBitStream(falseFollowsKeyFile), falseFollows, falseFollowsValues)).transform(TransformationStrategies.identity()).values(falseFollowsValues, 1).build();
@@ -565,7 +567,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 	@Override
-	public boolean containsKey(Object o) {
+	public boolean containsKey(final Object o) {
 		return true;
 	}
 

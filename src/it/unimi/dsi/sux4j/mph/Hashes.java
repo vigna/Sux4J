@@ -63,13 +63,10 @@ public class Hashes {
 	private Hashes() {
 	}
 
-	private final static long ARBITRARY_BITS = 0x9e3779b97f4a7c13L; /*
-																	 * the
-																	 * golden
-																	 * ratio; an
-																	 * arbitrary
-																	 * value.
-																	 */
+	/**
+	 * The golden ratio; an arbitrary value.
+	 */
+	private final static long ARBITRARY_BITS = 0x9e3779b97f4a7c13L;
 
 	/**
 	 * Jenkins 64-bit hashing (all three values produced).

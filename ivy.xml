@@ -16,11 +16,12 @@
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 		<dependency org="org.jacoco" name="org.jacoco.ant" rev="latest.release" conf="test"/>
 
-		<dependency org="org.slf4j" name="slf4j-api" rev="latest.release"/>
-		<dependency org="ch.qos.logback" name="logback-classic" rev="latest.release" conf="runtime"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
+
 		<dependency org="commons-configuration" name="commons-configuration" rev="latest.release"/>
 		<dependency org="commons-io" name="commons-io" rev="latest.release"/>
 		<dependency org="commons-lang" name="commons-lang" rev="latest.release"/>
-		<dependency org="commons-collections" name="commons-collections" rev="latest.release"/>
 	</dependencies>
 </ivy-module>

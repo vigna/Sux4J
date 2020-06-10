@@ -3,6 +3,8 @@
 - GOV/GV functions now allow arbitrary data sizes, thanks to the
   new LongBigArrayBitVector class in the DSI utilities.
 
+- Fixed SLF4J dependencies (again).
+
 5.0.4
 
 - We now use the classifier in naming artifacts.

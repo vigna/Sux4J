@@ -181,7 +181,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param transform the transformation strategy used for this map.
 		 */
 		@SuppressWarnings("unchecked")
-		public Handle2NodeMap(final int size, TransformationStrategy<? super U> transform) {
+		public Handle2NodeMap(final int size, final TransformationStrategy<? super U> transform) {
 			this.transform = transform;
 			length = Math.max(INITIAL_LENGTH, 1 << Fast.ceilLog2(1 + (3L * size / 2)));
 			mask = length - 1;
@@ -194,7 +194,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param transform the transformation strategy used for this map.
 		 */
 		@SuppressWarnings("unchecked")
-		public Handle2NodeMap(TransformationStrategy<? super U> transform) {
+		public Handle2NodeMap(final TransformationStrategy<? super U> transform) {
 			this.transform = transform;
 			length = INITIAL_LENGTH;
 			mask = length - 1;
@@ -291,7 +291,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				}
 
 				@Override
-				public boolean contains(Object o) {
+				public boolean contains(final Object o) {
 					final BitVector v = (BitVector)o;
 					return get(v, true) != null;
 				}
@@ -329,7 +329,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				}
 
 				@Override
-				public boolean contains(Object o) {
+				public boolean contains(final Object o) {
 					@SuppressWarnings("unchecked")
 					final Node<U> node = (Node<U>)o;
 					return get(node.handle(transform), true) != null;
@@ -533,7 +533,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return this instanceof InternalNode;
 		}
 
-		public long handleLength(TransformationStrategy<? super U> transform) {
+		public long handleLength(final TransformationStrategy<? super U> transform) {
 			return twoFattest(nameLength - 1, extentLength(transform));
 		}
 
@@ -543,7 +543,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		public abstract BitVector extent(TransformationStrategy<? super U> transform);
 		public abstract boolean intercepts(final long h);
 
-		public long handleHash(TransformationStrategy<? super U> transform) {
+		public long handleHash(final TransformationStrategy<? super U> transform) {
 			if (SHORT_SIGNATURES) return shortSignature(Hashes.murmur(handle(transform), 42));
 			else return Hashes.murmur(handle(transform), 42) & SIGNATURE_MASK;
 		}
@@ -554,7 +554,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param transform the transformation strategy used to build the trie this node belongs to.
 		 * @return true if the string exits at this node.
 		 */
-		public boolean isExitNodeOf(final LongArrayBitVector v, TransformationStrategy<? super U> transform) {
+		public boolean isExitNodeOf(final LongArrayBitVector v, final TransformationStrategy<? super U> transform) {
 			return isExitNodeOf(v.length(), v.longestCommonPrefixLength(extent(transform)), transform);
 		}
 
@@ -565,7 +565,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * @param lcpLength the length of the longest common prefix between the string and the extent of this node.
 		 * @return true if the string exits at this node.
 		 */
-		public boolean isExitNodeOf(final long length, final long lcpLength, TransformationStrategy<? super U> transform) {
+		public boolean isExitNodeOf(final long length, final long lcpLength, final TransformationStrategy<? super U> transform) {
 			return (nameLength <= lcpLength) && (lcpLength < extentLength(transform) || lcpLength == length);
 		}
 
@@ -638,7 +638,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		@Override
-		public BitVector extent(TransformationStrategy<? super U> transform) {
+		public BitVector extent(final TransformationStrategy<? super U> transform) {
 			return reference.key(transform).subVector(0, extentLength);
 		}
 
@@ -648,12 +648,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		@Override
-		public BitVector key(TransformationStrategy<? super U> transform) {
+		public BitVector key(final TransformationStrategy<? super U> transform) {
 			return reference.key(transform);
 		}
 
 		@Override
-		public BitVector handle(TransformationStrategy<? super U> transform) {
+		public BitVector handle(final TransformationStrategy<? super U> transform) {
 			return reference.key(transform).subVector(0, handleLength());
 		}
 	}
@@ -665,12 +665,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** The next leaf. */
 		protected Leaf<U> next;
 		/** The key associated to this leaf. */
+		@SuppressWarnings("null")
 		protected U key;
 		/** The internal node that refers to the key of this leaf, if any. It will be {@code null} for exactly one leaf. */
 		protected InternalNode<U> reference;
 
 		@Override
-		public BitVector handle(TransformationStrategy<? super U> transform) {
+		public BitVector handle(final TransformationStrategy<? super U> transform) {
 			return reference.key(transform).subVector(0, handleLength(transform));
 		}
 
@@ -833,7 +834,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert nodes.isEmpty();
 	}
 
-	private int visit(final Node<T> n, final Node<T> parent, final long nameLength, final int depth, ObjectOpenHashSet<Node<T>> nodes, ObjectOpenHashSet<Leaf<T>> leaves, ObjectOpenHashSet<T> references) {
+	private int visit(final Node<T> n, final Node<T> parent, final long nameLength, final int depth, final ObjectOpenHashSet<Node<T>> nodes, final ObjectOpenHashSet<Leaf<T>> leaves, final ObjectOpenHashSet<T> references) {
 		if (n == null) return 0;
 		if (DEBUG) {
 			for(int i = depth; i-- != 0;) System.err.print('\t');
@@ -893,7 +894,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixRightJumpsAfterInsertion(final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+	private static <U> void fixRightJumpsAfterInsertion(final InternalNode<U> internal, Node<U> exitNode, final boolean rightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
@@ -935,7 +936,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixLeftJumpsAfterInsertion(final InternalNode<U> internal, Node<U> exitNode, boolean rightChild, Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+	private static <U> void fixLeftJumpsAfterInsertion(final InternalNode<U> internal, Node<U> exitNode, final boolean rightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
@@ -978,7 +979,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param rightChild whether the parent of the exit node is a right child.
 	 * @param stack a stack containing the 2-fat ancestors of the grandparent of the exit node.
 	 */
-	private static <U> void fixRightJumpsAfterDeletion(InternalNode<U> parentExitNode, Leaf<U> exitNode, Node<U> otherNode, boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
+	private static <U> void fixRightJumpsAfterDeletion(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixRightJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack);
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
@@ -1019,7 +1020,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param rightChild whether the parent of the exit node is a right child.
 	 * @param stack a stack containing the 2-fat ancestors of the grandparent of the exit node.
 	 */
-	private static <U> void fixLeftJumpsAfterDeletion(InternalNode<U> parentExitNode, Leaf<U> exitNode, Node<U> otherNode, boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
+	private static <U> void fixLeftJumpsAfterDeletion(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixLeftJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack);
 		InternalNode<U> toBeFixed = null;
 		long jumpLength = -1;
@@ -1390,7 +1391,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	}
 
-	private void assertParent(LongArrayBitVector v, ParexData<T> parexData, ObjectArrayList<InternalNode<T>> stack) {
+	private void assertParent(final LongArrayBitVector v, final ParexData<T> parexData, final ObjectArrayList<InternalNode<T>> stack) {
 		assert (parexData.parexNode == null) == stack.isEmpty() : (parexData.parexNode == null) + " != " + stack.isEmpty();
 		assert parexData.parexNode != null || parexData.exitNode == root;
 		assert parexData.parexNode == null || parexData.parexNode.left == parexData.exitNode || parexData.parexNode.right == parexData.exitNode;
@@ -1503,7 +1504,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	public T pred(final Object o) {
 		if (size == 0) return null;
 		return predNode((T)o).key;
@@ -1517,7 +1518,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		else return exitNode.rightLeaf().next;
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "null" })
 	public T succ(final Object o) {
 		if (size == 0) return null;
 		return succNode((T)o).key;
@@ -1581,17 +1582,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	@Override
-	public ObjectSortedSet<T> headSet(T arg0) {
+	public ObjectSortedSet<T> headSet(final T arg0) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public ObjectSortedSet<T> subSet(T arg0, T arg1) {
+	public ObjectSortedSet<T> subSet(final T arg0, final T arg1) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public ObjectSortedSet<T> tailSet(T arg0) {
+	public ObjectSortedSet<T> tailSet(final T arg0) {
 		throw new UnsupportedOperationException();
 	}
 
