@@ -1,9 +1,26 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,16 +28,20 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+
 public class HypergraphFunctionTest {
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testNumbers() throws IOException, ClassNotFoundException {
-		for (int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000 }) {
+		for (final int size : new int[] { 0, 1, 4, 8, 20, 64, 100, 1000 }) {
 			System.err.println("Size: " + size);
 
-			String[] s = new String[size];
-			long[] v = new long[s.length];
+			final String[] s = new String[size];
+			final long[] v = new long[s.length];
 			for (int i = s.length; i-- != 0;)
 				s[(int)(v[i] = i)] = Integer.toString(i);
 
@@ -29,7 +50,7 @@ public class HypergraphFunctionTest {
 			for (int i = s.length; i-- != 0;)
 				assertEquals(i, function.getLong(s[i]));
 
-			File temp = File.createTempFile(getClass().getSimpleName(), "test");
+			final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 			temp.deleteOnExit();
 			BinIO.storeObject(function, temp);
 			function = (GOV3Function<String>)BinIO.loadObject(temp);
@@ -42,8 +63,8 @@ public class HypergraphFunctionTest {
 		}
 	}
 
-	public static String binary(int l) {
-		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString(l);
+	public static String binary(final int l) {
+		final String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString(l);
 		return s.substring(s.length() - 32);
 	}
 
@@ -51,19 +72,19 @@ public class HypergraphFunctionTest {
 	@Test
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 
-		String[] s = new String[10];
-		long[] v = new long[s.length];
+		final String[] s = new String[10];
+		final long[] v = new long[s.length];
 		for (int i = s.length; i-- != 0;)
 			s[(int)(v[i] = i)] = binary(i);
 
 		GOV3Function<String> function = new GOV3Function.Builder<String>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).values(LongArrayList.wrap(v), 12).build();
 
-		int[] check = new int[s.length];
+		final int[] check = new int[s.length];
 		Arrays.fill(check, -1);
 		for (int i = s.length; i-- != 0;)
 			assertEquals(i, function.getLong(s[i]));
 
-		File temp = File.createTempFile(getClass().getSimpleName(), "test");
+		final File temp = File.createTempFile(getClass().getSimpleName(), "test");
 		temp.deleteOnExit();
 		BinIO.storeObject(function, temp);
 		function = (GOV3Function<String>)BinIO.loadObject(temp);

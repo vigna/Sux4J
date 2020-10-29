@@ -1,10 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.util.Arrays;
-import java.util.Collections;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -25,6 +18,13 @@ import java.util.Collections;
  *
  */
 
+package it.unimi.dsi.sux4j.bits;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.util.Arrays;
+import java.util.Collections;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -41,7 +41,7 @@ import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
  */
 
 public class JacobsonBalancedParentheses implements BalancedParentheses {
-	public static String binary(long l, boolean reverse) {
+	public static String binary(long l, final boolean reverse) {
 		if (reverse) l = Long.reverse(l);
 		final MutableString s = new MutableString().append("0000000000000000000000000000000000000000000000000000000000000000000000000").append(Long.toBinaryString(l));
 		s.delete(0, s.length() - 64);
@@ -67,7 +67,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	private final SparseRank closingPioneersRank;
 	private final EliasFanoLongBigList closingPioneerMatches;
 
-	public final static int countFarOpen(long word, int l) {
+	public final static int countFarOpen(final long word, int l) {
 		int c = 0, e = 0;
 		while(l-- != 0) {
 			if ((word & 1L << l) != 0) {
@@ -82,7 +82,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		return c;
 	}
 
-	public final static int findFarOpen(long word, int l, int k) {
+	public final static int findFarOpen(final long word, int l, int k) {
 		int e = 0;
 		while(l-- != 0) {
 			if ((word & 1L << l) != 0) {
@@ -97,7 +97,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		return -1;
 	}
 
-	public final static int countFarClose(long word, int l) {
+	public final static int countFarClose(final long word, final int l) {
 		int c = 0, e = 0;
 		for(int i = 0; i < l; i++) {
 			if ((word & 1L << i) != 0) {
@@ -112,7 +112,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 		return c;
 	}
 
-	public final static int findFarClose2(long word, int k) {
+	public final static int findFarClose2(final long word, int k) {
 		int e = 0;
 		for(int i = 0; i < Long.SIZE; i++) {
 			if ((word & 1L << i) != 0) {
@@ -137,7 +137,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	private static final long ONES_STEP_32 = 0x0000000100000001L;
 	private static final long MSBS_STEP_32 = 0x8000000080000000L;
 
-	public final static int findFarClose(long word, int k) {
+	public final static int findFarClose(final long word, int k) {
 		// 00 -> 00 01 -> 01 11 -> 10 10 -> 00
 		if (DDEBUG) System.err.println("Before: " + binary(word, true));
 		final long b1 = (word & (0xA * ONES_STEP_4)) >>> 1;
@@ -582,7 +582,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 }
 
 	@Override
-	public long enclose(long pos) {
+	public long enclose(final long pos) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -648,7 +648,7 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 	}
 
 	@Override
-	public long findOpen(long pos) {
+	public long findOpen(final long pos) {
 		throw new UnsupportedOperationException();
 	}
 

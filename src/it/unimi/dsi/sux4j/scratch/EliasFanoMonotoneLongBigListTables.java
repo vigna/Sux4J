@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.scratch;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.scratch;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.scratch;
 
 import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
@@ -204,7 +204,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 	 * a (strict) upper bound to the values returned by <code>iterator</code>.
 	 * @param iterator an iterator returning nondecreasing elements.
 	 */
-	protected EliasFanoMonotoneLongBigListTables(long[] a, final LongIterator iterator) {
+	protected EliasFanoMonotoneLongBigListTables(final long[] a, final LongIterator iterator) {
 		length = a[0];
 		this.log2Quantum = LOG_2_QUANTUM;
 		this.quantum = 1 << LOG_2_QUANTUM;
@@ -253,7 +253,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		}
 
 		assert po == skipToOne.length : po + " != " + skipToOne.length;
-		assert pz == skipToZero.length: pz + " != " + skipToZero.length;;
+		assert pz == skipToZero.length: pz + " != " + skipToZero.length;
 	}
 
 

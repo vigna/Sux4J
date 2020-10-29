@@ -1,8 +1,3 @@
-package it.unimi.dsi.sux4j.util;
-
-import java.io.Serializable;
-import java.util.Arrays;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -22,6 +17,11 @@ import java.util.Arrays;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.util;
+
+import java.io.Serializable;
+import java.util.Arrays;
 
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -176,7 +176,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 	}
 
 	@Override
-	public long getLong(long index) {
+	public long getLong(final long index) {
 		if (marker == null) return small.getLong(index);
 		if (marker.getBoolean(index)) return large.getLong(rank.rank(index));
 		return small.getLong(index - rank.rank(index));

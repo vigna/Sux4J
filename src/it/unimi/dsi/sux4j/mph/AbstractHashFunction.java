@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.mph;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -20,6 +18,8 @@ package it.unimi.dsi.sux4j.mph;
  *
  */
 
+package it.unimi.dsi.sux4j.mph;
+
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
 
@@ -33,7 +33,7 @@ public abstract class AbstractHashFunction<K> extends AbstractObject2LongFunctio
 	private static final long serialVersionUID = 2L;
 
 	@Override
-	public boolean containsKey(Object key) {
+	public boolean containsKey(final Object key) {
 		return true;
 	}
 

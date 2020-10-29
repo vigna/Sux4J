@@ -1,24 +1,44 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph.solve;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem;
-import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem.Modulo2Equation;
-import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import java.util.Arrays;
 
 import org.junit.Test;
 
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.sux4j.mph.solve.Modulo2SparseSystem.Modulo2Equation;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
+
 public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testBuilder() {
-		Modulo2Equation equation = new Modulo2Equation(1).add(0).add(1).add(2);
+		final Modulo2Equation equation = new Modulo2Equation(1).add(0).add(1).add(2);
 		assertEquals(1, equation.c);
 		assertEquals(3, equation.variables.size());
 		assertArrayEquals(new int[] { 0, 1, 2 }, equation.variables.toIntArray());
@@ -26,15 +46,15 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testSub0() {
-		Modulo2Equation equation0 = new Modulo2Equation(2).add(1).add(4).add(9);
-		Modulo2Equation equation1 = new Modulo2Equation(1).add(1).add(4).add(10);
+		final Modulo2Equation equation0 = new Modulo2Equation(2).add(1).add(4).add(9);
+		final Modulo2Equation equation1 = new Modulo2Equation(1).add(1).add(4).add(10);
 		equation0.add(equation1);
 		assertArrayEquals(new int[] { 9, 10 }, equation0.variables.toIntArray());
 	}
 
 	@Test
 	public void testOne() {
-		Modulo2SparseSystem system = new Modulo2SparseSystem(2);
+		final Modulo2SparseSystem system = new Modulo2SparseSystem(2);
 		system.add(new Modulo2Equation(2).add(0));
 		final long[] solution = new long[2];
 		assertTrue(system.copy().gaussianElimination(solution));
@@ -46,7 +66,7 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testImpossible() {
-		Modulo2SparseSystem system = new Modulo2SparseSystem(1);
+		final Modulo2SparseSystem system = new Modulo2SparseSystem(1);
 		system.add(new Modulo2Equation(2).add(0));
 		system.add(new Modulo2Equation(1).add(0));
 		final long[] solution = new long[1];
@@ -56,7 +76,7 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testRedundant() {
-		Modulo2SparseSystem system = new Modulo2SparseSystem(1);
+		final Modulo2SparseSystem system = new Modulo2SparseSystem(1);
 		system.add(new Modulo2Equation(2).add(0));
 		system.add(new Modulo2Equation(2).add(0));
 		final long[] solution = new long[1];
@@ -69,7 +89,7 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testSmall() {
-		Modulo2SparseSystem system = new Modulo2SparseSystem(11);
+		final Modulo2SparseSystem system = new Modulo2SparseSystem(11);
 		system.add(new Modulo2Equation(0).add(1).add(4).add(10));
 		system.add(new Modulo2Equation(2).add(1).add(4).add(9));
 		system.add(new Modulo2Equation(0).add(0).add(6).add(8));
@@ -86,9 +106,9 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testRandom() {
-		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
-		for(int size: new int[] { 1000 }) {
-			Modulo2SparseSystem system = new Modulo2SparseSystem(size);
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
+		for(final int size: new int[] { 1000 }) {
+			final Modulo2SparseSystem system = new Modulo2SparseSystem(size);
 			// Few equations
 			for(int i = 0; i < 2 * size / 3; i++) system.add(new Modulo2Equation(random.nextInt(100)).add(random.nextInt(size / 3)).add(size / 3 + random.nextInt(size / 3)).add(2 * size / 3 + random.nextInt(size / 3)));
 			final long[] solution = new long[size];
@@ -102,11 +122,11 @@ public class Modulo2SparseSystemTest {
 
 	@Test
 	public void testRandom2() {
-		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
-		for(int size: new int[] { 10, 100, 1000, 10000 }) {
-			Modulo2SparseSystem system = new Modulo2SparseSystem(size);
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
+		for(final int size: new int[] { 10, 100, 1000, 10000 }) {
+			final Modulo2SparseSystem system = new Modulo2SparseSystem(size);
 
-			IntOpenHashSet edge[] = new IntOpenHashSet[size];
+			final IntOpenHashSet edge[] = new IntOpenHashSet[size];
 
 			int x, v, w;
 			for (int i = 0; i < 2 * size / 3; i++) {
@@ -131,12 +151,12 @@ public class Modulo2SparseSystemTest {
 			}
 
 			for(int i = 0; i < 2 * size / 3; i++) {
-				Modulo2Equation equation = new Modulo2Equation(random.nextInt(100));
-				IntOpenHashSet variables = new IntOpenHashSet();
-				for(IntIterator iterator = edge[i].iterator(); iterator.hasNext();) variables.add(iterator.nextInt());
+				final Modulo2Equation equation = new Modulo2Equation(random.nextInt(100));
+				final IntOpenHashSet variables = new IntOpenHashSet();
+				for(final IntIterator iterator = edge[i].iterator(); iterator.hasNext();) variables.add(iterator.nextInt());
 				final int[] array = variables.toIntArray();
 				Arrays.sort(array);
-				for(int var: array) equation.add(var);
+				for(final int var: array) equation.add(var);
 				system.add(equation);
 			}
 			final long[] solution = new long[size];

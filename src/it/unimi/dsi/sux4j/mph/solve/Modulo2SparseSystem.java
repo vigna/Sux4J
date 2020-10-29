@@ -1,9 +1,3 @@
-package it.unimi.dsi.sux4j.mph.solve;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -23,6 +17,12 @@ import java.util.Collections;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph.solve;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -46,13 +46,13 @@ public class Modulo2SparseSystem {
 			this.c = c;
 		}
 
-		public Modulo2Equation add(int variable){
+		public Modulo2Equation add(final int variable){
 			if (! variables.isEmpty() && variable < variables.getInt(variables.size() - 1)) throw new IllegalArgumentException();
 			variables.add(variable);
 			return this;
 		}
 
-		protected Modulo2Equation(Modulo2Equation equation) {
+		protected Modulo2Equation(final Modulo2Equation equation) {
 			this.variables = equation.variables.clone();
 			this.c = equation.c;
 		}
@@ -134,7 +134,7 @@ public class Modulo2SparseSystem {
 		 *
 		 * @return the modulo-2 scalar product of {@code e} and {code f}.
 		 */
-		public static long scalarProduct(final Modulo2Equation e, long[] solution) {
+		public static long scalarProduct(final Modulo2Equation e, final long[] solution) {
 			long sum = 0;
 			for(final IntListIterator iterator = e.variables.iterator(); iterator.hasNext();)
 				sum ^= solution[iterator.nextInt()];
@@ -148,21 +148,21 @@ public class Modulo2SparseSystem {
 	private final ArrayList<Modulo2Equation> equations;
 	private final int numVars;
 
-	public Modulo2SparseSystem(int numVars) {
+	public Modulo2SparseSystem(final int numVars) {
 		this.numVars = numVars;
 		equations = new ArrayList<>();
 	}
 
-	protected Modulo2SparseSystem(int numVars, ArrayList<Modulo2Equation> system) {
+	protected Modulo2SparseSystem(final int numVars, final ArrayList<Modulo2Equation> system) {
 		this.numVars = numVars;
 		this.equations = system;
 	}
 
 	public void print() {
-		for (int i = 0; i < equations.size(); i++) System.out.println(equations.get(i));
+		for (final Modulo2Equation equation : equations) System.out.println(equation);
 	}
 
-	public void add(Modulo2Equation equation) {
+	public void add(final Modulo2Equation equation) {
 		equations.add(equation);
 	}
 
@@ -338,7 +338,7 @@ public class Modulo2SparseSystem {
 
 		if (buildSystem) {
 			system = new Modulo2SparseSystem(numVars);
-			for(int i = 0; i < c.length; i++) system.add(new Modulo2Equation((int)c[i]));
+			for (final long element : c) system.add(new Modulo2Equation((int)element));
 		}
 
 		/* The weight of each variable, that is, the number of equations still
@@ -498,7 +498,7 @@ public class Modulo2SparseSystem {
 		assert solution.length == numVars;
 
 		final Modulo2SparseSystem system = new Modulo2SparseSystem(numVars);
-		for(int i = 0; i < c.length; i++) system.add(new Modulo2Equation((int)c[i]));
+		for (final long element : c) system.add(new Modulo2Equation((int)element));
 
 		for(final int v : variable) {
 			final int[] eq = var2Eq[v];

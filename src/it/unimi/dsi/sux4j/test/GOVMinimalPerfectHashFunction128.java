@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.test;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.test;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.test;
 
 import java.io.File;
 import java.io.FileOutputStream;

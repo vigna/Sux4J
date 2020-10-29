@@ -1,12 +1,3 @@
-package it.unimi.dsi.sux4j.util;
-
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Iterator;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -26,6 +17,15 @@ import java.util.Iterator;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.util;
+
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Iterator;
 
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -179,7 +179,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param iterator an iterator returning natural numbers.
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 */
-	public EliasFanoLongBigList(final LongIterator iterator, long lowerBound) {
+	public EliasFanoLongBigList(final LongIterator iterator, final long lowerBound) {
 		this(iterator, lowerBound, false);
 	}
 
@@ -191,7 +191,7 @@ public class EliasFanoLongBigList extends AbstractLongBigList implements Seriali
 	 * @param lowerBound a (not necessarily strict) lower bound on the values returned by <code>iterator</code>.
 	 * @param offline if true, the construction uses offline memory.
 	 */
-	public EliasFanoLongBigList(final LongIterator iterator, long lowerBound, boolean offline) {
+	public EliasFanoLongBigList(final LongIterator iterator, final long lowerBound, final boolean offline) {
 		this.offset = -lowerBound + 1;
 		bits = LongArrayBitVector.getInstance();
 		LongArrayList borders = null;

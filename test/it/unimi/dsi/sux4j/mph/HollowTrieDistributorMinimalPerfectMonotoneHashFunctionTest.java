@@ -1,3 +1,23 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
@@ -17,13 +37,13 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 public class HollowTrieDistributorMinimalPerfectMonotoneHashFunctionTest {
 
 
-	public static String binary2(int l) {
+	public static String binary2(final int l) {
 		final String s = "1" + Integer.toBinaryString(l) + "10000000000000000000000000000000000000000000000000000000000000000000000000";
 		return s.substring(0, 32);
 	}
 
 
-	public static String binary(int l) {
+	public static String binary(final int l) {
 		final String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString(l);
 		return s.substring(s.length() - 32);
 	}

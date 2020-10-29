@@ -1,9 +1,26 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertEquals;
-import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
-import it.unimi.dsi.bits.TransformationStrategies;
-import it.unimi.dsi.fastutil.io.BinIO;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,14 +28,18 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
+import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.io.BinIO;
+
 public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionTest {
 
-	public static String binary(int l) {
-		String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString(l);
+	public static String binary(final int l) {
+		final String s = "0000000000000000000000000000000000000000000000000000000000000000000000000" + Integer.toBinaryString(l);
 		return s.substring(s.length() - 32);
 	}
 
-	private void check(String[] s, int size, TwoStepsLcpMonotoneMinimalPerfectHashFunction<String> mph, int signatureWidth) {
+	private void check(final String[] s, final int size, final TwoStepsLcpMonotoneMinimalPerfectHashFunction<String> mph, final int signatureWidth) {
 		for (int i = s.length; i-- != 0;) assertEquals(i, mph.getLong(s[i]));
 
 		// Exercise code for negative results
@@ -31,10 +52,10 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionTest {
 	public void testSortedNumbers() throws IOException, ClassNotFoundException {
 
 		for (int size = 1000; size < 10000000; size *= 10) {
-			for (int signatureWidth: new int[] { 0, 32, 64 }) {
+			for (final int signatureWidth: new int[] { 0, 32, 64 }) {
 				System.err.println("Size: " + size + " Signature width: " + signatureWidth);
-				String[] s = new String[size];
-				int[] v = new int[s.length];
+				final String[] s = new String[size];
+				final int[] v = new int[s.length];
 				for (int i = s.length; i-- != 0;) s[v[i] = i] = binary(i);
 
 				TwoStepsLcpMonotoneMinimalPerfectHashFunction<String> mph = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys(Arrays.asList(s)).transform(TransformationStrategies.prefixFreeUtf16()).signed(signatureWidth).build();
@@ -63,7 +84,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunctionTest {
 
 	@Test
 	public void testEmpty() throws IOException {
-		TwoStepsLcpMonotoneMinimalPerfectHashFunction<String> mph = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys(Arrays.asList(new String[] {})).transform(TransformationStrategies.prefixFreeUtf16()).build();
+		final TwoStepsLcpMonotoneMinimalPerfectHashFunction<String> mph = new TwoStepsLcpMonotoneMinimalPerfectHashFunction.Builder<String>().keys(Arrays.asList(new String[] {})).transform(TransformationStrategies.prefixFreeUtf16()).build();
 		assertEquals(-1, mph.getLong(""));
 	}
 }

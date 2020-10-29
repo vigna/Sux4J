@@ -1,3 +1,23 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import java.io.File;
@@ -21,26 +41,6 @@ import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
-
-/*
- * Sux4J: Succinct data structures for Java
- *
- * Copyright (C) 2008-2020 Sebastiano Vigna
- *
- *  This library is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU Lesser General Public License as published by the Free
- *  Software Foundation; either version 3 of the License, or (at your option)
- *  any later version.
- *
- *  This library is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- */
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -108,7 +108,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 	 * @param tempDir a directory for the temporary files created during construction
 	 * by the {@link HollowTrieDistributor}, or {@code null} for the default temporary directory.
 	 */
-	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction(final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, File tempDir) throws IOException {
+	public HollowTrieDistributorMonotoneMinimalPerfectHashFunction(final Iterable<? extends T> elements, final TransformationStrategy<? super T> transform, final File tempDir) throws IOException {
 
 		this.transform = transform;
 
@@ -146,7 +146,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		distributor = new HollowTrieDistributor<>(bitVectors, log2BucketSize, TransformationStrategies.identity(), tempDir);
 		offset = new GOV3Function.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).values(new AbstractLongBigList() {
 			@Override
-			public long getLong(long index) {
+			public long getLong(final long index) {
 				return index & bucketMask;
 			}
 			@Override

@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.test;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -20,10 +18,7 @@ package it.unimi.dsi.sux4j.test;
  *
  */
 
-
-import it.unimi.dsi.Util;
-import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.fastutil.longs.LongList;
+package it.unimi.dsi.sux4j.test;
 
 import java.io.IOException;
 
@@ -35,6 +30,10 @@ import com.martiansoftware.jsap.SimpleJSAP;
 import com.martiansoftware.jsap.Switch;
 import com.martiansoftware.jsap.UnflaggedOption;
 
+import it.unimi.dsi.Util;
+import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.longs.LongList;
+
 public class ListSpeedTest {
 
 	public static void main(final String[] arg) throws IOException, JSAPException, ClassNotFoundException {
@@ -45,14 +44,14 @@ public class ListSpeedTest {
 					new UnflaggedOption("list", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised list.")
 		});
 
-		JSAPResult jsapResult = jsap.parse(arg);
+		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
 
 		final String listName = jsapResult.getString("list");
 
 		final LongList list = (LongList)BinIO.loadObject(listName);
 		long total = 0;
-		int n = list.size();
+		final int n = list.size();
 		for(int k = 13; k-- != 0;) {
 			long time = -System.currentTimeMillis();
 			for(int i = 0; i < n; i++) {

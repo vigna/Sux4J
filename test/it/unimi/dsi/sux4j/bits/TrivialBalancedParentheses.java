@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -20,6 +18,7 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
+package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 
@@ -27,7 +26,7 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 	private static final long serialVersionUID = 1L;
 	private final BitVector v;
 
-	public TrivialBalancedParentheses(BitVector v) {
+	public TrivialBalancedParentheses(final BitVector v) {
 		this.v = v;
 	}
 
@@ -37,7 +36,7 @@ public class TrivialBalancedParentheses implements BalancedParentheses {
 	}
 
 	@Override
-	public long enclose(long pos) {
+	public long enclose(final long pos) {
 		throw new UnsupportedOperationException();
 	}
 

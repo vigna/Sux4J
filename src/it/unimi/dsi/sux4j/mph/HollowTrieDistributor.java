@@ -1,13 +1,3 @@
-package it.unimi.dsi.sux4j.mph;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -27,6 +17,16 @@ import org.slf4j.LoggerFactory;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;

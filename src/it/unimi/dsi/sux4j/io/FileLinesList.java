@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.io;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.io;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.io;
 
 import java.io.Closeable;
 import java.io.FileInputStream;
@@ -118,7 +118,7 @@ public class FileLinesList extends AbstractObjectList<MutableString> implements 
 			while((len = inputStream.readLine(array, start, array.length - start, terminators)) == array.length - start) {
 				start += len;
 				array = ByteArrays.grow(array, array.length + 1);
-			};
+			}
 
 			if (len != -1) count++;
 			else break;

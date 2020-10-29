@@ -1,8 +1,3 @@
-package it.unimi.dsi.sux4j.scratch;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -22,6 +17,11 @@ import java.io.ObjectInputStream;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.scratch;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -45,7 +45,7 @@ public class Rank9GogPetri extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 
-	public Rank9GogPetri(long[] bits, long length) {
+	public Rank9GogPetri(final long[] bits, final long length) {
 		this(LongArrayBitVector.wrap(bits, length));
 	}
 
@@ -82,7 +82,7 @@ public class Rank9GogPetri extends AbstractRank implements Rank {
 
 
 	@Override
-	public long rank(long pos) {
+	public long rank(final long pos) {
 		if (ASSERTS) assert pos >= 0;
 		if (ASSERTS) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
@@ -106,7 +106,7 @@ public class Rank9GogPetri extends AbstractRank implements Rank {
 	}
 
 	@Override
-	public long rank(long from, long to) {
+	public long rank(final long from, final long to) {
 		return rank(to) - rank(from);
 	}
 

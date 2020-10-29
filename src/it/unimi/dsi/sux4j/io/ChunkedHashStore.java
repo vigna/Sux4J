@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.io;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.io;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.io;
 
 import java.io.EOFException;
 import java.io.File;
@@ -832,6 +832,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 				return chunk < chunks;
 			}
 
+			@SuppressWarnings("resource")
 			@Override
 			public Chunk next() {
 				if (! hasNext()) throw new NoSuchElementException();

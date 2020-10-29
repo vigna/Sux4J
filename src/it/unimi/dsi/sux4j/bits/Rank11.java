@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.bits;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.bits;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -51,7 +51,7 @@ public class Rank11 extends AbstractRank implements Rank {
 	protected final long numOnes;
 	protected final long lastOne;
 
-	public Rank11(long[] bits, long length) {
+	public Rank11(final long[] bits, final long length) {
 		this(LongArrayBitVector.wrap(bits, length));
 	}
 
@@ -87,7 +87,7 @@ public class Rank11 extends AbstractRank implements Rank {
 
 
 	@Override
-	public long rank(long pos) {
+	public long rank(final long pos) {
 		if (ASSERTS) assert pos >= 0;
 		if (ASSERTS) assert pos <= bitVector.length();
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
@@ -115,7 +115,7 @@ public class Rank11 extends AbstractRank implements Rank {
 	}
 
 	@Override
-	public long rank(long from, long to) {
+	public long rank(final long from, final long to) {
 		return rank(to) - rank(from);
 	}
 

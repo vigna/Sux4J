@@ -1,8 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
-
-import java.io.Serializable;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -23,6 +18,9 @@ import java.io.Serializable;
  *
  */
 
+package it.unimi.dsi.sux4j.bits;
+
+import java.io.Serializable;
 
 import it.unimi.dsi.bits.BitVector;
 

@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.bits;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.bits;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -75,7 +75,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	 * @param m the number of ones in the underlying bit vector.
 	 * @param iterator an iterator returning the positions of the ones in the underlying bit vector in increasing order.
 	 */
-	public SparseSelect(final long n, long m, final LongIterator iterator) {
+	public SparseSelect(final long n, final long m, final LongIterator iterator) {
 		super(m, n, iterator);
 		this.n = n;
 		fromRank = false;

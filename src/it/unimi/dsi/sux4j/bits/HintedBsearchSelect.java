@@ -1,9 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -24,6 +18,10 @@ import java.io.ObjectInputStream;
  *
  */
 
+package it.unimi.dsi.sux4j.bits;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -77,7 +75,7 @@ public class HintedBsearchSelect implements Select {
 	}
 
 	@Override
-	public long select(long rank) {
+	public long select(final long rank) {
 		if (rank >= numOnes) return -1;
 
 		final long[] count = this.count;

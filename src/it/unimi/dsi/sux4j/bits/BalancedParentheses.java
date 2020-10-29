@@ -1,6 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -21,10 +18,11 @@ package it.unimi.dsi.sux4j.bits;
  *
  */
 
-
-import it.unimi.dsi.bits.BitVector;
+package it.unimi.dsi.sux4j.bits;
 
 import java.io.Serializable;
+
+import it.unimi.dsi.bits.BitVector;
 
 /** A data structure providing primitives for balanced parentheses
  * represented in a bit array.

@@ -1,3 +1,23 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs;
@@ -17,7 +37,7 @@ import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder;
 @SuppressWarnings("deprecation")
 public class MinimalPerfectHashFunctionTest {
 
-	private void check(int size, String[] s, MinimalPerfectHashFunction<CharSequence> mph, int w) {
+	private void check(final int size, final String[] s, final MinimalPerfectHashFunction<CharSequence> mph, final int w) {
 		final int[] check = new int[s.length];
 		Arrays.fill(check, -1);
 		for (int i = s.length; i-- != 0;) {

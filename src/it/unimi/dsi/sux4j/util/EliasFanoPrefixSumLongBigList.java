@@ -1,7 +1,3 @@
-package it.unimi.dsi.sux4j.util;
-
-import java.util.NoSuchElementException;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -21,6 +17,10 @@ import java.util.NoSuchElementException;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.util;
+
+import java.util.NoSuchElementException;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -119,7 +119,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 		this((LongIterable) () -> LongIterators.wrap(elements.iterator()));
 	}
 
-	private final static long getDiff(long[] bits, long index, int l) {
+	private final static long getDiff(final long[] bits, final long index, final int l) {
 		if (l == 0) return 0;
 		final int m = Long.SIZE - l;
 		final long start = index * l;

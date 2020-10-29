@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.bits;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.bits;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.bits;
 
 /** An abstract implementation of {@link Rank} providing a few obvious derived methods. */
 

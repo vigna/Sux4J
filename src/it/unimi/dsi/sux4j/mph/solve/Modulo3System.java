@@ -1,12 +1,3 @@
-package it.unimi.dsi.sux4j.mph.solve;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -26,6 +17,15 @@ import org.slf4j.LoggerFactory;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph.solve;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -340,7 +340,7 @@ public class Modulo3System {
 	@Override
 	public String toString() {
 		final StringBuilder b = new StringBuilder();
-		for (int i = 0; i < equations.size(); i++) b.append(equations.get(i)).append('\n');
+		for (final Modulo3Equation equation : equations) b.append(equation).append('\n');
 		return b.toString();
 	}
 
@@ -514,7 +514,7 @@ public class Modulo3System {
 
 		if (buildSystem) {
 			system = new Modulo3System(numVars);
-			for(int i = 0; i < c.length; i++) system.add(new Modulo3Equation(c[i], numVars));
+			for (final long element : c) system.add(new Modulo3Equation(element, numVars));
 		}
 
 		/* The weight of each variable, that is, the number of equations still

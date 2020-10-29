@@ -1,3 +1,23 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.bits;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +48,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 	}
 
 
-	private void recFindNearCloseTest(LongArrayBitVector bv, int e) {
+	private void recFindNearCloseTest(final LongArrayBitVector bv, final int e) {
 		if (e == 0) {
 			assertEquals(bv.toString(), bv.length() - 1, JacobsonBalancedParentheses.findNearClose(bv.getLong(0, bv.length())));
 			return;
@@ -51,7 +71,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 
 	@Test
 	public void testFindNearCloseRec() {
-		LongArrayBitVector bv = LongArrayBitVector.getInstance();
+		final LongArrayBitVector bv = LongArrayBitVector.getInstance();
 		bv.add(1);
 		bv.add(1);
 		recFindNearCloseTest(bv, 2);
@@ -96,7 +116,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 		assertEquals(63, JacobsonBalancedParentheses.findNearClose(parseSmall("(((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))")));
 	}
 
-	private void recFindFarCloseTest(LongArrayBitVector bv) {
+	private void recFindFarCloseTest(final LongArrayBitVector bv) {
 		if (bv.length() == Long.SIZE) {
 			final long word = bv.getLong(0, Long.SIZE);
 			for (int i = 0;; i++) {
@@ -125,7 +145,7 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 
 	@Test
 	public void testFindFarCloseRec() {
-		LongArrayBitVector bv = LongArrayBitVector.getInstance();
+		final LongArrayBitVector bv = LongArrayBitVector.getInstance();
 		recFindFarCloseTest(bv);
 	}
 

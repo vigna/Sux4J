@@ -1,8 +1,3 @@
-package it.unimi.dsi.sux4j.test;
-
-import java.io.IOException;
-import java.io.Serializable;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -23,6 +18,10 @@ import java.io.Serializable;
  *
  */
 
+package it.unimi.dsi.sux4j.test;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.compression.Decoder;

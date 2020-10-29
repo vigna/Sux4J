@@ -1,13 +1,34 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2010-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package it.unimi.dsi.sux4j.mph;
 
 import static org.junit.Assert.assertTrue;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
-import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 import java.util.Arrays;
 
 import org.junit.Test;
+
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.sux4j.mph.solve.Orient3Hypergraph;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 
 public class HypergraphSolverTest {
@@ -34,26 +55,26 @@ public class HypergraphSolverTest {
 
 	@Test
 	public void smallTest() {
-		int[] vertex0 = { 0, 1, 2, 3 };
-		int[] vertex1 = { 1, 2, 0, 1 };
-		int[] vertex2 = { 2, 3, 4, 0 };
-		int[] d = { 3, 3, 3, 2, 1 };
-		int[] hinges = new int[vertex1.length];
+		final int[] vertex0 = { 0, 1, 2, 3 };
+		final int[] vertex1 = { 1, 2, 0, 1 };
+		final int[] vertex2 = { 2, 3, 4, 0 };
+		final int[] d = { 3, 3, 3, 2, 1 };
+		final int[] hinges = new int[vertex1.length];
 		assertTrue(Orient3Hypergraph.orient(vertex2Edge(5, vertex0, vertex1, vertex2), d, vertex0, vertex1, vertex2, hinges));
 	}
 
 	@Test
 	public void randomTest() {
-		XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
-		for(int n : new int[] { 5, 10, 100, 1000 }) {
+		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
+		for(final int n : new int[] { 5, 10, 100, 1000 }) {
 			for(int count = 0; count < 10; count++) {
 				final int size = (int)(.9 * n);
-				int[] d = new int[n];
-				int[] vertex0 = new int[size];
-				int[] vertex1 = new int[size];
-				int[] vertex2 = new int[size];
-				int[] hinges = new int[size];
-				IntOpenHashSet edge[] = new IntOpenHashSet[size];
+				final int[] d = new int[n];
+				final int[] vertex0 = new int[size];
+				final int[] vertex1 = new int[size];
+				final int[] vertex2 = new int[size];
+				final int[] hinges = new int[size];
+				final IntOpenHashSet edge[] = new IntOpenHashSet[size];
 
 				int v, w;
 				for (int i = 0; i < size; i++) {

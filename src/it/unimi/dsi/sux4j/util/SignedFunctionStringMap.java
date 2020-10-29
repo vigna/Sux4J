@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.util;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.util;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.util;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -78,20 +78,20 @@ public class SignedFunctionStringMap extends AbstractObject2LongFunction<CharSeq
 	}
 
 	@Override
-	public long getLong(Object o) {
+	public long getLong(final Object o) {
 		return function.getLong(o);
 	}
 
 	@Deprecated
 	@Override
-	public Long get(Object o) {
+	public Long get(final Object o) {
 		final CharSequence s = (CharSequence)o;
 		final long index = function.getLong(s);
 		return index == -1 ? null : Long.valueOf(index);
 	}
 
 	@Override
-	public boolean containsKey(Object o) {
+	public boolean containsKey(final Object o) {
 		return function.getLong(o) != -1;
 	}
 

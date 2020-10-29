@@ -1,3 +1,28 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2008-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/** An iterator returning the union of the bit vectors returned by two iterators.
+ *  The two iterators must return bit vectors in an increasing fashion; the resulting
+ *  {@link MergedBitVectorIterator} will do the same. Duplicates will be eliminated.
+ */
+
 package it.unimi.dsi.sux4j.scratch;
 
 import java.util.Iterator;
@@ -6,11 +31,6 @@ import java.util.NoSuchElementException;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
-
-/** An iterator returning the union of the bit vectors returned by two iterators.
- *  The two iterators must return bit vectors in an increasing fashion; the resulting
- *  {@link MergedBitVectorIterator} will do the same. Duplicates will be eliminated.
- */
 
 public class MergedBitVectorIterator implements ObjectIterator<BitVector> {
 	/** The first component iterator. */

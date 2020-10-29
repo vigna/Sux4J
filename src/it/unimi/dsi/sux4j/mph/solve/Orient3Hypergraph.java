@@ -1,6 +1,3 @@
-package it.unimi.dsi.sux4j.mph.solve;
-
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -20,9 +17,12 @@ package it.unimi.dsi.sux4j.mph.solve;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+
+package it.unimi.dsi.sux4j.mph.solve;
 
 import java.util.Arrays;
+
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 /** Commodity class implementing the <em>selfless algorithm</em> for the orientation of a 3-hypergraph.
  * The algorithm has been described by Martin Dietzfelbinger, Andreas Goerdt, Michael Mitzenmacher, Andrea Montanari, Rasmus Pagh, and Michael Rink
@@ -36,7 +36,7 @@ import java.util.Arrays;
 public class Orient3Hypergraph {
 	private static final boolean ASSERTS = false;
 
-	private Orient3Hypergraph() {};
+	private Orient3Hypergraph() {}
 
 	private static void remove(final IntArrayList queue, final int v, final int[] posInQueue) {
 		final int position = posInQueue[v];
@@ -54,7 +54,7 @@ public class Orient3Hypergraph {
 		}
 	}
 
-	private static void decrease(final IntArrayList[] queue , final int[] posInQueue , final int[] priority , int[] d , final int v , final int w) {
+	private static void decrease(final IntArrayList[] queue , final int[] posInQueue , final int[] priority , final int[] d , final int v , final int w) {
 		assert priority[v] > 0 || d[v] == 0;
 		final int queueBefore = Math.min(7, priority[v]);
 		if (d[v] == 0) remove(queue[queueBefore], v, posInQueue);

@@ -1,11 +1,3 @@
-package it.unimi.dsi.sux4j.mph;
-
-import java.io.IOException;
-import java.util.Iterator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -25,6 +17,14 @@ import org.slf4j.LoggerFactory;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -126,7 +126,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		 * @param pl
 		 */
 
-		public PartialTrie(final Iterable<? extends T> elements, final long size, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, ProgressLogger pl) {
+		public PartialTrie(final Iterable<? extends T> elements, final long size, final int bucketSize, final TransformationStrategy<? super T> transformationStrategy, final ProgressLogger pl) {
 			Iterator<? extends T> iterator = elements.iterator();
 
 			Node node;
@@ -290,7 +290,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			return result;
 		}
 
-		private long toStream(final Node n, final OutputBitStream obs, ProgressLogger pl) throws IOException {
+		private long toStream(final Node n, final OutputBitStream obs, final ProgressLogger pl) throws IOException {
 			if (n == null) return 0;
 
 			if (ASSERTS) assert (n.left != null) == (n.right != null);
@@ -413,7 +413,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public long getLong(Object o) {
+	public long getLong(final Object o) {
 		if (numberOfLeaves == 0) return 0;
 		try {
 			if (DEBUG) System.err.println("Getting " + o + "...");
@@ -536,7 +536,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	}
 
 	@Override
-	public boolean containsKey(Object o) {
+	public boolean containsKey(final Object o) {
 		return true;
 	}
 

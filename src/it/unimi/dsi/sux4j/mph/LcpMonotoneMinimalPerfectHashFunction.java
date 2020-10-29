@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.mph;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.mph;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.bits.Fast.log2;
 import static java.lang.Math.E;

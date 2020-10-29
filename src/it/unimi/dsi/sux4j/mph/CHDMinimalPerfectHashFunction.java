@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.mph;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -19,6 +17,8 @@ package it.unimi.dsi.sux4j.mph;
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+package it.unimi.dsi.sux4j.mph;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -277,7 +277,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	}
 
 	private void offset(final int k, final long value) {
-		offsetNumBucketsSeed[k * 3] = value;;
+		offsetNumBucketsSeed[k * 3] = value;
 	}
 
 	private long numBuckets(final int k) {
@@ -341,6 +341,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		int duplicates = 0;
 		final LongArrayList holes = new LongArrayList();
 
+		@SuppressWarnings("null")
 		final OfflineIterable<MutableLong, MutableLong> coefficients =
 				new OfflineIterable<>(new Serializer<MutableLong, MutableLong>() {
 
@@ -400,8 +401,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						final long seed = r.nextLong();
 						// System.err.println("Number of keys: " + chunk.size()  + " Number of bins: " + p + " seed: " + seed);
 						/* We distribute the keys in this chunks in the buckets. */
-						for(final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext();) {
-							final long[] triple = iterator.next();
+						for (final long[] triple : chunk) {
 							final long[] h = new long[3];
 							Hashes.spooky4(triple, seed, h);
 							final ArrayList<long[]> b = bucket[(int) spread(h[0], numBuckets)];
@@ -475,8 +475,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 					if (ASSERTS) {
 						final IntOpenHashSet pos = new IntOpenHashSet();
 						final long h[] = new long[3];
-						for(final Iterator<long[]> iterator = chunk.iterator(); iterator.hasNext();) {
-							final long[] triple = iterator.next();
+						for (final long[] triple : chunk) {
 							Hashes.spooky4(triple, seed(chunkNumber), h);
 							h[0] = spread(h[0], numBuckets);
 							h[1] = spread(h[1], p);

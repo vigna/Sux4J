@@ -1,5 +1,3 @@
-package it.unimi.dsi.sux4j.test;
-
 /*
  * Sux4J: Succinct data structures for Java
  *
@@ -20,6 +18,7 @@ package it.unimi.dsi.sux4j.test;
  *
  */
 
+package it.unimi.dsi.sux4j.test;
 
 import org.apache.commons.math3.random.RandomGenerator;
 
