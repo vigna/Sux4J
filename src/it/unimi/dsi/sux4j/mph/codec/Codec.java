@@ -399,8 +399,8 @@ public interface Codec {
 		 *
 		 * @param maxDecodingTableLength a hard limit for the length of the decoding table.
 		 */
-		public Huffman(final int maxDepth) {
-			this(maxDepth, 0.999);
+		public Huffman(final int maxDecodingTableLength) {
+			this(maxDecodingTableLength, 0.999);
 		}
 
 		/** Creates a new Huffman codec no length limitations. */

@@ -79,48 +79,58 @@ import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /**
- * A minimal perfect hash function implemented using the &ldquo;hash, displace and compress&rdquo; technique.
+ * A minimal perfect hash function implemented using the &ldquo;hash, displace and compress&rdquo;
+ * technique.
  *
- * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
- * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each key in the list. For keys out of the list, the
+ * <P>
+ * Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a
+ * minimal perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)}
+ * method will return a distinct number for each key in the list. For keys out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that a
- * key was not in the original list, and in that case -1 will be returned;
- * by <em>signing</em> the function (see below), you can guarantee with a prescribed probability
- * that -1 will be returned on keys not in the original list. The class can then be
- * saved by serialisation and reused later.
+ * key was not in the original list, and in that case -1 will be returned; by <em>signing</em> the
+ * function (see below), you can guarantee with a prescribed probability that -1 will be returned on
+ * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
- * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
- * you can {@linkplain Builder#store(ChunkedHashStore) pass a ChunkedHashStore}
- * containing the keys (associated with any value); however, if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * <p>
+ * This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable
+ * construction. Note that at construction time you can {@linkplain Builder#store(ChunkedHashStore)
+ * pass a ChunkedHashStore} containing the keys (associated with any value); however, if the store
+ * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException
+ * DuplicateException} it will be rebuilt associating with each key its ordinal position.
  *
- * <P>The memory requirements for the algorithm we use are &#8776;2 bits per key for {@linkplain Builder#loadFactor(int) load factor}
- * equal to one and {@linkplain Builder#lambda(int) &lambda;} = 5. Thus, this class
- * can use &#8776;10% less memory than a {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}.
+ * <P>
+ * The memory requirements for the algorithm we use are &#8776;2 bits per key for
+ * {@linkplain Builder#loadFactor(int) load factor} equal to one and {@linkplain Builder#lambda(int)
+ * &lambda;} = 5. Thus, this class can use &#8776;10% less memory than a
+ * {@link it.unimi.dsi.sux4j.mph.GOVMinimalPerfectHashFunction GOVMinimalPerfectHashFunction}.
  *
- * <p>However, its construction time is an order of magnitude larger, and query time is about 50% slower.
- * Different tradeoffs between construction time, query time and space can be obtained by tweaking the
- * {@linkplain Builder#loadFactor(int) load factor} and the parameter {@linkplain Builder#lambda(int) &lambda;} (see the
- * paper below for their exact meaning).
+ * <p>
+ * However, its construction time is an order of magnitude larger, and query time is about 50%
+ * slower. Different tradeoffs between construction time, query time and space can be obtained by
+ * tweaking the {@linkplain Builder#loadFactor(int) load factor} and the parameter
+ * {@linkplain Builder#lambda(int) &lambda;} (see the paper below for their exact meaning).
  *
- * <P>For convenience, this class provides a main method that reads from standard input a (possibly
+ * <P>
+ * For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect hash function. A <var>w</var>-bit signature will
- * be associated with each key, so that {@link #getLong(Object)} will return -1 on strings that are not
- * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
+ * <p>
+ * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect
+ * hash function. A <var>w</var>-bit signature will be associated with each key, so that
+ * {@link #getLong(Object)} will return -1 on strings that are not in the original key set. As
+ * usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
- * <h3>How it Works</h3>
+ * <h2>How it Works</h2>
  *
- * <p>The technique used is described by Djamal Belazzougui, Fabiano C. Botelho and Martin Dietzfelbinger
- * in &ldquo;Hash, displace and compress&rdquo;, <i>Algorithms - ESA 2009</i>, LNCS 5757, pages 682&minus;693, 2009.
- * However, with respect to the algorithm described in the paper, this implementation
- * is much more scalable, as it uses a {@link ChunkedHashStore}
- * to split the generation of large key sets into generation of smaller functions for each chunk (of size
+ * <p>
+ * The technique used is described by Djamal Belazzougui, Fabiano C. Botelho and Martin
+ * Dietzfelbinger in &ldquo;Hash, displace and compress&rdquo;, <i>Algorithms - ESA 2009</i>, LNCS
+ * 5757, pages 682&minus;693, 2009. However, with respect to the algorithm described in the paper,
+ * this implementation is much more scalable, as it uses a {@link ChunkedHashStore} to split the
+ * generation of large key sets into generation of smaller functions for each chunk (of size
  * approximately 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
  *
  * @author Sebastiano Vigna

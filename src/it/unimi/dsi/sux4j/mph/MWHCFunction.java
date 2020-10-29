@@ -71,69 +71,96 @@ import it.unimi.dsi.sux4j.bits.Rank16;
 import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
-/** An immutable function stored quasi-succinctly using the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter 3-hypergraph technique}.
+/**
+ * An immutable function stored quasi-succinctly using the Majewski-Wormald-Havas-Czech
+ * {@linkplain HypergraphSorter 3-hypergraph technique}.
  *
- * <p>Instances of this class store a function from keys to values. Keys are provided by an {@linkplain Iterable iterable object} (whose iterators
- * must return elements in a consistent order), whereas values are provided by a {@link LongIterable}. If you do nost specify
- * values, each key will be assigned its rank (e.g., its position in iteration order starting from zero).
+ * <p>
+ * Instances of this class store a function from keys to values. Keys are provided by an
+ * {@linkplain Iterable iterable object} (whose iterators must return elements in a consistent
+ * order), whereas values are provided by a {@link LongIterable}. If you do nost specify values,
+ * each key will be assigned its rank (e.g., its position in iteration order starting from zero).
  *
- * <P>For convenience, this class provides a main method that reads from
- * standard input a (possibly <code>gzip</code>'d) sequence of newline-separated strings, and
- * writes a serialised function mapping each element of the list to its position, or to a given list of values.
+ * <P>
+ * For convenience, this class provides a main method that reads from standard input a (possibly
+ * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised function
+ * mapping each element of the list to its position, or to a given list of values.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an {@link MWHCFunction}.
- * Signing {@linkplain Builder#signed(int) is possible if no list of values has been specified} (otherwise, there
- * is no way to associate a key with its signature). A <var>w</var>-bit signature will
- * be associated with each key, so that {@link #getLong(Object)} will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings that are not
- * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
+ * <p>
+ * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} an
+ * {@link MWHCFunction}. Signing {@linkplain Builder#signed(int) is possible if no list of values
+ * has been specified} (otherwise, there is no way to associate a key with its signature). A
+ * <var>w</var>-bit signature will be associated with each key, so that {@link #getLong(Object)}
+ * will return a {@linkplain #defaultReturnValue() default return value} (by default, -1) on strings
+ * that are not in the original key set. As usual, false positives are possible with probability
+ * 2<sup>-<var>w</var></sup>.
  *
- * <p>If you're not interested in the rank of a key, but just to know whether the key was in the original set,
- * you can {@linkplain Builder#dictionary(int) turn the function into an approximate dictionary}. In this case, the value associated
- * by the function with a key is exactly its signature, which means that the only space used by the function is
- * that occupied by signatures: this is one of the fastest and most compact way of storing a static approximate dictionary.
- * In this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default return value} is set to zero.
+ * <p>
+ * If you're not interested in the rank of a key, but just to know whether the key was in the
+ * original set, you can {@linkplain Builder#dictionary(int) turn the function into an approximate
+ * dictionary}. In this case, the value associated by the function with a key is exactly its
+ * signature, which means that the only space used by the function is that occupied by signatures:
+ * this is one of the fastest and most compact way of storing a static approximate dictionary. In
+ * this case, the only returned value is one, and the {@linkplain #defaultReturnValue() default
+ * return value} is set to zero.
  *
  * <h2>Building a function</h2>
  *
- * <p>This class provides a great amount of flexibility when creating a new function; such flexibility is exposed through the {@linkplain Builder builder}.
- * To exploit the various possibilities, you must understand some details of the construction.
+ * <p>
+ * This class provides a great amount of flexibility when creating a new function; such flexibility
+ * is exposed through the {@linkplain Builder builder}. To exploit the various possibilities, you
+ * must understand some details of the construction.
  *
- * <p>In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
- * the store will associate each hash with the rank of the key. If you {@linkplain Builder#values(LongIterable, int) specify values},
- * the store will associate with each hash the corresponding value.
+ * <p>
+ * In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
+ * the store will associate each hash with the rank of the key. If you
+ * {@linkplain Builder#values(LongIterable, int) specify values}, the store will associate with each
+ * hash the corresponding value.
  *
- * <p>However, if you further require an {@linkplain Builder#indirect() indirect}
- * construction the store will associate again each hash with the rank of the corresponding key, and access randomly the values
- * (which must be either a {@link LongList} or a {@link LongBigList}). Indirect construction is useful only in complex, multi-layer
- * hashes (such as an {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked {@link ChunkedHashStore}.
- * Storing values in the {@link ChunkedHashStore}
- * is extremely scalable because the values must just be a {@link LongIterable} that
- * will be scanned sequentially during the store construction. On the other hand, if you have already a store that
- * associates ordinal positions, and you want to build a new function for which a {@link LongList} or {@link LongBigList} of values needs little space (e.g.,
- * because it is described implicitly), you can opt for an {@linkplain Builder#indirect() indirect} construction using the already built store.
+ * <p>
+ * However, if you further require an {@linkplain Builder#indirect() indirect} construction the
+ * store will associate again each hash with the rank of the corresponding key, and access randomly
+ * the values (which must be either a {@link LongList} or a {@link LongBigList}). Indirect
+ * construction is useful only in complex, multi-layer hashes (such as an
+ * {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked
+ * {@link ChunkedHashStore}. Storing values in the {@link ChunkedHashStore} is extremely scalable
+ * because the values must just be a {@link LongIterable} that will be scanned sequentially during
+ * the store construction. On the other hand, if you have already a store that associates ordinal
+ * positions, and you want to build a new function for which a {@link LongList} or
+ * {@link LongBigList} of values needs little space (e.g., because it is described implicitly), you
+ * can opt for an {@linkplain Builder#indirect() indirect} construction using the already built
+ * store.
  *
- * <p>Note that if you specify a store it will be used before building a new one (possibly because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}),
- * with obvious benefits in terms of performance. If the store is not checked, and a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
- * thrown, the constructor will try to rebuild the store, but this requires, of course, that the keys, and possibly the values, are available.
- * Note that it is your responsibility to pass a correct store.
+ * <p>
+ * Note that if you specify a store it will be used before building a new one (possibly because of a
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}), with obvious benefits in
+ * terms of performance. If the store is not checked, and a
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is thrown, the constructor will
+ * try to rebuild the store, but this requires, of course, that the keys, and possibly the values,
+ * are available. Note that it is your responsibility to pass a correct store.
  *
  * <h2>Implementation Details</h2>
  *
- * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges
- * to that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>,
- * never appeared before. We then assign to each vertex a value in such a way that for each 3-hyperedge the
- * XOR of the three values associated to its vertices is the required value for the corresponding
- * element of the function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
+ * After generating a random 3-hypergraph, we {@linkplain HypergraphSorter sort} its 3-hyperedges to
+ * that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>, never appeared before. We
+ * then assign to each vertex a value in such a way that for each 3-hyperedge the XOR of the three
+ * values associated to its vertices is the required value for the corresponding element of the
+ * function domain (this is the standard Majewski-Wormald-Havas-Czech construction).
  *
- * <p>Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store nonzero values
- * in a separate array, using a {@linkplain Rank ranked} marker array to record the positions of nonzero values.
+ * <p>
+ * Then, we measure whether it is favourable to <em>compact</em> the function, that is, to store
+ * nonzero values in a separate array, using a {@linkplain Rank ranked} marker array to record the
+ * positions of nonzero values.
  *
- * <p>A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> keys requires {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var>
- * bits, whereas the compacted version takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus the bits that are necessary for the
- * {@linkplain Rank ranking structure}; the current implementation uses {@link Rank16}). This class will transparently choose
- * the most space-efficient method.
+ * <p>
+ * A non-compacted, <var>r</var>-bit {@link MWHCFunction} on <var>n</var> keys requires
+ * {@linkplain HypergraphSorter#GAMMA &gamma;}<var>rn</var> bits, whereas the compacted version
+ * takes just ({@linkplain HypergraphSorter#GAMMA &gamma;} + <var>r</var>)<var>n</var> bits (plus
+ * the bits that are necessary for the {@linkplain Rank ranking structure}; the current
+ * implementation uses {@link Rank16}). This class will transparently choose the most
+ * space-efficient method.
  *
  * @author Sebastiano Vigna
  * @since 0.2

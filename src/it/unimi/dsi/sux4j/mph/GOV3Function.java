@@ -103,7 +103,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised function
  * mapping each element of the list to its position, or to a given list of values.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
  * <p>
  * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a
@@ -308,7 +308,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * data: it must contain ranks if you do not specify {@linkplain #values(LongIterable,int) values}
 		 * or if you use the {@linkplain #indirect() indirect} feature, values otherwise.
 		 *
-		 * @param BucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
+		 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
 		 *            can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys}
 		 *            and a {@linkplain #transform(TransformationStrategy) transform} (otherwise, in case of
 		 *            a hash collision in the store an {@link IllegalStateException} will be thrown).
@@ -327,7 +327,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		 * data: it must contain ranks if you use the {@linkplain #indirect() indirect} feature, values
 		 * representable in at most the specified number of bits otherwise.
 		 *
-		 * @param BucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
+		 * @param bucketedHashStore a bucketed hash store containing the keys, or {@code null}; the store
 		 *            can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys}
 		 *            and a {@linkplain #transform(TransformationStrategy) transform} (otherwise, in case of
 		 *            a hash collision in the store an {@link IllegalStateException} will be thrown).

@@ -73,62 +73,70 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
 
 /**
- * A minimal perfect hash function stored using the
- * {@linkplain Linear3SystemSolver Genuzio-Ottaviano-Vigna 3-regular <b>F</b><sub>3</sub>-linear system technique}.
- * It is the fastest minimal perfect hash function available with space close to 2 bits per key.
+ * A minimal perfect hash function stored using the {@linkplain Linear3SystemSolver
+ * Genuzio-Ottaviano-Vigna 3-regular <b>F</b><sub>3</sub>-linear system technique}. It is the
+ * fastest minimal perfect hash function available with space close to 2 bits per key.
  *
- * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
- * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each key in the list. For keys out of the list, the
+ * <P>
+ * Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a
+ * minimal perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)}
+ * method will return a distinct number for each key in the list. For keys out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that a
- * key was not in the original list, and in that case -1 will be returned;
- * by <em>signing</em> the function (see below), you can guarantee with a prescribed probability
- * that -1 will be returned on keys not in the original list. The class can then be
- * saved by serialisation and reused later.
+ * key was not in the original list, and in that case -1 will be returned; by <em>signing</em> the
+ * function (see below), you can guarantee with a prescribed probability that -1 will be returned on
+ * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
- * <p>This class uses a {@linkplain BucketedHashStore bucketed hash store} to provide highly scalable construction. Note that at construction time
- * you can {@linkplain Builder#store(BucketedHashStore) pass a BucketedHashStore}
- * containing the keys (associated with any value); however, if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * <p>
+ * This class uses a {@linkplain BucketedHashStore bucketed hash store} to provide highly scalable
+ * construction. Note that at construction time you can {@linkplain Builder#store(BucketedHashStore)
+ * pass a BucketedHashStore} containing the keys (associated with any value); however, if the store
+ * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.BucketedHashStore.DuplicateException} it
+ * will be rebuilt associating with each key its ordinal position.
  *
- * <P>For convenience, this class provides a main method that reads from standard input a (possibly
+ * <P>
+ * For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect hash function. A <var>w</var>-bit signature will
- * be associated with each key, so that {@link #getLong(Object)} will return -1 on strings that are not
- * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
+ * <p>
+ * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect
+ * hash function. A <var>w</var>-bit signature will be associated with each key, so that
+ * {@link #getLong(Object)} will return -1 on strings that are not in the original key set. As
+ * usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
  * <h2>Multithreading</h2>
  *
- * <p>This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is processed independently. By
- * default, this class uses {@link Runtime#availableProcessors()} parallel threads, but by default no more than 4. If you wish to
- * set a specific number of threads, you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
+ * <p>
+ * This implementation is multithreaded: each bucket returned by the {@link BucketedHashStore} is
+ * processed independently. By default, this class uses {@link Runtime#availableProcessors()}
+ * parallel threads, but by default no more than 4. If you wish to set a specific number of threads,
+ * you can do so through the system property {@value #NUMBER_OF_THREADS_PROPERTY}.
  *
- * <h3>How it Works</h3>
+ * <h2>How it Works</h2>
  *
- * <p>The detail of the data structure
- * can be found in &ldquo;Fast Scalable Construction of (Minimal Perfect Hash) Functions&rdquo;, by
- * Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
- * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>,
- * Lecture Notes in Computer Science, Springer, 2016. We generate a random 3-regular hypergraph
- * and give it an {@linkplain Orient3Hypergraph orientation}. From the orientation, we generate
- * a random linear system on <b>F</b><sub>3</sub>, where the variables in the <var>k</var>-th equation
- * are the vertices of the <var>k</var>-th hyperedge, and
- * the known term of the <var>k</var>-th equation is the vertex giving orientation to the <var>k</var>-th hyperedge.
- * Then, we {@linkplain Linear3SystemSolver solve the system} and store the solution, which provides a perfect hash function.
+ * <p>
+ * The detail of the data structure can be found in &ldquo;Fast Scalable Construction of (Minimal
+ * Perfect Hash) Functions&rdquo;, by Marco Genuzio, Giuseppe Ottaviano and Sebastiano Vigna,
+ * <i>15th International Symposium on Experimental Algorithms &mdash; SEA 2016</i>, Lecture Notes in
+ * Computer Science, Springer, 2016. We generate a random 3-regular hypergraph and give it an
+ * {@linkplain Orient3Hypergraph orientation}. From the orientation, we generate a random linear
+ * system on <b>F</b><sub>3</sub>, where the variables in the <var>k</var>-th equation are the
+ * vertices of the <var>k</var>-th hyperedge, and the known term of the <var>k</var>-th equation is
+ * the vertex giving orientation to the <var>k</var>-th hyperedge. Then, we
+ * {@linkplain Linear3SystemSolver solve the system} and store the solution, which provides a
+ * perfect hash function.
  *
- * <p>To obtain a minimal perfect hash function, we simply notice that we whenever we have to assign a value
- * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
- * output value for some key. The final value of the minimal perfect hash function is the number
- * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
- * number, we use use in each bucket {@linkplain #countNonzeroPairs(long) broadword programming}.
+ * <p>
+ * To obtain a minimal perfect hash function, we simply notice that we whenever we have to assign a
+ * value to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually
+ * the output value for some key. The final value of the minimal perfect hash function is the number
+ * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this number,
+ * we use use in each bucket {@linkplain #countNonzeroPairs(long) broadword programming}.
  *
- * Since the system must have &#8776;10% more variables than equations to be solvable,
- * a {@link GOVMinimalPerfectHashFunction128} on <var>n</var> keys requires 2.2<var>n</var>
- * bits.
+ * Since the system must have &#8776;10% more variables than equations to be solvable, a
+ * {@link GOVMinimalPerfectHashFunction128} on <var>n</var> keys requires 2.2<var>n</var> bits.
  *
  * @author Sebastiano Vigna
  * @since 4.0.0

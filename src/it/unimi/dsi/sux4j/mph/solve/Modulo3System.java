@@ -438,12 +438,15 @@ public class Modulo3System {
 
 		return true;
 	}
-	/** Solves the system using lazy Gaussian elimination.
+	
+	/**
+	 * Solves the system using lazy Gaussian elimination.
 	 *
-	 * <p><strong>Warning</strong>: this method is very inefficient, as it
-	 * scans linearly the equations, builds from scratch the {@code var2Eq}
-	 * parameter of {@link #lazyGaussianElimination(Modulo3System, int[][], int[], int[], long[])}
-	 * and finally calls it. It should be used mainly to write unit tests.
+	 * <p>
+	 * <strong>Warning</strong>: this method is very inefficient, as it scans linearly the equations,
+	 * builds from scratch the {@code var2Eq} parameter of
+	 * {@link #lazyGaussianElimination(Modulo3System, int[][], long[], int[], long[])} and finally calls
+	 * it. It should be used mainly to write unit tests.
 	 *
 	 * @param solution an array where the solution will be written.
 	 * @return true if the system is solvable.

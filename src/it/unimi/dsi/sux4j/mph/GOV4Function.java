@@ -103,7 +103,7 @@ import it.unimi.dsi.util.concurrent.ReorderingBlockingQueue;
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised function
  * mapping each element of the list to its position, or to a given list of values.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
  * <p>
  * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} a

@@ -55,100 +55,125 @@ import it.unimi.dsi.sux4j.mph.GOV3Function;
 import it.unimi.dsi.sux4j.mph.Hashes;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
-/** A temporary store of signatures virtually divided into buckets.
+/**
+ * A temporary store of signatures virtually divided into buckets.
  *
- * <p>A bucketed hash store accumulates elements (objects of type {@code T})
- * by turning them into bit vectors (using a provided {@link TransformationStrategy})
- * and then hashing such vectors into a signature (a pair of longs, i.e., overall we get a hash of 128 bits).
- * Elements can be added {@linkplain #add(Object, long) one by one}
- * or {@linkplain #addAll(Iterator, LongIterator) in batches}.
- * Elements must be distinct, or, more precisely, they must be transformed into distinct bit vectors.
+ * <p>
+ * A bucketed hash store accumulates elements (objects of type {@code T}) by turning them into bit
+ * vectors (using a provided {@link TransformationStrategy}) and then hashing such vectors into a
+ * signature (a pair of longs, i.e., overall we get a hash of 128 bits). Elements can be added
+ * {@linkplain #add(Object, long) one by one} or {@linkplain #addAll(Iterator, LongIterator) in
+ * batches}. Elements must be distinct, or, more precisely, they must be transformed into distinct
+ * bit vectors.
  *
- * <p>Besides the hashes, we store some data associated with each element:
- * if {@linkplain #add(Object) no data is specified}, we store the <em>rank</em> of each element added (the first element added has rank 0,
- * the second one has rank 1, and so on), unless you specified at {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) construction time}
- * a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will be given the lowest bits of the first hash of the signature
- * associated with the object (the hash width is the number of bits stored). This feature makes it possible, for example, to implement a static
- * {@linkplain Builder#dictionary(int) dictionary} using a {@link GOV3Function}.
+ * <p>
+ * Besides the hashes, we store some data associated with each element: if {@linkplain #add(Object)
+ * no data is specified}, we store the <em>rank</em> of each element added (the first element added
+ * has rank 0, the second one has rank 1, and so on), unless you specified at
+ * {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) construction
+ * time} a nonzero <em>hash width</em>: in that case, the value stored by {@link #add(Object)} will
+ * be given the lowest bits of the first hash of the signature associated with the object (the hash
+ * width is the number of bits stored). This feature makes it possible, for example, to implement a
+ * static {@linkplain GOV3Function.Builder#dictionary(int) dictionary} using a {@link GOV3Function}.
  *
- * <p>The desired expected bucket size can be set by calling {@link #bucketSize(int)}.
- * Once all elements have been added, one calls {@link #iterator()}, which returns buckets one at a time (in their
- * natural order); signatures within each bucket are returned by increasing value, and signatures within different buckets are in bucket order.
- * Actually, the iterator provided by a bucket returns a <em>triple</em> of longs whose last element is the data associated with the element
- * that generated the signature.
+ * <p>
+ * The desired expected bucket size can be set by calling {@link #bucketSize(int)}. Once all
+ * elements have been added, one calls {@link #iterator()}, which returns buckets one at a time (in
+ * their natural order); signatures within each bucket are returned by increasing value, and
+ * signatures within different buckets are in bucket order. Actually, the iterator provided by a
+ * bucket returns a <em>triple</em> of longs whose last element is the data associated with the
+ * element that generated the signature.
  *
- * <p>Note that the main difference between an instance of this class and one of a {@link ChunkedHashStore} is that
- * the latter can only guarantee that the average chunk (here, bucket) size will be within a factor of two from the
- * desired one, as the number of chunks can be specified only as a {@linkplain ChunkedHashStore#log2Chunks(int) power of two}.
+ * <p>
+ * Note that the main difference between an instance of this class and one of a
+ * {@link ChunkedHashStore} is that the latter can only guarantee that the average chunk (here,
+ * bucket) size will be within a factor of two from the desired one, as the number of chunks can be
+ * specified only as a {@linkplain ChunkedHashStore#log2Chunks(int) power of two}.
  *
- * <p>It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash. This event is detected
- * during bucket iteration (not while accumulating hashes), and it will throw a {@link BucketedHashStore.DuplicateException}.
- * At that point, the caller must handle the exception by {@linkplain #reset(long) resetting the store} and trying again
- * from scratch. Note that after a few (say, three) exceptions you can safely assume that there are duplicate elements. If you
- * need to force a check on the whole store you can call {@link #check()}. If all your elements come from an {@link Iterable},
- * {@link #checkAndRetry(Iterable, LongIterable)} will try three times to build a checked bucketed hash store.
+ * <p>
+ * It is possible (albeit <em>very</em> unlikely) that different elements generate the same hash.
+ * This event is detected during bucket iteration (not while accumulating hashes), and it will throw
+ * a {@link BucketedHashStore.DuplicateException}. At that point, the caller must handle the
+ * exception by {@linkplain #reset(long) resetting the store} and trying again from scratch. Note
+ * that after a few (say, three) exceptions you can safely assume that there are duplicate elements.
+ * If you need to force a check on the whole store you can call {@link #check()}. If all your
+ * elements come from an {@link Iterable}, {@link #checkAndRetry(Iterable, LongIterable)} will try
+ * three times to build a checked bucketed hash store.
  *
- * <p>Every {@link #reset(long)} changes the seed used by the store to generate signatures. So, if this seed has to be
- * stored this must happen <em>after</em> the last call to {@link #reset(long)}. To help tracking this fact, a call to
- * {@link #seed()} will <em>lock</em> the store; any further call to {@link #reset(long)} will throw an {@link IllegalStateException}.
- * In case the store needs to be reused, you can call {@link #clear()}, that will bring back the store to after-creation state.
+ * <p>
+ * Every {@link #reset(long)} changes the seed used by the store to generate signatures. So, if this
+ * seed has to be stored this must happen <em>after</em> the last call to {@link #reset(long)}. To
+ * help tracking this fact, a call to {@link #seed()} will <em>lock</em> the store; any further call
+ * to {@link #reset(long)} will throw an {@link IllegalStateException}. In case the store needs to
+ * be reused, you can call {@link #clear()}, that will bring back the store to after-creation state.
  *
- * <p>When you have finished using a bucketed hash store, you should {@link #close()} it. This class implements
- * {@link SafelyCloseable}, and thus provides a safety-net finalizer.
+ * <p>
+ * When you have finished using a bucketed hash store, you should {@link #close()} it. This class
+ * implements {@link SafelyCloseable}, and thus provides a safety-net finalizer.
  *
  * <h2>Filtering</h2>
  *
- * <p>You can at any time {@linkplain #filter(Predicate) set a predicate} that will filter the signatures returned by the store.
+ * <p>
+ * You can at any time {@linkplain #filter(Predicate) set a predicate} that will filter the
+ * signatures returned by the store.
  *
  * <h2>Computing frequencies</h2>
  *
- * <p>If you specify so {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) at construction time},
- * a bucketed hash store will compute for you a {@linkplain #value2FrequencyMap() a map from values to their frequency}.
+ * <p>
+ * If you specify so
+ * {@linkplain #BucketedHashStore(TransformationStrategy, File, int, ProgressLogger) at construction
+ * time}, a bucketed hash store will compute for you a {@linkplain #value2FrequencyMap() a map from
+ * values to their frequency}.
  *
  * <h2>Implementation details</h2>
  *
- * <p>Internally, a bucketed hash store save signatures into different <em>disk segments</em> using
- * the highest bits (performing, in fact, the first phase of a bucket sort).
- * Once the user chooses a bucket size, the store exhibits the data on disk by grouping disk segments or splitting them
- * into buckets. This process is transparent to the user.
+ * <p>
+ * Internally, a bucketed hash store save signatures into different <em>disk segments</em> using the
+ * highest bits (performing, in fact, the first phase of a bucket sort). Once the user chooses a
+ * bucket size, the store exhibits the data on disk by grouping disk segments or splitting them into
+ * buckets. This process is transparent to the user.
  *
- * <p>The assignment to a bucket happens conceptually by using the first 64-bit hash (shifted by one to the right, to avoid sign issues)
- * to define a number &alpha; in the interval [0..1).
- * Then, the bucket assigned is &lfloor;&alpha;<var>m</var>&rfloor;,
- * where <var>m</var> = 1 + {@link #size()} / {@link #bucketSize()} is the number of buckets.
- * Conceptually, we are mapping &alpha;, a uniform random number in the unit interval, into
- * &lfloor;&alpha;<var>m</var>&rfloor;, a uniform integer number in the range [0..<var>m</var>),
- * by <em>inversion</em>.
- * As show below, the whole computation can
- * be carried out using a fixed-point representation,
- * as it has been done for pseudorandom number generators since the early days, using only
- * a multiplication and shift.
- * The assignment is monotone nondecreasing, which makes it possible
- * to emit the buckets one at a time scanning the keys in sorted order.
+ * <p>
+ * The assignment to a bucket happens conceptually by using the first 64-bit hash (shifted by one to
+ * the right, to avoid sign issues) to define a number &alpha; in the interval [0..1). Then, the
+ * bucket assigned is &lfloor;&alpha;<var>m</var>&rfloor;, where <var>m</var> = 1 + {@link #size()}
+ * / {@link #bucketSize()} is the number of buckets. Conceptually, we are mapping &alpha;, a uniform
+ * random number in the unit interval, into &lfloor;&alpha;<var>m</var>&rfloor;, a uniform integer
+ * number in the range [0..<var>m</var>), by <em>inversion</em>. As show below, the whole
+ * computation can be carried out using a fixed-point representation, as it has been done for
+ * pseudorandom number generators since the early days, using only a multiplication and shift. The
+ * assignment is monotone nondecreasing, which makes it possible to emit the buckets one at a time
+ * scanning the keys in sorted order.
  *
- * <p>Signatures have to be loaded into memory only segment by segment, so to be sorted and tested for uniqueness. As long as
- * {@link #DISK_SEGMENTS} is larger than eight, the store will need less than 0.75 bits per element of main
- * memory. {@link #DISK_SEGMENTS} can be increased arbitrarily at compile time, but each store
- * will open {@link #DISK_SEGMENTS} files at the same time. (For the same reason, it is
- * <strong>strongly</strong> suggested that you close your stores as soon as you do not need them).
+ * <p>
+ * Signatures have to be loaded into memory only segment by segment, so to be sorted and tested for
+ * uniqueness. As long as {@link #DISK_SEGMENTS} is larger than eight, the store will need less than
+ * 0.75 bits per element of main memory. {@link #DISK_SEGMENTS} can be increased arbitrarily at
+ * compile time, but each store will open {@link #DISK_SEGMENTS} files at the same time. (For the
+ * same reason, it is <strong>strongly</strong> suggested that you close your stores as soon as you
+ * do not need them).
  *
  * <h2>Intended usage</h2>
  *
- * <p>bucketed hash stores should be built by classes that need to manipulate elements in buckets of approximate given
- * size without needing access to the elements themselves, but just to their signatures, a typical
- * example being {@link GOV3Function}, which uses the signatures to compute a 3-hyperedge. Once a bucketed hash
- * store is built, it can be passed on to further substructures, reducing greatly the computation time (as the original
- * collection need not to be scanned again).
+ * <p>
+ * bucketed hash stores should be built by classes that need to manipulate elements in buckets of
+ * approximate given size without needing access to the elements themselves, but just to their
+ * signatures, a typical example being {@link GOV3Function}, which uses the signatures to compute a
+ * 3-hyperedge. Once a bucketed hash store is built, it can be passed on to further substructures,
+ * reducing greatly the computation time (as the original collection need not to be scanned again).
  *
- * <p>To compute the bucket corresponding to a given element, use
+ * <p>
+ * To compute the bucket corresponding to a given element, use
+ *
  * <pre>
  * final long[] signature = new long[2];
  * Hashes.spooky4(transform.toBitVector(key), seed, signature);
  * final int bucket = Math.multiplyHigh(signature[0] &gt;&gt;&gt; 1, (1 + n / bucketSize) &lt;&lt; 1);
  * </pre>
- * where <code>seed</code> is the {@linkplain #seed() store seed},
- * <code>n</code> is the {@linkplain #size() number of keys},
- * and <code>bucketSize</code> is the {@linkplain #bucketSize(int) provided bucket size}.
+ *
+ * where <code>seed</code> is the {@linkplain #seed() store seed}, <code>n</code> is the
+ * {@linkplain #size() number of keys}, and <code>bucketSize</code> is the
+ * {@linkplain #bucketSize(int) provided bucket size}.
  *
  * @author Sebastiano Vigna
  * @since 5.0.0
@@ -214,7 +239,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** Creates a bucketed hash store with given transformation strategy.
 	 *
 	 * @param transform a transformation strategy for the elements.
-	 * @param bucketSize the expected bucket size.
 	 * @throws IOException
 	 */
 	public BucketedHashStore(final TransformationStrategy<? super T> transform) throws IOException {
@@ -224,7 +248,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** Creates a bucketed hash store with given transformation strategy and temporary file directory.
 	 *
 	 * @param transform a transformation strategy for the elements.
-	 * @param bucketSize the expected bucket size.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the current directory.
 	 */
 	public BucketedHashStore(final TransformationStrategy<? super T> transform, final File tempDir) throws IOException {
@@ -234,7 +257,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** Creates a bucketed hash store with given transformation strategy.
 	 *
 	 * @param transform a transformation strategy for the elements.
-	 * @param bucketSize the expected bucket size.
 	 * @param pl a progress logger, or {@code null}.
 	 */
 	public BucketedHashStore(final TransformationStrategy<? super T> transform, final ProgressLogger pl) throws IOException {
@@ -244,7 +266,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** Creates a bucketed hash store with given transformation strategy and progress logger.
 	 *
 	 * @param transform a transformation strategy for the elements.
-	 * @param bucketSize the expected bucket size.
 	 * @param tempDir a temporary directory for the store files, or {@code null} for the current directory.
 	 * @param pl a progress logger, or {@code null}.
 	 */
@@ -284,7 +305,8 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		count = new int[DISK_SEGMENTS];
 	}
 
-	/** Returns the expected bucket size.
+	/**
+	 * Returns the expected bucket size.
 	 *
 	 * @return the expected bucket size.
 	 */
@@ -292,7 +314,11 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		return bucketSize;
 	}
 
-	/** Sets the expected bucket size. */
+	/**
+	 * Sets the expected bucket size.
+	 *
+	 * @param bucketSize the expected bucket size.
+	 */
 	public void bucketSize(final int bucketSize) {
 		this.bucketSize = bucketSize;
 	}

@@ -67,39 +67,46 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 /**
  * A minimal perfect hash function.
  *
- * <P>Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a minimal
- * perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)} method will
- * return a distinct number for each key in the list. For keys out of the list, the
+ * <P>
+ * Given a list of keys without duplicates, the {@linkplain Builder builder} of this class finds a
+ * minimal perfect hash function for the list. Subsequent calls to the {@link #getLong(Object)}
+ * method will return a distinct number for each key in the list. For keys out of the list, the
  * resulting number is not specified. In some (rare) cases it might be possible to establish that a
- * key was not in the original list, and in that case -1 will be returned;
- * by <em>signing</em> the function (see below), you can guarantee with a prescribed probability
- * that -1 will be returned on keys not in the original list. The class can then be
- * saved by serialisation and reused later.
+ * key was not in the original list, and in that case -1 will be returned; by <em>signing</em> the
+ * function (see below), you can guarantee with a prescribed probability that -1 will be returned on
+ * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
- * <p>This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable construction. Note that at construction time
- * you can {@linkplain Builder#store(ChunkedHashStore) pass a ChunkedHashStore}
- * containing the keys (associated with any value); however, if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * <p>
+ * This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable
+ * construction. Note that at construction time you can {@linkplain Builder#store(ChunkedHashStore)
+ * pass a ChunkedHashStore} containing the keys (associated with any value); however, if the store
+ * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will
+ * be rebuilt associating with each key its ordinal position.
  *
- * <P>The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA &gamma;}=2.46 +
- * o(<var>n</var>) bits per key, plus the bits for the random hashes (which are usually
- * negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases space
- * occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
+ * <P>
+ * The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA
+ * &gamma;}=2.46 + o(<var>n</var>) bits per key, plus the bits for the random hashes (which are
+ * usually negligible). The o(<var>n</var>) part is due to an embedded ranking scheme that increases
+ * space occupancy by 6.25%, bringing the actual occupied space to around 2.68 bits per key.
  *
- * <P>For convenience, this class provides a main method that reads from standard input a (possibly
+ * <P>
+ * For convenience, this class provides a main method that reads from standard input a (possibly
  * <code>gzip</code>'d) sequence of newline-separated strings, and writes a serialised minimal
  * perfect hash function for the given list.
  *
- * <h3>Signing</h3>
+ * <h2>Signing</h2>
  *
- * <p>Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect hash function. A <var>w</var>-bit signature will
- * be associated with each key, so that {@link #getLong(Object)} will return -1 on strings that are not
- * in the original key set. As usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
+ * <p>
+ * Optionally, it is possible to {@linkplain Builder#signed(int) <em>sign</em>} the minimal perfect
+ * hash function. A <var>w</var>-bit signature will be associated with each key, so that
+ * {@link #getLong(Object)} will return -1 on strings that are not in the original key set. As
+ * usual, false positives are possible with probability 2<sup>-<var>w</var></sup>.
  *
- * <h3>How it Works</h3>
+ * <h2>How it Works</h2>
  *
- * <p>The technique used is very similar (but developed independently) to that described by Fabiano
- * C. Botelho, Rasmus Pagh and Nivio Ziviani in &ldquo;Simple and Efficient Minimal Perfect Hashing
+ * <p>
+ * The technique used is very similar (but developed independently) to that described by Fabiano C.
+ * Botelho, Rasmus Pagh and Nivio Ziviani in &ldquo;Simple and Efficient Minimal Perfect Hashing
  * Functions&rdquo;, <i>Algorithms and data structures: 10th international workshop, WADS 2007</i>,
  * number 4619 of Lecture Notes in Computer Science, pages 139&minus;150, 2007. In turn, the mapping
  * technique described therein was actually first proposed by Bernard Chazelle, Joe Kilian, Ronitt
@@ -107,21 +114,22 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * Support Lookup Tables&rdquo;, <i>Proc. SODA 2004</i>, pages 30&minus;39, 2004, as one of the
  * steps to implement a mutable table.
  *
- * <p>The basic ingredient is the Majewski-Wormald-Havas-Czech
- * {@linkplain HypergraphSorter 3-hypergraph technique}. After generating a random 3-hypergraph, we
- * {@linkplain HypergraphSorter sort} its 3-hyperedges to that a distinguished vertex in each
- * 3-hyperedge, the <em>hinge</em>, never appeared before. We then assign to each vertex a
- * two-bit number in such a way that for each 3-hyperedge the sum of the values associated to its
- * vertices modulo 3 gives the index of the hash function generating the hinge. As as a result we
- * obtain a perfect hash of the original set (one just has to compute the three hash functions,
- * collect the three two-bit values, add them modulo 3 and take the corresponding hash function
- * value).
+ * <p>
+ * The basic ingredient is the Majewski-Wormald-Havas-Czech {@linkplain HypergraphSorter
+ * 3-hypergraph technique}. After generating a random 3-hypergraph, we {@linkplain HypergraphSorter
+ * sort} its 3-hyperedges to that a distinguished vertex in each 3-hyperedge, the <em>hinge</em>,
+ * never appeared before. We then assign to each vertex a two-bit number in such a way that for each
+ * 3-hyperedge the sum of the values associated to its vertices modulo 3 gives the index of the hash
+ * function generating the hinge. As as a result we obtain a perfect hash of the original set (one
+ * just has to compute the three hash functions, collect the three two-bit values, add them modulo 3
+ * and take the corresponding hash function value).
  *
- * <p>To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value
- * to a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
- * output value for some key. The final value of the minimal perfect hash function is the number
- * of nonzero pairs of bits that precede the perfect hash value for the key. To compute this
- * number, we use a simple table-free ranking scheme, recording the number of nonzero pairs each
+ * <p>
+ * To obtain a minimal perfect hash, we simply notice that we whenever we have to assign a value to
+ * a vertex, we can take care of using the number 3 instead of 0 if the vertex is actually the
+ * output value for some key. The final value of the minimal perfect hash function is the number of
+ * nonzero pairs of bits that precede the perfect hash value for the key. To compute this number, we
+ * use a simple table-free ranking scheme, recording the number of nonzero pairs each
  * {@link #BITS_PER_BLOCK} bits and using {@link Long#bitCount(long)} to
  * {@linkplain #countNonzeroPairs(long) count the number of nonzero pairs of bits in a word}.
  *
