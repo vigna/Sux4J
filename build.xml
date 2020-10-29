@@ -145,6 +145,9 @@
 	<target name="jar" depends="compile" description="Creates jar (without tests)">
 		<jar jarfile="sux4j-${version}.jar">
 			<fileset dir="${build}"/>
+			<manifest>
+				<attribute name="Automatic-Module-Name" value="it.unimi.dsi.sux4j"/>
+			</manifest>
 		</jar>	
 	</target>
 	
