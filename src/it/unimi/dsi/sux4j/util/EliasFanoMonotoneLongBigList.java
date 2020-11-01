@@ -266,6 +266,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	@Override
 	public long getLong(final long index) {
 		final int l = this.l;
+		if (index >= length) throw new IllegalArgumentException();
 		final long upperBits = selectUpper.select(index) - index;
 		if (l == 0) return upperBits;
 

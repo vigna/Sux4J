@@ -35,19 +35,30 @@ public class EliasFanoIndexedMonotoneLongBigListTest {
 
 	private static void test(final EliasFanoIndexedMonotoneLongBigList l) {
 		final long u = l.getLong(l.size64() - 1);
-		long p = 0, q = 0;
-		long succ = l.getLong(p);
+		long p = 0, q = -1, r = -1, s = 0;
+		long succ = l.getLong(0), ssucc = l.getLong(0);
 		long pred = -1;
+		long wpred = -1;
 		for (long i = 0; i <= u; i++) {
+
 			while (i > succ) succ = l.getLong(++p);
-			if (i > l.getLong(q)) {
-				pred = l.getLong(q);
-				do q++; while (q < l.size64() - 1 && l.getLong(q) == l.getLong(q + 1));
-			}
-			assertEquals(succ, l.successor(i));
-			assertEquals(p, l.index());
-			assertEquals(pred, l.predecessor(i));
-			if (pred != -1) assertEquals(p - 1, l.index());
+			assertEquals(Long.toString(i), succ, l.successor(i));
+			assertEquals(Long.toString(i), p, l.index());
+
+			while (i >= ssucc && s < l.size64() - 1) ssucc = l.getLong(++s);
+			if (i >= ssucc && s == l.size64() - 1) ssucc = Long.MAX_VALUE;
+			assertEquals(Long.toString(i), ssucc, l.strictSuccessor(i));
+			if (ssucc != Long.MAX_VALUE) assertEquals(Long.toString(i), s, l.index());
+
+			while (q < l.size64() - 1 && i > l.getLong(q + 1)) pred = l.getLong(++q);
+			while (q < l.size64() - 1 && l.getLong(q + 1) == pred) q++;
+			assertEquals(Long.toString(i), pred, l.predecessor(i));
+			if (pred != -1) assertEquals(Long.toString(i), q, l.index());
+
+			while (r < l.size64() - 1 && i >= l.getLong(r + 1)) wpred = l.getLong(++r);
+			while (r < l.size64() - 1 && l.getLong(r + 1) == wpred) r++;
+			assertEquals(Long.toString(i), wpred, l.weakPredecessor(i));
+			if (wpred != -1) assertEquals(Long.toString(i), r, l.index());
 		}
 
 		assertEquals(-1, l.predecessor(l.getLong(0)));

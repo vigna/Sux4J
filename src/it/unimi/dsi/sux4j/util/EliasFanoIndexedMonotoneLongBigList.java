@@ -34,14 +34,15 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SimpleSelectZero;
 
 /**
- * An extension of {@link EliasFanoMonotoneLongBigList} providind indexing (i.e., content-based
+ * An extension of {@link EliasFanoMonotoneLongBigList} providing indexing (i.e., content-based
  * addressing).
  *
  * <p>
- * This implementation uses an {@link SimpleSelectZero} to support zero-selection inside the
- * upper-bits array, which makes it possible to implement fast content-addressed based access
- * methods such as {@link #predecessor(long)}, {@link #successor(long)}, and
- * {@link #contains(long)}.
+ * This implementation uses a {@link SimpleSelectZero} structure to support zero-selection inside
+ * the upper-bits array, which makes it possible to implement fast content-addressed based access
+ * methods such as {@link #predecessor(long)}, {@link #weakPredecessor(long)},
+ * {@link #successor(long)}, {@link #strictSuccessor(long)}, {@link #contains(long)} and
+ * {@link #indexOf(long)}.
  */
 
 public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBigList implements Serializable {
@@ -52,8 +53,8 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	/** The upper bits as a long array. */
 	protected final long[] upperBits = selectUpper.bitVector().bits();
 	/**
-	 * The index of the value returned by {@link #successor(long)}, {@link #predecessor(long)} or
-	 * {@link #contains(long)}.
+	 * The index of the value returned by {@link #predecessor(long)}, {@link #weakPredecessor(long)},
+	 * {@link #successor(long)}, {@link #strictSuccessor(long)}, and {@link #contains(long)}.
 	 */
 	private long currentIndex = -1;
 	/** The last element of the sequence, or -1 if the sequence is empty. */
@@ -120,6 +121,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * @param lowerBound a lower bound on the returned value.
 	 * @return the first value of the sequence that is greater than or equal to {@code lowerBound}, or
 	 *         {@link Long#MAX_VALUE} if no such value exists.
+	 * @see #strictSuccessor(long)
 	 */
 
 	public long successor(final long lowerBound) {
@@ -164,13 +166,68 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	}
 
 	/**
+	 * Returns the first element of the sequence that is greater than the provided bound.
+	 *
+	 * <p>
+	 * If such an element exists, its position in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * @param lowerBound a lower bound on the returned value.
+	 * @return the first value of the sequence that is greater than or equal to {@code lowerBound}, or
+	 *         {@link Long#MAX_VALUE} if no such value exists.
+	 * @see #successor(long)
+	 */
+
+	public long strictSuccessor(final long lowerBound) {
+		if (lowerBound >= lastElement) return Long.MAX_VALUE;
+		final long zeroesToSkip = lowerBound >>> l;
+		final long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1);
+		int curr = (int)(position / Long.SIZE);
+		long window = upperBits[curr];
+		window &= -1L << (position % Long.SIZE);
+		currentIndex = zeroesToSkip == 0 ? 0 : position - zeroesToSkip + 1;
+
+		if (l == 0) {
+			for (;;) {
+				while (window == 0) window = upperBits[++curr];
+				final long upperBits = curr * Long.SIZE + Long.numberOfTrailingZeros(window) - currentIndex;
+				if (upperBits > lowerBound) return upperBits;
+
+				window &= window - 1;
+				currentIndex++;
+			}
+
+		} else {
+			long lowerBitsOffset = currentIndex * l;
+			for (;;) {
+				while (window == 0) window = upperBits[++curr];
+				final long upperBits = curr * Long.SIZE + Long.numberOfTrailingZeros(window) - currentIndex;
+				window &= window - 1;
+
+				final int startWord = (int)(lowerBitsOffset / Long.SIZE);
+				final int startBit = (int)(lowerBitsOffset % Long.SIZE);
+				final int totalOffset = startBit + l;
+				long lower = lowerBits[startWord] >>> startBit;
+				if (totalOffset > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+				lower &= lowerBitsMask;
+
+				final long v = upperBits << l | lower;
+				if (v > lowerBound) return v;
+				currentIndex++;
+				lowerBitsOffset += l;
+			}
+		}
+	}
+
+	/**
 	 * Returns the last value of the sequence that is less than the provided bound.
 	 *
 	 * <p>
-	 * If such an element exists, its position in the sequence can be retrived using {@link #index()}.
+	 * If such an element exists, its position in the sequence can be retrieved using {@link #index()}.
 	 *
 	 * @param upperBound a strict upper bound on the returned value.
-	 * @return the last value of the sequence that is less than {@code upperBound}, or -1 if no such value exists.
+	 * @return the last value of the sequence that is less than {@code upperBound}, or -1 if no such
+	 *         value exists.
+	 * @see #weakPredecessor(long)
 	 */
 
 	public long predecessor(final long upperBound) {
@@ -219,6 +276,57 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	}
 
 	/**
+	 * Returns the last value of the sequence that is less than or equal to the provided bound.
+	 *
+	 * <p>
+	 * If such an element exists, its position in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * @param upperBound an upper bound on the returned value.
+	 * @return the last value of the sequence that is less than or equal to {@code upperBound}, or -1 if
+	 *         no such value exists.
+	 * @see #predecessor(long)
+	 */
+
+	public long weakPredecessor(final long upperBound) {
+		if (upperBound < firstElement) return -1;
+		if (upperBound >= lastElement) {
+			currentIndex = length - 1;
+			return lastElement;
+		}
+		final long zeroesToSkip = upperBound >>> l;
+		long position = selectUpperZero.selectZero(zeroesToSkip);
+		long rank = position - zeroesToSkip;
+
+		if (l == 0) {
+			currentIndex = --rank;
+			return selectUpper.select(rank) - rank;
+		} else {
+			long lowerBitsOffset = rank * l;
+			long lower;
+			final long upperBoundLowerBits = upperBound & lowerBitsMask;
+			for (;;) {
+				rank--;
+				lowerBitsOffset -= l;
+				position--;
+
+				final int startWord = (int)(lowerBitsOffset / Long.SIZE);
+				final int startBit = (int)(lowerBitsOffset % Long.SIZE);
+				final int totalOffset = startBit + l;
+				lower = lowerBits[startWord] >>> startBit;
+				if (totalOffset > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+				lower &= lowerBitsMask;
+
+				if ((upperBits[(int)(position / 64)] & 1L << position % 64) == 0) break;
+
+				if (lower <= upperBoundLowerBits) break;
+			}
+
+			currentIndex = rank;
+			return selectUpper.select(rank) - rank << l | lower;
+		}
+	}
+
+	/**
 	 * Returns the index of the first occurrence of the specified element in the sequence, or -1 if the
 	 * element does not belong to the sequence.
 	 *
@@ -252,14 +360,14 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 
 	/**
 	 * Returns the index realizing the last value returned by {@link #predecessor(long)},
-	 * {@link #successor(long)} and {#contains(long)} (in case the return value is {@code true}).
+	 * {@link #weakPredecessor(long)}, {@link #successor(long)}, {@link #strictSuccessor(long)}, and
+	 * {#contains(long)}.
 	 *
 	 * @return the index of the element realizing the last value returned by {@link #predecessor(long)},
-	 *         {@link #successor(long)} and {#contains(long)} (in case the return value is
-	 *         {@code true}), or -1 if no such method has ever been called.
+	 *         {@link #weakPredecessor(long)}, {@link #successor(long)}, {@link #strictSuccessor(long)},
+	 *         and {#contains(long)}, or -1 if no such method has ever been called.
 	 */
 	public long index() {
 		return currentIndex;
 	}
-
 }
