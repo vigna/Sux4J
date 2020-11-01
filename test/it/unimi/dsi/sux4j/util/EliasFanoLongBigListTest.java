@@ -53,7 +53,7 @@ public class EliasFanoLongBigListTest {
 
 	@Test
 	public void testBulk() {
-		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom();
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 		for(final int base: new int[] { 0, 1, 10 }) {
 			final long[] s = new long[100000];
 			for(int i = s.length; i-- != 0;) s[i] = random.nextInt(100) + base;

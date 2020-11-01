@@ -27,7 +27,6 @@ import org.junit.Test;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
-import it.unimi.dsi.sux4j.scratch.EliasFanoMonotoneLongBigListTables;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class EliasFanoMonotoneLongBigList16Test {
@@ -48,13 +47,7 @@ public class EliasFanoMonotoneLongBigList16Test {
 		// No skip tables involved
 		LongBigArrayBigList l;
 
-		l = new LongBigArrayBigList(Util.identity(1L << (EliasFanoMonotoneLongBigListTables.LOG_2_QUANTUM)));
-		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
-
-		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
-		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
-
-		l = new LongBigArrayBigList(Util.identity((1L << (EliasFanoMonotoneLongBigListTables.LOG_2_QUANTUM)) + 5));
+		l = new LongBigArrayBigList(Util.identity(100L));
 		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
@@ -66,13 +59,7 @@ public class EliasFanoMonotoneLongBigList16Test {
 		// No skip tables involved
 		LongBigArrayBigList l;
 
-		l = new LongBigArrayBigList(Util.identity(2 * (1L << (EliasFanoMonotoneLongBigListTables.LOG_2_QUANTUM))));
-		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
-
-		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
-		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
-
-		l = new LongBigArrayBigList(Util.identity(2 * (1L << (EliasFanoMonotoneLongBigListTables.LOG_2_QUANTUM)) + 5));
+		l = new LongBigArrayBigList(Util.identity(2 * (100L)));
 		assertEquals(l, new EliasFanoMonotoneLongBigList16(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
@@ -93,7 +80,7 @@ public class EliasFanoMonotoneLongBigList16Test {
 
 	@Test
 	public void testBulk() {
-		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom();
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 		for(final int base: new int[] { 0, 1, 10 }) {
 			for(final int jump : new int[] { 1, 10, 100 }) {
 				final long[] s = new long[100000];
