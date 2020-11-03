@@ -5,3 +5,5 @@ dist/
 reports/
 bin/
 build/
+pom.xml
+perf/
