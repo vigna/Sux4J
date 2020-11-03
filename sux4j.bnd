@@ -1,0 +1,5 @@
+Automatic-Module-Name: it.unimi.dsi.sux4j
+Bundle-Name: it.unimi.dsi.sux4j
+Bundle-SymbolicName: it.unimi.dsi.sux4j
+Export-Package: it.unimi.dsi.sux4j.*
+Bundle-Version: ${version}
