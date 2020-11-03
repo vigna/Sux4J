@@ -20,14 +20,14 @@
 
 package it.unimi.dsi.sux4j.mph;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
 import org.junit.Test;
 
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
+import it.unimi.dsi.fastutil.longs.LongOpenHashBigSet;
 
 public class GOVMinimalPerfectHashFunctionSlowTest {
 
@@ -35,12 +35,7 @@ public class GOVMinimalPerfectHashFunctionSlowTest {
 	public void testBig() throws IOException {
 		final LargeLongCollection p = LargeLongCollection.getInstance();
 		final GOVMinimalPerfectHashFunction<Long> f = new GOVMinimalPerfectHashFunction.Builder<Long>().keys(p).transform(TransformationStrategies.fixedLong()).build();
-
-		final LongArrayBitVector b = LongArrayBitVector.ofLength(p.size64());
-		for (long i = 0; i < p.size64(); i++) {
-			final long t = f.getLong(Long.valueOf(i));
-			assertFalse(b.getBoolean(t));
-			b.set(t);
-		}
+		final LongOpenHashBigSet s = new LongOpenHashBigSet();
+		for (final Long l : p) assertTrue(s.add(f.getLong(l)));
 	}
 }

@@ -88,7 +88,7 @@ public class GOVMinimalPerfectHashFunctionTest {
 	@Test
 	public void checkEmpty() throws IOException {
 		for(final int signatureWidth: new int[] { 0, 32, 64 }) {
-			final GOVMinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys(ObjectLists.EMPTY_LIST).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
+			final GOVMinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys(ObjectLists.emptyList()).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
 			check(0, new String[] {}, mph, 0);
 		}
 	}

@@ -56,6 +56,7 @@ final class LargeLongCollection implements Iterable<Long>, Size64 {
 	}
 
 	@Override
+	@Deprecated
 	public int size() {
 		throw new UnsupportedOperationException("You should invoke size64(), only.");
 	}
