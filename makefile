@@ -2,24 +2,12 @@ include build.properties
 
 TAR=tar
 
-source: source2
-	gunzip sux4j-$(version)-src.tar.gz
-	$(TAR) --delete --wildcards -v -f sux4j-$(version)-src.tar \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystem.java \
-		sux4j-$(version)/test/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystemTest.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/bits/Rank12.java \
-		sux4j-$(version)/test/it/unimi/dsi/sux4j/bits/Rank12Test.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java \
-		sux4j-$(version)/test/it/unimi/dsi/sux4j/scratch/*.java \
-		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java
-	gzip sux4j-$(version)-src.tar
-
-source2:
-	-rm -fr sux4j-$(version)
-	ln -s . sux4j-$(version)
+source: 
+	rm -fr sux4j-$(version)
 	ant clean
+	ln -s . sux4j-$(version)
 	./genz.sh
-	$(TAR) zhcvf sux4j-$(version)-src.tar.gz --owner=0 --group=0 \
+	$(TAR) chvf sux4j-$(version)-src.tar --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
@@ -32,23 +20,31 @@ source2:
 		$$(find sux4j-$(version)/test/it/unimi/dsi/sux4j -iname \*.java) \
 		$$(find sux4j-$(version)/slow/it/unimi/dsi/sux4j -iname \*.java) \
 		sux4j-$(version)/src/overview.html
+	$(TAR) --delete --wildcards -v -f sux4j-$(version)-src.tar \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystem.java \
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/mph/solve/Modulo2SparseSystemTest.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/bits/Rank12.java \
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/bits/Rank12Test.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/scratch/*.java \
+		sux4j-$(version)/test/it/unimi/dsi/sux4j/scratch/*.java \
+		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java
+	gzip -f sux4j-$(version)-src.tar
 	-rm -fr sux4j-$(version)
 
 binary:
-	-rm -fr sux4j-$(version)
-	ln -s . sux4j-$(version)
-	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant clean ivy-clean ivy-setupjars osgi jar javadoc)
+	rm -fr sux4j-$(version)
+	tar zxvf sux4j-$(version)-src.tar.gz
+	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant ivy-setupjars; ant jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
 		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
-	$(TAR) zcvf sux4j-deps.tar.gz --owner=0 --group=0 --transform='s|.*/||' $$(find sux4j-$(version)/jars/runtime -iname \*.jar -exec readlink {} \;) 
-	-rm -fr sux4j-$(version)
+	$(TAR) zcvf sux4j-$(version)-deps.tar.gz --owner=0 --group=0 --transform='s|.*/||' $$(find sux4j-$(version)/jars/runtime -iname \*.jar -exec readlink {} \;) 
 
 stage:
-	-rm -fr sux4j-$(version)
-	ln -s . sux4j-$(version)
-	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant stage)
-	-rm -fr dsiutils-$(version)
+	rm -fr sux4j-$(version)
+	tar zxvf sux4j-$(version)-src.tar.gz
+	cp -fr lib dsiutils-$(version)
+	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant ivy-setupjars; ant stage)
