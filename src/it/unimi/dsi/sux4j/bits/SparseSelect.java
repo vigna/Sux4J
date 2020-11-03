@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.bits;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongBigList;
@@ -147,11 +150,10 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 		if (l == 0) return upperBits;
 
 		final long position = rank * l;
-		final int startWord = (int)(position / Long.SIZE);
-		final int startBit = (int)(position % Long.SIZE);
-		final int totalOffset = startBit + l;
+		final int startWord = word(position);
+		final int startBit = bit(position);
 		final long result = lowerBits[startWord] >>> startBit;
-		return upperBits << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 	}
 
 	/** Returns the bit vector indexed; since the bits are not stored in this data structure,

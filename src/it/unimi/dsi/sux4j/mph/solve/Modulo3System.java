@@ -438,7 +438,7 @@ public class Modulo3System {
 
 		return true;
 	}
-	
+
 	/**
 	 * Solves the system using lazy Gaussian elimination.
 	 *
@@ -609,7 +609,7 @@ public class Modulo3System {
 				int var;
 				do var = variables.popInt(); while(weight[var] == 0);
 				numActive++;
-				idleNormalized[var / 32] ^= 1L << (var % 32) * 2;
+				idleNormalized[var >>> 5] ^= 1L << ((var & 31) << 1);
 				if (DEBUG) System.err.println("Making variable " + var + " of weight " + weight[var] + " active (" + remaining + " equations to go)");
 				for(final int equationIndex: var2Eq[var])
 					if (--priority[equationIndex] == 1) equationList.push(equationIndex);

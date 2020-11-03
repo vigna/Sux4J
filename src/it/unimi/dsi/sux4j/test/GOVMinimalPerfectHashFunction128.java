@@ -178,17 +178,17 @@ public class GOVMinimalPerfectHashFunction128<T> extends AbstractHashFunction<T>
 	 * @return the number of nonzero 2-bit values between {@code start} and {@code end}.
 	 */
 	private final static long countNonzeroPairs(final long start, final long end, final long[] array) {
-		int block = (int)(start / 32);
-		final int endBlock = (int)(end / 32);
-		final int startOffset = (int)(start % 32);
-		final int endOffset = (int)(end % 32);
+		int block = (int)(start >>> 5);
+		final int endBlock = (int)(end >>> 5);
+		final int startOffset = (int)(start & 31);
+		final int endOffset = (int)(end & 31);
 
-		if (block == endBlock) return countNonzeroPairs((array[block] & (1L << endOffset * 2) - 1) >>> startOffset * 2);
+		if (block == endBlock) return countNonzeroPairs((array[block] & (1L << (endOffset << 1)) - 1) >>> (startOffset << 1));
 
 		long pairs = 0;
-		if (startOffset != 0) pairs += countNonzeroPairs(array[block++] >>> startOffset * 2);
+		if (startOffset != 0) pairs += countNonzeroPairs(array[block++] >>> (startOffset << 1));
 		while(block < endBlock) pairs += countNonzeroPairs(array[block++]);
-		if (endOffset != 0) pairs += countNonzeroPairs(array[block] & (1L << endOffset * 2) - 1);
+		if (endOffset != 0) pairs += countNonzeroPairs(array[block] & (1L << (endOffset << 1)) - 1);
 
 		return pairs;
 	}
@@ -486,7 +486,7 @@ public class GOVMinimalPerfectHashFunction128<T> extends AbstractHashFunction<T>
 
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			(signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth)).size(n);
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";

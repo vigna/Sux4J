@@ -334,7 +334,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		LOGGER.info("Actual bit cost per element: " + (double)numBits() / n);
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else {

@@ -20,6 +20,10 @@
 
 package it.unimi.dsi.sux4j.bits;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
@@ -42,8 +46,6 @@ import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
  */
 
 public class SimpleSelectZero implements SelectZero {
-	private static final boolean ASSERTS = true;
-
 	private static final long serialVersionUID = 1L;
 
 	private static final int MAX_ONES_PER_INVENTORY = 8192;
@@ -110,7 +112,7 @@ public class SimpleSelectZero implements SelectZero {
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 
-		numWords = (int)((length + 63) / 64);
+		numWords = words(length);
 
 		// We compute quickly the number of ones (possibly counting spurious bits in the last word).
 		long d = 0;
@@ -125,10 +127,10 @@ public class SimpleSelectZero implements SelectZero {
 		// First phase: we build an inventory for each one out of onesPerInventory.
 		d = 0;
 		for(int i = 0; i < numWords; i++)
-			for(int j = 0; j < 64; j++) {
-				if (i * 64L + j >= length) break;
+			for (int j = 0; j < Long.SIZE; j++) {
+				if (bits(i) + j >= length) break;
 				if ((~bits[i] & 1L << j) != 0) {
-					if ((d & onesPerInventoryMask) == 0) inventory[(int)(d >>> log2OnesPerInventory)] = i * 64L + j;
+					if ((d & onesPerInventoryMask) == 0) inventory[(int)(d >>> log2OnesPerInventory)] = bits(i) + j;
 					d++;
 				}
 			}
@@ -152,8 +154,8 @@ public class SimpleSelectZero implements SelectZero {
 
 			for(int i = 0; i < numWords; i++)
 				// We estimate the subinventory and exact spill size
-				for(int j = 0; j < 64; j++) {
-					if (i * 64L + j >= length) break;
+				for (int j = 0; j < Long.SIZE; j++) {
+					if (bits(i) + j >= length) break;
 					if ((~bits[i] & 1L << j) != 0) {
 						if ((d & onesPerInventoryMask) == 0) {
 							inventoryIndex = (int)(d >>> log2OnesPerInventory);
@@ -169,7 +171,7 @@ public class SimpleSelectZero implements SelectZero {
 					}
 				}
 
-			final int subinventorySize = (int)((diff16 + 3) / 4);
+			final int subinventorySize = (int)((diff16 + 3) >> 2);
 			final int exactSpillSize = spilled;
 			subinventory = new long[subinventorySize];
 			exactSpill = new long[exactSpillSize];
@@ -180,8 +182,8 @@ public class SimpleSelectZero implements SelectZero {
 			d = 0;
 
 			for(int i = 0; i < numWords; i++)
-				for(int j = 0; j < 64; j++) {
-					if (i * 64L + j >= length) break;
+				for (int j = 0; j < Long.SIZE; j++) {
+					if (bits(i) + j >= length) break;
 					if ((~bits[i] & 1L << j) != 0) {
 						if ((d & onesPerInventoryMask) == 0) {
 							inventoryIndex = (int)(d >>> log2OnesPerInventory);
@@ -191,21 +193,21 @@ public class SimpleSelectZero implements SelectZero {
 						}
 
 						if (span < MAX_SPAN) {
-							if (ASSERTS) assert i * 64L + j - start <= MAX_SPAN;
+							assert bits(i) + j - start <= MAX_SPAN;
 							if ((d & onesPerSub16Mask) == 0) {
-								subinventory16.set((inventoryIndex << log2LongwordsPerSubinventory + 2) +  offset++, i * 64L + j - start);
+								subinventory16.set((inventoryIndex << log2LongwordsPerSubinventory + 2) + offset++, bits(i) + j - start);
 							}
 						}
 						else {
 							if (onesPerSub64 == 1) {
-								subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + offset++] = i * 64L + j;
+								subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + offset++] = bits(i) + j;
 							}
 							else {
 								if ((d & onesPerInventoryMask) == 0) {
 									inventory[inventoryIndex] |= 1L << 63;
 									subinventory[inventoryIndex << log2LongwordsPerSubinventory] = spilled;
 								}
-								exactSpill[spilled++] = i * 64L + j;
+								exactSpill[spilled++] = bits(i) + j;
 							}
 						}
 
@@ -246,7 +248,7 @@ public class SimpleSelectZero implements SelectZero {
 		if (residual == 0) return start;
 
 		final long bits[] = this.bits;
-		int wordIndex = (int)(start / 64);
+		int wordIndex = word(start);
 		long word = ~bits[wordIndex] & -1L << start;
 
 		for(;;) {
@@ -256,7 +258,7 @@ public class SimpleSelectZero implements SelectZero {
 			residual -= bitCount;
 		}
 
-		return wordIndex * (long)Long.SIZE + Fast.select(word, residual);
+		return bits(wordIndex) + Fast.select(word, residual);
 	}
 
 	/** Performs a bulk select of consecutive ranks into a given array fragment.
@@ -272,14 +274,14 @@ public class SimpleSelectZero implements SelectZero {
 		if (length == 0) return dest;
 		final long s = selectZero(rank);
 		dest[offset] = s;
-		int curr = (int)(s / Long.SIZE);
+		int curr = word(s);
 
 		long window = ~bits[curr] & -1L << s;
 		window &= window - 1;
 
 		for(int i = 1; i < length; i++) {
 			while(window == 0) window = ~bits[++curr];
-			dest[offset + i] = curr * (long)Long.SIZE + Long.numberOfTrailingZeros(window);
+			dest[offset + i] = bits(curr) + Long.numberOfTrailingZeros(window);
 			window &= window - 1;
 		}
 
@@ -305,7 +307,7 @@ public class SimpleSelectZero implements SelectZero {
 
 	@Override
 	public long numBits() {
-		return inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE + exactSpill.length * (long)Long.SIZE;
+		return bits(inventory.length) + bits(subinventory.length) + bits(exactSpill.length);
 	}
 
 	@Override

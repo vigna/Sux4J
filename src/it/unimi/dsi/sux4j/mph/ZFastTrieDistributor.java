@@ -705,7 +705,8 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 			else key.length(key.lastOne() + 1);
 			final long pos = ranker.getLong(key);
 			if (DDDEBUG) System.err.println(key.length() + " " + pos + " " + leaves.bitVector());
-			return leaves.rank(pos);
+			// TODO: These maxes should not be necessary
+			return leaves.rank(Math.max(0, pos));
 		}
 		else {
 			if (DDDEBUG) System.err.println("RIGHT: " + bit);
@@ -716,12 +717,12 @@ public class ZFastTrieDistributor<T> extends AbstractObject2LongFunction<T> impl
 				key.length(lastZero + 1).set(lastZero);
 				final long pos = ranker.getLong(key);
 				//System.err.println("pos: " + pos + " rank: " + leaves.rank(pos));
-				return leaves.rank(pos);
+				return leaves.rank(Math.max(0, pos));
 			}
 			else {
 				key.add(true);
 				final long pos = ranker.getLong(key);
-				return leaves.rank(pos);
+				return leaves.rank(Math.max(0, pos));
 			}
 		}
 	}

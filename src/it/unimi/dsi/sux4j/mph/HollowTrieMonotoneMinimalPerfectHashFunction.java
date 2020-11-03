@@ -118,8 +118,8 @@ public class HollowTrieMonotoneMinimalPerfectHashFunction<T> extends AbstractHas
 			// " at bit " + s + "... \n");
 			if (bitVector.getBoolean(s)) {
 				final long q = balParen.findClose(p) + 1;
-				r += (q - p) / 2;
-				index += (q - p) / 2;
+				r += (q - p) >> 1;
+				index += (q - p) >> 1;
 				// System.err.println("Increasing index by " + (q - p + 1) / 2 + " to " + index +
 				// "...");
 				if (!trie.getBoolean(q)) return index;

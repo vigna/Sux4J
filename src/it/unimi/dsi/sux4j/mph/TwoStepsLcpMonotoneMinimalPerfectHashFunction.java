@@ -358,7 +358,7 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 		LOGGER.info("Actual bit cost per element: " + (double)numBits() / n);
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			bucketedHashStore.filter(null); // two-steps functions use filtering.
 			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}

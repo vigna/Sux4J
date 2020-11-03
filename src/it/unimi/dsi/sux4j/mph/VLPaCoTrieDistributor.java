@@ -20,6 +20,8 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -65,7 +67,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 	 * writes an instance of this class to a bit stream.
 	 */
 	private final static class PartialTrie<T> {
-		private final static boolean ASSERTS = true;
+		private final static boolean ASSERTS = false;
 
 		/** A node in the trie. */
 		protected static class Node {
@@ -435,7 +437,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 				readBits = trie.readBits();
 
-				for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
+				for (int i = 0, numWords = words(pathLength); i < numWords; i++) {
 					size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
 					xor = v.getLong(pos, Math.min(length, pos += size)) ^ (t = trie.readLong(size));
 					if (xor != 0 || pos >= length) break;
@@ -502,7 +504,7 @@ public class VLPaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 		final int pathLength = trie.readDelta();
 		final LongArrayBitVector p = LongArrayBitVector.getInstance(pathLength);
 
-		for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
+		for (int i = 0, numWords = words(pathLength); i < numWords; i++) {
 			final int size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
 			p.append(trie.readLong(size), size);
 		}

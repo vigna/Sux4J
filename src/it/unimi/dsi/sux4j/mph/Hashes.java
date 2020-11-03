@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -814,8 +817,8 @@ public class Hashes {
 	 */
 
 	public static long murmur(final BitVector bv, final long prefixLength, final long[] state) {
-		final long precomputedUpTo = prefixLength - prefixLength % Long.SIZE;
-		long h = state[(int) (precomputedUpTo / Long.SIZE)], k;
+		final long precomputedUpTo = prefixLength & -Long.SIZE;
+		long h = state[word(precomputedUpTo)], k;
 
 		if (prefixLength > precomputedUpTo) {
 			k = bv.getLong(precomputedUpTo, prefixLength);
@@ -859,9 +862,9 @@ public class Hashes {
 	 */
 
 	public static long murmur(final BitVector bv, final long prefixLength, final long[] state, final long lcp) {
-		final int startStateWord = (int) (Math.min(lcp, prefixLength) / Long.SIZE);
+		final int startStateWord = word(Math.min(lcp, prefixLength));
 		long h = state[startStateWord], k;
-		long from = startStateWord * Long.SIZE;
+		long from = bits(startStateWord);
 
 		while (prefixLength - from >= Long.SIZE) {
 			k = bv.getLong(from, from += Long.SIZE);
@@ -913,7 +916,7 @@ public class Hashes {
 		long from = 0;
 		final long length = bv.length();
 
-		final int wordLength = (int) (length / Long.SIZE);
+		final int wordLength = word(length);
 		final long state[] = new long[wordLength + 1];
 
 		int i = 0;
@@ -2032,7 +2035,7 @@ public class Hashes {
 			remaining -= Long.SIZE * 12;
 		}
 
-		final int remainingWords = (int) (remaining / Long.SIZE);
+		final int remainingWords = word(remaining);
 		switch (remainingWords) {
 		case 10:
 			h9 += bv.getLong(pos + Long.SIZE * 9, pos + Long.SIZE * 10);
@@ -2058,7 +2061,7 @@ public class Hashes {
 			break;
 		}
 
-		final int bits = (int) (remaining % Long.SIZE);
+		final int bits = (int)(remaining & ~-Long.SIZE);
 		if (bits > 0) {
 			final long partial = bv.getLong(length - bits, length);
 			switch (remainingWords) {
@@ -2268,7 +2271,7 @@ public class Hashes {
 			h1 = state[p + 1];
 			h2 = state[p + 2];
 			h3 = state[p + 3];
-			pos = p * Long.SIZE + 2 * Long.SIZE;
+			pos = bits(p) + 2 * Long.SIZE;
 		} else pos = 0;
 
 		long remaining = prefixLength - pos;
@@ -2366,7 +2369,7 @@ public class Hashes {
 			h1 = state[p + 1];
 			h2 = state[p + 2];
 			h3 = state[p + 3];
-			pos = p * Long.SIZE + 2 * Long.SIZE;
+			pos = bits(p) + 2 * Long.SIZE;
 		} else pos = 0;
 
 		long remaining = prefixLength - pos;

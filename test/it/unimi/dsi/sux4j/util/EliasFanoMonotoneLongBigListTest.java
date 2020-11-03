@@ -84,11 +84,13 @@ public class EliasFanoMonotoneLongBigListTest {
 				final long[] s = new long[100000];
 				for(int i = 1; i < s.length; i++) s[i] = s[i - 1] + random.nextInt(jump) + base;
 				final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList(LongArrayList.wrap(s));
+
 				for(int i = 0; i < 1000; i++) {
 					final int from = random.nextInt(s.length - 100);
 					final int to = from + random.nextInt(100);
-					final long[] dest = ef.get(from, new long[to - from]);
-					for(int j = from; j < to; j++) assertEquals(s[j], dest[j - from]);
+					final int offset = random.nextInt(10);
+					final long[] dest = ef.get(from, new long[to - from + offset + random.nextInt(10)], offset, to - from);
+					for (int j = from; j < to; j++) assertEquals("From: " + from + " to: " + to + " j: " + j, s[j], dest[offset + j - from]);
 				}
 
 				for(int i = 0; i < 1000; i++) {
@@ -97,6 +99,13 @@ public class EliasFanoMonotoneLongBigListTest {
 					final int offset = random.nextInt(10);
 					final long[] dest = ef.get(from, new long[to - from + offset + random.nextInt(10)], offset, to - from);
 					for(int j = from; j < to; j++) assertEquals("From: " + from + " to: " + to + " j: " + j, s[j], dest[offset + j - from]);
+				}
+
+				for (int i = 0; i < 1000; i++) {
+					final int from = random.nextInt(s.length - 100);
+					final long[] dest = new long[2];
+					ef.get(from, dest);
+					assertEquals(dest[1] - dest[0], ef.getDelta(from));
 				}
 			}
 		}

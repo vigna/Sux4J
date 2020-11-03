@@ -20,6 +20,8 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
@@ -140,7 +142,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 @SuppressWarnings("deprecation")
 public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> implements Serializable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CHDMinimalPerfectHashFunction.class);
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 
 	public static final long serialVersionUID = 6L;
 
@@ -544,7 +546,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		LOGGER.info("Actual bit cost per key: " + (double)numBits() / n);
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			(signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth)).size(n);
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
@@ -574,7 +576,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * @return the number of bits used by this structure.
 	 */
 	public long numBits() {
-		return offsetNumBucketsSeed.length * Long.SIZE + coefficients.numBits() + rank.numBits();
+		return bits(offsetNumBucketsSeed.length) + coefficients.numBits() + rank.numBits();
 	}
 
 	@Override

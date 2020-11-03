@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -187,13 +190,13 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 * The local seed is generated using this step, so to be easily embeddable in
 	 * {@link #offsetAndSeed}.
 	 */
-	private static final long SEED_STEP = 1L << Long.SIZE - SEED_BITS;
+	private static final long SEED_STEP = 1L << -SEED_BITS;
 	/**
 	 * The lowest 54 bits of {@link #offsetAndSeed} contain the number of keys stored up to the given
 	 * bucket.
 	 */
 	private static final long OFFSET_MASK = -1L >>> SEED_BITS;
-	private static final long SEED_MASK = -1L << Long.SIZE - SEED_BITS;
+	private static final long SEED_MASK = -1L << -SEED_BITS;
 
 	/** The system property used to set the number of parallel threads. */
 	public static final String NUMBER_OF_THREADS_PROPERTY = "it.unimi.dsi.sux4j.mph.threads";
@@ -565,7 +568,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		globalSeed = bucketedHashStore.seed();
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 
-		if ((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1 < (Integer.MAX_VALUE - 8L) * Long.SIZE) {
+		if ((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1 < bits(it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE)) {
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1);
 			this.data = dataBitVector;
 			while (iterator.hasNext()) dataBitVector.append(iterator.next());
@@ -631,7 +634,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 	 */
 	public long numBits() {
 		if (n == 0) return 0;
-		return data.size64() + offsetAndSeed.length * (long)Long.SIZE + decoder.numBits();
+		return data.size64() + bits(offsetAndSeed.length) + decoder.numBits();
 	}
 
 	@Override
@@ -665,7 +668,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		buffer.clear();
 
 		final LongBigList list = data.asLongBigList(Long.SIZE);
-		buffer.putLong((data.length() + Long.SIZE - 1) / Long.SIZE);
+		buffer.putLong(words(data.length()));
 
 		for (final long l : list) {
 			buffer.putLong(l);
@@ -676,7 +679,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 			}
 		}
 
-		if (data.length() % Long.SIZE != 0) buffer.putLong(data.getLong(data.length() & -Long.SIZE, data.length()));
+		if (!LongArrayBitVector.round(data.length())) buffer.putLong(data.getLong(data.length() & -Long.SIZE, data.length()));
 
 		buffer.flip();
 		channel.write(buffer);

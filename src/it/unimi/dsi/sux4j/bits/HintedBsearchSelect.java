@@ -25,6 +25,7 @@ import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
+import it.unimi.dsi.bits.LongBigArrayBitVector;
 
 /** A hinted binary-search select implementation.
  *
@@ -65,13 +66,13 @@ public class HintedBsearchSelect implements Select {
 		long d = 0;
 		final long mask = onesPerInventory - 1;
 		for(int i = 0; i < numWords; i++)
-			for(int j = 0; j < 64; j++)
+			for (int j = 0; j < Long.SIZE; j++)
 				if ((bits[i] & 1L << j) != 0) {
-					if ((d & mask) == 0) inventory[(int)(d >> log2OnesPerInventory)] = (i / 8) * 2;
+					if ((d & mask) == 0) inventory[(int)(d >> log2OnesPerInventory)] = (i >>> 3) << 1;
 					d++;
 				}
 
-		inventory[inventorySize] = (numWords / 8) * 2;
+		inventory[inventorySize] = (numWords >>> 3) * 2;
 	}
 
 	@Override
@@ -91,7 +92,7 @@ public class HintedBsearchSelect implements Select {
 			int blockMiddle;
 
 			while(blockRight - blockLeft > 2) {
-				blockMiddle = (blockRight + blockLeft) / 2 & ~1;
+				blockMiddle = ((blockRight + blockLeft) >>> 1) & ~1;
 				if (rank >= count[blockMiddle]) blockLeft = blockMiddle;
 				else blockRight = blockMiddle;
 			}
@@ -103,10 +104,10 @@ public class HintedBsearchSelect implements Select {
 		final long subcounts = count[blockLeft + 1];
 		final long offsetInBlock = (((((((rankInBlockStep9 | MSBS_STEP_9) - (subcounts & ~MSBS_STEP_9)) | (subcounts ^ rankInBlockStep9)) ^ (subcounts & ~rankInBlockStep9)) & MSBS_STEP_9) >>> 8) * ONES_STEP_9 >>> 54 & 0x7);
 
-		final long word = blockLeft * 4 + offsetInBlock;
+		final long word = (blockLeft << 2) + offsetInBlock;
 		final long rankInWord = rankInBlock - (subcounts >>> (offsetInBlock - 1 & 7) * 9 & 0x1FF);
 
-        return word * 64L + Fast.select(bits[(int)word], (int)rankInWord);
+		return LongBigArrayBitVector.bits(word) + Fast.select(bits[(int)word], (int)rankInWord);
 	}
 
 	@Override

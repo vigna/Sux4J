@@ -43,7 +43,7 @@ public class CodecTest {
 		final Decoder decoder = coder.getDecoder();
 		for (int i = 0; i < 10000000; i++) {
 			final long encoded = coder.encode(i);
-			final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+			final long longEncoded = Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength();
 			final long decoded = decoder.decode(longEncoded);
 			assertEquals(i, decoded);
 		}
@@ -57,7 +57,7 @@ public class CodecTest {
 		final Decoder decoder = coder.getDecoder();
 		for (final long l: frequencies.keySet()) {
 			final long encoded = coder.encode(l);
-			final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+			final long longEncoded = Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength();
 			final long decoded = decoder.decode(longEncoded);
 			assertEquals(l, decoded);
 		}
@@ -74,7 +74,7 @@ public class CodecTest {
 			final long encoded = coder.encode(l);
 			if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
 			else {
-				final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+				final long longEncoded = Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength();
 				final long decoded = decoder.decode(longEncoded);
 				assertEquals(l, decoded);
 			}
@@ -103,7 +103,7 @@ public class CodecTest {
 				final long encoded = coder.encode(l);
 				if (encoded == -1) maxLengthEscaped = Math.max(maxLengthEscaped, Fast.length(l));
 				else {
-					final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+					final long longEncoded = Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength();
 			final long decoded = decoder.decode(longEncoded);
 			assertEquals(l, decoded);
 				}
@@ -121,7 +121,7 @@ public class CodecTest {
 		final Decoder decoder = coder.getDecoder();
 		for (int i = 0; i < 62; i++) {
 			final long encoded = coder.encode(i);
-			final long longEncoded = Long.reverse(encoded) >>> 64 - coder.maxCodewordLength();
+			final long longEncoded = Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength();
 			final long decoded = decoder.decode(longEncoded);
 			assertEquals(i, decoded);
 		}
@@ -135,7 +135,7 @@ public class CodecTest {
 		final Decoder decoder = coder.getDecoder();
 		for (int i = 0; i <= 1000; i++) {
 			final long encoded = coder.encode(i);
-			final long decoded = decoder.decode(Long.reverse(encoded) >>> 64 - coder.maxCodewordLength());
+			final long decoded = decoder.decode(Long.reverse(encoded) >>> Long.SIZE - coder.maxCodewordLength());
 			assertEquals(i, decoded);
 		}
 	}

@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -286,16 +289,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * @return the number of hinges before the specified position.
 	 */
 	private long rank(long pos) {
-		pos *= 2;
+		pos <<= 1;
 		assert pos >= 0;
 		assert pos <= bitVector.length();
 
-		int word = (int)(pos / Long.SIZE);
+		int word = word(pos);
 		final int block = word / (WORDS_PER_SUPERBLOCK / 2) & ~1;
 		final int offset = ((word % WORDS_PER_SUPERBLOCK) / 6) - 1;
 
 		long result = count[block] + (count[block + 1] >> 12 * (offset + (offset >>> 32 - 4 & 6)) & 0x7FF) +
-				countNonzeroPairs(array[word] & (1L << pos % Long.SIZE) - 1);
+				countNonzeroPairs(array[word] & (1L << pos) - 1);
 
 		for (int todo = (word & 0x1F) % 6; todo-- != 0;) result += countNonzeroPairs(array[--word]);
 		return result;
@@ -417,7 +420,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			final long length = bitVector.length();
 
-			final int numWords = (int)((length + Long.SIZE - 1) / Long.SIZE);
+			final int numWords = words(length);
 
 			final int numCounts = (int)((length + 32 * Long.SIZE - 1) / (32 * Long.SIZE)) * 2;
 			// Init rank/select structure
@@ -459,7 +462,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			(signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth)).size(n);
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";

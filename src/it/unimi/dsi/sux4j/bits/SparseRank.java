@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.bits;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -125,11 +128,10 @@ public class SparseRank extends AbstractRank {
 		if (l == 0) return 0;
 
 		final long position = index * l;
-		final int startWord = (int)(position / Long.SIZE);
-		final int startBit = (int)(position % Long.SIZE);
-		final int totalOffset = startBit + l;
+		final int startWord = word(position);
+		final int startBit = bit(position);
 		final long result = lowerBits[startWord] >>> startBit;
-		return (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask;
+		return (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask;
 	}
 
 	@Override

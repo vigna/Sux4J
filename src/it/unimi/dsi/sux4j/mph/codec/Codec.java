@@ -235,7 +235,7 @@ public interface Codec {
 			public long encode(long symbol) {
 				symbol++;
 				final int msb = Fast.mostSignificantBit(symbol);
-				return Long.reverse(symbol) >>> 63 - 2 * msb;
+				return Long.reverse(symbol) >>> -1 - (msb << 1);
 			}
 
 			@Override
@@ -271,7 +271,7 @@ public interface Codec {
 				private final int maxCodewordLengthMinus64;
 
 				public Decoder(final int maxCodewordLength) {
-					maxCodewordLengthMinus64 = maxCodewordLength - 64;
+					maxCodewordLengthMinus64 = maxCodewordLength - Long.SIZE;
 				}
 
 				@Override
@@ -681,11 +681,11 @@ public interface Codec {
 					value <<= length[i] - currentLength;
 					currentLength = length[i];
 				}
-				codeword[s] = Long.reverse(value) >>> 64 - currentLength;
+				codeword[s] = Long.reverse(value) >>> -currentLength;
 			}
 
 			// Escape keyword (even if not necessary)
-			codeword[cutpoint] = -1 >>> 64 - currentLength;
+			codeword[cutpoint] = -1 >>> -currentLength;
 			length[cutpoint] = currentLength;
 
 			int maxLengthEscaped = 0;

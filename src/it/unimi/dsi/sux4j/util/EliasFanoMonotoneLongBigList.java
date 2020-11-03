@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.util;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import java.io.Serializable;
 
 import it.unimi.dsi.bits.BitVector;
@@ -46,7 +49,8 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * values (see below), and at the end of the construction the iterator will be exhausted.
  *
  * <p>An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible
- * to extract several consecutive entries at high speed.
+ * to extract several consecutive entries at high speed, and {@link #getDelta(long)} computes
+ * directly the difference between two consecutive elements.
  *
  * <h2>Implementation details</h2>
  *
@@ -271,13 +275,39 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		if (l == 0) return upperBits;
 
 		final long position = index * l;
-		final int startWord = (int)(position / Long.SIZE);
-		final int startBit = (int)(position % Long.SIZE);
-		final int totalOffset = startBit + l;
+
+		final int startWord = word(position);
+		final int startBit = bit(position);
 		final long result = lowerBits[startWord] >>> startBit;
-		return upperBits << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 	}
 
+	/**
+	 * Returns the difference between two consecutive elements of the sequence.
+	 *
+	 * @param index the index of an element (smaller then {@link #size64()} - 1).
+	 * @return the difference between the element of position {@link index + 1} and that of position
+	 *         {@link index}.
+	 * @see #get(long, long[])
+	 */
+	public long getDelta(long index) {
+		final long[] dest = new long[2];
+		selectUpper.select(index, dest, 0, 2);
+
+		if (l == 0) return dest[1] - dest[0] - 1;
+
+		long position = index * l;
+		int startWord = word(position);
+		int startBit = bit(position);
+		long first = lowerBits[startWord] >>> startBit;
+		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		position += l;
+		startWord = word(position);
+		startBit = bit(position);
+		long second = lowerBits[startWord] >>> startBit;
+		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		return second - first;
+	}
 
 	/** Extracts a number of consecutive entries into a given array fragment.
 	 *
@@ -294,11 +324,10 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		else {
 			long position = index * l;
 			for(int i = 0; i < length; i++) {
-				final int startWord = (int)(position / Long.SIZE);
-				final int startBit = (int)(position % Long.SIZE);
-				final int totalOffset = startBit + l;
+				final int startWord = word(position);
+				final int startBit = bit(position);
 				final long result = lowerBits[startWord] >>> startBit;
-				dest[offset + i] = dest[offset + i] - index++ << l | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+				dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 				position += l;
 			}
 		}

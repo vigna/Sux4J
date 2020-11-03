@@ -375,7 +375,7 @@ public class Linear4SystemSolver {
 			final int lenCodeword = coder.codewordLength(v);
 			if (convertedLong == -1) {
 				convertedValues.append(coder.escape(), lenCodeword - coder.escapedSymbolLength());
-				convertedValues.append(Long.reverse(v) >>> 64 - coder.escapedSymbolLength(), coder.escapedSymbolLength());
+				convertedValues.append(Long.reverse(v) >>> -coder.escapedSymbolLength(), coder.escapedSymbolLength());
 			}
 			else convertedValues.append(convertedLong, lenCodeword);
 

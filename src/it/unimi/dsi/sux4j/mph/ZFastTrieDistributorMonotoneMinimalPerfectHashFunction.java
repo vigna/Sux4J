@@ -237,7 +237,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends A
 		LOGGER.info("Actual bit cost per element: " + (double)numBits() / size);
 
 		if (signatureWidth != 0) {
-			signatureMask = -1L >>> Long.SIZE - signatureWidth;
+			signatureMask = -1L >>> -signatureWidth;
 			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		}
 		else {

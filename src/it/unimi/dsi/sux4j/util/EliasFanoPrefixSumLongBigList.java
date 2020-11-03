@@ -20,10 +20,12 @@
 
 package it.unimi.dsi.sux4j.util;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import java.util.NoSuchElementException;
 
 import it.unimi.dsi.bits.BitVector;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -122,13 +124,14 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	private final static long getDiff(final long[] bits, final long index, final int l) {
 		if (l == 0) return 0;
 		final int m = Long.SIZE - l;
-		final long start = index * l;
-		int startWord = (int)(start >>> LongArrayBitVector.LOG2_BITS_PER_WORD);
-		int startBit = (int)(start & LongArrayBitVector.WORD_MASK);
-		final long a = startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << Long.SIZE + m - startBit >>> m;
-		startWord = (int)((start + l) >>> LongArrayBitVector.LOG2_BITS_PER_WORD);
-		startBit = (int)((start + l) & LongArrayBitVector.WORD_MASK);
-		return (startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << Long.SIZE + m - startBit >>> m) - a;
+		long start = index * l;
+		int startWord = word(start);
+		int startBit = bit(start);
+		final long a = startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << m - startBit >>> m;
+		start += l;
+		startWord = word(start);
+		startBit = bit(start);
+		return (startBit <= m ? bits[startWord] << m - startBit >>> m : bits[startWord] >>> startBit | bits[startWord + 1] << m - startBit >>> m) - a;
 	}
 
 	@Override

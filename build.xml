@@ -6,7 +6,6 @@
 
 	<property environment="env"/>
 
-	<property name="ivy.pom.version" value="${version}" />
 	<condition property="ivy.settings.file" value="${env.LOCAL_IVY_SETTINGS}"><isset property="env.LOCAL_IVY_SETTINGS"/></condition>
 	
 	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant"/>
@@ -56,7 +55,25 @@
 	<property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
 	<property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
 
-	<target name="dist" depends="compile,javadoc" description="generate the distribution">
+	<!-- OSGi manifest generation -->
+	<target name="resolve" description="run Ivy to fetch jars">
+		<ivy:retrieve />
+	</target>
+
+	<target name="osgi" depends="resolve,compile">
+		<delete dir="${build}/*.class"/>
+		<taskdef resource="aQute/bnd/ant/taskdef.properties" classpath="lib/bnd-2.4.0.jar"/>
+		<bnd
+			classpath="${build}"
+			eclipse="false"
+			failok="false"
+			exceptions="true"
+			output="${maven-jar}"
+			files="sux4j.bnd"/>
+	</target>
+	<!-- end OSGi manifest generation -->
+
+	<target name="dist" depends="osgi,javadoc" description="generate the distribution">
 
 		<!-- build the main artifact -->
 		<jar jarfile="${maven-jar}" basedir="${build}" />
@@ -127,17 +144,18 @@
 		<mkdir dir="${build}"/>
 		<mkdir dir="${reports}"/>
 		<mkdir dir="${coverage}"/>
+		<mkdir dir="${dist}/lib"/>
 		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.9" target="1.9" classpathref="compile.classpath">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="compile.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.9" target="1.9" classpathref="test.classpath">
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>
@@ -167,7 +185,7 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					source="1.9" 
+					source="1.8" 
 					windowtitle="Sux4J ${version}"
 					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>

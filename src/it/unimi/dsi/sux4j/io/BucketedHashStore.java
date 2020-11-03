@@ -289,7 +289,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		this.pl = pl;
 		this.tempDir = tempDir;
 		this.bucketSize = 1;
-		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> Long.SIZE - hashWidthOrCountValues;
+		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> -hashWidthOrCountValues;
 		if (hashWidthOrCountValues < 0) value2FrequencyMap = new Long2LongOpenHashMap();
 
 		file = new File[DISK_SEGMENTS];
@@ -604,7 +604,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 	public LongBigList signatures(final int signatureWidth, final ProgressLogger pl) throws IOException {
 		final LongBigList signatures = LongArrayBitVector.getInstance().asLongBigList(signatureWidth);
-		final long signatureMask = -1L >>> Long.SIZE - signatureWidth;
+		final long signatureMask = -1L >>> -signatureWidth;
 		signatures.size(size());
 		pl.expectedUpdates = size();
 		pl.itemsName = "signatures";

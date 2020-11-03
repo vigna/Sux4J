@@ -20,6 +20,8 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.IOException;
 import java.util.Iterator;
 
@@ -449,8 +451,8 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 
 				readBits = trie.readBits();
 
-				for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
-					size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
+				for (int i = 0, numWords = words(pathLength); i < numWords; i++) {
+					size = Math.min(Long.SIZE, pathLength - (i << LongArrayBitVector.LOG2_BITS_PER_WORD));
 					xor = v.getLong(pos, Math.min(length, pos += size)) ^ (t = trie.readLong(size));
 					if (xor != 0 || pos >= length) break;
 				}
@@ -516,7 +518,7 @@ public class PaCoTrieDistributor<T> extends AbstractObject2LongFunction<T> imple
 		final int pathLength = trie.readDelta();
 		final LongArrayBitVector p = LongArrayBitVector.getInstance(pathLength);
 
-		for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) {
+		for (int i = 0, numWords = words(pathLength); i < numWords; i++) {
 			final int size = Math.min(Long.SIZE, pathLength - i * Long.SIZE);
 			p.append(trie.readLong(size), size);
 		}

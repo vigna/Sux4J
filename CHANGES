@@ -2,6 +2,10 @@
 
 - New indexed version of EliasFanoMonotoneLongBigList.
 
+- OSGi metadata and default modularization.
+
+- Manual reduction in strength in arithmetic operations everywhere.
+
 5.1.1
 
 - Added automatic module name.

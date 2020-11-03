@@ -20,6 +20,9 @@
 
 package it.unimi.dsi.sux4j.scratch;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
@@ -54,7 +57,7 @@ public class Rank9GogPetri extends AbstractRank implements Rank {
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 
-		numWords = (int)((length + Long.SIZE - 1) / Long.SIZE);
+		numWords = words(length);
 
 		final int numCounts = (int)((length + 8 * Long.SIZE - 1) / (8 * Long.SIZE)) * 2;
 		// Init rank/select structure
@@ -88,11 +91,11 @@ public class Rank9GogPetri extends AbstractRank implements Rank {
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if (pos > lastOne) return numOnes;
 
-		final int word = (int)(pos / 64);
-		final int block = word / 4 & ~1;
-		final int offset = word % 8;
+		final int word = word(pos);
+		final int block = (word >>> 2) & ~1;
+		final int offset = word & 7;
 
-		return count[block] + (count[block + 1] >>> (63 - offset * 9) & 0x1FF) + Long.bitCount(bits[word] & ((1L << pos % 64) - 1));
+		return count[block] + (count[block + 1] >>> (63 - offset * 9) & 0x1FF) + Long.bitCount(bits[word] & (1L << pos) - 1);
 	}
 
 	@Override

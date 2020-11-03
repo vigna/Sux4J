@@ -23,6 +23,9 @@ package it.unimi.dsi.sux4j.scratch;
 import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
+import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
 import java.io.Serializable;
 
@@ -272,7 +275,7 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 			assert block > 0;
 			assert block <= skipToOne.length;
 			final long position = skipToOne[(int)(block - 1)];
-			window = upperBits[curr = (int)(position / Long.SIZE)] & -1L << (int)(position);
+			window = upperBits[curr = word(position)] & -1L << position;
 			delta = index - (block << log2Quantum);
 		}
 		else window = upperBits[curr = 0];
@@ -302,16 +305,15 @@ public class EliasFanoMonotoneLongBigListTables extends AbstractLongBigList impl
 		}
 		else select = Long.numberOfTrailingZeros(window);
 
-		final long upperBits = curr * Long.SIZE + select - index << l;
+		final long upperBits = bits(curr) + select - index << l;
 
 		if (l == 0) return upperBits;
 
 		final long position = index * l;
-		final int startWord = (int)(position / Long.SIZE);
-		final int startBit = (int)(position % Long.SIZE);
-		final int totalOffset = startBit + l;
+		final int startWord = word(position);
+		final int startBit = bit(position);
 		final long result = lowerBits[startWord] >>> startBit;
-		return upperBits | (totalOffset <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & mask;
+		return upperBits | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & mask;
 	}
 
 	@Override

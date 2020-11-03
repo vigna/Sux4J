@@ -20,6 +20,8 @@
 
 package it.unimi.dsi.sux4j.mph.solve;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -450,7 +452,7 @@ public class Modulo2System {
 				int var;
 				do var = variables.popInt(); while(weight[var] == 0);
 				numActive++;
-				idleNormalized[var / 64] ^= 1L << (var % 64);
+				idleNormalized[word(var)] ^= 1L << var;
 				if (DEBUG) System.err.println("Making variable " + var + " of weight " + weight[var] + " active (" + remaining + " equations to go)");
 				for(final int equationIndex: var2Eq[var])
 					if (--priority[equationIndex] == 1) equationList.push(equationIndex);

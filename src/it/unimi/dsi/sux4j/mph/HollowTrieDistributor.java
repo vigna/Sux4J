@@ -20,6 +20,8 @@
 
 package it.unimi.dsi.sux4j.mph;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -284,7 +286,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							if (DEBUG) System.err.println("Adding true follow at " + (p - 1) + " [" + skip + ", " + Integer.toHexString(curr.subVector(s, s + skip).hashCode()) + "] " + curr.subVector(s, s + skip));
 
 							if (ASSERTS) {
-								final long key[] = new long[(skip + Long.SIZE - 1) / Long.SIZE + 1];
+								final long key[] = new long[words(skip) + 1];
 								key[0] = p - 1;
 								for(int i = 0; i < skip; i += Long.SIZE) key[i / Long.SIZE + 1] = curr.getLong(s + i, Math.min(s + i + Long.SIZE, s + skip));
 								final long result = falseFollows.put(LongArrayBitVector.wrap(key, skip + Long.SIZE), 0);
@@ -299,8 +301,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 						if (curr.getBoolean(s)) {
 							final long q = balParen.findClose(p) + 1;
-							index += (q - p) / 2;
-							r += (q - p) / 2;
+							index += (q - p) >> 1;
+							r += (q - p) >> 1;
 							//System.err.println("Increasing index by " + (q - p + 1) / 2 + " to " + index + "...");
 							p = q;
 						}
@@ -308,7 +310,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 							p++;
 							r++;
 						}
-						if (ASSERTS) assert p < trie.length();
+						assert p < trie.length();
 
 						s++;
 
@@ -429,9 +431,9 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 								final long index = ibs.readLong(64);
 								assert index >= 0;
 								final int pathLength = ibs.readDelta();
-								final long key[] = new long[((pathLength + Long.SIZE - 1) / Long.SIZE + 1)];
+								final long key[] = new long[words(pathLength) + 1];
 								key[0] = index;
-								for(int i = 0; i < (pathLength + Long.SIZE - 1) / Long.SIZE; i++) key[i + 1] = ibs.readLong(Math.min(Long.SIZE, pathLength - i * Long.SIZE));
+								for (int i = 0, numWords = words(pathLength); i < numWords; i++) key[i + 1] = ibs.readLong(Math.min(Long.SIZE, pathLength - i * Long.SIZE));
 
 								if (DEBUG) {
 									System.err.println("Adding mapping <" + index + ", " +  LongArrayBitVector.wrap(key, pathLength + Long.SIZE).subVector(Long.SIZE) + "> -> " + values.getLong(pos));
@@ -525,8 +527,8 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 
 			if (bitVector.getBoolean(s)) {
 				final long q = balParen.findClose(p) + 1;
-				index += (q - p) / 2;
-				r += (q - p) / 2;
+				index += (q - p) >>> 1;
+				r += (q - p) >>> 1;
 				//System.err.println("Increasing index by " + (q - p + 1) / 2 + " to " + index + "...");
 				p = q;
 			}
@@ -537,7 +539,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 				r++;
 			}
 
-			if (ASSERTS) assert p < trie.length();
+			assert p < trie.length();
 
 			s++;
 		}
@@ -550,7 +552,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			if (isInternal) {
 				final long q = balParen.findClose(lastLeftTurn);
 				//System.err.println(p + ", " + q + " ," + lastLeftTurn + ", " +lastLeftTurnIndex);;
-				index = (q - lastLeftTurn + 1) / 2 + lastLeftTurnIndex;
+				index = ((q - lastLeftTurn + 1) >>> 1) + lastLeftTurnIndex;
 				if (DEBUG) System.err.println("Returning (on the right, internal) " + index);
 			}
 			else {

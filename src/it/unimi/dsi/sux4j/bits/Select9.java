@@ -21,12 +21,16 @@
 
 package it.unimi.dsi.sux4j.bits;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /** A <code>select9</code> implementation.
@@ -37,7 +41,6 @@ import it.unimi.dsi.fastutil.longs.LongBigList;
  */
 
 public class Select9 implements Select {
-	private static final boolean ASSERTS = false;
 	private static final long serialVersionUID = 1L;
 
 	private final static long ONES_STEP_16 = 1L << 0 | 1L << 16 | 1L << 32 | 1L << 48;
@@ -70,18 +73,18 @@ public class Select9 implements Select {
 		final int inventorySize = (int)((numOnes + ONES_PER_INVENTORY - 1) / ONES_PER_INVENTORY);
 
 		inventory = new long[inventorySize + 1];
-		subinventory = new long[(numWords + 3) / 4];
+		subinventory = new long[(numWords + 3) >> 2];
 
 		long d = 0;
 		for (int i = 0; i < numWords; i++)
-			for (int j = 0; j < 64; j++)
+			for (int j = 0; j < Long.SIZE; j++)
 				if ((bits[i] & 1L << j) != 0) {
-					if ((d & INVENTORY_MASK) == 0) inventory[(int)(d >> LOG2_ONES_PER_INVENTORY)] = i * 64L + j;
+					if ((d & INVENTORY_MASK) == 0) inventory[(int)(d >> LOG2_ONES_PER_INVENTORY)] = bits(i) + j;
 					d++;
 				}
 
 
-		inventory[inventorySize] = ((numWords + 3) & ~3L) * Long.SIZE;
+		inventory[inventorySize] = LongBigArrayBitVector.bits((numWords + 3) & ~3L);
 
 		d = 0;
 		int state = 0;
@@ -95,63 +98,63 @@ public class Select9 implements Select {
 		LongBigList s;
 
 		for(int i = 0; i < numWords; i++)
-			for(int j = 0; j < 64; j++)
+			for (int j = 0; j < Long.SIZE; j++)
 				if ((bits[i] & 1L << j) != 0) {
 					if ((d & INVENTORY_MASK) == 0) {
-						firstBit = i * 64L + j;
+						firstBit = bits(i) + j;
 						index = (int)(d >> LOG2_ONES_PER_INVENTORY);
-						if (ASSERTS) assert inventory[index] == firstBit;
+						assert inventory[index] == firstBit;
 
-						subinventoryPosition = (int)((inventory[index] / 64) / 4);
+						subinventoryPosition = word(inventory[index]) >>> 2;
 
-						span = (int)((inventory[index + 1] / 64) / 4 - (inventory[index] / 64) / 4);
+						span = (word(inventory[index + 1]) >>> 2) - (word(inventory[index]) >>> 2);
 						state = -1;
-						countsAtStart = count[(int)(((inventory[index] / 64) / 8) * 2)];
-						blockSpan = (int)((inventory[index + 1] / 64) / 8 - (inventory[index] / 64) / 8);
-						blockLeft = (int)((inventory[index] / 64) / 8);
+						countsAtStart = count[(word(inventory[index]) >>> 3) << 1];
+						blockSpan = (word(inventory[index + 1]) >>> 3) - (word(inventory[index]) >>> 3);
+						blockLeft = word(inventory[index]) >>> 3;
 
 						if (span >= 512) state = 0;
 						else if (span >= 256) state = 1;
 						else if (span >= 128) state = 2;
 						else if (span >= 16) {
-							if (ASSERTS) assert (blockSpan + 8 & -8L) + 8 <= span * 4;
+							assert (blockSpan + 8 & -8L) + 8 <= span * 4;
 							s = subinventoryAsShorts.subList(subinventoryPosition * 4, subinventoryAsShorts.size64());
 
 							int k;
 							for(k = 0; k < blockSpan; k++) {
-								if (ASSERTS) assert s.getLong(k + 8) == 0;
+								assert s.getLong(k + 8) == 0;
 								s.set(k + 8, count[(blockLeft + k + 1) * 2] - countsAtStart);
 							}
 
 							for(; k < (blockSpan + 8 & -8L); k++) {
-								if (ASSERTS) assert s.getLong(k + 8) == 0;
+								assert s.getLong(k + 8) == 0;
 								s.set(k + 8, 0xFFFF);
 							}
 
-							if (ASSERTS) assert blockSpan / 8 <= 8;
+							assert blockSpan / 8 <= 8;
 
-							for(k = 0; k < blockSpan / 8; k++) {
-								if (ASSERTS) assert s.getLong(k) == 0;
+							for (k = 0; k < blockSpan >>> 3; k++) {
+								assert s.getLong(k) == 0;
 								s.set(k , count[(blockLeft + (k + 1) * 8) * 2] - countsAtStart);
 							}
 
 							for(; k < 8; k++) {
-								if (ASSERTS) assert s.getLong(k) == 0;
+								assert s.getLong(k) == 0;
 								s.set(k, 0xFFFF);
 							}
 						}
 						else if (span >= 2) {
-							if (ASSERTS) assert (blockSpan + 8 & -8L) <= span * 4;
+					assert (blockSpan + 8 & -8L) <= span * 4;
 							s = subinventoryAsShorts.subList(subinventoryPosition * 4, subinventoryAsShorts.size64());
 
 							int k;
 							for(k = 0; k < blockSpan; k++) {
-								if (ASSERTS) assert s.getLong(k) == 0;
+						assert s.getLong(k) == 0;
 								s.set(k, count[(blockLeft + k + 1) * 2] - countsAtStart);
 							}
 
 							for(; k < (blockSpan + 8 & -8L); k++) {
-								if (ASSERTS) assert s.getLong(k) == 0;
+						assert s.getLong(k) == 0;
 								s.set(k, 0xFFFF);
 							}
 						}
@@ -159,18 +162,18 @@ public class Select9 implements Select {
 
 					switch(state) {
 					case 0:
-						if (ASSERTS) assert subinventory[subinventoryPosition + (int)(d & INVENTORY_MASK)] == 0;
-						subinventory[subinventoryPosition + (int)(d & INVENTORY_MASK)] = i * 64L + j;
+						assert subinventory[subinventoryPosition + (int)(d & INVENTORY_MASK)] == 0;
+						subinventory[subinventoryPosition + (int)(d & INVENTORY_MASK)] = bits(i) + j;
 						break;
 					case 1:
-						if (ASSERTS) assert subinventoryasInts.getLong(subinventoryPosition * 2 + (d & INVENTORY_MASK)) == 0;
-						if (ASSERTS) assert i * 64L + j - firstBit < (1L << 32);
-						subinventoryasInts.set(subinventoryPosition * 2 + (d & INVENTORY_MASK), i * 64L + j - firstBit);
+						assert subinventoryasInts.getLong((subinventoryPosition << 1) + (d & INVENTORY_MASK)) == 0;
+						assert bits(i) + j - firstBit < (1L << 32);
+						subinventoryasInts.set((subinventoryPosition << 1) + (d & INVENTORY_MASK), bits(i) + j - firstBit);
 						break;
 					case 2:
-						if (ASSERTS) assert subinventoryAsShorts.getLong(subinventoryPosition * 4 + (d & INVENTORY_MASK)) == 0;
-						if (ASSERTS) assert i * 64L + j - firstBit < (1 << 16);
-						subinventoryAsShorts.set(subinventoryPosition * 4 + (d & INVENTORY_MASK), i * 64L + j - firstBit);
+						assert subinventoryAsShorts.getLong((subinventoryPosition << 2) + (d & INVENTORY_MASK)) == 0;
+						assert bits(i) + j - firstBit < (1 << 16);
+						subinventoryAsShorts.set((subinventoryPosition << 2) + (d & INVENTORY_MASK), bits(i) + j - firstBit);
 						break;
 					}
 
@@ -185,23 +188,23 @@ public class Select9 implements Select {
 		final int inventoryIndexLeft = (int)(rank >> LOG2_ONES_PER_INVENTORY);
 
 		final long inventoryLeft = inventory[inventoryIndexLeft];
-		final int blockRight = (int)(inventory[inventoryIndexLeft + 1] / 64);
-		int blockLeft = (int)(inventoryLeft / 64);
-		final int subinventoryIndex = blockLeft / 4;
-		final long span = blockRight / 4 - blockLeft / 4;
+		final int blockRight = word(inventory[inventoryIndexLeft + 1]);
+		int blockLeft = word(inventoryLeft);
+		final int subinventoryIndex = blockLeft >>> 2;
+		final long span = (blockRight >>> 2) - (blockLeft >>> 2);
 		int countLeft, rankInBlock;
 		final long count[] = this.count;
 
 		if (span < 2) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4 & ~1;
-			if (ASSERTS) assert rank >= count[countLeft] : rank + " < " + count[countLeft];
-			if (ASSERTS) assert rank < count[countLeft + 2] : rank + " >= " + count[countLeft + 2];
+			countLeft = (blockLeft >> 2) & ~1;
+			assert rank >= count[countLeft] : rank + " < " + count[countLeft];
+			assert rank < count[countLeft + 2] : rank + " >= " + count[countLeft + 2];
 			rankInBlock = (int)(rank - count[countLeft]);
 		}
 		else if (span < 16) {
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4 & ~1;
+			countLeft = (blockLeft >> 2) & ~1;
 			final long rankInSuperblock = rank - count[countLeft];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
@@ -213,19 +216,19 @@ public class Select9 implements Select {
 			) * ONES_STEP_16 >>> 47);
 
 
-			if (ASSERTS) assert where >= 0;
-			if (ASSERTS) assert where <= 16;
+			assert where >= 0;
+			assert where <= 16;
 
 			blockLeft += where * 4;
 			countLeft += where;
 			rankInBlock = (int)(rank - count[countLeft]);
-			if (ASSERTS) assert rankInBlock >= 0;
-			if (ASSERTS) assert rankInBlock < 512;
+			assert rankInBlock >= 0;
+			assert rankInBlock < 512;
 		}
 		else if (span < 128) {
 			final long[] subinventory = this.subinventory;
 			blockLeft &= ~7;
-			countLeft = blockLeft / 4 & ~1;
+			countLeft = (blockLeft >> 2) & ~1;
 			final long rankInSuperblock = rank - count[countLeft];
 			final long rankInSuperblockStep16 = rankInSuperblock * ONES_STEP_16;
 
@@ -234,24 +237,24 @@ public class Select9 implements Select {
 					((((((rankInSuperblockStep16 | MSBS_STEP_16) - (first & ~MSBS_STEP_16)) | (first ^ rankInSuperblockStep16)) ^ (first & ~rankInSuperblockStep16)) & MSBS_STEP_16) >>> 15) +
 					((((((rankInSuperblockStep16 | MSBS_STEP_16) - (second & ~MSBS_STEP_16)) | (second ^ rankInSuperblockStep16)) ^ (second & ~rankInSuperblockStep16)) & MSBS_STEP_16) >>> 15)
 			) * ONES_STEP_16 >>> 47);
-			if (ASSERTS) assert where0 <= 16;
+			assert where0 <= 16;
 			final long first_bis = subinventory[subinventoryIndex + where0 + 2], second_bis = subinventory[subinventoryIndex + where0 + 2 + 1];
-			final int where1 = where0 * 8 + (int)((
+			final int where1 = (where0 << 3) + (int)((
 					((((((rankInSuperblockStep16 | MSBS_STEP_16) - (first_bis & ~MSBS_STEP_16)) | (first_bis ^ rankInSuperblockStep16)) ^ (first_bis & ~rankInSuperblockStep16)) & MSBS_STEP_16) >>> 15) +
 					((((((rankInSuperblockStep16 | MSBS_STEP_16) - (second_bis & ~MSBS_STEP_16)) | (second_bis ^ rankInSuperblockStep16)) ^ (second_bis & ~rankInSuperblockStep16)) & MSBS_STEP_16) >>> 15)
 			) * ONES_STEP_16 >>> 47);
 
-			blockLeft += where1 * 4;
+			blockLeft += where1 << 2;
 			countLeft += where1;
 			rankInBlock = (int)(rank - count[countLeft]);
-			if (ASSERTS) assert rankInBlock >= 0;
-			if (ASSERTS) assert rankInBlock < 512;
+			assert rankInBlock >= 0;
+			assert rankInBlock < 512;
 		}
 		else if (span < 256) {
-			return subinventoryAsShorts.getLong(subinventoryIndex * 4 + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
+			return subinventoryAsShorts.getLong((subinventoryIndex << 2) + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
 		}
 		else if (span < 512) {
-			return subinventoryasInts.getLong(subinventoryIndex * 2 + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
+			return subinventoryasInts.getLong((subinventoryIndex << 1) + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
 		}
 		else {
 			return subinventory[subinventoryIndex + (int)(rank % ONES_PER_INVENTORY)];
@@ -263,18 +266,18 @@ public class Select9 implements Select {
 
 		final int word = blockLeft + offsetInBlock;
 		final int rankInWord = (int)(rankInBlock - (subcounts >>> (offsetInBlock - 1 & 7) * 9 & 0x1FF));
-		if (ASSERTS) assert offsetInBlock >= 0;
-		if (ASSERTS) assert offsetInBlock <= 7;
+		assert offsetInBlock >= 0;
+		assert offsetInBlock <= 7;
 
-		if (ASSERTS) assert rankInWord < 64;
-		if (ASSERTS) assert rankInWord >= 0;
+		assert rankInWord < Long.SIZE;
+		assert rankInWord >= 0;
 
-		return word * 64L + Fast.select(bits[word], rankInWord);
+		return bits(word) + Fast.select(bits[word], rankInWord);
 	}
 
 	@Override
 	public long numBits() {
-		return rank9.numBits() + inventory.length * (long)Long.SIZE + subinventory.length * (long)Long.SIZE;
+		return rank9.numBits() + bits(inventory.length) + bits(subinventory.length);
 	}
 
 	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {

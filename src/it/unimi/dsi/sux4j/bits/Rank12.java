@@ -20,6 +20,10 @@
 
 package it.unimi.dsi.sux4j.bits;
 
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongArrayBitVector.words;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
@@ -35,7 +39,8 @@ import it.unimi.dsi.bits.LongArrayBitVector;
 
 public class Rank12 extends AbstractRank implements Rank {
 	private static final long serialVersionUID = 1L;
-	private static final int WORDS_PER_SUPERBLOCK = 64;
+	private static final int LOG2_WORDS_PER_SUPERBLOCK = 6;
+	private static final int WORDS_PER_SUPERBLOCK = 1 << LOG2_WORDS_PER_SUPERBLOCK;
 
 	protected transient long[] bits;
 	protected final BitVector bitVector;
@@ -53,7 +58,7 @@ public class Rank12 extends AbstractRank implements Rank {
 		this.bits = bitVector.bits();
 		final long length = bitVector.length();
 
-		numWords = (int)((length + Long.SIZE - 1) / Long.SIZE);
+		numWords = words(length);
 
 		final int numCounts = (int)((length + WORDS_PER_SUPERBLOCK * Long.SIZE - 1) / (WORDS_PER_SUPERBLOCK * Long.SIZE)) * 2;
 		// Init rank/select structure
@@ -67,7 +72,7 @@ public class Rank12 extends AbstractRank implements Rank {
 			for(int j = 0; j < WORDS_PER_SUPERBLOCK; j++) {
 				if (j != 0 && j % 12 == 0) count[pos + 1] |= (i + j <= numWords ? c - count[pos] : 0xFFFL) << 12 * ((j - 1) / 12);
 				if (i + j < numWords) {
-					if (bits[i + j] != 0) l = (i + j) * 64L + Fast.mostSignificantBit(bits[i + j]);
+					if (bits[i + j] != 0) l = bits(i + j) + Fast.mostSignificantBit(bits[i + j]);
 					c += Long.bitCount(bits[i + j]);
 					assert c - count[pos] <= 4096 : c - count[pos];
 				}
@@ -87,19 +92,19 @@ public class Rank12 extends AbstractRank implements Rank {
 		// This test can be eliminated if there is always an additional word at the end of the bit array.
 		if (pos > lastOne) return numOnes;
 
-		int word = (int)(pos / Long.SIZE);
-		final int block = word / (WORDS_PER_SUPERBLOCK / 2) & ~1;
-		final int offset = word % WORDS_PER_SUPERBLOCK / 12 - 1;
+		int word = word(pos);
+		final int block = (word >>> LOG2_WORDS_PER_SUPERBLOCK - 1) & ~1;
+		final int offset = (word & ~-WORDS_PER_SUPERBLOCK) / 12 - 1;
 		long result = count[block] + (count[block + 1] >> 12 * (offset + (offset >>> 32 - 4 & 6)) & 0xFFF) +
-				Long.bitCount(bits[word] & (1L << pos % Long.SIZE) - 1);
+				Long.bitCount(bits[word] & (1L << pos) - 1);
 
-		for (int todo = (word % WORDS_PER_SUPERBLOCK) % 12; todo-- != 0;) result += Long.bitCount(bits[--word]);
+		for (int todo = (word & ~-WORDS_PER_SUPERBLOCK) % 12; todo-- != 0;) result += Long.bitCount(bits[--word]);
         return result;
 	}
 
 	@Override
 	public long numBits() {
-		return count.length * (long)Long.SIZE;
+		return bits(count.length);
 	}
 
 	@Override
