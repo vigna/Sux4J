@@ -286,8 +286,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * Returns the difference between two consecutive elements of the sequence.
 	 *
 	 * @param index the index of an element (smaller then {@link #size64()} - 1).
-	 * @return the difference between the element of position {@link index + 1} and that of position
-	 *         {@link index}.
+	 * @return the difference between the element of position {@code index + 1} and that of position
+	 *         {@code index}.
 	 * @see #get(long, long[])
 	 */
 	public long getDelta(long index) {
