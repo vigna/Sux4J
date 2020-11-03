@@ -80,7 +80,7 @@
 
 		<!-- build the sources artifact -->
 		<jar jarfile="${maven-sources-jar}">
-			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,build.properties,ivy.xml,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
+			<fileset dir="." includes="CHANGES,COPYING,COPYING.LESSER,build.xml,sux4j.bnd,build.properties,ivy.xml,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
 		</jar>
 	</target>
 
@@ -196,7 +196,7 @@
 	</target>
 	
 	<target name="junit" depends="compile-tests" description="Runs JUnit tests">
-		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
+		<junit printsummary="yes" fork="yes" haltonfailure="on"  haltonerror="on">
 			<classpath>
 				<path refid="test.classpath" />
 				<pathelement location="${build}"/>

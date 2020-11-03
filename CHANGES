@@ -1,3 +1,7 @@
+5.1.3
+
+- Released to fix dependency on broken dsiutils 2.1.13.
+
 5.1.2
 
 - New indexed version of EliasFanoMonotoneLongBigList.

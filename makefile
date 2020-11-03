@@ -29,12 +29,12 @@ source:
 		sux4j-$(version)/test/it/unimi/dsi/sux4j/scratch/*.java \
 		sux4j-$(version)/src/it/unimi/dsi/sux4j/test/*.java
 	gzip -f sux4j-$(version)-src.tar
-	-rm -fr sux4j-$(version)
+	rm sux4j-$(version)
 
 binary:
 	rm -fr sux4j-$(version)
-	tar zxvf sux4j-$(version)-src.tar.gz
-	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant ivy-setupjars; ant jar javadoc)
+	$(TAR) zxvf sux4j-$(version)-src.tar.gz
+	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-setupjars && ant junit && ant clean && ant jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
@@ -45,6 +45,6 @@ binary:
 
 stage:
 	rm -fr sux4j-$(version)
-	tar zxvf sux4j-$(version)-src.tar.gz
+	$(TAR) zxvf sux4j-$(version)-src.tar.gz
 	cp -fr bnd sux4j-$(version)
-	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant ivy-setupjars; ant stage)
+	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-setupjars && ant stage)
