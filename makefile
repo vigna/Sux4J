@@ -46,5 +46,5 @@ binary:
 stage:
 	rm -fr sux4j-$(version)
 	tar zxvf sux4j-$(version)-src.tar.gz
-	cp -fr lib dsiutils-$(version)
+	cp -fr bnd sux4j-$(version)
 	(cd sux4j-$(version); unset LOCAL_IVY_SETTINGS; ant ivy-setupjars; ant stage)

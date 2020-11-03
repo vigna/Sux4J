@@ -61,7 +61,7 @@
 	</target>
 
 	<target name="osgi" depends="resolve,compile">
-		<taskdef resource="aQute/bnd/ant/taskdef.properties" classpath="lib/bnd-2.4.0.jar"/>
+		<taskdef resource="aQute/bnd/ant/taskdef.properties" classpath="bnd/bnd-2.4.0.jar"/>
 		<bnd
 			classpath="${build}"
 			eclipse="false"
