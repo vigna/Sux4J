@@ -237,7 +237,7 @@
 
 			<assertions><enable/></assertions>
 
-			<jvmarg value="-Xmx256G" />
+			<jvmarg value="-Xmx120G" />
 			<formatter type="xml"/>
 			<formatter type="plain"/>
 
