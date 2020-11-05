@@ -373,7 +373,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
 				lower &= lowerBitsMask;
 				if ((upperBits[word(position)] & 1L << position) == 0) {
-					int zeros = -(int)(Long.SIZE - position % Long.SIZE);
+					int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
 					int curr = word(position);
 					long window = upperBits[curr] & ~(-1L << position);
 					while (window == 0) {
@@ -488,9 +488,15 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 				lower &= lowerBitsMask;
 
 				if ((upperBits[word(position)] & 1L << position) == 0) {
+					int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
+					int curr = word(position);
+					long window = upperBits[curr] & ~(-1L << position);
+					while (window == 0) {
+						window = upperBits[--curr];
+						zeros += Long.SIZE;
+					}
 					currentIndex = rank;
-					do position--; while ((upperBits[word(position)] & 1L << position) == 0);
-					return position - rank << l | lower;
+					return position - zeros - Long.numberOfLeadingZeros(window) - rank - 1 << l | lower;
 				}
 
 				if (lower <= upperBoundLowerBits) {
