@@ -69,16 +69,16 @@ public class EliasFanoMonotoneLongBigListSpeedTest {
 		long time;
 		long u = 0;
 
-		System.err.println("getLong():");
+		System.out.println("getLong():");
 		for(int k = 10; k-- != 0;) {
 			time = - System.nanoTime();
 			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneLongBigList.getLong(position[i]);
 			time += System.nanoTime();
-			System.err.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
 		}
 
 		final long[] dest = new long[bulk];
-		System.err.println("get():");
+		System.out.println("get():");
 		for(int k = 10; k-- != 0;) {
 			time = - System.nanoTime();
 			for (int i = 0; i < numPos; i++) {
@@ -86,15 +86,15 @@ public class EliasFanoMonotoneLongBigListSpeedTest {
 				u += dest[0];
 			}
 			time += System.nanoTime();
-			System.err.println(time / 1E9 + "s, " + time / (double)(numPos * bulk) + " ns/element");
+			System.out.println(time / 1E9 + "s, " + time / (double)(numPos * bulk) + " ns/element");
 		}
 
-		System.err.println("getDelta():");
+		System.out.println("getDelta():");
 		for (int k = 10; k-- != 0;) {
 			time = -System.nanoTime();
 			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneLongBigList.getDelta(position[i]);
 			time += System.nanoTime();
-			System.err.println(time / 1E9 + "s, " + time / (double)(numPos * bulk) + " ns/element");
+			System.out.println(time / 1E9 + "s, " + time / (double)(numPos * bulk) + " ns/element");
 		}
 
 		if (u == 0) System.out.println();
