@@ -126,45 +126,54 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		this.lowerBitsMask = (1L << l) - 1;
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
 	 *
-	 * @param list an iterable object.
+	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final IntIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
 	 *
-	 * @param list an iterable object.
+	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final ShortIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
 	 *
-	 * @param list an iterable object.
+	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final ByteIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by the given {@linkplain Iterable iterable object}.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
 	 *
-	 * @param list an iterable object.
+	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
 
 	public EliasFanoMonotoneLongBigList(final LongIterable list) {
 		this(computeParameters(list.iterator()), list.iterator());
 	}
 
-	/** Computes the number of elements and the last element returned by the given iterator.
+	/**
+	 * Computes the number of elements and the last element returned by the given iterator.
 	 *
 	 *
-	 * @param iterator an iterator.
-	 * @return a two-element array of longs containing the number of elements returned by
-	 * the iterator and the last returned element, respectively.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
+	 * @return a two-element array of longs containing the number of elements returned by the iterator
+	 *         and the last returned element, respectively.
 	 */
 	private static long[] computeParameters(final LongIterator iterator) {
 		long v = -1, prev = -1, c = 0;
@@ -179,61 +188,69 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
-	 * the overall number of elements and an upper bound are provided, too.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that the
+	 * overall number of elements and an upper bound are provided, too.
 	 *
-	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
-	 * some sequential source.
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
 	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
-	 * a <em>strict</em> upper bound).
-	 * @param iterator an iterator returning nondecreasing elements.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it
+	 *            used to be a <em>strict</em> upper bound).
+	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
-	 * the overall number of elements and an upper bound are provided, too.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that the
+	 * overall number of elements and an upper bound are provided, too.
 	 *
-	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
-	 * some sequential source.
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
 	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
-	 * a <em>strict</em> upper bound).
-	 * @param iterator an iterator returning nondecreasing elements.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it
+	 *            used to be a <em>strict</em> upper bound).
+	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
-	 * the overall number of elements and an upper bound are provided, too.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that the
+	 * overall number of elements and an upper bound are provided, too.
 	 *
-	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
-	 * some sequential source.
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
 	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
-	 * a <em>strict</em> upper bound).
-	 * @param iterator an iterator returning nondecreasing elements.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it
+	 *            used to be a <em>strict</em> upper bound).
+	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final IntIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
-	/** Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that
-	 * the overall number of elements and an upper bound are provided, too.
+	/**
+	 * Creates an Elias&ndash;Fano representation of the values returned by an iterator, given that the
+	 * overall number of elements and an upper bound are provided, too.
 	 *
-	 * <p>This constructor is particularly useful if the elements of the iterator are provided by
-	 * some sequential source.
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
 	 *
 	 * @param n the number of elements returned by <code>iterator</code>.
-	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it used to be
-	 * a <em>strict</em> upper bound).
-	 * @param iterator an iterator returning nondecreasing elements.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code> (note that it
+	 *            used to be a <em>strict</em> upper bound).
+	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
 	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final LongIterator iterator) {
 		this(new long[] { n, upperBound }, iterator);
@@ -250,7 +267,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @param a an array containing the number of elements returned by <code>iterator</code> and an
 	 *            upper bound to the values returned by <code>iterator</code> (note that it used to be a
 	 *            <em>strict</em> upper bound).
-	 * @param iterator an iterator returning nondecreasing elements.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
 	protected EliasFanoMonotoneLongBigList(final long[] a, final LongIterator iterator) {
 		length = a[0];

@@ -34,7 +34,6 @@ import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
 import it.unimi.dsi.sux4j.bits.SimpleSelectZero;
 
 /**
@@ -74,55 +73,110 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	/** The first element of the sequence, or {@link Long#MAX_VALUE} if the sequence is empty. */
 	private final long firstElement = isEmpty() ? Long.MAX_VALUE : getLong(0);
 
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final ByteIterable list) {
-		super(list);
-	}
-
-	/** {@inheritDoc} */
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
+	 *
+	 * @param list an iterable object returning nondecreasing natural numbers.
+	 */
 	public EliasFanoIndexedMonotoneLongBigList(final IntIterable list) {
 		super(list);
 	}
 
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
-		super(length, l, lowerBits, selectUpper);
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
+	 *
+	 * @param list an iterable object returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final ShortIterable list) {
+		super(list);
 	}
 
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
-		super(n, upperBound, iterator);
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
+	 *
+	 * @param list an iterable object returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final ByteIterable list) {
+		super(list);
 	}
 
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final IntIterator iterator) {
-		super(n, upperBound, iterator);
-	}
-
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final LongIterator iterator) {
-		super(n, upperBound, iterator);
-	}
-
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
-		super(n, upperBound, iterator);
-	}
-
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final long[] a, final LongIterator iterator) {
-		super(a, iterator);
-	}
-
-	/** {@inheritDoc} */
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by the given
+	 * {@linkplain Iterable iterable object}.
+	 *
+	 * @param list an iterable object returning nondecreasing natural numbers.
+	 */
 	public EliasFanoIndexedMonotoneLongBigList(final LongIterable list) {
 		super(list);
 	}
 
-	/** {@inheritDoc} */
-	public EliasFanoIndexedMonotoneLongBigList(final ShortIterable list) {
-		super(list);
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by an iterator, given
+	 * that the overall number of elements and an upper bound are provided, too.
+	 *
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
+	 *
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
+		super(n, upperBound, iterator);
 	}
+
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by an iterator, given
+	 * that the overall number of elements and an upper bound are provided, too.
+	 *
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
+	 *
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final IntIterator iterator) {
+		super(n, upperBound, iterator);
+	}
+
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by an iterator, given
+	 * that the overall number of elements and an upper bound are provided, too.
+	 *
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
+	 *
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final LongIterator iterator) {
+		super(n, upperBound, iterator);
+	}
+
+	/**
+	 * Creates an indexed Elias&ndash;Fano representation of the values returned by an iterator, given
+	 * that the overall number of elements and an upper bound are provided, too.
+	 *
+	 * <p>
+	 * This constructor is particularly useful if the elements of the iterator are provided by some
+	 * sequential source.
+	 *
+	 * @param n the number of elements returned by <code>iterator</code>.
+	 * @param upperBound an upper bound to the values returned by <code>iterator</code>.
+	 * @param iterator an iterator returning nondecreasing natural numbers.
+	 */
+	public EliasFanoIndexedMonotoneLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
+		super(n, upperBound, iterator);
+	}
+
 
 	/**
 	 * Returns the first element of the sequence that is greater than or equal to the provided bound.
