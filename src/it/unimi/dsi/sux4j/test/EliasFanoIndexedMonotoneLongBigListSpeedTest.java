@@ -1,0 +1,171 @@
+/*
+ * Sux4J: Succinct data structures for Java
+ *
+ * Copyright (C) 2016-2020 Sebastiano Vigna
+ *
+ *  This library is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU Lesser General Public License as published by the Free
+ *  Software Foundation; either version 3 of the License, or (at your option)
+ *  any later version.
+ *
+ *  This library is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ *  for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public License
+ *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package it.unimi.dsi.sux4j.test;
+
+import org.apache.commons.math3.random.RandomGenerator;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.UnflaggedOption;
+
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.sux4j.util.EliasFanoIndexedMonotoneLongBigList;
+import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
+
+public class EliasFanoIndexedMonotoneLongBigListSpeedTest {
+
+	public static void main(final String[] arg) throws JSAPException {
+
+		final SimpleJSAP jsap = new SimpleJSAP(EliasFanoIndexedMonotoneLongBigListSpeedTest.class.getName(), "Tests the speed Elias-Fano indexed monotone lists.",
+				new Parameter[] {
+					new UnflaggedOption("numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements."),
+					new UnflaggedOption("density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density."),
+					new FlaggedOption("numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test"),
+					new FlaggedOption("bulk", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 'b', "bulk", "The number of positions to read with the bulk method"),
+		});
+
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) return;
+
+		final int numElements = jsapResult.getInt("numElements");
+		final double density = jsapResult.getDouble("density");
+		final int numPos = jsapResult.getInt("numPos");
+		final int bulk = jsapResult.getInt("bulk");
+
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator(42);
+		final IntArrayList list = new IntArrayList(numElements);
+		for(long i = numElements; i-- != 0;) list.add(random.nextDouble() < density ? 0 : 100);
+
+		final int[] position = new int[numPos];
+		for (int i = numPos; i-- != 0;) position[i] = (random.nextInt() & 0x7FFFFFFF) % (numElements - bulk);
+
+		final long[] elements = new long[list.size()];
+		elements[0] = list.getInt(0);
+		for(int i = 1; i < list.size(); i++) elements[i] = list.getInt(i) + elements[i - 1];
+		final EliasFanoIndexedMonotoneLongBigList eliasFanoIndexedMonotoneLongBigList = new EliasFanoIndexedMonotoneLongBigList(LongArrayList.wrap(elements));
+
+		final long max = elements[list.size() - 1];
+		final long[] value = new long[numPos];
+		for (int i = numPos; i-- != 0;) value[i] = (random.nextLong() & 0x7FFFFFFFFFFFFFFFL) % max;
+
+		long time;
+		long u = 0;
+
+		System.out.println("getLong():");
+		for(int k = 10; k-- != 0;) {
+			time = - System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.getLong(position[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		final long[] dest = new long[bulk];
+		System.out.println("get():");
+		for(int k = 10; k-- != 0;) {
+			time = - System.nanoTime();
+			for (int i = 0; i < numPos; i++) {
+				eliasFanoIndexedMonotoneLongBigList.get(position[i], dest);
+				u += dest[0];
+			}
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)(numPos * bulk) + " ns/element");
+		}
+
+		System.out.println("getDelta():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.getDelta(position[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("successor():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.successor(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("successorIndex():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.successorIndex(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("strictSuccessor():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.strictSuccessor(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("strictSuccessorIndex():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.strictSuccessorIndex(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("predecessor():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.predecessor(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("predecessorIndex():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.predecessorIndex(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("weakPredecessor():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.weakPredecessor(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		System.out.println("weakPredecessorIndex():");
+		for (int k = 10; k-- != 0;) {
+			time = -System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoIndexedMonotoneLongBigList.weakPredecessorIndex(value[i]);
+			time += System.nanoTime();
+			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
+		}
+
+		if (u == 0) System.out.println();
+	}
+}
