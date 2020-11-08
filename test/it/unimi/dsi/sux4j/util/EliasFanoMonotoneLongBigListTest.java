@@ -21,15 +21,38 @@
 package it.unimi.dsi.sux4j.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import org.junit.Test;
 
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
+import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class EliasFanoMonotoneLongBigListTest {
+
+	private static void test(final EliasFanoMonotoneLongBigList l) {
+		for (long i = 0; i < l.size64(); i++) {
+			LongBigListIterator iterator = l.listIterator(i);
+			for (long j = i; j < l.size64(); j++) {
+				assertEquals("nextIndex() " + j + " from " + i, j, iterator.nextIndex());
+				assertEquals("next() " + j + " from " + i, l.getLong(j), iterator.nextLong());
+				assertEquals("previous() " + j + " from " + i, l.getLong(j), iterator.previousLong());
+				assertEquals("next() " + j + " from " + i, l.getLong(j), iterator.nextLong());
+			}
+			assertFalse(iterator.hasNext());
+			iterator = l.listIterator(i);
+			for (long j = i; j-- != 0;) {
+				assertEquals("previousIndex() " + j + " from " + i, j, iterator.previousIndex());
+				assertEquals("previous() " + j + " from " + i, l.getLong(j), iterator.previousLong());
+				assertEquals("next() " + j + " from " + i, l.getLong(j), iterator.nextLong());
+				assertEquals("previous() " + j + " from " + i, l.getLong(j), iterator.previousLong());
+			}
+			assertFalse(iterator.hasPrevious());
+		}
+	}
 
 	@Test
 	public void testSmall() {
@@ -37,9 +60,21 @@ public class EliasFanoMonotoneLongBigListTest {
 
 		l = new LongBigArrayBigList(new long[][] { { 0, 1, 2 } });
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
 
 		l = new LongBigArrayBigList(new long[][] { { 0, 10, 20 } });
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
+	}
+
+	@Test
+	public void testRepeated() {
+		LongBigArrayBigList l;
+
+		l = new LongBigArrayBigList(new long[][] { { 0, 1, 1 } });
+		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
+
 	}
 
 	@Test
@@ -48,9 +83,11 @@ public class EliasFanoMonotoneLongBigListTest {
 
 		l = new LongBigArrayBigList(Util.identity(100L));
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
 	}
 
 	@Test
@@ -59,16 +96,26 @@ public class EliasFanoMonotoneLongBigListTest {
 
 		l = new LongBigArrayBigList(Util.identity(2 * (100L)));
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
 		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
 	}
 
 	@Test
 	public void testRandom() {
 		// Weird skips
-		final LongBigArrayBigList l = new LongBigArrayBigList();
+		LongBigArrayBigList l = new LongBigArrayBigList();
 		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
+		for (long i = 1000, c = 0; i-- != 0;) {
+			c += Long.numberOfTrailingZeros(random.nextLong());
+			l.add(c);
+		}
+		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
+
+		l = new LongBigArrayBigList();
 		for(long i = 10000000, c = 0; i-- != 0;) {
 			c += Long.numberOfTrailingZeros(random.nextLong());
 			l.add(c);

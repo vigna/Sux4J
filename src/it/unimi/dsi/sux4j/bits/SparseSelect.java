@@ -108,7 +108,7 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 	}
 
 	protected SparseSelect(final long n, final long m, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
-		super(m, l, lowerBits, selectUpper);
+		super(m, l, selectUpper.bitVector().bits(), lowerBits, selectUpper);
 		this.n = n;
 		this.fromRank = true;
 	}

@@ -30,6 +30,7 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.sux4j.util.EliasFanoIndexedMonotoneLongBigList.EliasFanoIndexedMonotoneLongBigListIterator;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class EliasFanoIndexedMonotoneLongBigListTest {
@@ -46,6 +47,25 @@ public class EliasFanoIndexedMonotoneLongBigListTest {
 			assertEquals(Long.toString(i), succ, l.successor(i));
 			assertEquals(Long.toString(i), p, l.index());
 			assertEquals(Long.toString(i), p, l.successorIndex(i));
+			EliasFanoIndexedMonotoneLongBigListIterator listIterator = l.listIterator();
+			assertEquals(succ, listIterator.skipTo(i));
+			assertEquals(p, listIterator.nextIndex());
+			assertEquals(succ, listIterator.nextLong());
+			assertEquals(succ, listIterator.skipTo(i));
+			assertEquals(p + 1, listIterator.nextIndex());
+			assertEquals(succ, listIterator.previousLong());
+			assertEquals(p, listIterator.nextIndex());
+			if (i >= l.getLong(0)) {
+				listIterator = l.listIterator();
+				assertEquals(succ, listIterator.skipTo(i));
+				assertEquals(p, listIterator.nextIndex());
+				assertEquals(succ, listIterator.nextLong());
+			}
+			listIterator = l.listIterator(p);
+			assertEquals(succ, listIterator.nextLong());
+			listIterator = l.listIterator();
+			for (int j = 0; j < p; j++) listIterator.nextLong();
+			assertEquals(succ, listIterator.nextLong());
 
 			while (i >= ssucc && s < l.size64() - 1) ssucc = l.getLong(++s);
 			if (i >= ssucc && s == l.size64() - 1) ssucc = Long.MAX_VALUE;
@@ -83,6 +103,7 @@ public class EliasFanoIndexedMonotoneLongBigListTest {
 		assertEquals(Long.MAX_VALUE, l.successorIndex(Long.MAX_VALUE));
 		assertEquals(Long.MAX_VALUE, l.successor(u + 1));
 		assertEquals(Long.MAX_VALUE, l.successor(Long.MAX_VALUE));
+		assertEquals(Long.MAX_VALUE, l.listIterator().skipTo(l.getLong(l.size64() - 1) + 1));
 
 		final LongOpenHashSet set = new LongOpenHashSet(l);
 		for (long i = 0; i < l.size64(); i++) assertTrue(set.contains(l.getLong(i)) == l.contains(l.getLong(i)));
@@ -153,10 +174,9 @@ public class EliasFanoIndexedMonotoneLongBigListTest {
 		}
 		EliasFanoIndexedMonotoneLongBigList e = new EliasFanoIndexedMonotoneLongBigList(l);
 		assertEquals(l, e);
-		test(e);
 
 		l = new LongBigArrayBigList();
-		for (long i = 10000, c = 0; i-- != 0;) {
+		for (long i = 1000, c = 0; i-- != 0;) {
 			c += random.nextInt(1000);
 			l.add(c);
 		}
@@ -170,7 +190,7 @@ public class EliasFanoIndexedMonotoneLongBigListTest {
 		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 		for(final int base: new int[] { 0, 1, 10 }) {
 			for(final int jump : new int[] { 1, 10, 100 }) {
-				final long[] s = new long[100000];
+				final long[] s = new long[1000];
 				for(int i = 1; i < s.length; i++) s[i] = s[i - 1] + random.nextInt(jump) + base;
 				final EliasFanoIndexedMonotoneLongBigList ef = new EliasFanoIndexedMonotoneLongBigList(LongArrayList.wrap(s));
 				test(ef);

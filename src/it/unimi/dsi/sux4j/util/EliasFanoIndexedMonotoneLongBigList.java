@@ -57,12 +57,10 @@ import it.unimi.dsi.sux4j.bits.SimpleSelectZero;
  */
 
 public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBigList implements Serializable {
-	private static final long serialVersionUID = 0L;
+	private static final long serialVersionUID = 2L;
 
 	/** The select structure used to extract the upper bits. */
 	protected final SimpleSelectZero selectUpperZero = new SimpleSelectZero(selectUpper.bitVector());
-	/** The upper bits as a long array. */
-	protected final long[] upperBits = selectUpper.bitVector().bits();
 	/**
 	 * The index of the value returned by {@link #predecessor(long)}, {@link #weakPredecessor(long)},
 	 * {@link #successor(long)}, and {@link #strictSuccessor(long)}.
@@ -196,38 +194,31 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			return firstElement;
 		}
 		if (lowerBound > lastElement) return Long.MAX_VALUE;
-		final long zeroesToSkip = lowerBound >>> l;
-		final long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1);
+		final long zerosToSkip = lowerBound >>> l;
+		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1);
 		int curr = word(position);
 		long window = upperBits[curr];
 		window &= -1L << position;
-		long rank = zeroesToSkip == 0 ? 0 : position - zeroesToSkip + 1;
+		long rank = zerosToSkip == 0 ? 0 : position - zerosToSkip + 1;
 
-		if (l == 0) {
+		long lowerBitsOffset = rank * l;
+		final int m = Long.SIZE - l;
+		for (;;) {
 			while (window == 0) window = upperBits[++curr];
 			final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
+
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			final long lower = lowerBits[startWord] >>> startBit;
+			final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+			if (v >= lowerBound) {
 			currentIndex = rank;
-			return upperBits;
-		} else {
-			long lowerBitsOffset = rank * l;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				while (window == 0) window = upperBits[++curr];
-				final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
-
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				final long lower = lowerBits[startWord] >>> startBit;
-				final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
-				if (v >= lowerBound) {
-					currentIndex = rank;
-					return v;
-				}
-
-				window &= window - 1;
-				rank++;
-				lowerBitsOffset += l;
+				return v;
 			}
+
+			window &= window - 1;
+			rank++;
+			lowerBitsOffset += l;
 		}
 	}
 
@@ -248,32 +239,29 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * @see #successor(long)
 	 */
 
-	public long successorIndex(final long lowerBound) {
-		if (lowerBound <= firstElement) return 0;
+	public long successorIndex(long lowerBound) {
+		lowerBound &= ~(lowerBound >> Long.SIZE - 1);
 		if (lowerBound > lastElement) return Long.MAX_VALUE;
-		final long zeroesToSkip = lowerBound >>> l;
-		long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1) + 1;
-		long rank = position - zeroesToSkip;
+		final long zerosToSkip = lowerBound >>> l;
+		long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
+		long rank = position - zerosToSkip;
 
-		if (l == 0) return rank;
-		else {
-			long lowerBitsOffset = rank * l;
-			final long lowerBoundLowerBits = lowerBound & lowerBitsMask;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				if ((upperBits[word(position)] & 1L << position) == 0) return rank;
+		long lowerBitsOffset = rank * l;
+		final long lowerBoundLowerBits = lowerBound & lowerBitsMask;
+		final int m = Long.SIZE - l;
+		for (;;) {
+			if ((upperBits[word(position)] & 1L << position) == 0) return rank;
 
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				long lower = lowerBits[startWord] >>> startBit;
-				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
-				lower &= lowerBitsMask;
-				if (lower >= lowerBoundLowerBits) return rank;
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			long lower = lowerBits[startWord] >>> startBit;
+			if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
+			lower &= lowerBitsMask;
+			if (lower >= lowerBoundLowerBits) return rank;
 
-				position++;
-				rank++;
-				lowerBitsOffset += l;
-			}
+			position++;
+			rank++;
+			lowerBitsOffset += l;
 		}
 	}
 
@@ -295,44 +283,31 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			return firstElement;
 		}
 		if (lowerBound >= lastElement) return Long.MAX_VALUE;
-		final long zeroesToSkip = lowerBound >>> l;
-		if (l == 0) {
-			final long position = selectUpperZero.selectZero(zeroesToSkip);
-			int curr = word(position);
-			long window = upperBits[curr];
-			window &= -1L << position;
-			final long rank = position - zeroesToSkip;
+		final long zerosToSkip = lowerBound >>> l;
+		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1);
+		int curr = word(position);
+		long window = upperBits[curr];
+		window &= -1L << position;
+		long rank = zerosToSkip == 0 ? 0 : position - zerosToSkip + 1;
 
+		long lowerBitsOffset = rank * l;
+		final int m = Long.SIZE - l;
+		for (;;) {
 			while (window == 0) window = upperBits[++curr];
 			final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
-			currentIndex = rank;
-			return upperBits;
-		} else {
-			final long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1);
-			int curr = word(position);
-			long window = upperBits[curr];
-			window &= -1L << position;
-			long rank = zeroesToSkip == 0 ? 0 : position - zeroesToSkip + 1;
 
-			long lowerBitsOffset = rank * l;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				while (window == 0) window = upperBits[++curr];
-				final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
-
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				final long lower = lowerBits[startWord] >>> startBit;
-				final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
-				if (v > lowerBound) {
-					currentIndex = rank;
-					return v;
-				}
-
-				window &= window - 1;
-				rank++;
-				lowerBitsOffset += l;
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			final long lower = lowerBits[startWord] >>> startBit;
+			final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+			if (v > lowerBound) {
+				currentIndex = rank;
+				return v;
 			}
+
+			window &= window - 1;
+			rank++;
+			lowerBitsOffset += l;
 		}
 	}
 
@@ -355,32 +330,27 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	public long strictSuccessorIndex(final long lowerBound) {
 		if (lowerBound < firstElement) return 0;
 		if (lowerBound >= lastElement) return Long.MAX_VALUE;
-		final long zeroesToSkip = lowerBound >>> l;
+		final long zerosToSkip = lowerBound >>> l;
 
-		if (l == 0) {
-			final long position = selectUpperZero.selectZero(zeroesToSkip);
-			return position - zeroesToSkip;
-		} else {
-			long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1) + 1;
-			long rank = position - zeroesToSkip;
+		long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
+		long rank = position - zerosToSkip;
 
-			long lowerBitsOffset = rank * l;
-			final long lowerBoundLowerBits = lowerBound & lowerBitsMask;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				if ((upperBits[word(position)] & 1L << position) == 0) return rank;
+		long lowerBitsOffset = rank * l;
+		final long lowerBoundLowerBits = lowerBound & lowerBitsMask;
+		final int m = Long.SIZE - l;
+		for (;;) {
+			if ((upperBits[word(position)] & 1L << position) == 0) return rank;
 
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				long lower = lowerBits[startWord] >>> startBit;
-				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
-				lower &= lowerBitsMask;
-				if (lower > lowerBoundLowerBits) return rank;
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			long lower = lowerBits[startWord] >>> startBit;
+			if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
+			lower &= lowerBitsMask;
+			if (lower > lowerBoundLowerBits) return rank;
 
-				position++;
-				rank++;
-				lowerBitsOffset += l;
-			}
+			position++;
+			rank++;
+			lowerBitsOffset += l;
 		}
 	}
 
@@ -402,52 +372,40 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			currentIndex = length - 1;
 			return lastElement;
 		}
-		final long zeroesToSkip = upperBound >>> l;
-		long position = selectUpperZero.selectZero(zeroesToSkip) - 1;
-		long rank = position - zeroesToSkip;
+		final long zerosToSkip = upperBound >>> l;
+		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
+		long rank = position - zerosToSkip;
 
-		if (l == 0) {
-			for (;;) {
-				if ((upperBits[word(position)] & 1L << position) == 0) break;
-				position--;
-				rank--;
+		long lowerBitsOffset = rank * l;
+		long lower;
+		final long upperBoundLowerBits = upperBound & lowerBitsMask;
+		final int m = Long.SIZE - l;
+		for (;;) {
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			lower = lowerBits[startWord] >>> startBit;
+			if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
+			lower &= lowerBitsMask;
+			if ((upperBits[word(position)] & 1L << position) == 0) {
+				int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
+				int curr = word(position);
+				long window = upperBits[curr] & ~(-1L << position);
+				while (window == 0) {
+					window = upperBits[--curr];
+					zeros += Long.SIZE;
+				}
+				currentIndex = rank;
+				return position - zeros - Long.numberOfLeadingZeros(window) - rank - 1 << l | lower;
 			}
 
-			currentIndex = rank;
-			return selectUpper.select(rank) - rank;
-		} else {
-			long lowerBitsOffset = rank * l;
-			long lower;
-			final long upperBoundLowerBits = upperBound & lowerBitsMask;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				lower = lowerBits[startWord] >>> startBit;
-				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
-				lower &= lowerBitsMask;
-				if ((upperBits[word(position)] & 1L << position) == 0) {
-					int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
-					int curr = word(position);
-					long window = upperBits[curr] & ~(-1L << position);
-					while (window == 0) {
-						window = upperBits[--curr];
-						zeros += Long.SIZE;
-					}
-					currentIndex = rank;
-					return position - zeros - Long.numberOfLeadingZeros(window) - rank - 1 << l | lower;
-				}
-
-				if (lower < upperBoundLowerBits) {
-					currentIndex = rank;
-					return position - rank << l | lower;
-				}
-
-				lowerBitsOffset -= l;
-				position--;
-				rank--;
+			if (lower < upperBoundLowerBits) {
+				currentIndex = rank;
+				return position - rank << l | lower;
 			}
 
+			lowerBitsOffset -= l;
+			position--;
+			rank--;
 		}
 	}
 
@@ -471,36 +429,28 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 		if (upperBound <= firstElement) return Long.MIN_VALUE;
 		if (upperBound > lastElement) return length - 1;
 
-		final long zeroesToSkip = upperBound >>> l;
-		long position = selectUpperZero.selectZero(zeroesToSkip) - 1;
-		long rank = position - zeroesToSkip;
+		final long zerosToSkip = upperBound >>> l;
+		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
+		long rank = position - zerosToSkip;
 
-		if (l == 0) {
-			for (;;) {
-				if ((upperBits[word(position)] & 1L << position) == 0) return rank;
-				position--;
-				rank--;
-			}
-		} else {
-			long lowerBitsOffset = rank * l;
-			long lower;
-			final long upperBoundLowerBits = upperBound & lowerBitsMask;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				if ((upperBits[word(position)] & 1L << position) == 0) return rank;
+		long lowerBitsOffset = rank * l;
+		long lower;
+		final long upperBoundLowerBits = upperBound & lowerBitsMask;
+		final int m = Long.SIZE - l;
+		for (;;) {
+			if ((upperBits[word(position)] & 1L << position) == 0) return rank;
 
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				lower = lowerBits[startWord] >>> startBit;
-				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
-				lower &= lowerBitsMask;
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			lower = lowerBits[startWord] >>> startBit;
+			if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
+			lower &= lowerBitsMask;
 
-				if (lower < upperBoundLowerBits) return rank;
+			if (lower < upperBoundLowerBits) return rank;
 
-				rank--;
-				position--;
-				lowerBitsOffset -= l;
-			}
+			rank--;
+			position--;
+			lowerBitsOffset -= l;
 		}
 	}
 
@@ -522,47 +472,41 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			currentIndex = length - 1;
 			return lastElement;
 		}
-		final long zeroesToSkip = upperBound >>> l;
-		long position = selectUpperZero.selectZero(zeroesToSkip) - 1;
-		long rank = position - zeroesToSkip;
+		final long zerosToSkip = upperBound >>> l;
+		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
+		long rank = position - zerosToSkip;
 
-		if (l == 0) {
-			currentIndex = rank;
-			return selectUpper.select(rank) - rank;
-		} else {
-			long lowerBitsOffset = rank * l;
-			long lower;
-			final long upperBoundLowerBits = upperBound & lowerBitsMask;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				lower = lowerBits[startWord] >>> startBit;
-				if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
-				lower &= lowerBitsMask;
+		long lowerBitsOffset = rank * l;
+		long lower;
+		final long upperBoundLowerBits = upperBound & lowerBitsMask;
+		final int m = Long.SIZE - l;
+		for (;;) {
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			lower = lowerBits[startWord] >>> startBit;
+			if (startBit > m) lower |= lowerBits[startWord + 1] << -startBit;
+			lower &= lowerBitsMask;
 
-				if ((upperBits[word(position)] & 1L << position) == 0) {
-					int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
-					int curr = word(position);
-					long window = upperBits[curr] & ~(-1L << position);
-					while (window == 0) {
-						window = upperBits[--curr];
-						zeros += Long.SIZE;
-					}
-					currentIndex = rank;
-					return position - zeros - Long.numberOfLeadingZeros(window) - rank - 1 << l | lower;
+			if ((upperBits[word(position)] & 1L << position) == 0) {
+				int zeros = (int)(position | -Long.SIZE); // == - (Long.SIZE - (position % Long.SIZE))
+				int curr = word(position);
+				long window = upperBits[curr] & ~(-1L << position);
+				while (window == 0) {
+					window = upperBits[--curr];
+					zeros += Long.SIZE;
 				}
-
-				if (lower <= upperBoundLowerBits) {
-					currentIndex = rank;
-					return position - rank << l | lower;
-				}
-
-				rank--;
-				lowerBitsOffset -= l;
-				position--;
+				currentIndex = rank;
+				return position - zeros - Long.numberOfLeadingZeros(window) - rank - 1 << l | lower;
 			}
 
+			if (lower <= upperBoundLowerBits) {
+				currentIndex = rank;
+				return position - rank << l | lower;
+			}
+
+			rank--;
+			lowerBitsOffset -= l;
+			position--;
 		}
 	}
 
@@ -587,11 +531,9 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 		if (upperBound < firstElement) return Long.MIN_VALUE;
 		if (upperBound >= lastElement) return length - 1;
 
-		final long zeroesToSkip = upperBound >>> l;
-		long position = selectUpperZero.selectZero(zeroesToSkip) - 1;
-		long rank = position - zeroesToSkip;
-
-		if (l == 0) return rank;
+		final long zerosToSkip = upperBound >>> l;
+		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
+		long rank = position - zerosToSkip;
 
 		long lowerBitsOffset = rank * l;
 		long lower;
@@ -625,34 +567,28 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	@Override
 	public long indexOf(final long x) {
 		if (x < firstElement || x > lastElement) return -1;
-		final long zeroesToSkip = x >>> l;
-		final long position = zeroesToSkip == 0 ? 0 : selectUpperZero.selectZero(zeroesToSkip - 1);
+		final long zerosToSkip = x >>> l;
+		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1);
 		int curr = word(position);
 		long window = upperBits[curr];
 		window &= -1L << position;
-		long rank = zeroesToSkip == 0 ? 0 : position - zeroesToSkip + 1;
+		long rank = zerosToSkip == 0 ? 0 : position - zerosToSkip + 1;
 
-		if (l == 0) {
+		long lowerBitsOffset = rank * l;
+		final int m = Long.SIZE - l;
+		for (;;) {
 			while (window == 0) window = upperBits[++curr];
 			final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
-			return upperBits == x ? rank : -1;
-		} else {
-			long lowerBitsOffset = rank * l;
-			final int m = Long.SIZE - l;
-			for (;;) {
-				while (window == 0) window = upperBits[++curr];
-				final long upperBits = bits(curr) + Long.numberOfTrailingZeros(window) - rank;
 
-				final int startWord = word(lowerBitsOffset);
-				final int startBit = bit(lowerBitsOffset);
-				final long lower = lowerBits[startWord] >>> startBit;
-				final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
-				if (v >= x) return v == x ? rank : -1;
+			final int startWord = word(lowerBitsOffset);
+			final int startBit = bit(lowerBitsOffset);
+			final long lower = lowerBits[startWord] >>> startBit;
+			final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+			if (v >= x) return v == x ? rank : -1;
 
-				window &= window - 1;
-				rank++;
-				lowerBitsOffset += l;
-			}
+			window &= window - 1;
+			rank++;
+			lowerBitsOffset += l;
 		}
 	}
 
@@ -686,5 +622,105 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 */
 	public long index() {
 		return currentIndex;
+	}
+
+	/**
+	 * An list iterator over the values of this {@link EliasFanoIndexedMonotoneLongBigList}
+	 *
+	 * <p>
+	 * Besides the features of an
+	 * {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList.EliasFanoMonotoneLongBigListIterator
+	 * EliasFanoMonotoneLongBigListIterator}, instance of this class provide a {@link #skipTo(long)}
+	 * method that implements the same fast logic of
+	 * {@link EliasFanoIndexedMonotoneLongBigList#successor(long)}.
+	 */
+	public final class EliasFanoIndexedMonotoneLongBigListIterator extends EliasFanoMonotoneLongBigListIterator {
+		/**
+		 * Skipping more than this number of zeroes will unleash a full selection instead of a sequential
+		 * scan.
+		 */
+		private final static int SKIPPING_THRESHOLD = 8;
+		/** The last returned value. */
+		protected long last = -1;
+
+		private EliasFanoIndexedMonotoneLongBigListIterator(final long from) {
+			super(from);
+		}
+
+		@Override
+		public long nextLong() {
+			return last = super.nextLong();
+		}
+
+		@Override
+		public long previousLong() {
+			return last = super.previousLong();
+		}
+
+		/**
+		 * Moves this iterator to the first element greater than or equal to the provided bound.
+		 *
+		 * @param lowerBound a lower bound.
+		 * @return the last element returned by {@link #nextLong()} or {@link #previousLong()} if it is
+		 *         smaller than or equal to {@code lowerBound}, in which case this method is a no-op.
+		 *         Otherwise, the first element among the ones that will be returned by {@link #nextLong()}
+		 *         that is greater than or equal to {@code lowerBound}. The iterator will be positioned on
+		 *         the element (i.e., the next call to {@link #nextLong()} will return the element). In
+		 *         particular, {@link #nextIndex()} returns the index of the returned element in the list.
+		 *         If no such element exists, this methods returns {@link Long#MAX_VALUE} and sets the
+		 *         current index to the list length.
+		 */
+		public long skipTo(long lowerBound) {
+			lowerBound &= ~(lowerBound >> Long.SIZE - 1);
+			if (lowerBound <= last) return last;
+			if (lowerBound > lastElement) {
+				index = length;
+				return Long.MAX_VALUE;
+			}
+
+			final long zerosToSkip = lowerBound >>> l;
+			// We want this shift to be arithmetic so that last = -1 works
+			if (zerosToSkip - (last >> l) >= SKIPPING_THRESHOLD) {
+				final long position = selectUpperZero.selectZero(zerosToSkip - 1);
+				word = word(position);
+				window = upperBits[word];
+				window &= -1L << position;
+				index = position - zerosToSkip + 1;
+				lowerBitsPosition = index * l;
+			}
+
+			final int m = Long.SIZE - l;
+			for (;;) {
+				while (window == 0) window = upperBits[++word];
+				final long upperBits = bits(word) + Long.numberOfTrailingZeros(window) - index;
+
+				final int startWord = word(lowerBitsPosition);
+				final int startBit = bit(lowerBitsPosition);
+				final long lower = lowerBits[startWord] >>> startBit;
+				final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+				if (v >= lowerBound) return v;
+
+				window &= window - 1;
+				index++;
+				lowerBitsPosition += l;
+			}
+
+		}
+
+	}
+
+	@Override
+	public EliasFanoIndexedMonotoneLongBigListIterator listIterator(final long from) {
+		return new EliasFanoIndexedMonotoneLongBigListIterator(from);
+	}
+
+	@Override
+	public EliasFanoIndexedMonotoneLongBigListIterator listIterator() {
+		return new EliasFanoIndexedMonotoneLongBigListIterator(0);
+	}
+
+	@Override
+	public EliasFanoIndexedMonotoneLongBigListIterator iterator() {
+		return listIterator();
 	}
 }

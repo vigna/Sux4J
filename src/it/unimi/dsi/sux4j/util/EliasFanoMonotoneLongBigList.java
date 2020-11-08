@@ -23,7 +23,10 @@ package it.unimi.dsi.sux4j.util;
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
@@ -34,6 +37,7 @@ import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
@@ -56,7 +60,10 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * <p>
  * An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible to extract
  * several consecutive entries at high speed, and {@link #getDelta(long)} computes directly the
- * difference between two consecutive elements.
+ * difference between two consecutive elements. Moreover, the
+ * {@link EliasFanoMonotoneLongBigListIterator#nextLong() nextLong()} method of an
+ * {@linkplain #listIterator(long) iterator} will read read consecutive data much faster than
+ * repeated calls to {@link #getLong(long)}.
  *
  * <p>
  * This class is thread safe.
@@ -101,8 +108,10 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	protected final long length;
 	/** The number of lower bits. */
 	protected final int l;
+	/** The upper bits, stored as unary gaps. */
+	protected transient long[] upperBits;
 	/** The list of lower bits of each element, stored explicitly. */
-	protected final long[] lowerBits;
+	protected long[] lowerBits;
 	/** The select structure used to extract the upper bits. */
 	protected final SimpleSelect selectUpper;
 	/** The mask for the lower bits. */
@@ -118,9 +127,10 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		return length * l < Long.SIZE * ((1L << 31) - 16);
 	}
 
-	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] lowerBits, final SimpleSelect selectUpper) {
+	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] upperBits, final long[] lowerBits, final SimpleSelect selectUpper) {
 		this.length = length;
 		this.l = l;
+		this.upperBits = upperBits;
 		this.lowerBits = lowerBits;
 		this.selectUpper = selectUpper;
 		this.lowerBitsMask = (1L << l) - 1;
@@ -291,7 +301,9 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		}
 
 		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + length + " values in the provided iterator");
-		this.lowerBits = lowerBitsVector.bits();
+		// The initialization for l == 0 avoids tests for l == 0 throughout the code.
+		this.lowerBits = l == 0 ? new long[1] : lowerBitsVector.bits();
+		this.upperBits = upperBits.bits();
 		selectUpper = new SimpleSelect(upperBits);
 	}
 
@@ -305,7 +317,6 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final int l = this.l;
 		if (index >= length) throw new IllegalArgumentException();
 		final long upperBits = selectUpper.select(index) - index;
-		if (l == 0) return upperBits;
 
 		final long position = index * l;
 
@@ -326,8 +337,6 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	public long getDelta(long index) {
 		final long[] dest = new long[2];
 		selectUpper.select(index, dest, 0, 2);
-
-		if (l == 0) return dest[1] - dest[0] - 1;
 
 		long position = index * l;
 		int startWord = word(position);
@@ -353,16 +362,13 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 */
 	public long[] get(long index, final long dest[], final int offset, final int length) {
 		selectUpper.select(index, dest, offset, length);
-		if (l == 0) for(int i = 0; i < length; i++) dest[offset + i] -= index++;
-		else {
-			long position = index * l;
-			for(int i = 0; i < length; i++) {
-				final int startWord = word(position);
-				final int startBit = bit(position);
-				final long result = lowerBits[startWord] >>> startBit;
-				dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
-				position += l;
-			}
+		long position = index * l;
+		for (int i = 0; i < length; i++) {
+			final int startWord = word(position);
+			final int startBit = bit(position);
+			final long result = lowerBits[startWord] >>> startBit;
+			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+			position += l;
 		}
 
 		return dest;
@@ -379,8 +385,109 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		return get(index, dest, 0, dest.length);
 	}
 
+	/**
+	 * An list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 *
+	 * <p>
+	 * {@linkplain #nextLong() Forward iteration} will be faster than iterated calls to
+	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 */
+	protected class EliasFanoMonotoneLongBigListIterator implements LongBigListIterator {
+		/** The index of the next element to return. */
+		protected long index;
+		/** The current word in the array of upper bits. */
+		protected int word;
+		/** The current window. */
+		protected long window;
+		/** The current position in the array of lower bits. */
+		protected long lowerBitsPosition;
+
+		protected EliasFanoMonotoneLongBigListIterator(final long from) {
+			index = from;
+			final long position = selectUpper.select(from);
+			window = upperBits[word = word(position)] & -1L << position;
+			lowerBitsPosition = index * l;
+		}
+
+		private long getNextUpperBits() {
+			while (window == 0) window = upperBits[++word];
+			final long upperBits = word * (long)Long.SIZE + Long.numberOfTrailingZeros(window) - index++;
+			window &= window - 1;
+			return upperBits;
+		}
+
+		@Override
+		public long previousIndex() {
+			return index - 1;
+		}
+
+		@Override
+		public long nextIndex() {
+			return index;
+		}
+
+		@Override
+		public boolean hasPrevious() {
+			return index > 0;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return index < length;
+		}
+
+		@Override
+		public long nextLong() {
+			if (!hasNext()) throw new NoSuchElementException();
+			final int startWord = word(lowerBitsPosition);
+			final int startBit = bit(lowerBitsPosition);
+			long lower = lowerBits[startWord] >>> startBit;
+			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+			lowerBitsPosition += l;
+			return getNextUpperBits() << l | lower & lowerBitsMask;
+		}
+
+		@Override
+		public long previousLong() {
+			if (!hasPrevious()) throw new NoSuchElementException();
+			--index;
+			final long position = selectUpper.select(index);
+			window = upperBits[word = word(position)] & -1L << position;
+
+			lowerBitsPosition = index * l;
+			final int startWord = word(lowerBitsPosition);
+			final int startBit = bit(lowerBitsPosition);
+			long lower = lowerBits[startWord] >>> startBit;
+			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+			return (position - index) << l | lower & lowerBitsMask;
+		}
+	}
+
+	/**
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 *
+	 * <p>
+	 * Forward iteration will be faster than iterated calls to
+	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 *
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 */
+	@Override
+	public LongBigListIterator listIterator(final long from) {
+		return new EliasFanoMonotoneLongBigListIterator(from);
+	}
+
 	@Override
 	public long size64() {
 		return length;
+	}
+
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		upperBits = selectUpper.bitVector().bits();
+		// A fix that avoids bumping the serial id from 4L
+		if (lowerBits.length == 0) lowerBits = new long[1];
 	}
 }
