@@ -31,31 +31,6 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class SimpleSelectZeroTest extends RankSelectTestCase {
 
-	@Test
-	public void testEmpty() {
-		SimpleSelectZero select;
-
-		select = new SimpleSelectZero(new long[] { -1L }, 64);
-		assertEquals(-1, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
-
-		select = new SimpleSelectZero(new long[] { -1L, -1L }, 128);
-		assertEquals(-1, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
-
-		select = new SimpleSelectZero(new long[] { -1L >>> 1 }, 63);
-		assertEquals(-1, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
-
-		select = new SimpleSelectZero(new long[] { -1L, 1 }, 65);
-		assertEquals(-1, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
-
-		select = new SimpleSelectZero(new long[] { -1L, -1L, 1 }, 129);
-		assertEquals(-1, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
-
-	}
 
 	@Test
 	public void testSingleton() {
@@ -64,27 +39,22 @@ public class SimpleSelectZeroTest extends RankSelectTestCase {
 		select = new SimpleSelectZero(new long[] { -1L >>> 1, 0 }, 64);
 		assertSelectZero(select);
 		assertEquals(63, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
 
 		select = new SimpleSelectZero(new long[] { -1L << 1 }, 64);
 		assertSelectZero(select);
 		assertEquals(0, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
 
 		select = new SimpleSelectZero(new long[] { -1L >>> 1, -1L }, 128);
 		assertSelectZero(select);
 		assertEquals(63, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
 
 		select = new SimpleSelectZero(new long[] { -1L >>> 1, 1 }, 65);
 		assertSelectZero(select);
 		assertEquals(63, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
 
 		select = new SimpleSelectZero(new long[] { -1L >>> 1, -1, 1 }, 129);
 		assertSelectZero(select);
 		assertEquals(63, select.selectZero(0));
-		assertEquals(-1, select.selectZero(1));
 	}
 
 	@Test
@@ -95,25 +65,21 @@ public class SimpleSelectZeroTest extends RankSelectTestCase {
 		assertSelectZero(select);
 		assertEquals(0, select.selectZero(0));
 		assertEquals(32, select.selectZero(1));
-		assertEquals(-1, select.selectZero(2));
 
 		select = new SimpleSelectZero(new long[] { -1L << 1, -1L << 1 }, 128);
 		assertSelectZero(select);
 		assertEquals(0, select.selectZero(0));
 		assertEquals(64, select.selectZero(1));
-		assertEquals(-1, select.selectZero(2));
 
 		select = new SimpleSelectZero(new long[] { 0x7FFFFFFEFFFFFFFEL, 0 }, 63);
 		assertSelectZero(select);
 		assertEquals(0, select.selectZero(0));
 		assertEquals(32, select.selectZero(1));
-		assertEquals(-1, select.selectZero(2));
 
 		select = new SimpleSelectZero(new long[] { -1L << 1, -1L << 1, 1 }, 129);
 		assertSelectZero(select);
 		assertEquals(0, select.selectZero(0));
 		assertEquals(64, select.selectZero(1));
-		assertEquals(-1, select.selectZero(2));
 	}
 
 	@Test
@@ -150,7 +116,7 @@ public class SimpleSelectZeroTest extends RankSelectTestCase {
 	@Test
 	public void testSparse() {
 		LongArrayBitVector bitVector = LongArrayBitVector.getInstance().length(256 * 1024);
-		bitVector.set(1);
+		for (int i = 0; i < 100; i++) bitVector.set(i);
 		bitVector.set(100000);
 		bitVector.set(199999);
 		SimpleSelectZero select;

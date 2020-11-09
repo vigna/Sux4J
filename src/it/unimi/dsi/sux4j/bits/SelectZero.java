@@ -35,11 +35,19 @@ import it.unimi.dsi.bits.BitVector;
  */
 public interface SelectZero extends Serializable {
 
-	/** Returns the position of the bit of given zero rank.
-	 *  Equivalently, returns the greatest position that is preceded by the specified number of zeroes.
+	/**
+	 * Returns the position of the bit of given zero rank. Equivalently, returns the greatest position
+	 * that is preceded by the specified number of zeroes.
+	 *
+	 * <p>
+	 * <strong>Warning</strong>: from Sux4J 5.1.6, this method is no longer required to return &minus;1
+	 * when no bit with the given rank exists. If you relied on such behavior, please test the argument
+	 * before calling this method. Implementation might provide assertions to check the argument for
+	 * correctness.
 	 *
 	 * @param zeroRank a zero rank.
-	 * @return the position of the bit of given zero rank; if no such position exists, &minus;1 is returned.
+	 * @return the position of the bit of given zero rank; if no such position exists, &minus;1 is
+	 *         returned.
 	 */
 	public long selectZero(long zeroRank);
 

@@ -199,16 +199,12 @@ public class SimpleSelect implements Select {
 							}
 						}
 						else {
-							if (onesPerSub64 == 1) {
-								subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + offset++] = bits(i) + j;
+							assert onesPerSub64 > 1;
+							if ((d & onesPerInventoryMask) == 0) {
+								inventory[inventoryIndex] |= 1L << 63;
+								subinventory[inventoryIndex << log2LongwordsPerSubinventory] = spilled;
 							}
-							else {
-								if ((d & onesPerInventoryMask) == 0) {
-									inventory[inventoryIndex] |= 1L << 63;
-									subinventory[inventoryIndex << log2LongwordsPerSubinventory] = spilled;
-								}
-								exactSpill[spilled++] = bits(i) + j;
-							}
+							exactSpill[spilled++] = bits(i) + j;
 						}
 
 						d++;
@@ -224,14 +220,15 @@ public class SimpleSelect implements Select {
 
 	@Override
 	public long select(final long rank) {
-		if (rank >= numOnes) return -1;
+		assert rank >= 0;
+		assert rank < numOnes;
 
 		final int inventoryIndex = (int)(rank >>> log2OnesPerInventory);
 
 		final long inventoryRank = inventory[inventoryIndex];
 		final int subrank = (int)(rank & onesPerInventoryMask);
 
-		if (subrank == 0) return inventoryRank & ~(1L<<63);
+		if (subrank == 0) return inventoryRank & ~(1L << 63);
 
 		long start;
 		int residual;
@@ -242,7 +239,7 @@ public class SimpleSelect implements Select {
 			residual = subrank & onesPerSub16Mask;
 		}
 		else {
-			if (onesPerSub64 == 1) return subinventory[(inventoryIndex << log2LongwordsPerSubinventory) + subrank];
+			assert onesPerSub64 > 1;
 			return exactSpill[(int)(subinventory[inventoryIndex << log2LongwordsPerSubinventory] + subrank)];
 		}
 

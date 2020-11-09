@@ -48,11 +48,19 @@ import it.unimi.dsi.bits.BitVector;
  */
 public interface Select extends Serializable {
 
-	/** Returns the position of the bit of given rank.
-	 *  Equivalently, returns the greatest position that is preceded by the specified number of ones.
+	/**
+	 * Returns the position of the bit of given rank. Equivalently, returns the greatest position that
+	 * is preceded by the specified number of ones.
+	 *
+	 * <p>
+	 * <strong>Warning</strong>: from Sux4J 5.1.6, this method is no longer required to return &minus;1
+	 * when no bit with the given rank exists. If you relied on such behavior, please test the argument
+	 * before calling this method. Implementation might provide assertions to check the argument for
+	 * correctness.
 	 *
 	 * @param rank a rank.
-	 * @return the position of the bit of given rank; if no such position exists, &minus;1 is returned.
+	 * @return the position of the bit of given rank; if no such bit exists, behavior is undefined
+	 *         (might throw an exception).
 	 */
 	public long select(long rank);
 
