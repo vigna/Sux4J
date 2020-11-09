@@ -237,7 +237,8 @@ public class SimpleSelectZero implements SelectZero {
 		int residual;
 
 		if (inventoryRank >= 0) {
-			start = inventoryRank + subinventory16.getLong((inventoryIndex << log2LongwordsPerSubinventory + 2) + (subrank >>> log2OnesPerSub16));
+			final int index16 = (inventoryIndex << log2LongwordsPerSubinventory + 2) + (subrank >>> log2OnesPerSub16);
+			start = inventoryRank + ((subinventory[index16 >>> 2] >>> ((index16 & 3) << 4) & 0xFFFF));
 			residual = subrank & onesPerSub16Mask;
 		}
 		else {
