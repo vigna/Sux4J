@@ -259,17 +259,24 @@ public class SimpleSelect implements Select {
 		return bits(wordIndex) + Fast.select(word, residual);
 	}
 
-	/** Performs a bulk select of consecutive ranks into a given array fragment.
+	/**
+	 * Performs a bulk select of consecutive ranks into a given array fragment.
+	 *
+	 * <p>
+	 * <strong>Warning</strong>: form Sux4J 5.1.5, {@code dest} must be of length greater than
+	 * {@code offset} even if {@code length} is zero.
 	 *
 	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive bits starting at position {@code offset}.
+	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
+	 *            bits starting at position {@code offset}; must be of length greater than
+	 *            {@code offset}.
 	 * @param offset the first bit position written in {@code dest}.
 	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
 	 * @return {@code dest}
 	 * @see #select(long, long[])
 	 */
-	public long[] select(final long rank, final long[] dest, final int offset, final int length) {
-		if (length == 0) return dest;
+	public long[] select(final long rank, final long[] dest, int offset, final int length) {
+		assert dest.length > 0;
 		final long s = select(rank);
 		dest[offset] = s;
 		int curr = word(s);
@@ -279,17 +286,22 @@ public class SimpleSelect implements Select {
 
 		for(int i = 1; i < length; i++) {
 			while(window == 0) window = bits[++curr];
-			dest[offset + i] = bits(curr) + Long.numberOfTrailingZeros(window);
+			dest[++offset] = bits(curr) + Long.numberOfTrailingZeros(window);
 			window &= window - 1;
 		}
 
 		return dest;
 	}
 
-	/** Performs a bulk select of consecutive ranks into a given array.
+	/**
+	 * Performs a bulk select of consecutive ranks into a given array.
+	 *
+	 * <p>
+	 * <strong>Warning</strong>: from Sux4J 5.1.5, {@code dest} must be of length greater than zero.
 	 *
 	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with position of consecutive bits.
+	 * @param dest the destination array; it will be filled with position of consecutive bits; must be
+	 *            of length greater than zero.
 	 * @return {@code dest}
 	 * @see #select(long, long[], int, int)
 	 */

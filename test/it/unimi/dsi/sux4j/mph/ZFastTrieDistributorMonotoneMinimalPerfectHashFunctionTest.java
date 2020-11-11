@@ -115,7 +115,7 @@ public class ZFastTrieDistributorMonotoneMinimalPerfectHashFunctionTest {
 		for (int b = -1; b < 6; b++) {
 			for (int d = 100; d < 10000; d *= 10) {
 				for (final int signatureWidth: new int[] { 0, 32, 64 }) {
-					System.err.println("Size: " + d + " Bucket: " + b + " Signature width: " + signatureWidth);
+					// System.err.println("Size: " + d + " Bucket: " + b + " Signature width: " + signatureWidth);
 					final String[] s = new String[d];
 					final int[] v = new int[s.length];
 					for (int i = s.length; i-- != 0;)

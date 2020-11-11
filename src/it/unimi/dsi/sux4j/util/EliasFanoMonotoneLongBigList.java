@@ -66,6 +66,11 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * repeated calls to {@link #getLong(long)}.
  *
  * <p>
+ * Beside standard interface methods, additional <em>unsafe</em> methods such as
+ * {@link #getLongUnsafe(long)} skip bounds check for maximum performance. Bounds checks are enabled
+ * even for these methods, however, when assertions are enabled.
+ *
+ * <p>
  * This class is thread safe.
  *
  * <h2>Implementation details</h2>
@@ -288,8 +293,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final long lowerBitsMask = (1L << l) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
-		lowerBitsList.size(length);
-		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound >>> l) + 1);
+		lowerBitsList.size(length + 1);
+		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound + 1 >>> l) + 2);
 		long last = Long.MIN_VALUE;
 		for(long i = 0; i < length; i++) {
 			v = iterator.nextLong();
@@ -299,6 +304,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			upperBits.set((v >>> l) + i);
 			last = v;
 		}
+
+		// Sentinel
+		last++;
+		if (l != 0) lowerBitsList.set(length, last & lowerBitsMask);
+		final long lastBitSet = (last >>> l) + length;
+		upperBits.set(lastBitSet);
+		// In case the provided upper bound was larger than necessary
+		upperBits.size(lastBitSet + 2);
 
 		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + length + " values in the provided iterator");
 		// The initialization for l == 0 avoids tests for l == 0 throughout the code.
@@ -314,8 +327,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	@Override
 	public long getLong(final long index) {
+		if (index < 0 || index >= length) throw new IllegalArgumentException();
+		return getLongUnsafe(index);
+	}
+
+	public long getLongUnsafe(final long index) {
+		assert index >= 0;
+		assert index < length;
 		final int l = this.l;
-		if (index >= length) throw new IllegalArgumentException();
 		final long upperBits = selectUpper.select(index) - index;
 
 		final long position = index * l;
@@ -392,8 +411,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * {@linkplain #nextLong() Forward iteration} will be faster than iterated calls to
 	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
 	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 *
+	 * <p>
+	 * Additional <em>unsafe</em> methods {@link #nextLongUnsafe()} and {@link #previousLongUnsafe()}
+	 * iterate without checking for the existence of a next element.
 	 */
-	protected class EliasFanoMonotoneLongBigListIterator implements LongBigListIterator {
+	public class EliasFanoMonotoneLongBigListIterator implements LongBigListIterator {
 		/** The index of the next element to return. */
 		protected long index;
 		/** The current word in the array of upper bits. */
@@ -440,6 +463,17 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		@Override
 		public long nextLong() {
 			if (!hasNext()) throw new NoSuchElementException();
+			return nextLongUnsafe();
+		}
+
+		/**
+		 * Returns the same element as {@link #nextLong()}, if {@link #hasNext()} is true; otherwise,
+		 * behavior is undefined.
+		 *
+		 * @return the same element as {@link #nextLong()}, if {@link #hasNext()} is true; otherwise,
+		 *         behavior is undefined.
+		 */
+		public long nextLongUnsafe() {
 			final int startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = lowerBits[startWord] >>> startBit;
@@ -451,6 +485,17 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		@Override
 		public long previousLong() {
 			if (!hasPrevious()) throw new NoSuchElementException();
+			return previousLongUnsafe();
+		}
+
+		/**
+		 * Returns the same element as {@link #previousLong()}, if {@link #hasPrevious()} is true;
+		 * otherwise, behavior is undefined.
+		 *
+		 * @return the same element as {@link #previousLong()}, if {@link #hasPrevious()} is true;
+		 *         otherwise, behavior is undefined.
+		 */
+		public long previousLongUnsafe() {
 			--index;
 			final long position = selectUpper.select(index);
 			window = upperBits[word = word(position)] & -1L << position;
@@ -472,11 +517,45 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
 	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
 	 *
+	 * @param from the starting position in the sequence.
 	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @see EliasFanoMonotoneLongBigListIterator
 	 */
 	@Override
-	public LongBigListIterator listIterator(final long from) {
+	public EliasFanoMonotoneLongBigListIterator listIterator(final long from) {
 		return new EliasFanoMonotoneLongBigListIterator(from);
+	}
+
+	/**
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 *
+	 * <p>
+	 * Forward iteration will be faster than iterated calls to
+	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 *
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @see EliasFanoMonotoneLongBigListIterator
+	 */
+	@Override
+	public EliasFanoMonotoneLongBigListIterator listIterator() {
+		return new EliasFanoMonotoneLongBigListIterator(0);
+	}
+
+	/**
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 *
+	 * <p>
+	 * Forward iteration will be faster than iterated calls to
+	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 *
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @see EliasFanoMonotoneLongBigListIterator
+	 */
+	@Override
+	public EliasFanoMonotoneLongBigListIterator iterator() {
+		return listIterator();
 	}
 
 	@Override

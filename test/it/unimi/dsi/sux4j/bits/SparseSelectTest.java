@@ -32,59 +32,28 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 public class SparseSelectTest extends RankSelectTestCase {
 
 	@Test
-	public void testEmpty() {
-		SparseSelect select;
-
-		select = new SparseSelect(new long[1], 64);
-		assertEquals(-1, select.select(0));
-		assertEquals(-1, select.select(1));
-
-		select = new SparseSelect(new long[2], 128);
-		assertEquals(-1, select.select(0));
-		assertEquals(-1, select.select(1));
-
-		select = new SparseSelect(new long[1], 63);
-		assertEquals(-1, select.select(0));
-		assertEquals(-1, select.select(1));
-
-		select = new SparseSelect(new long[2], 65);
-		assertEquals(-1, select.select(0));
-		assertEquals(-1, select.select(1));
-
-		select = new SparseSelect(new long[3], 129);
-		assertEquals(-1, select.select(0));
-		assertEquals(-1, select.select(1));
-
-	}
-
-	@Test
 	public void testSingleton() {
 		SparseSelect select;
 
 		select = new SparseSelect(new long[] { 1L << 63, 0 }, 64);
 		assertSelect(select);
 		assertEquals(63, select.select(0));
-		assertEquals(-1, select.select(1));
 
 		select = new SparseSelect(new long[] { 1 }, 64);
 		assertSelect(select);
 		assertEquals(0, select.select(0));
-		assertEquals(-1, select.select(1));
 
 		select = new SparseSelect(new long[] { 1L << 63, 0 }, 128);
 		assertSelect(select);
 		assertEquals(63, select.select(0));
-		assertEquals(-1, select.select(1));
 
 		select = new SparseSelect(new long[] { 1L << 63, 0 }, 65);
 		assertSelect(select);
 		assertEquals(63, select.select(0));
-		assertEquals(-1, select.select(1));
 
 		select = new SparseSelect(new long[] { 1L << 63, 0, 0 }, 129);
 		assertSelect(select);
 		assertEquals(63, select.select(0));
-		assertEquals(-1, select.select(1));
 	}
 
 	@Test
@@ -95,25 +64,21 @@ public class SparseSelectTest extends RankSelectTestCase {
 		assertSelect(select);
 		assertEquals(0, select.select(0));
 		assertEquals(32, select.select(1));
-		assertEquals(-1, select.select(2));
 
 		select = new SparseSelect(new long[] { 1, 1 }, 128);
 		assertSelect(select);
 		assertEquals(0, select.select(0));
 		assertEquals(64, select.select(1));
-		assertEquals(-1, select.select(2));
 
 		select = new SparseSelect(new long[] { 1 | 1L << 32, 0 }, 63);
 		assertSelect(select);
 		assertEquals(0, select.select(0));
 		assertEquals(32, select.select(1));
-		assertEquals(-1, select.select(2));
 
 		select = new SparseSelect(new long[] { 1, 1, 0 }, 129);
 		assertSelect(select);
 		assertEquals(0, select.select(0));
 		assertEquals(64, select.select(1));
-		assertEquals(-1, select.select(2));
 	}
 
 	@Test
@@ -239,7 +204,7 @@ public class SparseSelectTest extends RankSelectTestCase {
 	public void testAllSizes() {
 		LongArrayBitVector v;
 		SparseSelect r;
-		for (int size = 0; size <= 4096; size++) {
+		for (int size = 1; size <= 4096; size++) {
 			v = LongArrayBitVector.getInstance().length(size);
 			for (int i = (size + 1) / 2; i-- != 0;)
 				v.set(i * 2);

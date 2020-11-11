@@ -186,6 +186,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * @return the first value of the sequence that is greater than or equal to {@code lowerBound}, or
 	 *         {@link Long#MAX_VALUE} if no such value exists.
 	 * @see #strictSuccessor(long)
+	 * @see #successorUnsafe(long)
 	 */
 
 	public long successor(final long lowerBound) {
@@ -194,6 +195,27 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			return firstElement;
 		}
 		if (lowerBound > lastElement) return Long.MAX_VALUE;
+		return successorUnsafe(lowerBound);
+	}
+
+	/**
+	 * Returns the first element of the sequence that is greater than or equal to the provided bound.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #successor(long)} as it does not check its argument.
+	 *
+	 * <p>
+	 * The position of the returned element in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * @param lowerBound a nonnegative lower bound on the returned value; must be smaller than or equal
+	 *            to the last element of the sequence.
+	 * @return the first value of the sequence that is greater than or equal to {@code lowerBound};
+	 * @see #successor(long)
+	 */
+
+	public long successorUnsafe(final long lowerBound) {
+		assert lowerBound >= 0;
+		assert lowerBound <= lastElement;
 		final long zerosToSkip = lowerBound >>> l;
 		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
 		int curr = word(position);
@@ -212,7 +234,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			final long lower = lowerBits[startWord] >>> startBit;
 			final long v = upperBits << l | (startBit <= m ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
 			if (v >= lowerBound) {
-			currentIndex = rank;
+				currentIndex = rank;
 				return v;
 			}
 
@@ -240,8 +262,36 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 */
 
 	public long successorIndex(long lowerBound) {
-		lowerBound &= ~(lowerBound >> Long.SIZE - 1);
 		if (lowerBound > lastElement) return Long.MAX_VALUE;
+		lowerBound &= ~(lowerBound >> Long.SIZE - 1); // Max with zero
+		return successorIndexUnsafe(lowerBound);
+	}
+
+	/**
+	 * Returns the index of first element of the sequence that is greater than or equal to the provided
+	 * bound.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #successorIndex(long)} as it does not check its
+	 * argument.
+	 *
+	 * <p>
+	 * This method is significantly faster than {@link #successorUnsafe(long)}, as it does not have to
+	 * compute the actual successor.
+	 *
+	 * <p>
+	 * Note that this method does not change the return value of {@link #index()}.
+	 *
+	 * @param lowerBound a nonnegative lower bound on the returned value; must be smaller than or equal
+	 *            to the last element of the sequence.
+	 * @return the index of the first value of the sequence that is greater than or equal to
+	 *         {@code lowerBound}.
+	 * @see #successorUnsafe(long)
+	 */
+
+	public long successorIndexUnsafe(final long lowerBound) {
+		assert lowerBound >= 0;
+		assert lowerBound <= lastElement;
 		final long zerosToSkip = lowerBound >>> l;
 		long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
 		long rank = position - zerosToSkip;
@@ -275,6 +325,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * @return the first value of the sequence that is greater than {@code lowerBound}, or
 	 *         {@link Long#MAX_VALUE} if no such value exists.
 	 * @see #successor(long)
+	 * @see #strictSuccessorUnsafe(long)
 	 */
 
 	public long strictSuccessor(final long lowerBound) {
@@ -283,6 +334,31 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			return firstElement;
 		}
 		if (lowerBound >= lastElement) return Long.MAX_VALUE;
+		return strictSuccessorUnsafe(lowerBound);
+	}
+
+	/**
+	 * Returns the first element of the sequence that is greater than the provided bound.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #strictSuccessor(long)} as it does not check its
+	 * argument.
+	 *
+	 * <p>
+	 * The position of the returned element in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * @param lowerBound a nonnegative lower bound on the returned value; must be smaller than or equal
+	 *            to the last element of the sequence.
+	 * @return the first value of the sequence that is greater than {@code lowerBound}, or the last
+	 *         element plus one if no such value exists; in that case, {@link #index()} is set to the
+	 *         length of the sequence.
+	 * @see #successor(long)
+	 * @see #strictSuccessor(long)
+	 */
+
+	public long strictSuccessorUnsafe(final long lowerBound) {
+		assert lowerBound >= 0;
+		assert lowerBound <= lastElement;
 		final long zerosToSkip = lowerBound >>> l;
 		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
 		int curr = word(position);
@@ -325,11 +401,40 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * @return the index of the first value of the sequence that is greater than {@code lowerBound}, or
 	 *         {@link Long#MAX_VALUE} if no such value exists.
 	 * @see #strictSuccessor(long)
+	 * @see #strictSuccessorIndexUnsafe(long)
 	 */
 
 	public long strictSuccessorIndex(final long lowerBound) {
 		if (lowerBound < firstElement) return 0;
 		if (lowerBound >= lastElement) return Long.MAX_VALUE;
+		return strictSuccessorIndexUnsafe(lowerBound);
+	}
+
+	/**
+	 * Returns the index of first element of the sequence that is greater than the provided bound.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #strictSuccessorIndex(long)} as it does not check its
+	 * argument.
+	 *
+	 * <p>
+	 * This method is significantly faster than {@link #successorUnsafe(long)}, as it does not have to
+	 * compute the actual successor.
+	 *
+	 * <p>
+	 * Note that this method does not change the return value of {@link #index()}.
+	 *
+	 * @param lowerBound a nonnegative lower bound on the returned value; must be smaller than or equal
+	 *            to the last element of the sequence.
+	 * @return the index of first value of the sequence that is greater than {@code lowerBound}, or the
+	 *         length of the sequence if the argument is equal to the last element of th sequence.
+	 * @see #strictSuccessorUnsafe(long)
+	 * @see #strictSuccessor(long)
+	 */
+
+	public long strictSuccessorIndexUnsafe(final long lowerBound) {
+		assert lowerBound >= 0;
+		assert lowerBound <= lastElement;
 		final long zerosToSkip = lowerBound >>> l;
 
 		long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
@@ -372,6 +477,29 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			currentIndex = length - 1;
 			return lastElement;
 		}
+		return predecessorUnsafe(upperBound);
+	}
+
+	/**
+	 * Returns the last value of the sequence that is less than the provided bound.
+	 *
+	 * <p>
+	 * If such an element exists, its position in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #strictSuccessor(long)} as it does not check its
+	 * argument.
+	 *
+	 * @param upperBound a nonnegative strict upper bound on the returned value, smaller than or equal
+	 *            to the last element of the sequence plus one.
+	 * @return the last value of the sequence that is less than {@code upperBound}.
+	 * @see #weakPredecessor(long)
+	 * @see #predecessor(long)
+	 */
+
+	public long predecessorUnsafe(final long upperBound) {
+		assert upperBound >= 0;
+		assert upperBound <= lastElement + 1;
 		final long zerosToSkip = upperBound >>> l;
 		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
 		long rank = position - zerosToSkip;
@@ -421,14 +549,39 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 *
 	 * @param upperBound an upper bound on the returned value.
 	 * @return the index of the last value of the sequence that is less than {@code upperBound}, or
-	 *         {@link Long#MIN_VALUE} if no such value exists.
+	 *         &minus;1 if no such value exists.
 	 * @see #predecessor(long)
 	 */
 
 	public long predecessorIndex(final long upperBound) {
-		if (upperBound <= firstElement) return Long.MIN_VALUE;
+		if (upperBound <= firstElement) return -1;
 		if (upperBound > lastElement) return length - 1;
+		return predecessorIndexUnsafe(upperBound);
+	}
 
+
+	/**
+	 * Returns the index of the last value of the sequence that is less than the provided bound.
+	 *
+	 * <p>
+	 * This method is significantly faster than {@link #predecessor(long)}, as it does not have to
+	 * compute the actual predecessor.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #predecessorIndex(long)} as it does not check its
+	 * argument.
+	 *
+	 * <p>
+	 * Note that this method does not change the return value of {@link #index()}.
+	 *
+	 * @param upperBound a nonnegative strict upper bound, smaller than or equal to the last element of
+	 *            the sequence plus one.
+	 * @return the index of the last value of the sequence that is less than {@code upperBound};
+	 *         behavior is undefined if no such element exists.
+	 * @see #predecessor(long)
+	 */
+
+	public long predecessorIndexUnsafe(final long upperBound) {
 		final long zerosToSkip = upperBound >>> l;
 		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
 		long rank = position - zerosToSkip;
@@ -472,6 +625,27 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 			currentIndex = length - 1;
 			return lastElement;
 		}
+		return weakPredecessorUnsafe(upperBound);
+	}
+
+	/**
+	 * Returns the last value of the sequence that is less than or equal to the provided bound.
+	 *
+	 * <p>
+	 * If such an element exists, its position in the sequence can be retrieved using {@link #index()}.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #weakPredecessor(long)} as it does not check its
+	 * argument.
+	 *
+	 * @param upperBound a nonnegative strict upper bound on the returned value, smaller than or equal
+	 *            to the last element of the sequence.
+	 * @return the last value of the sequence that is less than or equal to {@code upperBound}; behavior
+	 *         is undefined if no such element exists or if {@code upperBound} is out of range.
+	 * @see #predecessor(long)
+	 */
+
+	public long weakPredecessorUnsafe(final long upperBound) {
 		final long zerosToSkip = upperBound >>> l;
 		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
 		long rank = position - zerosToSkip;
@@ -530,7 +704,34 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	public long weakPredecessorIndex(final long upperBound) {
 		if (upperBound < firstElement) return Long.MIN_VALUE;
 		if (upperBound >= lastElement) return length - 1;
+		return weakPredecessorIndexUnsafe(upperBound);
+	}
 
+	/**
+	 * Returns the index of the last value of the sequence that is less than or equal to the provided
+	 * bound.
+	 *
+	 * <p>
+	 * This method is significantly faster than {@link #weakPredecessor(long)}, as it does not have to
+	 * compute the actual weak predecessor.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #weakPredecessorIndex(long)} as it does not check its
+	 * argument.
+	 *
+	 * <p>
+	 * Note that this method does not change the return value of {@link #index()}.
+	 *
+	 * @param upperBound a nonnegative upper bound, smaller than or equal to the last element of the
+	 *            sequence.
+	 * @return the index of the last value of the sequence that is less than or equal to
+	 *         {@code upperBound}; behavior is undefined if no such element exists.
+	 * @see #weakPredecessor(long)
+	 */
+
+	public long weakPredecessorIndexUnsafe(final long upperBound) {
+		assert upperBound >= firstElement;
+		assert upperBound <= lastElement;
 		final long zerosToSkip = upperBound >>> l;
 		long position = selectUpperZero.selectZero(zerosToSkip) - 1;
 		long rank = position - zerosToSkip;
@@ -555,6 +756,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 		}
 	}
 
+
 	/**
 	 * Returns the index of the first occurrence of the specified element in the sequence, or -1 if the
 	 * element does not belong to the sequence.
@@ -563,10 +765,30 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * This method does not change the value returned by {@link #index()}.
 	 *
 	 * @param x a long.
+	 * @return the position of {@code x} in the sequence, or &minus;1 if {@code x} does not belong to
+	 *         the sequence.
 	 */
 	@Override
 	public long indexOf(final long x) {
 		if (x < firstElement || x > lastElement) return -1;
+		return indexOfUnsafe(x);
+	}
+
+	/**
+	 * Returns the index of the first occurrence of the specified element in the sequence, or -1 if the
+	 * element does not belong to the sequence.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #indexOf(long)} as it does not check its argument.
+	 *
+	 * <p>
+	 * This method does not change the value returned by {@link #index()}.
+	 *
+	 * @param x a nonnegative long smaller than or equal to the last element of the sequence.
+	 * @return the position of {@code x} in the sequence, or &minus;1 if {@code x} does not belong to
+	 *         the sequence; behavior is undefined of {@code x} is out of range.
+	 */
+	public long indexOfUnsafe(final long x) {
 		final long zerosToSkip = x >>> l;
 		final long position = zerosToSkip == 0 ? 0 : selectUpperZero.selectZero(zerosToSkip - 1) + 1;
 		int curr = word(position);
@@ -653,8 +875,18 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 		}
 
 		@Override
+		public long nextLongUnsafe() {
+			return last = super.nextLongUnsafe();
+		}
+
+		@Override
 		public long previousLong() {
 			return last = super.previousLong();
+		}
+
+		@Override
+		public long previousLongUnsafe() {
+			return last = super.previousLongUnsafe();
 		}
 
 		/**
@@ -677,6 +909,30 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 				index = length;
 				return Long.MAX_VALUE;
 			}
+			return skipToUnsafe(lowerBound);
+		}
+
+		/**
+		 * Moves this iterator to the first element greater than or equal to the provided bound without
+		 * checkint its argument.
+		 *
+		 * <p>
+		 * This method is slightly faster than {@link #skipTo(long)} as it does not check its argument.
+		 *
+		 * @param lowerBound a nonnegative lower bound smaller than or equal to the last element of the
+		 *            sequence plus one.
+		 * @return the last element returned by {@link #nextLong()} or {@link #previousLong()} if it is
+		 *         smaller than or equal to {@code lowerBound}, in which case this method is a no-op.
+		 *         Otherwise, the first element among the ones that will be returned by {@link #nextLong()}
+		 *         that is greater than or equal to {@code lowerBound}. The iterator will be positioned on
+		 *         the element (i.e., the next call to {@link #nextLong()} will return the element). In
+		 *         particular, {@link #nextIndex()} returns the index of the returned element in the list.
+		 *         If no such element exists, this methods returns the last element of the list plus one and
+		 *         sets the current index to the list length. Behavior is undefined if {@code lowerbound} is
+		 *         out of range.
+		 */
+		public long skipToUnsafe(final long lowerBound) {
+			if (lowerBound <= last) return last;
 
 			final long zerosToSkip = lowerBound >>> l;
 			// We want this shift to be arithmetic so that last = -1 works
@@ -704,9 +960,7 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 				index++;
 				lowerBitsPosition += l;
 			}
-
 		}
-
 	}
 
 	@Override

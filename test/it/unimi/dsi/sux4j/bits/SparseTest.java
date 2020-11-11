@@ -31,42 +31,6 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class SparseTest extends RankSelectTestCase {
 
-	@Test
-	public void testEmpty() {
-		SparseRank sparseRank;
-		SparseSelect bsearch;
-
-		bsearch = (sparseRank = new SparseRank(new long[1], 64)).getSelect();
-		for (int i = 64; i-- != 0;)
-			assertEquals(Integer.toString(i), 0, sparseRank.rank(i));
-		assertEquals(-1, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
-
-		bsearch = (sparseRank = new SparseRank(new long[2], 128)).getSelect();
-		for (int i = 128; i-- != 0;)
-			assertEquals(0, sparseRank.rank(i));
-		assertEquals(-1, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
-
-		bsearch = (sparseRank = new SparseRank(new long[1], 63)).getSelect();
-		for (int i = 63; i-- != 0;)
-			assertEquals(0, sparseRank.rank(i));
-		assertEquals(-1, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
-
-		bsearch = (sparseRank = new SparseRank(new long[2], 65)).getSelect();
-		for (int i = 65; i-- != 0;)
-			assertEquals(0, sparseRank.rank(i));
-		assertEquals(-1, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
-
-		bsearch = (sparseRank = new SparseRank(new long[3], 129)).getSelect();
-		for (int i = 130; i-- != 0;)
-			assertEquals(0, sparseRank.rank(i));
-		assertEquals(-1, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
-
-	}
 
 	@Test
 	public void testSingleton() {
@@ -81,7 +45,6 @@ public class SparseTest extends RankSelectTestCase {
 		for (i = 63; i-- != 0;)
 			assertEquals(0, sparseRank.rank(i));
 		assertEquals(63, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
 		assertEquals(63, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1 }, 64)).getSelect();
@@ -90,7 +53,6 @@ public class SparseTest extends RankSelectTestCase {
 			assertEquals(1, sparseRank.rank(i));
 		assertEquals(0, sparseRank.rank(0));
 		assertEquals(0, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
 		assertEquals(0, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1L << 63, 0 }, 128)).getSelect();
@@ -100,7 +62,6 @@ public class SparseTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, sparseRank.rank(i));
 		assertEquals(63, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
 		assertEquals(63, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1L << 63, 0 }, 65)).getSelect();
@@ -110,7 +71,6 @@ public class SparseTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, sparseRank.rank(i));
 		assertEquals(63, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
 		assertEquals(63, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1L << 63, 0, 0 }, 129)).getSelect();
@@ -120,7 +80,6 @@ public class SparseTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, sparseRank.rank(i));
 		assertEquals(63, bsearch.select(0));
-		assertEquals(-1, bsearch.select(1));
 		assertEquals(63, bsearch.select(sparseRank.count() - 1));
 	}
 
@@ -139,7 +98,6 @@ public class SparseTest extends RankSelectTestCase {
 		assertEquals(0, sparseRank.rank(0));
 		assertEquals(0, bsearch.select(0));
 		assertEquals(32, bsearch.select(1));
-		assertEquals(-1, bsearch.select(2));
 		assertEquals(32, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1, 1 }, 128)).getSelect();
@@ -151,7 +109,6 @@ public class SparseTest extends RankSelectTestCase {
 		assertEquals(0, sparseRank.rank(0));
 		assertEquals(0, bsearch.select(0));
 		assertEquals(64, bsearch.select(1));
-		assertEquals(-1, bsearch.select(2));
 		assertEquals(64, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1 | 1L << 32, 0 }, 63)).getSelect();
@@ -163,7 +120,6 @@ public class SparseTest extends RankSelectTestCase {
 		assertEquals(0, sparseRank.rank(0));
 		assertEquals(0, bsearch.select(0));
 		assertEquals(32, bsearch.select(1));
-		assertEquals(-1, bsearch.select(2));
 		assertEquals(32, bsearch.select(sparseRank.count() - 1));
 
 		bsearch = (sparseRank = new SparseRank(new long[] { 1, 1, 0 }, 129)).getSelect();
@@ -175,7 +131,6 @@ public class SparseTest extends RankSelectTestCase {
 		assertEquals(0, sparseRank.rank(0));
 		assertEquals(0, bsearch.select(0));
 		assertEquals(64, bsearch.select(1));
-		assertEquals(-1, bsearch.select(2));
 		assertEquals(64, bsearch.select(sparseRank.count() - 1));
 	}
 

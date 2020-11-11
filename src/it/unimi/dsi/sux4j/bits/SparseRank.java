@@ -21,6 +21,7 @@
 package it.unimi.dsi.sux4j.bits;
 
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
 import it.unimi.dsi.bits.BitVector;
@@ -95,7 +96,8 @@ public class SparseRank extends AbstractRank {
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
 		lowerBitsList.size(m);
-		upperBits = LongArrayBitVector.getInstance().length(m + (n >>> l) + 1);
+		upperBits = LongArrayBitVector.getInstance().length(m + (n >>> l) + 2);
+
 		long last = 0;
 		for(long i = 0; i < m; i++) {
 			pos = iterator.nextLong();
@@ -138,8 +140,8 @@ public class SparseRank extends AbstractRank {
 	public long rank(final long pos) {
 		if (m == 0) return 0;
 		if (pos >= n) return m;
-		final long posShiftrL = pos >>> l;
 
+		final long posShiftrL = pos >>> l;
 		long upperPos = selectZeroUpper.selectZero(posShiftrL);
 	    long rank = upperPos - (posShiftrL);
 	    final long posLowerBits = pos & lowerLBitsMask;
@@ -166,21 +168,40 @@ public class SparseRank extends AbstractRank {
 	}
 
 
-	/** Returns the bit vector indexed; since the bits are not stored in this data structure,
-	 * a copy is built on purpose and returned.
+	/**
+	 * Returns the bit vector indexed; since the bits are not stored in this data structure, a copy is
+	 * built on purpose and returned.
 	 *
-	 * <p><strong>Warning</strong>: this method is very slow, as the only way to recover the original bit
-	 * array is to rank each position in the bit vector.
+	 * <p>
+	 * <strong>Warning</strong>: this method is quite slow, as it has to rebuild all bit positions.
 	 *
 	 * @return a copy of the underlying bit vector.
 	 */
 	@Override
 	public BitVector bitVector() {
 		final LongArrayBitVector result = LongArrayBitVector.getInstance().length(n);
-		long prev = 0, rank;
-		for(long i = 1; i <= n; i++) {
-			if ((rank = rank(i)) != prev) result.set(i - 1);
-			prev = rank;
+		final long[] upperBits = this.upperBits.bits();
+		final long[] lowerBits = this.lowerBits;
+		final int l = this.l;
+		final long lowerLBitsMask = this.lowerLBitsMask;
+		final int limit = Long.SIZE - l;
+		final long m = this.m;
+
+		int curr = 0;
+		long window = upperBits[curr];
+		long lowerBitsPosition = 0;
+
+		for (long i = 0; i < m; i++) {
+			while (window == 0) window = upperBits[++curr];
+			final long upper = bits(curr) + Long.numberOfTrailingZeros(window) - i;
+
+			final int startWord = LongArrayBitVector.word(lowerBitsPosition);
+			final int startBit = LongArrayBitVector.bit(lowerBitsPosition);
+			final long lower = lowerBits[startWord] >>> startBit;
+			result.set(upper << l | (startBit <= limit ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask);
+
+			window &= window - 1;
+			lowerBitsPosition += l;
 		}
 		return result;
 	}

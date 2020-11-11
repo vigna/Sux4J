@@ -144,9 +144,9 @@ public class SparseSelect extends EliasFanoMonotoneLongBigList implements Select
 
 	@Override
 	public long select(final long rank) {
-		if (rank >= length) return -1;
 		final int l = this.l;
 		final long upperBits = selectUpper.select(rank) - rank;
+		// TODO: eliminate test
 		if (l == 0) return upperBits;
 
 		final long position = rank * l;

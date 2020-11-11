@@ -21,6 +21,7 @@
 package it.unimi.dsi.sux4j.util;
 
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
+import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
 import java.util.NoSuchElementException;
@@ -28,7 +29,6 @@ import java.util.NoSuchElementException;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.ints.IntIterable;
-import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
@@ -154,38 +154,31 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	 * {@linkplain #nextLong() Forward iteration} will be faster than iterated calls to
 	 * {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}. Backward iteration is available,
 	 * but it will performs similarly to {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}.
+	 *
+	 * <p>
+	 * Additional <em>unsafe</em> methods {@link #nextLongUnsafe()} and {@link #previousLongUnsafe()}
+	 * iterate without checking for the existence of a next element.
 	 */
-	protected class EliasFanoPrefixSumLongBigListIterator implements LongBigListIterator {
-		/** The index of the next element to return. */
-		protected long index;
-		/** The current word in the array of upper bits. */
-		protected int word;
-		/** The current window. */
-		protected long window;
-		/** The current position in the array of lower bits. */
-		protected long lowerBitsPosition;
+	public class EliasFanoPrefixSumLongBigListIterator extends EliasFanoMonotoneLongBigListIterator {
 		/** The last value returned. */
 		protected long last;
 		/** The upper bits as a long array. */
 		protected long upperBits[] = EliasFanoPrefixSumLongBigList.this.upperBits.bits();
 
 		protected EliasFanoPrefixSumLongBigListIterator(final long from) {
-			index = from;
-			final long position = selectUpper.select(from);
-			window = upperBits[word = word(position)] & -1L << position;
-			lowerBitsPosition = index * l;
+			super(from);
 			final int startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = lowerBits[startWord] >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
 			lowerBitsPosition += l;
-			last = (position - index++) << l | lower & lowerBitsMask;
+			last = (bits(word) + Long.numberOfTrailingZeros(window) - index++) << l | lower & lowerBitsMask;
 			window &= window - 1;
 		}
 
 		private long getNextUpperBits() {
 			while (window == 0) window = upperBits[++word];
-			final long upperBits = word * (long)Long.SIZE + Long.numberOfTrailingZeros(window) - index++;
+			final long upperBits = bits(word) + Long.numberOfTrailingZeros(window) - index++;
 			window &= window - 1;
 			return upperBits;
 		}
@@ -210,9 +203,15 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 			return index < length;
 		}
 
+		/**
+		 * Returns the same element as {@link #nextLong()}, if {@link #hasNext()} is true; otherwise,
+		 * behavior is undefined.
+		 *
+		 * @return the same element as {@link #nextLong()}, if {@link #hasNext()} is true; otherwise,
+		 *         behavior is undefined.
+		 */
 		@Override
-		public long nextLong() {
-			if (!hasNext()) throw new NoSuchElementException();
+		public long nextLongUnsafe() {
 			final int startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = lowerBits[startWord] >>> startBit;
@@ -224,9 +223,15 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 			return result;
 		}
 
+		/**
+		 * Returns the same element as {@link #previousLong()}, if {@link #hasPrevious()} is true;
+		 * otherwise, behavior is undefined.
+		 *
+		 * @return the same element as {@link #previousLong()}, if {@link #hasPrevious()} is true;
+		 *         otherwise, behavior is undefined.
+		 */
 		@Override
-		public long previousLong() {
-			if (!hasPrevious()) throw new NoSuchElementException();
+		public long previousLongUnsafe() {
 			index -= 2;
 			final long position = selectUpper.select(index);
 			window = upperBits[word = word(position)] & -1L << position;
@@ -246,7 +251,7 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 			lower = lowerBits[startWord] >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
 			while (window == 0) window = upperBits[++word];
-			final long curr = (word * (long)Long.SIZE + Long.numberOfTrailingZeros(window) - index) << l | lower & lowerBitsMask;
+			final long curr = (bits(word) + Long.numberOfTrailingZeros(window) - index) << l | lower & lowerBitsMask;
 			final long result = curr - last;
 			return result;
 		}
@@ -260,10 +265,41 @@ public class EliasFanoPrefixSumLongBigList extends EliasFanoMonotoneLongBigList 
 	 * {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}. Backward iteration is available,
 	 * but it will performs similarly to {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}.
 	 *
+	 * @param from the starting element in the list.
 	 * @return a list iterator over the values of this {@link EliasFanoPrefixSumLongBigList}.
 	 */
 	@Override
-	public LongBigListIterator listIterator(final long from) {
+	public EliasFanoPrefixSumLongBigListIterator listIterator(final long from) {
 		return new EliasFanoPrefixSumLongBigListIterator(from);
+	}
+
+	/**
+	 * Returns a list iterator over the values of this {@link EliasFanoPrefixSumLongBigList}.
+	 *
+	 * <p>
+	 * Forward iteration will be faster than iterated calls to
+	 * {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will performs similarly to {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}.
+	 *
+	 * @return a list iterator over the values of this {@link EliasFanoPrefixSumLongBigList}.
+	 */
+	@Override
+	public EliasFanoPrefixSumLongBigListIterator listIterator() {
+		return listIterator(0);
+	}
+
+	/**
+	 * Returns a list iterator over the values of this {@link EliasFanoPrefixSumLongBigList}.
+	 *
+	 * <p>
+	 * Forward iteration will be faster than iterated calls to
+	 * {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will performs similarly to {@link EliasFanoPrefixSumLongBigList#getLong(long) getLong()}.
+	 *
+	 * @return a list iterator over the values of this {@link EliasFanoPrefixSumLongBigList}.
+	 */
+	@Override
+	public EliasFanoPrefixSumLongBigListIterator iterator() {
+		return listIterator();
 	}
 }

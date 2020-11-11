@@ -69,7 +69,7 @@ public class EliasFanoLongBigListTest {
 				final int from = random.nextInt(s.length - 100);
 				final int to = from + random.nextInt(100);
 				final int offset = random.nextInt(10);
-				final long[] dest = ef.get(from, new long[to - from + offset + random.nextInt(10)], offset, to - from);
+				final long[] dest = ef.get(from, new long[Math.max(offset + 1, to - from + offset + random.nextInt(10))], offset, to - from);
 				for(int j = from; j < to; j++) assertEquals(s[j], dest[offset + j - from]);
 			}
 		}

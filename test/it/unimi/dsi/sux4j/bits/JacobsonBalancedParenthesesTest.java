@@ -182,7 +182,6 @@ public class JacobsonBalancedParenthesesTest extends BalancedParenthesesTestCase
 		assertTrue(Long.SIZE <= JacobsonBalancedParentheses.findFarClose(parseSmall("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))", false), 64));
 
 		assertEquals(61, JacobsonBalancedParentheses.findFarClose(parseSmall("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false), 61));
-		System.err.println(JacobsonBalancedParentheses.findFarClose(parseSmall("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false), 62));
 		assertTrue(Long.SIZE <= JacobsonBalancedParentheses.findFarClose(parseSmall("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false), 62));
 		assertTrue(Long.SIZE <= JacobsonBalancedParentheses.findFarClose(parseSmall("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))()", false), 63));
 

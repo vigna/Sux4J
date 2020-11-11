@@ -97,9 +97,9 @@ public abstract class BalancedParenthesesTestCase {
 		if (! stack.isEmpty()) throw new AssertionError("The bit vector does not represent a correctly parenthesised string");
 
 		for(int i = 0; i < length; i++) {
-			//System.err.println(i);
 			if (bits.getBoolean(i)) assertEquals("Finding closing for position " + i, matches.getInt(i), balancedParentheses.findClose(i));
-			//else assertEquals("Finding opening for position " + i, matches.getInt(i), balancedParentheses.findOpen(i));
+			// else assertEquals("Finding opening for position " + i, matches.getInt(i),
+			// balancedParentheses.findOpen(i));
 		}
 	}
 
