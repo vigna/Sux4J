@@ -829,14 +829,14 @@ public class EliasFanoIndexedMonotoneLongBigList extends EliasFanoMonotoneLongBi
 	 * This method is slightly faster than {@link #indexOf(long)}, but it has a restricted argument
 	 * range and it does perform bound checks.
 	 *
-	 * @param x a nonnegative long smaller than or equal to the last element of the sequence plus one.
+	 * @param x a nonnegative long smaller than the upper bound provided at construction time.
 	 * @return the position of {@code x} in the sequence, or &minus;1 if {@code x} does not belong to
 	 *         the sequence; if {@code x} is out of bounds, behavior is undefined.
 	 * @see #indexOf(long)
 	 */
 	public long indexOfUnsafe(final long x) {
 		assert x >= 0;
-		assert x <= lastElement + 1;
+		assert x < upperBound : x + " " + upperBound;
 
 		final int l = this.l;
 		final long lowerBitsMask = this.lowerBitsMask;

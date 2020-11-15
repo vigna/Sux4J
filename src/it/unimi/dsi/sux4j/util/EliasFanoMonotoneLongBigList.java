@@ -334,7 +334,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * Returns the element at the specified position.
 	 *
 	 * @param index a position in the list.
-	 * @return the element at the specified position; if {@link index} is out of bounds, behavior is
+	 * @return the element at the specified position; if {@code index} is out of bounds, behavior is
 	 *         undefined.
 	 */
 	@Override

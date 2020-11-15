@@ -108,9 +108,9 @@ public class Rank9 extends AbstractRank implements Rank {
 	 * This method is slightly faster than {@link #rank(long)}, as it avoids a check, but its behavior
 	 * when the argument is equal to the length of the underlying bit vector is undefined.
 	 *
-	 * @implNote If the array of longs representing the bit vector has a free bit at the end, this
-	 *           method will work correctly even when {@code pos} is equal to the length of the bit
-	 *           vector.
+	 * <p>
+	 * If the array of longs representing the bit vector has a free bit at the end, this method will
+	 * work correctly even when {@code pos} is equal to the length of the bit vector.
 	 *
 	 * @param pos a position in the bit vector between 0 (inclusive) and the length of the bit vector
 	 *            (exclusive).
