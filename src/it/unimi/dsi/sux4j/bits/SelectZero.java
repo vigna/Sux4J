@@ -24,12 +24,20 @@ import java.io.Serializable;
 
 import it.unimi.dsi.bits.BitVector;
 
-/** A data structure providing zero selection over a bit array.
+/**
+ * A data structure providing zero selection over a bit array.
  *
- * <p>This interface has essentially the same specification as that of {@link Select}, but
- * the method {@link #selectZero(long)} selects zeroes instead of ones. Ranking zeroes
- * is trivial (and trivially implemented in {@link AbstractRank}), but selecting
- * zeroes requires specific data structures.
+ * <p>
+ * This interface has essentially the same specification as that of {@link Select}, but the method
+ * {@link #selectZero(long)} selects zeroes instead of ones. Ranking zeroes is trivial (and
+ * trivially implemented in {@link AbstractRank}), but selecting zeroes requires specific data
+ * structures.
+ *
+ * <p>
+ * <strong>Warning</strong>: from Sux4J 5.2.0, the {@link #selectZero(long)} method is no longer
+ * required to return &minus;1 when no bit with the given rank exists. If you relied on such
+ * behavior, please test the argument before calling {@link #selectZero(long)}. Implementations
+ * might provide assertions to check the argument for correctness.
  *
  * @see Select
  */
@@ -40,14 +48,14 @@ public interface SelectZero extends Serializable {
 	 * that is preceded by the specified number of zeroes.
 	 *
 	 * <p>
-	 * <strong>Warning</strong>: from Sux4J 5.1.6, this method is no longer required to return &minus;1
+	 * <strong>Warning</strong>: from Sux4J 5.2.0, this method is no longer required to return &minus;1
 	 * when no bit with the given rank exists. If you relied on such behavior, please test the argument
-	 * before calling this method. Implementation might provide assertions to check the argument for
+	 * before calling this method. Implementations might provide assertions to check the argument for
 	 * correctness.
 	 *
 	 * @param zeroRank a zero rank.
-	 * @return the position of the bit of given zero rank; if no such position exists, &minus;1 is
-	 *         returned.
+	 * @return the position of the bit of given zero rank; if no such bit exists, behavior is undefined
+	 *        .
 	 */
 	public long selectZero(long zeroRank);
 

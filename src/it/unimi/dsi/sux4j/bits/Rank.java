@@ -24,25 +24,27 @@ import java.io.Serializable;
 
 import it.unimi.dsi.bits.BitVector;
 
-/** A data structure providing ranking over a bit array.
+/**
+ * A data structure providing ranking over a bit array.
  *
- * <p>Ranking is a basic building blocks for most succinct data structures. Usually,
- * instances of this class class provide quick (e.g., constant time) ranking.
+ * <p>
+ * Ranking is a basic building blocks for most succinct data structures. Usually, instances of this
+ * class class provide quick (e.g., constant-time) ranking.
  *
- * <p>There is some variance in the literature about the exact semantics of ranking&mdash;in most
- * cases, it is a matter of off-by-ones. This interface specifies a zero-based ranking.
+ * <p>
+ * This interface specifies a zero-based ranking. More precisely, rank is applied to a bit vector in
+ * which bits positions are numbered starting from zero. Then, {@link #rank(long) rank(p)} is the
+ * number of of ones that precede position {@code p} (the bit at position {@code p} is not included
+ * in the count).
  *
- * <p>More precisely, rank is applied to a bit vector in which bits <em>positions</em> are numbered
- * starting from <em>zero</em>. The {@link #rank(long)} of a bit is the number of ones that <em>precede</em> it (the bit
- * itself is not included).
- *
- * <p>The following properties always hold:
+ * <p>
+ * The following properties always hold:
  * <ul>
- *  	<li><code>rank(0)=0</code>;
- *  	<li><code>rank(length())</code> is the number of ones in the bit vector.
- *  </ul>
+ * <li><code>rank(0)=0</code>;
+ * <li><code>rank(length())</code> is the number of ones in the bit vector.
+ * </ul>
  *
- *  @see Select
+ * @see Select
  *
  */
 public interface Rank extends Serializable {
@@ -53,41 +55,56 @@ public interface Rank extends Serializable {
 	 */
 	public long count();
 
-	/** Returns the number of ones preceding the specified position.
+	/**
+	 * Returns the number of ones preceding the specified position.
 	 *
-	 * @param pos a position in the bit vector.
-	 * @return the number of ones preceding <code>pos</code>.
+	 * @param pos a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive).
+	 * @return the number of ones preceding position {@code pos}; if {@code pos} is out of bounds,
+	 *         behavior is undefined.
 	 */
 	public long rank(long pos);
 
-	/** Returns the number of ones in the specified interval.
+	/**
+	 * Returns the number of ones in the specified interval.
 	 *
-	 * @param from a position in the bit vector.
-	 * @param to a position in the bit vector.
-	 * @return the number of ones between <code>from</code> (inclusive) and <code>to</code> (exclusive); if
-	 * <code>to</code> is smaller than <code>from</code>, 0 is returned.
+	 * @param from a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive).
+	 * @param to a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive); must be greater than or equal to {@code from}.
+	 * @return the number of ones between <code>from</code> (inclusive) and <code>to</code> (exclusive);
+	 *         if the parameters are out of bounds, behavior is undefined.
 	 */
 	public long rank(long from, long to);
 
-	/** Returns the number of zeroes preceding the specified position.
+	/**
+	 * Returns the number of zeroes preceding the specified position.
 	 *
-	 * @param pos a position in the bit vector.
-	 * @return the number of zeroes preceding <code>pos</code>.
+	 * @param pos a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive).
+	 * @return the number of zeroes preceding {@code pos}; if {@code pos} is out of bounds, behavior is
+	 *         undefined.
 	 */
 	public long rankZero(long pos);
 
-	/** Returns the number of zeroes in the specified interval.
+	/**
+	 * Returns the number of zeroes in the specified interval.
 	 *
-	 * @param from a position in the bit vector.
-	 * @param to a position in the bit vector.
-	 * @return the number of zeroes between <code>from</code> (inclusive) and <code>to</code> (exclusive); if
-	 * <code>to</code> is smaller than <code>from</code>, 0 is returned.
+	 * @param from a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive).
+	 * @param to a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (inclusive); must be greater than or equal to {@code from}.
+	 * @return the number of zeros between <code>from</code> (inclusive) and <code>to</code>
+	 *         (exclusive); if the parameters are out of bounds, behavior is undefined (might throw an
+	 *         exception).
 	 */
 	public long rankZero(long from, long to);
 
-	/** Returns the bit vector indexed by this structure.
+	/**
+	 * Returns the bit vector indexed by this structure.
 	 *
-	 * <p>Note that you are not supposed to modify the returned vector.
+	 * <p>
+	 * Note that you must not modify the returned vector.
 	 *
 	 * @return the bit vector indexed by this structure.
 	 */

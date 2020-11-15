@@ -187,7 +187,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			offset = new GOV3Function.Builder<BitVector>().keys(bitVectors).transform(TransformationStrategies.identity()).store(bucketedHashStore).values(new AbstractLongBigList() {
 				@Override
 				public long getLong(final long index) {
-					final long rank = sparseRank == null ? 0 : sparseRank.rank(index);
+					final long rank = sparseRank == null ? 0 : index < distributor.offset.getLong(distributor.offset.size64() - 1) + 1 ? sparseRank.rank(index) : distributor.offset.size64();
 					if (ASSERTS) {
 						assert rank == 0 || distributor.offset.getLong(rank - 1) <= index : distributor.offset.getLong(rank - 1)  + " >= " + index + "(rank=" + rank + ")";
 						assert rank == 0 && index < bucketSize * 2 || rank > 0 && index - distributor.offset.getLong(rank - 1) < bucketSize * 2;

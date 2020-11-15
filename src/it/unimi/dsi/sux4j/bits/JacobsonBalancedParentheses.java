@@ -577,10 +577,10 @@ public class JacobsonBalancedParentheses implements BalancedParentheses {
 			Collections.reverse(openingPioneerMatches);
 		}
 
-		this.closingPioneers = closingPioneers != null ? new SparseSelect(closingPioneers) : null;
+		this.closingPioneers = closingPioneers != null ? new SparseSelect(bitVector.length(), closingPioneers.size(), closingPioneers.iterator()) : null;
 		this.closingPioneersRank = closingPioneers != null ? this.closingPioneers.getRank() : null;
 		this.closingPioneerMatches = closingPioneers != null ? new EliasFanoLongBigList(closingPioneerMatches) : null;
-		this.openingPioneers = openingPioneers != null ? new SparseSelect(openingPioneers) : null;
+		this.openingPioneers = openingPioneers != null ? new SparseSelect(bitVector.length(), openingPioneers.size(), openingPioneers.iterator()) : null;
 		this.openingPioneersRank = openingPioneers != null ? this.openingPioneers.getRank() : null;
 		this.openingPioneerMatches = openingPioneers != null ? new EliasFanoLongBigList(openingPioneerMatches) : null;
 }

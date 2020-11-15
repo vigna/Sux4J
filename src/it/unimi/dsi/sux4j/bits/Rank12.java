@@ -66,6 +66,11 @@ public class Rank12 extends AbstractRank implements Rank {
 
 		long c = 0, l = -1;
 		int pos = 0;
+
+		final int numWords = this.numWords;
+		final long[] bits = this.bits;
+		final long[] count = this.count;
+
 		for(int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2) {
 			count[pos] = c;
 

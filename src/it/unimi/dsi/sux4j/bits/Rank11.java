@@ -72,6 +72,11 @@ public class Rank11 extends AbstractRank implements Rank {
 
 		long c = 0, l = -1;
 		int pos = 0;
+
+		final int numWords = this.numWords;
+		final long[] bits = this.bits;
+		final long[] count = this.count;
+
 		for(int i = 0; i < numWords; i += WORDS_PER_SUPERBLOCK, pos += 2) {
 			count[pos] = c;
 
@@ -101,6 +106,7 @@ public class Rank11 extends AbstractRank implements Rank {
 		final int block = (word >>> LOG2_WORDS_PER_SUPERBLOCK - 1) & ~1;
         final int offset = ((word & ~-WORDS_PER_SUPERBLOCK) / 6) - 1;
 
+		final long[] bits = this.bits;
         long result = count[block] + (count[block + 1] >> 12 * (offset + (offset >>> 32 - 4 & 6)) & 0x7FF) +
 				Long.bitCount(bits[word] & (1L << pos) - 1);
 

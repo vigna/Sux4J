@@ -61,7 +61,7 @@ public class EliasFanoLongBigListTest {
 			for(int i = 0; i < 1000; i++) {
 				final int from = random.nextInt(s.length - 100);
 				final int to = from + random.nextInt(100);
-				final long[] dest = ef.get(from, new long[to - from]);
+				final long[] dest = ef.get(from, new long[Math.max(1, to - from)]);
 				for(int j = from; j < to; j++) assertEquals(s[j], dest[j - from]);
 			}
 

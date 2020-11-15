@@ -31,41 +31,6 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
 public class Rank9SelectTest extends RankSelectTestCase {
 
-	@Test
-	public void testEmpty() {
-		Rank9 rank9;
-		Select9 select9;
-
-		select9 = new Select9(rank9 = new Rank9(new long[1], 64));
-		for (int i = 64; i-- != 0;)
-			assertEquals(Integer.toString(i), 0, rank9.rank(i));
-		assertEquals(-1, select9.select(0));
-		assertEquals(-1, select9.select(1));
-
-		select9 = new Select9(rank9 = new Rank9(new long[2], 128));
-		for (int i = 128; i-- != 0;)
-			assertEquals(0, rank9.rank(i));
-		assertEquals(-1, select9.select(0));
-		assertEquals(-1, select9.select(1));
-
-		select9 = new Select9(rank9 = new Rank9(new long[1], 63));
-		for (int i = 63; i-- != 0;)
-			assertEquals(0, rank9.rank(i));
-		assertEquals(-1, select9.select(0));
-		assertEquals(-1, select9.select(1));
-
-		select9 = new Select9(rank9 = new Rank9(new long[2], 65));
-		for (int i = 65; i-- != 0;)
-			assertEquals(0, rank9.rank(i));
-		assertEquals(-1, select9.select(0));
-		assertEquals(-1, select9.select(1));
-
-		select9 = new Select9(rank9 = new Rank9(new long[3], 129));
-		for (int i = 130; i-- != 0;)
-			assertEquals(0, rank9.rank(i));
-		assertEquals(-1, select9.select(0));
-		assertEquals(-1, select9.select(1));
-	}
 
 	@Test
 	public void testSingleton() {
@@ -80,7 +45,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		for (i = 63; i-- != 0;)
 			assertEquals(0, rank9.rank(i));
 		assertEquals(63, select9.select(0));
-		assertEquals(-1, select9.select(1));
 		assertEquals(63, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1 }, 64));
@@ -89,7 +53,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 			assertEquals(1, rank9.rank(i));
 		assertEquals(0, rank9.rank(0));
 		assertEquals(0, select9.select(0));
-		assertEquals(-1, select9.select(1));
 		assertEquals(0, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1L << 63, 0 }, 128));
@@ -99,7 +62,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, rank9.rank(i));
 		assertEquals(63, select9.select(0));
-		assertEquals(-1, select9.select(1));
 		assertEquals(63, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1L << 63, 0 }, 65));
@@ -109,7 +71,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, rank9.rank(i));
 		assertEquals(63, select9.select(0));
-		assertEquals(-1, select9.select(1));
 		assertEquals(63, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1L << 63, 0, 0 }, 129));
@@ -119,7 +80,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		while (i-- != 0)
 			assertEquals(0, rank9.rank(i));
 		assertEquals(63, select9.select(0));
-		assertEquals(-1, select9.select(1));
 		assertEquals(63, select9.select(rank9.count() - 1));
 	}
 
@@ -138,7 +98,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		assertEquals(0, rank9.rank(0));
 		assertEquals(0, select9.select(0));
 		assertEquals(32, select9.select(1));
-		assertEquals(-1, select9.select(2));
 		assertEquals(32, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1, 1 }, 128));
@@ -150,7 +109,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		assertEquals(0, rank9.rank(0));
 		assertEquals(0, select9.select(0));
 		assertEquals(64, select9.select(1));
-		assertEquals(-1, select9.select(2));
 		assertEquals(64, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1 | 1L << 32, 0 }, 63));
@@ -162,7 +120,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		assertEquals(0, rank9.rank(0));
 		assertEquals(0, select9.select(0));
 		assertEquals(32, select9.select(1));
-		assertEquals(-1, select9.select(2));
 		assertEquals(32, select9.select(rank9.count() - 1));
 
 		select9 = new Select9(rank9 = new Rank9(new long[] { 1, 1, 0 }, 129));
@@ -174,7 +131,6 @@ public class Rank9SelectTest extends RankSelectTestCase {
 		assertEquals(0, rank9.rank(0));
 		assertEquals(0, select9.select(0));
 		assertEquals(64, select9.select(1));
-		assertEquals(-1, select9.select(2));
 		assertEquals(64, select9.select(rank9.count() - 1));
 	}
 
@@ -268,5 +224,47 @@ public class Rank9SelectTest extends RankSelectTestCase {
 				assertEquals(i * 2, select9.select(i));
 
 		}
+	}
+
+	@Test
+	public void testSparse() {
+		LongArrayBitVector v;
+		Rank9 rank9;
+		Select9 select9;
+		v = LongArrayBitVector.getInstance().length(1000000);
+		for (int i = 0; i < 1000; i++) v.set(i * 100);
+
+		select9 = new Select9(rank9 = new Rank9(v));
+		assertRankAndSelect(rank9, select9);
+
+		v.fill(0);
+		for (int i = 0; i < 1000; i++) v.set(i * 75);
+
+		select9 = new Select9(rank9 = new Rank9(v));
+		assertRankAndSelect(rank9, select9);
+
+		v.fill(0);
+		for (int i = 0; i < 1000; i++) v.set(i * 50);
+
+		select9 = new Select9(rank9 = new Rank9(v));
+		assertRankAndSelect(rank9, select9);
+
+		v.fill(0);
+		for (int i = 0; i < 1000; i++) v.set(i * 25);
+
+		select9 = new Select9(rank9 = new Rank9(v));
+		assertRankAndSelect(rank9, select9);
+
+		v.fill(0);
+		for (int i = 0; i < 1000; i++) v.set(i * 200);
+
+		select9 = new Select9(rank9 = new Rank9(v));
+		assertRankAndSelect(rank9, select9);
+	}
+
+	@Test
+	public void testUnsafe() {
+		final Rank9 rank9 = new Rank9(new long[2], 127);
+		assertEquals(0, rank9.rankStrict(127));
 	}
 }

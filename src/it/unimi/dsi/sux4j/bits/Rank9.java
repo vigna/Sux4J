@@ -61,6 +61,10 @@ public class Rank9 extends AbstractRank implements Rank {
 		// Init rank/select structure
 		count = new long[numCounts + 1];
 
+		final int numWords = this.numWords;
+		final long[] bits = this.bits;
+		final long[] count = this.count;
+
 		long c = 0, l = -1;
 		int pos = 0;
 		for(int i = 0; i < numWords; i += 8, pos += 2) {
@@ -96,9 +100,38 @@ public class Rank9 extends AbstractRank implements Rank {
 		return count[block] + (count[block + 1] >>> (offset + (offset >>> 32 - 4 & 0x8)) * 9 & 0x1FF) + Long.bitCount(bits[word] & ((1L << pos) - 1));
 	}
 
+	/**
+	 * Returns the rank at the given position assuming that the argument is less than the length of the
+	 * bit vector.
+	 *
+	 * <p>
+	 * This method is slightly faster than {@link #rank(long)}, as it avoids a check, but its behavior
+	 * when the argument is equal to the length of the underlying bit vector is undefined.
+	 *
+	 * @implNote If the array of longs representing the bit vector has a free bit at the end, this
+	 *           method will work correctly even when {@code pos} is equal to the length of the bit
+	 *           vector.
+	 *
+	 * @param pos a position in the bit vector between 0 (inclusive) and the length of the bit vector
+	 *            (exclusive).
+	 * @return the number of ones preceding position {@code pos}; if {@code pos} is out of bounds,
+	 *         behavior is undefined.
+	 * @see #rank(long)
+	 */
+	public long rankStrict(final long pos) {
+		assert pos >= 0;
+		assert bitVector.length() != bits(bits.length) || pos < bitVector.length();
+
+		final int word = word(pos);
+		final int block = (word >>> 2) & ~1;
+		final int offset = (word & 0x7) - 1;
+
+		return count[block] + (count[block + 1] >>> (offset + (offset >>> 32 - 4 & 0x8)) * 9 & 0x1FF) + Long.bitCount(bits[word] & ((1L << pos) - 1));
+	}
+
 	@Override
 	public long numBits() {
-		return count.length * (long)Long.SIZE;
+		return bits(count.length);
 	}
 
 	@Override

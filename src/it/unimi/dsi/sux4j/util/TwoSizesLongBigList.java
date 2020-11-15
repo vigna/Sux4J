@@ -119,7 +119,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 
 		// Find the best cutpoint
 		for(int i = 1; i < width; i++) {
-			if (ASSERTS) assert costSmall % i == 0;
+			assert costSmall % i == 0;
 			if (i != 1) costSmall = (costSmall / i) * (i + 1);
 			while(j < keys.length && (k = keys[j]) < (1 << i)) {
 				final long c = counts.get(k);
@@ -135,7 +135,7 @@ public class TwoSizesLongBigList extends AbstractLongBigList implements Serializ
 			}
 		}
 
-		if (ASSERTS) assert minCostSmall / (minIndex + 1) + minCostLarge / width == length;
+		assert minCostSmall / (minIndex + 1) + minCostLarge / width == length;
 		//System.err.println(minCostLarge + " " + minCostSmall + " " + minIndex);
 		//System.err.println(numSmall);
 		if (width != 0 && minIndex != width) {

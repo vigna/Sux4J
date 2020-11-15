@@ -89,7 +89,7 @@ public class EliasFanoMonotoneLongBigList16Test {
 				for(int i = 0; i < 1000; i++) {
 					final int from = random.nextInt(s.length - 100);
 					final int to = from + random.nextInt(100);
-					final long[] dest = ef.get(from, new long[to - from]);
+					final long[] dest = ef.get(from, new long[Math.max(1, to - from)]);
 					for(int j = from; j < to; j++) assertEquals(s[j], dest[j - from]);
 				}
 
@@ -97,7 +97,7 @@ public class EliasFanoMonotoneLongBigList16Test {
 					final int from = random.nextInt(s.length - 100);
 					final int to = from + random.nextInt(100);
 					final int offset = random.nextInt(10);
-					final long[] dest = ef.get(from, new long[to - from + offset + random.nextInt(10)], offset, to - from);
+					final long[] dest = ef.get(from, new long[Math.max(offset + 1, to - from + offset + random.nextInt(10))], offset, to - from);
 					for(int j = from; j < to; j++) assertEquals("From: " + from + " to: " + to + " j: " + j, s[j], dest[offset + j - from]);
 				}
 			}

@@ -65,6 +65,11 @@ public class Rank16 extends AbstractRank implements Rank {
 		count = new short[numCounts];
 		superCount = new long[numSuperCounts];
 
+		final int numWords = this.numWords;
+		final long[] superCount = this.superCount;
+		final short[] count = this.count;
+		final long[] bits = this.bits;
+
 		long c = 0, l = -1;
 		for(int i = 0; i < numWords; i++) {
 			if ((i & ~-BLOCK_LENGTH) == 0) superCount[i >>> LOG2_BLOCK_LENGTH] = c;
@@ -95,7 +100,7 @@ public class Rank16 extends AbstractRank implements Rank {
 
 	@Override
 	public long numBits() {
-		return count.length * (long)Short.SIZE + superCount.length * (long)Long.SIZE;
+		return bits(count.length) + bits(superCount.length);
 	}
 
 	@Override

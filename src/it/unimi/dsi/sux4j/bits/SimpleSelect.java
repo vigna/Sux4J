@@ -124,6 +124,12 @@ public class SimpleSelect implements Select {
 
 		inventory = new long[inventorySize + 1];
 
+		final int numWords = this.numWords;
+		final long[] bits = this.bits;
+		final long[] inventory = this.inventory;
+		final int log2OnesPerInventory = this.log2OnesPerInventory;
+		final int onesPerInventoryMask = this.onesPerInventoryMask;
+
 		// First phase: we build an inventory for each one out of onesPerInventory.
 		d = 0;
 		for(int i = 0; i < numWords; i++)
@@ -145,6 +151,12 @@ public class SimpleSelect implements Select {
 		onesPerSub64 = (1 << log2OnesPerSub64);
 		onesPerSub16 = (1 << log2OnesPerSub16);
 		onesPerSub16Mask = onesPerSub16 - 1;
+
+		final long numOnes = this.numOnes;
+		final int onesPerInventory = this.onesPerInventory;
+		final int onesPerSub16 = this.onesPerSub16;
+		final int log2OnesPerSub16 = this.log2OnesPerSub16;
+		final int onesPerSub64 = this.onesPerSub64;
 
 		if (onesPerInventory > 1) {
 			d = 0;
@@ -180,6 +192,11 @@ public class SimpleSelect implements Select {
 			int offset = 0;
 			spilled = 0;
 			d = 0;
+
+			final int onesPerSub16Mask = this.onesPerSub16Mask;
+			final int log2LongwordsPerSubinventory = this.log2LongwordsPerSubinventory;
+			final long[] subinventory = this.subinventory;
+			final LongBigList subinventory16 = this.subinventory16;
 
 			for(int i = 0; i < numWords; i++)
 				for (int j = 0; j < Long.SIZE; j++) {
@@ -276,10 +293,19 @@ public class SimpleSelect implements Select {
 	 * @see #select(long, long[])
 	 */
 	public long[] select(final long rank, final long[] dest, int offset, final int length) {
-		assert dest.length > 0;
+		assert rank >= 0;
+		assert rank < numOnes;
+		assert offset >= 0;
+		assert dest != null;
+		assert offset < dest.length;
+		assert length >= 0;
+		assert offset + length <= dest.length;
+
 		final long s = select(rank);
 		dest[offset] = s;
 		int curr = word(s);
+
+		final long[] bits = this.bits;
 
 		long window = bits[curr] & -1L << s;
 		window &= window - 1;
@@ -306,6 +332,10 @@ public class SimpleSelect implements Select {
 	 * @see #select(long, long[], int, int)
 	 */
 	public long[] select(final long rank, final long[] dest) {
+		assert rank >= 0;
+		assert rank < numOnes;
+		assert dest != null;
+		assert dest.length > 0;
 		return select(rank, dest, 0, dest.length);
 	}
 

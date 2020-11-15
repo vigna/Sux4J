@@ -24,6 +24,9 @@ import static it.unimi.dsi.bits.LongArrayBitVector.bit;
 import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -49,7 +52,7 @@ public class SparseRank extends AbstractRank {
 	/** The mask for lower bits. */
 	protected final long lowerLBitsMask;
 	/** The list of lower bits of the position of each one, stored explicitly. */
-	protected final long[] lowerBits;
+	protected long[] lowerBits;
 	/** The upper bits. */
 	protected final BitVector upperBits;
 	/** The rank structure used to extract the upper bits. */
@@ -95,8 +98,12 @@ public class SparseRank extends AbstractRank {
 		lowerLBitsMask = (1L << l) - 1;
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
-		lowerBitsList.size(m);
-		upperBits = LongArrayBitVector.getInstance().length(m + (n >>> l) + 2);
+		lowerBitsList.size(m + 1);
+		upperBits = LongArrayBitVector.getInstance().length(m + 1 + (n >>> l) + 2);
+
+		final int l = this.l;
+		final BitVector upperBits = this.upperBits;
+		final long lowerLBitsMask = this.lowerLBitsMask;
 
 		long last = 0;
 		for(long i = 0; i < m; i++) {
@@ -104,12 +111,14 @@ public class SparseRank extends AbstractRank {
 			if (pos >= n) throw new IllegalArgumentException("Too large bit position: " + pos + " >= " + n);
 			if (pos < last) throw new IllegalArgumentException("Positions are not nondecreasing: " + pos + " < " + last);
 			if (l != 0) lowerBitsList.set(i, pos & lowerLBitsMask);
-			upperBits.set((pos >> l) + i);
+			upperBits.set((pos >>> l) + i);
 			last = pos;
 		}
 
+		upperBits.set((n >>> l) + m);
+		lowerBitsList.set(m, n & lowerLBitsMask);
 		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + m + " positions in the provided iterator");
-		lowerBits = lowerBitsVector.bits();
+		lowerBits = l == 0 ? new long[1] : lowerBitsVector.bits();
 		selectZeroUpper = new SimpleSelectZero(upperBits);
 		fromSelect = false;
 	}
@@ -119,44 +128,47 @@ public class SparseRank extends AbstractRank {
 		this.m = m;
 		this.l = l;
 		this.lowerLBitsMask = (1L << l) - 1;
-		this.lowerBits = lowerBits;
+		this.lowerBits = lowerBits.length == 0 ? new long[1] : lowerBits;
 		this.upperBits = upperBits;
 		this.selectZeroUpper = new SimpleSelectZero(upperBits);
 		this.fromSelect = true;
 	}
 
-	private final long extractLowerBits(final long index) {
-		final int l = this.l;
-		if (l == 0) return 0;
-
-		final long position = index * l;
-		final int startWord = word(position);
-		final int startBit = bit(position);
-		final long result = lowerBits[startWord] >>> startBit;
-		return (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask;
-	}
-
 	@Override
 	public long rank(final long pos) {
-		if (m == 0) return 0;
-		if (pos >= n) return m;
+		assert pos >= 0;
+		assert pos <= n;
 
-		final long posShiftrL = pos >>> l;
-		long upperPos = selectZeroUpper.selectZero(posShiftrL);
-	    long rank = upperPos - (posShiftrL);
-	    final long posLowerBits = pos & lowerLBitsMask;
+		final BitVector upperBits = this.upperBits;
+		final long[] lowerBits = this.lowerBits;
+		final int l = this.l;
+		final long lowerLBitsMask = this.lowerLBitsMask;
+		final long posLowerBits = pos & lowerLBitsMask;
 
-	    do {
-	    	rank--;
-	    	upperPos--;
-	    } while(upperPos >= 0 && upperBits.getBoolean(upperPos) && extractLowerBits(rank) >= posLowerBits);
+		final long zerosToSkip = pos >>> l;
+		long upperPos = selectZeroUpper.selectZero(zerosToSkip) - 1;
+		long rank = upperPos - zerosToSkip;
+		long lowerBitsPosition = rank++ * l;
 
-	    return ++rank;
+		for (;;) {
+			if (upperPos < 0 || !upperBits.getBoolean(upperPos)) return rank;
+
+			final int startWord = word(lowerBitsPosition);
+			final int startBit = bit(lowerBitsPosition);
+			long lower = lowerBits[startWord] >>> startBit;
+			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+
+			if ((lower & lowerLBitsMask) < posLowerBits) return rank;
+
+			rank--;
+			upperPos--;
+			lowerBitsPosition -= l;
+		}
 	}
 
 	@Override
 	public long numBits() {
-		return selectZeroUpper.numBits() + (fromSelect ? 0 : upperBits.length() + lowerBits.length * (long)Long.SIZE);
+		return selectZeroUpper.numBits() + (fromSelect ? 0 : upperBits.length() + bits(lowerBits.length));
 	}
 
 	/** Creates a new {@link SparseSelect} structure sharing data with this instance.
@@ -184,7 +196,6 @@ public class SparseRank extends AbstractRank {
 		final long[] lowerBits = this.lowerBits;
 		final int l = this.l;
 		final long lowerLBitsMask = this.lowerLBitsMask;
-		final int limit = Long.SIZE - l;
 		final long m = this.m;
 
 		int curr = 0;
@@ -197,12 +208,17 @@ public class SparseRank extends AbstractRank {
 
 			final int startWord = LongArrayBitVector.word(lowerBitsPosition);
 			final int startBit = LongArrayBitVector.bit(lowerBitsPosition);
-			final long lower = lowerBits[startWord] >>> startBit;
-			result.set(upper << l | (startBit <= limit ? lower : lower | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask);
+			result.set(upper << l | (startBit <= Long.SIZE - l ? lowerBits[startWord] >>> startBit : lowerBits[startWord] >>> startBit | lowerBits[startWord + 1] << -startBit) & lowerLBitsMask);
 
 			window &= window - 1;
 			lowerBitsPosition += l;
 		}
 		return result;
+	}
+
+	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
+		s.defaultReadObject();
+		// A fix that avoids bumping the serial id from 2L
+		if (lowerBits.length == 0) lowerBits = new long[1];
 	}
 }

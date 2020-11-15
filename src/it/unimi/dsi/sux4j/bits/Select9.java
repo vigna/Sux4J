@@ -41,7 +41,7 @@ import it.unimi.dsi.fastutil.longs.LongBigList;
  */
 
 public class Select9 implements Select {
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	private final static long ONES_STEP_16 = 1L << 0 | 1L << 16 | 1L << 32 | 1L << 48;
 	private final static long MSBS_STEP_16 = 0x8000L * ONES_STEP_16;
@@ -55,8 +55,6 @@ public class Select9 implements Select {
 
 	private final long[] inventory;
 	private final long[] subinventory;
-	private transient LongBigList subinventoryAsShorts;
-	private transient LongBigList subinventoryasInts;
 	private final long numOnes;
 	private final int numWords;
 	private transient long[] bits;
@@ -74,6 +72,12 @@ public class Select9 implements Select {
 
 		inventory = new long[inventorySize + 1];
 		subinventory = new long[(numWords + 3) >> 2];
+
+		final int numWords = this.numWords;
+		final long[] bits = this.bits;
+		final long[] count = this.count;
+		final long[] inventory = this.inventory;
+		final long[] subinventory = this.subinventory;
 
 		long d = 0;
 		for (int i = 0; i < numWords; i++)
@@ -93,8 +97,8 @@ public class Select9 implements Select {
 		int blockSpan, blockLeft;
 		long countsAtStart;
 		final BitVector v = LongArrayBitVector.wrap(subinventory);
-		subinventoryAsShorts = v.asLongBigList(Short.SIZE);
-		subinventoryasInts = v.asLongBigList(Integer.SIZE);
+		final LongBigList subinventoryAsShorts = v.asLongBigList(Short.SIZE);
+		final LongBigList subinventoryasInts = v.asLongBigList(Integer.SIZE);
 		LongBigList s;
 
 		for(int i = 0; i < numWords; i++)
@@ -183,8 +187,6 @@ public class Select9 implements Select {
 
 	@Override
 	public long select(final long rank) {
-		if (rank >= numOnes) return -1;
-
 		final int inventoryIndexLeft = (int)(rank >> LOG2_ONES_PER_INVENTORY);
 
 		final long inventoryLeft = inventory[inventoryIndexLeft];
@@ -251,13 +253,15 @@ public class Select9 implements Select {
 			assert rankInBlock < 512;
 		}
 		else if (span < 256) {
-			return subinventoryAsShorts.getLong((subinventoryIndex << 2) + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
+			final int index16 = (subinventoryIndex << 2) + (int)(rank & ~-ONES_PER_INVENTORY);
+			return (subinventory[index16 >>> 2] >>> ((index16 & 3) << 4) & 0xFFFF) + inventoryLeft;
 		}
 		else if (span < 512) {
-			return subinventoryasInts.getLong((subinventoryIndex << 1) + (int)(rank % ONES_PER_INVENTORY)) + inventoryLeft;
+			final int index32 = (subinventoryIndex << 1) + (int)(rank & ~-ONES_PER_INVENTORY);
+			return (subinventory[index32 >>> 1] >>> ((index32 & 1) << 5) & 0xFFFFFFFFL) + inventoryLeft;
 		}
 		else {
-			return subinventory[subinventoryIndex + (int)(rank % ONES_PER_INVENTORY)];
+			return subinventory[subinventoryIndex + (int)(rank & ~-ONES_PER_INVENTORY)];
 		}
 
 		final long rankInBlockStep9 = rankInBlock * ONES_STEP_9;
@@ -283,9 +287,6 @@ public class Select9 implements Select {
 	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		bits = rank9.bitVector.bits();
-		final BitVector v = LongArrayBitVector.wrap(subinventory);
-		subinventoryAsShorts = v.asLongBigList(Short.SIZE);
-		subinventoryasInts = v.asLongBigList(Integer.SIZE);
 	}
 
 	@Override
