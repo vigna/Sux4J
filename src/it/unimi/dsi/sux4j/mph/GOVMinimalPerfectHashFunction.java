@@ -348,6 +348,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		defRetValue = -1; // For the very few cases in which we can decide
 
 		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		if (n / BUCKET_SIZE + 1 > Integer.MAX_VALUE) throw new IllegalStateException("This class supports at most " + ((Integer.MAX_VALUE - 1) * BUCKET_SIZE - 1) + " keys");
 		final int numBuckets = (int) (n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
 
@@ -419,9 +420,9 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						}
 						long seed = 0;
 
-						final long off = vertexOffset(edgeOffsetAndSeed[bucket.index()]);
+						final long off = vertexOffset(edgeOffsetAndSeed[(int)bucket.index()]);
 						final Linear3SystemSolver solver =
-								new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[bucket.index() + 1]) - off), bucket.size());
+								new Linear3SystemSolver((int)(vertexOffset(edgeOffsetAndSeed[(int)(bucket.index() + 1)]) - off), bucket.size());
 
 						for(;;) {
 							final boolean solved = solver.generateAndSolve(bucket, seed, null);
@@ -433,7 +434,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 						}
 
 						synchronized (edgeOffsetAndSeed) {
-							edgeOffsetAndSeed[bucket.index()] |= seed;
+							edgeOffsetAndSeed[(int)bucket.index()] |= seed;
 						}
 
 						final long[] solution = solver.solution;

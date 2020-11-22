@@ -127,14 +127,19 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			return this;
 		}
 
-		/** Specifies a chunked hash store containing the keys associated with their rank.
+		/**
+		 * Specifies a bucketed hash store containing the keys associated with their rank.
 		 *
-		 * <p><strong>Warning</strong>: during the construction phase, a {@linkplain BucketedHashStore#filter(Predicate) filter}
-		 * will be set on the specified {@link BucketedHashStore}. You will have to reset it to its previous state.
+		 * <p>
+		 * <strong>Warning</strong>: during the construction phase, a
+		 * {@linkplain BucketedHashStore#filter(Predicate) filter} will be set on the specified
+		 * {@link BucketedHashStore}. You will have to reset it to its previous state.
 		 *
-		 * @param bucketedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
-		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
+		 * @param bucketedHashStore a bucketed hash store containing the keys associated with their rank, or
+		 *            {@code null}; the store can be unchecked, but in this case you must specify
+		 *            {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy)
+		 *            transform} (otherwise, in case of a hash collision in the store an
+		 *            {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
 		public Builder<T> store(final BucketedHashStore<T> bucketedHashStore) {
@@ -191,15 +196,19 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 	/** The mean of the rank distribution. */
 	protected final double rankMean;
 
-	/** Creates a new two-step function for the given keys and values.
+	/**
+	 * Creates a new two-step function for the given keys and values.
 	 *
 	 * @param keys the keys in the domain of the function.
 	 * @param transform a transformation strategy for the keys.
-	 * @param values values to be assigned to each key, in the same order of the iterator returned by <code>keys</code>; if {@code null}, the
-	 * assigned value will the ordinal number of each key.
-	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard temporary directory.
-	 * @param bucketedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
-	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
+	 * @param values values to be assigned to each key, in the same order of the iterator returned by
+	 *            <code>keys</code>; if {@code null}, the assigned value will the ordinal number of each
+	 *            key.
+	 * @param tempDir a temporary directory for the store files, or {@code null} for the standard
+	 *            temporary directory.
+	 * @param bucketedHashStore a bucketed hash store containing the keys associated with their rank, or
+	 *            {@code null}; the store can be unchecked, but in this case <code>keys</code> and
+	 *            <code>transform</code> must be non-{@code null}.
 	 */
 	protected TwoStepsGOV3Function(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, BucketedHashStore<T> bucketedHashStore) throws IOException {
 		this.transform = transform;
@@ -211,7 +220,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 
 		final boolean givenBucketedHashStore = bucketedHashStore != null;
 		if (bucketedHashStore == null) {
-			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
+			if (keys == null) throw new IllegalArgumentException("If you do not provide a bucketed hash store, you must provide the keys");
 			bucketedHashStore = new BucketedHashStore<>(transform, pl);
 			bucketedHashStore.reset(random.nextLong());
 			bucketedHashStore.addAll(keys.iterator());

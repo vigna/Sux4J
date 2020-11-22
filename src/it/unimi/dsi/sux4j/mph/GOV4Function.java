@@ -483,6 +483,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		defRetValue = signatureWidth < 0 ? 0 : -1; // Self-signed maps get zero as default return value.
 
 		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		if (n / BUCKET_SIZE + 1 > Integer.MAX_VALUE) throw new IllegalStateException("This class supports at most " + ((Integer.MAX_VALUE - 1) * BUCKET_SIZE - 1) + " keys");
 		final int numBuckets = (int)(n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
 
@@ -557,7 +558,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 							return null;
 						}
 						long seed = 0;
-						final Linear4SystemSolver solver = new Linear4SystemSolver((int)(offsetAndSeed[bucket.index() + 1] - offsetAndSeed[bucket.index()] & OFFSET_MASK), bucket.size());
+						final Linear4SystemSolver solver = new Linear4SystemSolver((int)(offsetAndSeed[(int)(bucket.index() + 1)] - offsetAndSeed[(int)bucket.index()] & OFFSET_MASK), bucket.size());
 
 						for (;;) {
 							final boolean solved = solver.generateAndSolve(bucket, seed, bucket.valueList(indirect ? values : null));
@@ -568,7 +569,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 						}
 
 						synchronized (offsetAndSeed) {
-							offsetAndSeed[bucket.index()] |= seed;
+							offsetAndSeed[(int)bucket.index()] |= seed;
 						}
 
 						final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();

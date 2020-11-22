@@ -4,6 +4,17 @@
   of the interface specification and of the implementation to reduce the
   amount of parameter checks and special cases.
 
+- The default size of the bucket at creation in a BucketedHashStore has
+  been raised to 256 (it used to be one) to avoid that calls to
+  checkAndRetry() on a newly created store are too expensive.
+
+- BucketedHashStore now return the bucket index as a long (this is
+  unfortunately not backward-compatible for some applications). This
+  change was necessary as buckets can be more than Integer.MAX_VALUE.
+  All user classes now throw an exception if the number of keys is
+  so large than the resulting number of buckets would be greater than
+  Integer.MAX_VALUE.
+
 5.1.5
 
 - Fast forward iterations in

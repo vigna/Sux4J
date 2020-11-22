@@ -278,7 +278,6 @@ public class TwoStepsLcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHa
 
 		pl.done();
 
-		// We must be sure that both functions are built on the same store.
 		bucketedHashStore.checkAndRetry(TransformationStrategies.wrap(keys, transform));
 		this.seed = bucketedHashStore.seed();
 

@@ -434,6 +434,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		escapeLength = decoder.escapeLength();
 
 		bucketedHashStore.bucketSize(BUCKET_SIZE);
+		if (n / BUCKET_SIZE + 1 > Integer.MAX_VALUE) throw new IllegalStateException("This class supports at most " + ((Integer.MAX_VALUE - 1) * BUCKET_SIZE - 1) + " keys");
 		final int numBuckets = (int)(n / BUCKET_SIZE + 1);
 		multiplier = numBuckets * 2L;
 
@@ -507,7 +508,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						}
 						final Bucket bucket = bucketLength.getFirst();
 						final int numEquations = bucketLength.getSecond().intValue();
-						final int numVariables = (int)(offsetAndSeed[bucket.index() + 1] - offsetAndSeed[bucket.index()] & OFFSET_MASK);
+						final int numVariables = (int)(offsetAndSeed[(int)(bucket.index() + 1)] - offsetAndSeed[(int)bucket.index()] & OFFSET_MASK);
 						long seed = 0;
 						final Linear3SystemSolver solver = new Linear3SystemSolver(numVariables, numEquations);
 
@@ -520,7 +521,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 						}
 
 						synchronized (offsetAndSeed) {
-							offsetAndSeed[bucket.index()] |= seed;
+							offsetAndSeed[(int)bucket.index()] |= seed;
 						}
 
 						final LongArrayBitVector data = LongArrayBitVector.getInstance();

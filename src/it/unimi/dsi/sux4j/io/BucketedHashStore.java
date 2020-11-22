@@ -180,7 +180,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  */
 
 public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iterable<BucketedHashStore.Bucket> {
-    public static final long serialVersionUID = 1L;
+	public static final long serialVersionUID = 1L;
     private static final Logger LOGGER = LoggerFactory.getLogger(BucketedHashStore.class);
 	private static final boolean DEBUG = false;
 
@@ -189,6 +189,12 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		private static final long serialVersionUID = 1L;
 	}
 
+	/**
+	 * The default size of the bucket at creation. From Sux4J 5.2.0 it has been raised (it used to be
+	 * one) to avoid that calls to {@link BucketedHashStore#checkAndRetry(Iterable)} on a newly created
+	 * store are too expensive.
+	 */
+	public static final int DEFAULT_BUCKET_SIZE = 256;
 	/** The size of the output buffers. */
 	public final static int BUFFER_SIZE = 16 * 1024;
 	/** The logarithm of the number of disk segments. */
@@ -288,7 +294,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		this.transform = transform;
 		this.pl = pl;
 		this.tempDir = tempDir;
-		this.bucketSize = 1;
+		this.bucketSize = DEFAULT_BUCKET_SIZE;
 		this.hashMask = hashWidthOrCountValues <= 0 ? 0 : -1L >>> -hashWidthOrCountValues;
 		if (hashWidthOrCountValues < 0) value2FrequencyMap = new Long2LongOpenHashMap();
 
@@ -625,7 +631,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** A bucket returned by a {@link BucketedHashStore}. */
 	public final static class Bucket implements Iterable<long[]> {
 		/** The index of this bucket (the ordinal position in the bucket enumeration). */
-		private final int index;
+		private final long index;
 		/** The start position of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, and {@link #data}. */
 		private final int start;
 		/** The final position (excluded) of this bucket in the parallel arrays {@link #buffer0}, {@link #buffer1}, and {@link #data}. */
@@ -635,7 +641,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		private final long[] data;
 		private final long hashMask;
 
-		private Bucket(final int index, final long[] buffer0, final long[] buffer1, final long[] data, final long hashMask, final int start, final int end) {
+		private Bucket(final long index, final long[] buffer0, final long[] buffer1, final long[] data, final long hashMask, final int start, final int end) {
 			this.index = index;
 			this.start = start;
 			this.end = end;
@@ -682,7 +688,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		 *
 		 * @return the index of this bucket.
 		 */
-		public int index() {
+		public long index() {
 			return index;
 		}
 
@@ -797,7 +803,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		}
 
 		return new ObjectIterator<Bucket>() {
-			private int bucket;
+			private long bucket;
 			private ReadableByteChannel channel;
 			private final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			private int last;
