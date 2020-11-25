@@ -31,7 +31,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 
 public class HollowTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 
-	@Ignore("Takes a couple of days")
 	@Test
 	public void testBig() throws IOException {
 		final Iterable<Long> p = LargeLongCollection.getInstance();
