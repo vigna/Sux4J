@@ -37,7 +37,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.math3.primes.Primes;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;

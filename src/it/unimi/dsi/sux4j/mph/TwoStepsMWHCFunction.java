@@ -28,7 +28,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -332,7 +332,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		}
 		else firstFunction = null;
 
-		chunkedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongByTriple((long[])triple) == escape);
+		chunkedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongByTriple(triple) == escape);
 
 		secondFunction = new MWHCFunction.Builder<T>().store(chunkedHashStore).values(values, w).indirect().build();
 

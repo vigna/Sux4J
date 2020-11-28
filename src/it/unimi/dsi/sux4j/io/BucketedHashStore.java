@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +234,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** The file channels for the disk segments. */
 	private ByteBuffer[] byteBuffer;
 	/** If not {@code null}, a filter that will be used to select signatures. */
-	private Predicate filter;
+	private Predicate<long[]> filter;
 	/** Whether this store is locked. Any attempt to {@link #reset(long)} the store will cause an {@link IllegalStateException} if this variable is true.*/
 	private boolean locked;
 	/** Whether this store has already been closed. */
@@ -765,7 +765,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 *
 	 * @param filter a predicate that will be used to filter signatures.
 	 */
-	public void filter(final Predicate filter) {
+	public void filter(final Predicate<long[]> filter) {
 		this.filter = filter;
 		filteredSize = -1;
 	}

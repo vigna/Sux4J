@@ -28,7 +28,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -319,7 +319,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		}
 		else firstFunction = null;
 
-		bucketedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongBySignature((long[])triple) == escape);
+		bucketedHashStore.filter(triple -> firstFunction == null || firstFunction.getLongBySignature(triple) == escape);
 
 		secondFunction = new GOV3Function.Builder<T>().store(bucketedHashStore).values(values, w).indirect().build();
 

@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import org.apache.commons.collections.Predicate;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,7 +195,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	/** The number of disk chunks divided by {@link #diskChunkStep}. */
 	private int virtualDiskChunks;
 	/** If not {@code null}, a filter that will be used to select triples. */
-	private Predicate filter;
+	private Predicate<long[]> filter;
 	/** Whether this store is locked. Any attempt to {@link #reset(long)} the store will cause an {@link IllegalStateException} if this variable is true.*/
 	private boolean locked;
 	/** Whether this store has already been closed. */
@@ -782,7 +782,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 	 *
 	 * @param filter a predicate that will be used to filter triples.
 	 */
-	public void filter(final Predicate filter) {
+	public void filter(final Predicate<long[]> filter) {
 		this.filter = filter;
 		filteredSize = -1;
 	}
