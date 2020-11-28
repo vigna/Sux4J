@@ -293,10 +293,19 @@ public class SimpleSelectZero implements SelectZero {
 	 * @see #selectZero(long, long[])
 	 */
 	public long[] selectZero(final long rank, final long[] dest, int offset, final int length) {
-		assert dest.length > 0;
+		assert rank >= 0;
+		assert rank < numOnes;
+		assert offset >= 0;
+		assert dest != null;
+		assert offset < dest.length;
+		assert length >= 0;
+		assert offset + length <= dest.length;
+
 		final long s = selectZero(rank);
 		dest[offset] = s;
 		int curr = word(s);
+
+		final long[] bits = this.bits;
 
 		long window = ~bits[curr] & -1L << s;
 		window &= window - 1;
@@ -323,6 +332,10 @@ public class SimpleSelectZero implements SelectZero {
 	 * @see #selectZero(long, long[], int, int)
 	 */
 	public long[] selectZero(final long rank, final long[] dest) {
+		assert rank >= 0;
+		assert rank < numOnes;
+		assert dest != null;
+		assert dest.length > 0;
 		return selectZero(rank, dest, 0, dest.length);
 	}
 
