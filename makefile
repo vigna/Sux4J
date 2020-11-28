@@ -34,7 +34,7 @@ source:
 binary:
 	rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
-	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-setupjars && ant junit && ant clean && ant jar javadoc)
+	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-clean ivy-setupjars && ant junit && ant clean && ant jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING \
@@ -47,4 +47,4 @@ stage:
 	rm -fr sux4j-$(version)
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
 	cp -fr bnd sux4j-$(version)
-	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-setupjars && ant stage)
+	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-clean ivy-setupjars && ant stage)
