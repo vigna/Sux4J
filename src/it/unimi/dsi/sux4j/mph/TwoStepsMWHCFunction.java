@@ -60,22 +60,28 @@ import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 
-/** A function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech functions}&mdash;one for
- * frequent values, and one for infrequent values. This naive idea turns out to be very effective in reducing the function
- * size when the distribution of values is skewed (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
+/**
+ * A function stored using two {@linkplain MWHCFunction Majewski-Wormald-Havas-Czech
+ * functions}&mdash;one for frequent values, and one for infrequent values. This naive idea turns
+ * out to be very effective in reducing the function size when the distribution of values is skewed
+ * (e.g., as it happens in a {@link TwoStepsLcpMonotoneMinimalPerfectHashFunction}).
  *
- * <p>To create an instance, we perform a pre-scan of the values to be assigned. If possible, we finds the best possible
- * <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent values can be stored in a {@link MWHCFunction}
- * and suitably remapped when read. The function uses 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other
- * values, which are stored in a separate function.
+ * <p>
+ * To create an instance, we perform a pre-scan of the values to be assigned. If possible, we finds
+ * the best possible <var>r</var> such that the 2<sup><var>r</var></sup> &minus; 1 most frequent
+ * values can be stored in a {@link MWHCFunction} and suitably remapped when read. The function uses
+ * 2<sup><var>r</var></sup> &minus; 1 as an escape symbol for all other values, which are stored in
+ * a separate function.
  *
- * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
- * will be set on the {@link ChunkedHashStore} used to store the keys. If you are {@linkplain Builder#store(ChunkedHashStore) passing a store},
- * you will have to reset it to its previous state.
+ * <p>
+ * <strong>Warning</strong>: during the construction phase, a
+ * {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore#filter(Predicate) filter} will be set on the
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} used to store the keys. If you are
+ * {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore) passing a store}, you will have
+ * to reset it to its previous state.
  *
  * @author Sebastiano Vigna
  * @since 1.0.2
@@ -94,12 +100,15 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		protected Iterable<? extends T> keys;
 		protected TransformationStrategy<? super T> transform;
 		protected File tempDir;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore;
 		protected LongBigList values;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		/**
+		 * Specifies the keys of the function; if you have specified a
+		 * {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore}, it
+		 * can be {@code null}.
 		 *
 		 * @param keys the keys of the function.
 		 * @return this builder.
@@ -119,9 +128,14 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		/**
+		 * Specifies a temporary directory for the {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 * it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the
+		 *            {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 *            it.unimi.dsi.sux4j.io.ChunkedHashStore} files, or {@code null} for the standard
+		 *            temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -129,17 +143,23 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			return this;
 		}
 
-		/** Specifies a chunked hash store containing the keys associated with their rank.
+		/**
+		 * Specifies a chunked hash store containing the keys associated with their rank.
 		 *
-		 * <p><strong>Warning</strong>: during the construction phase, a {@linkplain ChunkedHashStore#filter(Predicate) filter}
-		 * will be set on the specified {@link ChunkedHashStore}. You will have to reset it to its previous state.
+		 * <p>
+		 * <strong>Warning</strong>: during the construction phase, a
+		 * {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore#filter(Predicate) filter} will be set on the
+		 * specified {@link it.unimi.dsi.sux4j.io.ChunkedHashStore}. You will have to reset it to its
+		 * previous state.
 		 *
-		 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
-		 * can be unchecked, but in this case you must specify {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy) transform}
-		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
+		 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or
+		 *            {@code null}; the store can be unchecked, but in this case you must specify
+		 *            {@linkplain #keys(Iterable) keys} and a {@linkplain #transform(TransformationStrategy)
+		 *            transform} (otherwise, in case of a hash collision in the store an
+		 *            {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
+		public Builder<T> store(final it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -165,7 +185,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			built = true;
 			if (transform == null) {
 				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given it.unimi.dsi.sux4j.io.ChunkedHashStore");
 			}
 			return new TwoStepsMWHCFunction<>(keys, transform, values, tempDir, chunkedHashStore);
 		}
@@ -203,7 +223,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 	 * @param chunkedHashStore a chunked hash store containing the keys associated with their rank, or {@code null}; the store
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
-	protected TwoStepsMWHCFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected TwoStepsMWHCFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final LongBigList values, final File tempDir, it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
 		pl.displayLocalSpeed = true;
@@ -214,7 +234,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
 			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
-			chunkedHashStore = new ChunkedHashStore<>(transform, pl);
+			chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(transform, pl);
 			chunkedHashStore.reset(random.nextLong());
 			chunkedHashStore.addAll(keys.iterator());
 		}

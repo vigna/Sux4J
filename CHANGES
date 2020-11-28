@@ -1,3 +1,9 @@
+5.2.1
+
+- Removed (almost) unused dependencies.
+
+- Upgraded to newest versions of Apache Commons.
+
 5.2.0
 
 - Massive (unfortunately, sometimes not backward-compatible) overhauling

@@ -68,7 +68,6 @@ import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /**
@@ -114,8 +113,8 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * must understand some details of the construction.
  *
  * <p>
- * In a first phase, we build a {@link ChunkedHashStore} containing hashes of the keys. By default,
- * the store will associate each hash with the rank of the key. If you
+ * In a first phase, we build a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} containing hashes of
+ * the keys. By default, the store will associate each hash with the rank of the key. If you
  * {@linkplain Builder#values(LongIterable, int) specify values}, the store will associate with each
  * hash the corresponding value.
  *
@@ -125,21 +124,22 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * the values (which must be either a {@link LongList} or a {@link LongBigList}). Indirect
  * construction is useful only in complex, multi-layer hashes (such as an
  * {@link LcpMonotoneMinimalPerfectHashFunction}) in which we want to reuse a checked
- * {@link ChunkedHashStore}. Storing values in the {@link ChunkedHashStore} is extremely scalable
- * because the values must just be a {@link LongIterable} that will be scanned sequentially during
- * the store construction. On the other hand, if you have already a store that associates ordinal
- * positions, and you want to build a new function for which a {@link LongList} or
- * {@link LongBigList} of values needs little space (e.g., because it is described implicitly), you
- * can opt for an {@linkplain Builder#indirect() indirect} construction using the already built
- * store.
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore}. Storing values in the
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} is extremely scalable because the values must just
+ * be a {@link LongIterable} that will be scanned sequentially during the store construction. On the
+ * other hand, if you have already a store that associates ordinal positions, and you want to build
+ * a new function for which a {@link LongList} or {@link LongBigList} of values needs little space
+ * (e.g., because it is described implicitly), you can opt for an {@linkplain Builder#indirect()
+ * indirect} construction using the already built store.
  *
  * <p>
  * Note that if you specify a store it will be used before building a new one (possibly because of a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}), with obvious benefits in
- * terms of performance. If the store is not checked, and a
- * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is thrown, the constructor will
- * try to rebuild the store, but this requires, of course, that the keys, and possibly the values,
- * are available. Note that it is your responsibility to pass a correct store.
+ * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}), with
+ * obvious benefits in terms of performance. If the store is not checked, and a
+ * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
+ * thrown, the constructor will try to rebuild the store, but this requires, of course, that the
+ * keys, and possibly the values, are available. Note that it is your responsibility to pass a
+ * correct store.
  *
  * <h2>Implementation Details</h2>
  *
@@ -180,14 +180,17 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore;
 		protected LongIterable values;
 		protected int outputWidth = -1;
 		protected boolean indirect;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys of the function; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		/**
+		 * Specifies the keys of the function; if you have specified a
+		 * {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore}, it
+		 * can be {@code null}.
 		 *
 		 * @param keys the keys of the function.
 		 * @return this builder.
@@ -232,9 +235,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		/**
+		 * Specifies a temporary directory for the {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 * it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the
+		 *            {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 *            it.unimi.dsi.sux4j.io.ChunkedHashStore} files, or {@code null} for the standard
+		 *            temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -252,7 +260,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
+		public Builder<T> store(final it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -291,10 +299,14 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			return this;
 		}
 
-		/** Specifies that the function construction must be indirect: a provided {@linkplain #store(ChunkedHashStore) store} contains
-		 * indices that must be used to access the {@linkplain #values(LongIterable, int) values}.
+		/**
+		 * Specifies that the function construction must be indirect: a provided
+		 * {@linkplain #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) store} contains indices that must be
+		 * used to access the {@linkplain #values(LongIterable, int) values}.
 		 *
-		 * <p>If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a {@link LongBigList}.
+		 * <p>
+		 * If you specify this option, the provided values <strong>must</strong> be a {@link LongList} or a
+		 * {@link LongBigList}.
 		 *
 		 * @return this builder.
 		 */
@@ -313,7 +325,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 			if (built) throw new IllegalStateException("This builder has been already used");
 			built = true;
 			if (transform == null) if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-			else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+			else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given it.unimi.dsi.sux4j.io.ChunkedHashStore");
 			return new MWHCFunction<>(keys, transform, signatureWidth, values, outputWidth, tempDir, chunkedHashStore, indirect);
 		}
 	}
@@ -366,7 +378,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 	 * must be accessed to retrieve the actual values.
 	 */
 	@SuppressWarnings("resource")
-	protected MWHCFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore, final boolean indirect) throws IOException {
+	protected MWHCFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final LongIterable values, final int dataWidth, final File tempDir, it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore, final boolean indirect) throws IOException {
 		this.transform = transform;
 
 		if (signatureWidth != 0 && values != null) throw new IllegalArgumentException("You cannot sign a function if you specify its values");
@@ -384,7 +396,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
 			if (keys == null) throw new IllegalArgumentException("If you do not provide a chunked hash store, you must provide the keys");
-			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, - Math.min(signatureWidth, 0), pl);
+			chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(transform, tempDir, -Math.min(signatureWidth, 0), pl);
 			chunkedHashStore.reset(r.nextLong());
 			if (values == null || indirect) chunkedHashStore.addAll(keys.iterator());
 			else chunkedHashStore.addAll(keys.iterator(), values.iterator());
@@ -432,7 +444,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				int q = 0;
 				final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance();
 				final LongBigList data = dataBitVector.asLongBigList(this.width);
-				for(final ChunkedHashStore.Chunk chunk: chunkedHashStore) {
+				for (final it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>(chunk.size());
 					do
 						seed = r.nextLong();
@@ -470,7 +482,7 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				pl.done();
 				break;
 			}
-			catch(final ChunkedHashStore.DuplicateException e) {
+			catch (final it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
@@ -596,13 +608,16 @@ public class MWHCFunction<T> extends AbstractObject2LongFunction<T> implements S
 				else return ((result ^ h[0]) & signatureMask) != 0 ? defRetValue : 1;
 	}
 
-	/** Low-level access to the output of this function.
+	/**
+	 * Low-level access to the output of this function.
 	 *
-	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 * <p>
+	 * This method makes it possible to build several kind of functions on the same
+	 * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} and then retrieve the resulting values by
+	 * generating a single triple of hashes. The method {@link TwoStepsMWHCFunction#getLong(Object)} is
+	 * a good example of this technique.
 	 *
-	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
+	 * @param triple a triple generated as documented in {@link it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
 	public long getLongByTriple(final long[] triple) {

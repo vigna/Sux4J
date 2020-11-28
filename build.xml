@@ -138,7 +138,6 @@
 		<mkdir dir="${docs}"/>
 		<mkdir dir="${build}"/>
 		<mkdir dir="${reports}"/>
-		<mkdir dir="${coverage}"/>
 		<mkdir dir="${dist}/lib"/>
 		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
 	</target>
@@ -189,9 +188,8 @@
 			<link href="${jsap.apiurl}"/>
 			<link href="${junit.apiurl}"/>
 			<link href="${slf4j.apiurl}"/>
-			<link href="${commons-io.apiurl}"/>
-			<link href="${commons-lang.apiurl}"/>
-			<link href="${commons-configuration.apiurl}"/>
+			<link href="${commons-math3.apiurl}"/>
+			<link href="${commons-collections4.apiurl}"/>
 		</javadoc>
 	</target>
 	
@@ -262,7 +260,6 @@
 		<delete dir="${dist}"/>
 		<delete dir="${build}"/>
 		<delete dir="${reports}"/>
-		<delete dir="${coverage}"/>
 		<delete dir="${docs}"/>
 		<delete>
 			<fileset dir="." includes="*.jar"/>

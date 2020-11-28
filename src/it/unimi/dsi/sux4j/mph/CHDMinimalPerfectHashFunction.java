@@ -76,7 +76,6 @@ import it.unimi.dsi.io.OfflineIterable.Serializer;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.sux4j.util.EliasFanoLongBigList;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
@@ -94,10 +93,10 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
  * <p>
- * This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable
- * construction. Note that at construction time you can {@linkplain Builder#store(ChunkedHashStore)
- * pass a ChunkedHashStore} containing the keys (associated with any value); however, if the store
- * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException
+ * This class uses a {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore chunked hash store} to provide highly scalable
+ * construction. Note that at construction time you can {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+ * pass a it.unimi.dsi.sux4j.io.ChunkedHashStore} containing the keys (associated with any value); however, if the store
+ * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException
  * DuplicateException} it will be rebuilt associating with each key its ordinal position.
  *
  * <P>
@@ -131,7 +130,7 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * The technique used is described by Djamal Belazzougui, Fabiano C. Botelho and Martin
  * Dietzfelbinger in &ldquo;Hash, displace and compress&rdquo;, <i>Algorithms - ESA 2009</i>, LNCS
  * 5757, pages 682&minus;693, 2009. However, with respect to the algorithm described in the paper,
- * this implementation is much more scalable, as it uses a {@link ChunkedHashStore} to split the
+ * this implementation is much more scalable, as it uses a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} to split the
  * generation of large key sets into generation of smaller functions for each chunk (of size
  * approximately 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
  *
@@ -154,11 +153,11 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		protected File tempDir;
 		protected int lambda = 5;
 		protected double loadFactor = 1;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys to hash; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		/** Specifies the keys to hash; if you have specified a {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore}, it can be {@code null}.
 		 *
 		 * @param keys the keys to hash.
 		 * @return this builder.
@@ -208,9 +207,9 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		/** Specifies a temporary directory for the {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore} files, or {@code null} for the standard temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -225,7 +224,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
+		public Builder<T> store(final it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -240,7 +239,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			built = true;
 			if (transform == null) {
 				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given it.unimi.dsi.sux4j.io.ChunkedHashStore");
 			}
 			return new CHDMinimalPerfectHashFunction<>(keys, transform, lambda, loadFactor, signatureWidth, tempDir, chunkedHashStore);
 		}
@@ -322,7 +321,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected CHDMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, final double loadFactor, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected CHDMinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int lambda, final double loadFactor, final int signatureWidth, final File tempDir, it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -333,7 +332,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
-			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, pl);
+			chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(transform, tempDir, pl);
 			chunkedHashStore.reset(r.nextLong());
 			chunkedHashStore.addAll(keys.iterator());
 		}
@@ -391,7 +390,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			try {
 				int chunkNumber = 0;
 
-				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+				for (final it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 					/* We treat a chunk as a single hash function. The number of bins is thus
 					 * the first prime larger than the chunk size divided by the load factor. */
 					final int p = Primes.nextPrime((int)Math.ceil(chunk.size() / loadFactor) + 1);
@@ -513,7 +512,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				pl.done();
 				break;
 			}
-			catch (final ChunkedHashStore.DuplicateException e) {
+			catch (final it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
@@ -551,7 +550,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
 			pl.start("Signing...");
-			for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+			for (final it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 				final Iterator<long[]> iterator = chunk.iterator();
 				for(int i = chunk.size(); i-- != 0;) {
 					final long[] triple = iterator.next();

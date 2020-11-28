@@ -35,7 +35,6 @@ import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongLists;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 
 @SuppressWarnings("deprecation")
 public class MWHCFunctionTest {
@@ -73,7 +72,7 @@ public class MWHCFunctionTest {
 					check(size, s, mph, signatureWidth);
 
 					// From store
-					final ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
+					final it.unimi.dsi.sux4j.io.ChunkedHashStore<CharSequence> chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
 					chunkedHashStore.addAll(Arrays.asList(s).iterator());
 					chunkedHashStore.checkAndRetry(Arrays.asList(s));
 					mph = new MWHCFunction.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();

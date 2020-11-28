@@ -20,7 +20,6 @@
 
 package it.unimi.dsi.sux4j.mph;
 
-import static it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -31,8 +30,6 @@ import org.junit.Test;
 
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
-import it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder;
 
 @SuppressWarnings("deprecation")
 public class MinimalPerfectHashFunctionTest {
@@ -62,7 +59,7 @@ public class MinimalPerfectHashFunctionTest {
 				for (int i = s.length; i-- != 0;)
 					s[i] = Integer.toString(i);
 
-				MinimalPerfectHashFunction<CharSequence> mph = new Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
+				MinimalPerfectHashFunction<CharSequence> mph = new it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder<CharSequence>().keys(Arrays.asList(s)).transform(TransformationStrategies.utf16()).signed(signatureWidth).build();
 
 				check(size, s, mph, signatureWidth);
 
@@ -74,10 +71,10 @@ public class MinimalPerfectHashFunctionTest {
 				check(size, s, mph, signatureWidth);
 
 				// From store
-				final ChunkedHashStore<CharSequence> chunkedHashStore = new ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
+				final it.unimi.dsi.sux4j.io.ChunkedHashStore<CharSequence> chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(TransformationStrategies.utf16(), null, signatureWidth < 0 ? -signatureWidth : 0, null);
 				chunkedHashStore.addAll(Arrays.asList(s).iterator());
 				chunkedHashStore.checkAndRetry(Arrays.asList(s));
-				mph = new MinimalPerfectHashFunction.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
+				mph = new it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.Builder<CharSequence>().store(chunkedHashStore).signed(signatureWidth).build();
 				chunkedHashStore.close();
 
 				check(size, s, mph, signatureWidth);
@@ -87,15 +84,15 @@ public class MinimalPerfectHashFunctionTest {
 
 	@Test
 	public void testCountNonZeroPairs() {
-		assertEquals(0, countNonzeroPairs(0));
-		assertEquals(1, countNonzeroPairs(1));
-		assertEquals(1, countNonzeroPairs(2));
-		assertEquals(1, countNonzeroPairs(3));
-		assertEquals(2, countNonzeroPairs(0xA));
-		assertEquals(2, countNonzeroPairs(0x5));
-		assertEquals(2, countNonzeroPairs(0xF));
-		assertEquals(4, countNonzeroPairs(0x1111));
-		assertEquals(4, countNonzeroPairs(0x3333));
-		assertEquals(8, countNonzeroPairs(0xFFFF));
+		assertEquals(0, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0));
+		assertEquals(1, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(1));
+		assertEquals(1, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(2));
+		assertEquals(1, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(3));
+		assertEquals(2, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0xA));
+		assertEquals(2, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0x5));
+		assertEquals(2, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0xF));
+		assertEquals(4, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0x1111));
+		assertEquals(4, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0x3333));
+		assertEquals(8, it.unimi.dsi.sux4j.mph.MinimalPerfectHashFunction.countNonzeroPairs(0xFFFF));
 	}
 }

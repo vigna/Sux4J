@@ -64,7 +64,6 @@ import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank11;
-import it.unimi.dsi.sux4j.io.ChunkedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
 /**
@@ -80,10 +79,12 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
  * <p>
- * This class uses a {@linkplain ChunkedHashStore chunked hash store} to provide highly scalable
- * construction. Note that at construction time you can {@linkplain Builder#store(ChunkedHashStore)
- * pass a ChunkedHashStore} containing the keys (associated with any value); however, if the store
- * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will
+ * This class uses a {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore chunked hash store} to
+ * provide highly scalable construction. Note that at construction time you can
+ * {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore) pass a
+ * it.unimi.dsi.sux4j.io.ChunkedHashStore} containing the keys (associated with any value); however,
+ * if the store is rebuilt because of a
+ * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will
  * be rebuilt associating with each key its ordinal position.
  *
  * <P>
@@ -167,11 +168,14 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		protected TransformationStrategy<? super T> transform;
 		protected int signatureWidth;
 		protected File tempDir;
-		protected ChunkedHashStore<T> chunkedHashStore;
+		protected it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore;
 		/** Whether {@link #build()} has already been called. */
 		protected boolean built;
 
-		/** Specifies the keys to hash; if you have specified a {@link #store(ChunkedHashStore) ChunkedHashStore}, it can be {@code null}.
+		/**
+		 * Specifies the keys to hash; if you have specified a
+		 * {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore) it.unimi.dsi.sux4j.io.ChunkedHashStore}, it
+		 * can be {@code null}.
 		 *
 		 * @param keys the keys to hash.
 		 * @return this builder.
@@ -201,9 +205,14 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			return this;
 		}
 
-		/** Specifies a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore}.
+		/**
+		 * Specifies a temporary directory for the {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 * it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 		 *
-		 * @param tempDir a temporary directory for the {@link #store(ChunkedHashStore) ChunkedHashStore} files, or {@code null} for the standard temporary directory.
+		 * @param tempDir a temporary directory for the
+		 *            {@link #store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
+		 *            it.unimi.dsi.sux4j.io.ChunkedHashStore} files, or {@code null} for the standard
+		 *            temporary directory.
 		 * @return this builder.
 		 */
 		public Builder<T> tempDir(final File tempDir) {
@@ -218,7 +227,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		 * (otherwise, in case of a hash collision in the store an {@link IllegalStateException} will be thrown).
 		 * @return this builder.
 		 */
-		public Builder<T> store(final ChunkedHashStore<T> chunkedHashStore) {
+		public Builder<T> store(final it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) {
 			this.chunkedHashStore = chunkedHashStore;
 			return this;
 		}
@@ -233,7 +242,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			built = true;
 			if (transform == null) {
 				if (chunkedHashStore != null) transform = chunkedHashStore.transform();
-				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given ChunkedHashStore");
+				else throw new IllegalArgumentException("You must specify a TransformationStrategy, either explicitly or via a given it.unimi.dsi.sux4j.io.ChunkedHashStore");
 			}
 			return new MinimalPerfectHashFunction<>(keys, transform, signatureWidth, tempDir, chunkedHashStore);
 		}
@@ -317,7 +326,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 	 * can be unchecked, but in this case <code>keys</code> and <code>transform</code> must be non-{@code null}.
 	 */
 	@SuppressWarnings("resource")
-	protected MinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, ChunkedHashStore<T> chunkedHashStore) throws IOException {
+	protected MinimalPerfectHashFunction(final Iterable<? extends T> keys, final TransformationStrategy<? super T> transform, final int signatureWidth, final File tempDir, it.unimi.dsi.sux4j.io.ChunkedHashStore<T> chunkedHashStore) throws IOException {
 		this.transform = transform;
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER);
@@ -328,7 +337,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 		final boolean givenChunkedHashStore = chunkedHashStore != null;
 		if (chunkedHashStore == null) {
-			chunkedHashStore = new ChunkedHashStore<>(transform, tempDir, pl);
+			chunkedHashStore = new it.unimi.dsi.sux4j.io.ChunkedHashStore<>(transform, tempDir, pl);
 			chunkedHashStore.reset(r.nextLong());
 			chunkedHashStore.addAll(keys.iterator());
 		}
@@ -361,7 +370,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 
 			try {
 				int q = 0;
-				for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+				for (final it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 					final HypergraphSorter<BitVector> sorter = new HypergraphSorter<>(chunk.size(), false);
 					do {
 						seed = r.nextLong();
@@ -404,7 +413,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				pl.done();
 				break;
 			}
-			catch (final ChunkedHashStore.DuplicateException e) {
+			catch (final it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException e) {
 				if (keys == null) throw new IllegalStateException("You provided no keys, but the chunked hash store was not checked");
 				if (duplicates++ > 3) throw new IllegalArgumentException("The input list contains duplicates");
 				LOGGER.warn("Found duplicate. Recomputing triples...");
@@ -467,7 +476,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 			pl.expectedUpdates = n;
 			pl.itemsName = "signatures";
 			pl.start("Signing...");
-			for (final ChunkedHashStore.Chunk chunk : chunkedHashStore) {
+			for (final it.unimi.dsi.sux4j.io.ChunkedHashStore.Chunk chunk : chunkedHashStore) {
 				final Iterator<long[]> iterator = chunk.iterator();
 				for(int i = chunk.size(); i-- != 0;) {
 					final long[] triple = iterator.next();
@@ -512,13 +521,16 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		return result < n ? result : defRetValue;
 	}
 
-	/** Low-level access to the output of this minimal perfect hash function.
+	/**
+	 * Low-level access to the output of this minimal perfect hash function.
 	 *
-	 * <p>This method makes it possible to build several kind of functions on the same {@link ChunkedHashStore} and
-	 * then retrieve the resulting values by generating a single triple of hashes. The method
-	 * {@link TwoStepsMWHCFunction#getLong(Object)} is a good example of this technique.
+	 * <p>
+	 * This method makes it possible to build several kind of functions on the same
+	 * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} and then retrieve the resulting values by
+	 * generating a single triple of hashes. The method {@link TwoStepsMWHCFunction#getLong(Object)} is
+	 * a good example of this technique.
 	 *
-	 * @param triple a triple generated as documented in {@link ChunkedHashStore}.
+	 * @param triple a triple generated as documented in {@link it.unimi.dsi.sux4j.io.ChunkedHashStore}.
 	 * @return the output of the function.
 	 */
 	public long getLongBySignature(final long[] triple) {

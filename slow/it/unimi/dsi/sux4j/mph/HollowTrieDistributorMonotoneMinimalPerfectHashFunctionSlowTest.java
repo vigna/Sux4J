@@ -24,7 +24,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -37,7 +36,7 @@ public class HollowTrieDistributorMonotoneMinimalPerfectHashFunctionSlowTest {
 		final HollowTrieDistributorMonotoneMinimalPerfectHashFunction<Long> f = new HollowTrieDistributorMonotoneMinimalPerfectHashFunction<>(p, TransformationStrategies.fixedLong());
 
 		long j = 0;
-		for (Long s : p) {
+		for (final Long s : p) {
 			assertEquals(j++, f.getLong(s));
 		}
 	}
