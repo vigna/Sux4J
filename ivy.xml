@@ -21,5 +21,9 @@
 		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
 
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
+		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release" conf="test"/>
+
+		<exclude org="ch.qos.logback" artifact="logback-tests.jar"/>
+		<exclude org="org.slf4j" artifact="slf4-api-tests.jar"/>
 	</dependencies>
 </ivy-module>
