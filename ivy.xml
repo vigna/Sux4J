@@ -11,16 +11,24 @@
 	<dependencies>
 
 		<dependency org="it.unimi.dsi" name="fastutil" rev="latest.release" />
-		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release" />
+		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release">
+			<!-- We are not using it.unimi.dsi.util.Properties. -->
+			<exclude org="org.apache.commons" name="commons-configuration2"/>
+			<exclude org="org.apache.commons" name="commons-text"/>
+			<exclude org="commons-logging" name="commons-logging"/>
+			<exclude org="org.apache.commons" name="commons-lang3"/>
+		</dependency>
 		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
 		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
 		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release"/>
+		<dependency org="org.apache.commons" name="commons-lang3" rev="latest.release"/>
 
 		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
 		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
 
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release" conf="test"/>
+
 	</dependencies>
 </ivy-module>
