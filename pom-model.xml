@@ -9,9 +9,14 @@
   <url>http://sux4j.di.unimi.it/</url>
   <licenses>
     <license>
-      <name>GNU Lesser General Public License Version 3+</name>
-      <url>http://www.gnu.org/licenses/lgpl.html</url>
+      <name>GNU Lesser General Public License Version 2.1+</name>
+      <url>https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
       <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Apache License v2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>source</distribution>
     </license>
   </licenses>
   <scm>
