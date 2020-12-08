@@ -9,8 +9,8 @@ source:
 	./genz.sh
 	$(TAR) chvf sux4j-$(version)-src.tar --owner=0 --group=0 \
 		sux4j-$(version)/CHANGES \
-		dsiutils-$(version)/COPYING.LESSER \
-		dsiutils-$(version)/LICENSE-2.0.txt \
+		sux4j-$(version)/COPYING.LESSER \
+		sux4j-$(version)/LICENSE-2.0.txt \
 		sux4j-$(version)/build.xml \
 		sux4j-$(version)/ivy.xml \
 		sux4j-$(version)/sux4j.bnd \
@@ -36,8 +36,8 @@ binary:
 	$(TAR) zxvf sux4j-$(version)-src.tar.gz
 	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-clean ivy-setupjars && ant junit && ant clean && ant jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
-		dsiutils-$(version)/COPYING.LESSER \
-		dsiutils-$(version)/LICENSE-2.0.txt \
+		sux4j-$(version)/COPYING.LESSER \
+		sux4j-$(version)/LICENSE-2.0.txt \
 		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/sux4j-$(version).jar \
 		sux4j-$(version)/docs
