@@ -31,11 +31,5 @@
       <email>sebastiano.vigna@unimi.it</email>
     </developer>
 
-    <developer>
-      <id>santini</id>
-      <name>Massimo Santini</name>
-      <email>massimo.santini@unimi.it</email>
-    </developer>
-
   </developers>
 </project>
