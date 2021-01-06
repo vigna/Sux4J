@@ -24,14 +24,13 @@ import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -58,7 +57,6 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.Fast;
@@ -73,12 +71,11 @@ import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesByteArrayIterable;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.Rank;
 import it.unimi.dsi.sux4j.bits.Rank16;
@@ -855,6 +852,7 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits; if negative, the generated function will be an approximate dictionary."),
 				new Switch("compacted", 'c', "compacted", "Whether the resulting function should be compacted."),
 				new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+				new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 				new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
 				new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised GOV function."),
 				new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the second case, strings must be fewer than 2^31 and will be loaded into core memory."), });
@@ -868,17 +866,21 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final File tempDir = jsapResult.getFile("tempDir");
 		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean compacted = jsapResult.getBoolean("compacted");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
+
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
 
 		final LongIterable values = jsapResult.userSpecified("values") ? BinIO.asLongIterable(jsapResult.getString("values")) : null;
 
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);
+			final Iterable<byte[]> collection = new FileLinesByteArrayIterable(stringFile, decompressor);
 
 			if (values != null) {
 				int dataWidth = -1;
@@ -886,15 +888,12 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 				BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
 			} else BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		} else {
-			final Collection<MutableString> collection;
+			final Iterable<? extends CharSequence> collection;
 			if ("-".equals(stringFile)) {
-				final ProgressLogger pl = new ProgressLogger(LOGGER);
-				pl.displayLocalSpeed = true;
-				pl.displayFreeMemory = true;
-				pl.start("Loading strings...");
-				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
-				pl.done();
-			} else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+				final ObjectArrayList<String> list = new ObjectArrayList<>();
+				collection = list;
+				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
 			if (values != null) {

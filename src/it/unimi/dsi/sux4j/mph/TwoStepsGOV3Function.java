@@ -21,10 +21,9 @@ package it.unimi.dsi.sux4j.mph;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.collections4.Predicate;
@@ -54,10 +53,8 @@ import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
@@ -378,6 +375,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
 			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
 			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+						new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
 			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised two-steps GOV3 function."),
 			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the second case, strings must be fewer than 2^31 and will be loaded into core memory."),
@@ -391,19 +389,20 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		final Charset encoding = (Charset)jsapResult.getObject("encoding");
 		final File tempDir = jsapResult.getFile("tempDir");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 
-		final Collection<MutableString> collection;
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
+
+		final Iterable<? extends CharSequence> collection;
 		if ("-".equals(stringFile)) {
-			final ProgressLogger pl = new ProgressLogger(LOGGER);
-			pl.displayLocalSpeed = true;
-			pl.displayFreeMemory = true;
-			pl.start("Loading strings...");
-			collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
-			pl.done();
-		}
-		else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			final ObjectArrayList<String> list = new ObjectArrayList<>();
+			collection = list;
+			FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+		} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
 				? TransformationStrategies.rawIso()
 				: utf32

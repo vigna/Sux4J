@@ -32,7 +32,6 @@ import java.util.EnumSet;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 
-import it.unimi.dsi.big.io.FileLinesCollection;
 import it.unimi.dsi.fastutil.BigList;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
@@ -40,34 +39,42 @@ import it.unimi.dsi.fastutil.io.FastBufferedInputStream.LineTerminator;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.AbstractObjectBigList;
 import it.unimi.dsi.fastutil.objects.ObjectBigListIterator;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.io.SafelyCloseable;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
-/** A wrapper exhibiting the lines of a file as a {@linkplain BigList big list}.
+/**
+ * A wrapper exhibiting the lines of a file as a {@linkplain BigList big list}.
  *
- * <P>An instance of this class allows to access the lines of a file as a
- * {@link BigList}. Contrarily to a big {@link FileLinesCollection}, {@linkplain #get(long) direct access}
- * is possible and reasonably efficient, in particular when accessing nearby lines, and
- * all returned {@linkplain MutableString mutable strings} are separate, independent instances.
+ * <P>
+ * An instance of this class allows to access the lines of a file as a {@link BigList}. Contrarily
+ * to a big {@link FileLinesMutableStringIterable}, {@linkplain #get(long) direct access} is possible and
+ * reasonably efficient, in particular when accessing nearby lines, and all returned
+ * {@linkplain MutableString mutable strings} are separate, independent instances.
  *
- * <p>Similarly to {@link FileLinesCollection}, instead, {@link #iterator()} can be
- * called any number of times, as it opens an independent input stream at each call. For the
- * same reason, the returned iterator type ({@link FileLinesBigList.FileLinesIterator})
- * is {@link java.io.Closeable}, and should be closed after usage.
+ * <p>
+ * Similarly to {@link FileLinesMutableStringIterable}, instead, {@link #iterator()} can be called any number of
+ * times, as it opens an independent input stream at each call. For the same reason, the returned
+ * iterator type ({@link FileLinesBigList.FileLinesIterator}) is {@link java.io.Closeable}, and
+ * should be closed after usage.
  *
- * <p>Note that {@link #toString()} will return a single string containing all
- * file lines separated by the string associated to the system property <code>line.separator</code>.
+ * <p>
+ * Note that {@link #toString()} will return a single string containing all file lines separated by
+ * the string associated to the system property <code>line.separator</code>.
  *
- * <p><strong>Warning</strong>: this class is not synchronised. Separate iterators use separate input
- * streams, and can be accessed concurrently, but all calls to {@link #get(long)} refer to the
- * same input stream.
+ * <p>
+ * <strong>Warning</strong>: this class is not synchronised. Separate iterators use separate input
+ * streams, and can be accessed concurrently, but all calls to {@link #get(long)} refer to the same
+ * input stream.
  *
  * <h2>Implementation details</h2>
  *
- * <p>Instances of this class perform a full scan of the specified file at construction time, representing
- * the list of pointers to the start of each line using the {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}.
- * The memory occupation per line is thus bounded by 2 + log &#x2113; bits, where &#x2113; is the average line length.
+ * <p>
+ * Instances of this class perform a full scan of the specified file at construction time,
+ * representing the list of pointers to the start of each line using the
+ * {@linkplain EliasFanoMonotoneLongBigList Elias&ndash;Fano representation}. The memory occupation
+ * per line is thus bounded by 2 + log &#x2113; bits, where &#x2113; is the average line length.
  *
  * @author Sebastiano Vigna
  * @since 2.1

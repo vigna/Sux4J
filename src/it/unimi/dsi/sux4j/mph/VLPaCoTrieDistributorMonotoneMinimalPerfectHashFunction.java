@@ -20,10 +20,9 @@
 package it.unimi.dsi.sux4j.mph;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.charset.Charset;
-import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.math3.random.RandomGenerator;
@@ -48,10 +47,8 @@ import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
 import it.unimi.dsi.sux4j.bits.SparseSelect;
@@ -228,6 +225,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
 			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
 			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+						new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function."),
 			new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The name of a file containing a newline-separated list of strings, or - for standard input; in the second case, strings must be fewer than 2^31 and will be loaded into core memory."),
 		});
@@ -239,20 +237,21 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		final String stringFile = jsapResult.getString("stringFile");
 		final Charset encoding = (Charset)jsapResult.getObject("encoding");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final boolean huTucker = jsapResult.getBoolean("huTucker");
 
-		final Collection<MutableString> collection;
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
+
+		final Iterable<? extends CharSequence> collection;
 		if ("-".equals(stringFile)) {
-			final ProgressLogger pl = new ProgressLogger(LOGGER);
-			pl.displayLocalSpeed = true;
-			pl.displayFreeMemory = true;
-			pl.start("Loading strings...");
-			collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
-			pl.done();
-		}
-		else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			final ObjectArrayList<String> list = new ObjectArrayList<>();
+			collection = list;
+			FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+		} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+
 		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
 				? new HuTuckerTransformationStrategy(collection, true)
 				: iso

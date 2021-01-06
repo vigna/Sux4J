@@ -54,7 +54,6 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
@@ -67,7 +66,6 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
@@ -670,7 +668,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			final Collection<byte[]> collection = new it.unimi.dsi.big.io.FileLinesByteArrayCollection(stringFile, zipped);
 			BinIO.storeObject(new CHDMinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), lambda, loadFactor, signatureWidth, tempDir, null), functionName);
 		}
 		else {
@@ -683,7 +681,7 @@ public class CHDMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			else collection = new it.unimi.dsi.big.io.FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 							: utf32

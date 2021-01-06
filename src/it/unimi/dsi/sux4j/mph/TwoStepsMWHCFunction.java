@@ -55,7 +55,6 @@ import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -418,7 +417,7 @@ public class TwoStepsMWHCFunction<T> extends AbstractHashFunction<T> implements 
 			collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 			pl.done();
 		}
-		else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+		else collection = new it.unimi.dsi.big.io.FileLinesCollection(stringFile, encoding.toString(), zipped);
 		final TransformationStrategy<CharSequence> transformationStrategy = iso
 				? TransformationStrategies.rawIso()
 				: utf32

@@ -20,11 +20,13 @@
 package it.unimi.dsi.sux4j.test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.zip.GZIPInputStream;
 
 import com.martiansoftware.jsap.FlaggedOption;
 import com.martiansoftware.jsap.JSAP;
@@ -40,7 +42,7 @@ import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
-import it.unimi.dsi.io.FileLinesCollection;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.lang.MutableString;
 
 public class FunctionSpeedTest {
@@ -49,18 +51,17 @@ public class FunctionSpeedTest {
 
 	public static void main(final String[] arg) throws NoSuchMethodException, IOException, JSAPException, ClassNotFoundException {
 
-		final SimpleJSAP jsap = new SimpleJSAP(FunctionSpeedTest.class.getName(), "Tests the speed of a function on character sequences. Sequential tests (the default) read keys from disk, whereas random tests cache keys in a contiguous region of memory. Performs a few warmup repetitions, and then the median of a sample is printed on standard output. The detailed results are logged to standard error.",
-				new Parameter[] {
-					new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
-					new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
-					new Switch("random", 'r', "random", "Test a subset of strings cached contiguously in memory."),
-					new Switch("shuffle", 'S', "shuffle", "Shuffle the subset of strings used for random tests."),
-					new FlaggedOption("n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n',  "number-of-strings", "The (maximum) number of strings used for random testing."),
-					new FlaggedOption("save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used."),
-					new Switch("check", 'c', "check", "Check that each string in the list is mapped to its ordinal position."),
-					new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised function."),
-					new UnflaggedOption("stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "Read strings from this file."),
-		});
+		final SimpleJSAP jsap = new SimpleJSAP(FunctionSpeedTest.class.getName(), "Tests the speed of a function on character sequences. Sequential tests (the default) read keys from disk, whereas random tests cache keys in a contiguous region of memory. Performs a few warmup repetitions, and then the median of a sample is printed on standard output. The detailed results are logged to standard error.", new Parameter[] {
+				new FlaggedOption("encoding", ForNameStringParser.getParser(Charset.class), "UTF-8", JSAP.NOT_REQUIRED, 'e', "encoding", "The string file encoding."),
+				new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+				new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
+				new Switch("random", 'r', "random", "Test a subset of strings cached contiguously in memory."),
+				new Switch("shuffle", 'S', "shuffle", "Shuffle the subset of strings used for random tests."),
+				new FlaggedOption("n", JSAP.INTSIZE_PARSER, "1000000", JSAP.NOT_REQUIRED, 'n', "number-of-strings", "The (maximum) number of strings used for random testing."),
+				new FlaggedOption("save", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "save", "In case of a random test, save to this file the strings used."),
+				new Switch("check", 'c', "check", "Check that each string in the list is mapped to its ordinal position."),
+				new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised function."),
+				new UnflaggedOption("stringFile", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "Read strings from this file."), });
 
 		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
@@ -69,11 +70,15 @@ public class FunctionSpeedTest {
 		final String stringFile = jsapResult.getString("stringFile");
 		final Charset encoding = (Charset)jsapResult.getObject("encoding");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean check = jsapResult.getBoolean("check");
 		final boolean shuffle = jsapResult.getBoolean("shuffle");
 		final boolean random = jsapResult.getBoolean("random");
 		final String save = jsapResult.getString("save");
 		final int maxStrings = jsapResult.getInt("n");
+
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
 
 		if (check && random) throw new IllegalArgumentException("You cannot perform checks in random tests");
 		if (shuffle && !random) throw new IllegalArgumentException("You can shuffle random tests only");
@@ -82,8 +87,8 @@ public class FunctionSpeedTest {
 
 		@SuppressWarnings("unchecked")
 		final Object2LongFunction<? extends CharSequence> function = (Object2LongFunction<? extends CharSequence>)BinIO.loadObject(functionName);
-		final FileLinesCollection flc = new FileLinesCollection(stringFile, encoding.name(), zipped);
-		final long size = flc.size();
+		final FileLinesMutableStringIterable flc = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+		final long size = flc.size64();
 
 		if (random) {
 			final int n = (int)Math.min(maxStrings, size);

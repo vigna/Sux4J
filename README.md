@@ -1,5 +1,5 @@
-Welcome to Sux4J.
-----------------
+Welcome to Sux4J!
+-----------------
 
 [Sux4J](http://sux4j.di.unimi.it/) is an effort to bring succinct data
 structures to Java. Presently it provides a number of related

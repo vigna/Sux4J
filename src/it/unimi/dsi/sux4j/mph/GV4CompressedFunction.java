@@ -25,14 +25,13 @@ import static it.unimi.dsi.bits.LongArrayBitVector.words;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -60,7 +59,6 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.BitVectors;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -74,12 +72,11 @@ import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterable;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.AbstractObject2LongFunction;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesByteArrayIterable;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.io.OfflineIterable;
 import it.unimi.dsi.io.OfflineIterable.OfflineIterator;
-import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
@@ -701,6 +698,7 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 				new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
 				new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
 				new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+				new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 				new FlaggedOption("codec", JSAP.STRING_PARSER, "HUFFMAN", JSAP.NOT_REQUIRED, 'C', "codec", "The name of the codec to use (UNARY, BINARY, GAMMA, HUFFMAN, LLHUFFMAN)."),
 				new FlaggedOption("limit", JSAP.INTEGER_PARSER, "20", JSAP.NOT_REQUIRED, 'l', "limit", "Decoding-table length limit for the LLHUFFMAN codec."),
 				new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
@@ -716,9 +714,13 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		final File tempDir = jsapResult.getFile("tempDir");
 		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int limit = jsapResult.getInt("limit");
+
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
 
 		Codec codec = null;
 		switch (jsapResult.getString("codec")) {
@@ -746,18 +748,15 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection = new FileLinesByteArrayCollection(stringFile, zipped);
+			final Iterable<byte[]> collection= new FileLinesByteArrayIterable(stringFile, decompressor);
 			BinIO.storeObject(new GV4CompressedFunction<>(collection, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec), functionName);
 		} else {
-			final Collection<MutableString> collection;
+			final Iterable<? extends CharSequence> collection;
 			if ("-".equals(stringFile)) {
-				final ProgressLogger pl = new ProgressLogger(LOGGER);
-				pl.displayLocalSpeed = true;
-				pl.displayFreeMemory = true;
-				pl.start("Loading strings...");
-				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
-				pl.done();
-			} else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+				final ObjectArrayList<String> list = new ObjectArrayList<>();
+				collection = list;
+				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
 			BinIO.storeObject(new GV4CompressedFunction<>(collection, transformationStrategy, values, false, tempDir, null, codec), functionName);

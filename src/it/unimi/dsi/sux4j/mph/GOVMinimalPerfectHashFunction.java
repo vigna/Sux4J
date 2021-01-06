@@ -22,7 +22,7 @@ package it.unimi.dsi.sux4j.mph;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -30,7 +30,6 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -57,16 +56,14 @@ import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
 import it.unimi.dsi.Util;
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.bits.TransformationStrategy;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongBigList;
-import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.LineIterator;
-import it.unimi.dsi.lang.MutableString;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesByteArrayIterable;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.BucketedHashStore;
 import it.unimi.dsi.sux4j.io.BucketedHashStore.Bucket;
@@ -614,6 +611,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 				new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
 				new FlaggedOption("signatureWidth", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 's', "signature-width", "If specified, the signature width in bits."),
 				new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
+				new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 				new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised minimal perfect hash function."),
 				new UnflaggedOption("stringFile", JSAP.STRING_PARSER, "-", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY,
 						"The name of a file containing a newline-separated list of strings, or - for standard input; in the second case, strings must be fewer than 2^31 and will be loaded into core memory."), });
@@ -627,27 +625,27 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final File tempDir = jsapResult.getFile("tempDir");
 		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
+		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
+		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
+		if (zipped) decompressor = GZIPInputStream.class;
+
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			final Iterable<byte[]> collection= new FileLinesByteArrayIterable(stringFile, decompressor);
 			BinIO.storeObject(new GOVMinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, tempDir, null), functionName);
 		}
 		else {
-			final Collection<MutableString> collection;
+			final Iterable<? extends CharSequence> collection;
 			if ("-".equals(stringFile)) {
-				final ProgressLogger pl = new ProgressLogger(LOGGER);
-				pl.displayLocalSpeed = true;
-				pl.displayFreeMemory = true;
-				pl.start("Loading strings...");
-				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
-				pl.done();
-			}
-			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+				final ObjectArrayList<String> list = new ObjectArrayList<>();
+				collection = list;
+				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 							: utf32

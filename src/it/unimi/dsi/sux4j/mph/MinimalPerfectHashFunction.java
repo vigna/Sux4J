@@ -47,7 +47,6 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import com.martiansoftware.jsap.stringparsers.FileStringParser;
 import com.martiansoftware.jsap.stringparsers.ForNameStringParser;
 
-import it.unimi.dsi.big.io.FileLinesByteArrayCollection;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
@@ -58,7 +57,6 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.io.FastBufferedReader;
-import it.unimi.dsi.io.FileLinesCollection;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
@@ -596,7 +594,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Collection<byte[]> collection= new FileLinesByteArrayCollection(stringFile, zipped);
+			final Collection<byte[]> collection = new it.unimi.dsi.big.io.FileLinesByteArrayCollection(stringFile, zipped);
 			BinIO.storeObject(new MinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, jsapResult.getFile("tempDir"), null), functionName);
 		}
 		else {
@@ -609,7 +607,7 @@ public class MinimalPerfectHashFunction<T> extends AbstractHashFunction<T> imple
 				collection = new LineIterator(new FastBufferedReader(new InputStreamReader(zipped ? new GZIPInputStream(System.in) : System.in, encoding)), pl).allLines();
 				pl.done();
 			}
-			else collection = new FileLinesCollection(stringFile, encoding.toString(), zipped);
+			else collection = new it.unimi.dsi.big.io.FileLinesCollection(stringFile, encoding.toString(), zipped);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso
 					? TransformationStrategies.rawIso()
 					: utf32
