@@ -7,3 +7,4 @@ bin/
 build/
 pom.xml
 perf/
+docs/
