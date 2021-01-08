@@ -636,24 +636,20 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Iterable<byte[]> collection= new FileLinesByteArrayIterable(stringFile, decompressor);
-			BinIO.storeObject(new GOVMinimalPerfectHashFunction<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, tempDir, null), functionName);
-		}
-		else {
-			final Iterable<? extends CharSequence> collection;
+			final Iterable<byte[]> keys = new FileLinesByteArrayIterable(stringFile, decompressor);
+			BinIO.storeObject(new GOVMinimalPerfectHashFunction<>(keys, TransformationStrategies.rawByteArray(), signatureWidth, tempDir, null), functionName);
+		} else {
+			final Iterable<? extends CharSequence> keys;
 			if ("-".equals(stringFile)) {
 				final ObjectArrayList<String> list = new ObjectArrayList<>();
-				collection = list;
+				keys = list;
 				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
-			final TransformationStrategy<CharSequence> transformationStrategy = iso
-					? TransformationStrategies.rawIso()
-							: utf32
-							? TransformationStrategies.rawUtf32()
-									: TransformationStrategies.rawUtf16();
+			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-							BinIO.storeObject(new GOVMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy, signatureWidth, tempDir, null), functionName);
+			BinIO.storeObject(new GOVMinimalPerfectHashFunction<CharSequence>(keys, transformationStrategy, signatureWidth, tempDir, null), functionName);
 		}
+
 		LOGGER.info("Saved.");
 	}
 }

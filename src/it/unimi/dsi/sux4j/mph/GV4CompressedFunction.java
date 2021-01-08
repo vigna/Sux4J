@@ -748,18 +748,18 @@ public class GV4CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Iterable<byte[]> collection= new FileLinesByteArrayIterable(stringFile, decompressor);
-			BinIO.storeObject(new GV4CompressedFunction<>(collection, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec), functionName);
+			final Iterable<byte[]> keys = new FileLinesByteArrayIterable(stringFile, decompressor);
+			BinIO.storeObject(new GV4CompressedFunction<>(keys, TransformationStrategies.rawByteArray(), values, false, tempDir, null, codec), functionName);
 		} else {
-			final Iterable<? extends CharSequence> collection;
+			final Iterable<? extends CharSequence> keys;
 			if ("-".equals(stringFile)) {
 				final ObjectArrayList<String> list = new ObjectArrayList<>();
-				collection = list;
+				keys = list;
 				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject(new GV4CompressedFunction<>(collection, transformationStrategy, values, false, tempDir, null, codec), functionName);
+			BinIO.storeObject(new GV4CompressedFunction<>(keys, transformationStrategy, values, false, tempDir, null, codec), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

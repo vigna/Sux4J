@@ -408,18 +408,18 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || huTucker || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Iterable<byte[]> collection = new FileLinesByteArrayIterable(stringFile, decompressor);
-			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(collection, -1, TransformationStrategies.prefixFreeByteArray(), signatureWidth, tempDir), functionName);
+			final Iterable<byte[]> keys = new FileLinesByteArrayIterable(stringFile, decompressor);
+			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(keys, -1, TransformationStrategies.prefixFreeByteArray(), signatureWidth, tempDir), functionName);
 		} else {
-			final Iterable<? extends CharSequence> collection;
+			final Iterable<? extends CharSequence> keys;
 			if ("-".equals(stringFile)) {
 				final ObjectArrayList<String> list = new ObjectArrayList<>();
-				collection = list;
+				keys = list;
 				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 
-			final TransformationStrategy<CharSequence> transformationStrategy = huTucker ? new HuTuckerTransformationStrategy(collection, true) : iso ? TransformationStrategies.prefixFreeIso() : utf32 ? TransformationStrategies.prefixFreeUtf32() : TransformationStrategies.prefixFreeUtf16();
-			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(collection, -1, transformationStrategy, signatureWidth, tempDir), functionName);
+			final TransformationStrategy<CharSequence> transformationStrategy = huTucker ? new HuTuckerTransformationStrategy(keys, true) : iso ? TransformationStrategies.prefixFreeIso() : utf32 ? TransformationStrategies.prefixFreeUtf32() : TransformationStrategies.prefixFreeUtf16();
+			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(keys, -1, transformationStrategy, signatureWidth, tempDir), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

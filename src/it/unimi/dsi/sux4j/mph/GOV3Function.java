@@ -864,12 +864,12 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		final String stringFile = jsapResult.getString("stringFile");
 		final Charset encoding = (Charset)jsapResult.getObject("encoding");
 		final File tempDir = jsapResult.getFile("tempDir");
-		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
 		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean compacted = jsapResult.getBoolean("compacted");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
 		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
@@ -880,27 +880,27 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 		if (byteArray) {
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
-			final Iterable<byte[]> collection = new FileLinesByteArrayIterable(stringFile, decompressor);
+			final Iterable<byte[]> keys = new FileLinesByteArrayIterable(stringFile, decompressor);
 
 			if (values != null) {
 				int dataWidth = -1;
 				for (final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
-				BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
-			} else BinIO.storeObject(new GOV3Function<>(collection, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
+				BinIO.storeObject(new GOV3Function<>(keys, TransformationStrategies.rawByteArray(), signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
+			} else BinIO.storeObject(new GOV3Function<>(keys, TransformationStrategies.rawByteArray(), signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		} else {
-			final Iterable<? extends CharSequence> collection;
+			final Iterable<? extends CharSequence> keys;
 			if ("-".equals(stringFile)) {
 				final ObjectArrayList<String> list = new ObjectArrayList<>();
-				collection = list;
+				keys = list;
 				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
 			if (values != null) {
 				int dataWidth = -1;
 				for (final LongIterator iterator = values.iterator(); iterator.hasNext();) dataWidth = Math.max(dataWidth, Fast.length(iterator.nextLong()));
-				BinIO.storeObject(new GOV3Function<>(collection, transformationStrategy, signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
-			} else BinIO.storeObject(new GOV3Function<>(collection, transformationStrategy, signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
+				BinIO.storeObject(new GOV3Function<>(keys, transformationStrategy, signatureWidth, values, dataWidth, compacted, tempDir, null, false), functionName);
+			} else BinIO.storeObject(new GOV3Function<>(keys, transformationStrategy, signatureWidth, null, -1, compacted, tempDir, null, false), functionName);
 		}
 		LOGGER.info("Completed.");
 	}

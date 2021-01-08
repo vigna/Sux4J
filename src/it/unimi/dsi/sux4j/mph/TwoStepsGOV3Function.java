@@ -54,6 +54,7 @@ import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesByteArrayIterable;
 import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.io.BucketedHashStore;
@@ -374,6 +375,7 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 			new FlaggedOption("tempDir", FileStringParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'T', "temp-dir", "A directory for temporary files."),
 			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
 			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+						new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
 			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
 						new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 			new FlaggedOption("values", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, 'v', "values", "A binary file in DataInput format containing a long for each string (otherwise, the values will be the ordinal positions of the strings)."),
@@ -392,24 +394,31 @@ public class TwoStepsGOV3Function<T> extends AbstractHashFunction<T> implements 
 		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
 
 		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
 		if (zipped) decompressor = GZIPInputStream.class;
 
-		final Iterable<? extends CharSequence> collection;
-		if ("-".equals(stringFile)) {
-			final ObjectArrayList<String> list = new ObjectArrayList<>();
-			collection = list;
-			FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-		} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+		final LongBigArrayBigList values = jsapResult.userSpecified("values") ? LongBigArrayBigList.wrap(BinIO.loadLongsBig(jsapResult.getString("values"))) : null;
 
-		final TransformationStrategy<CharSequence> transformationStrategy = iso
-				? TransformationStrategies.rawIso()
-				: utf32
-					? TransformationStrategies.rawUtf32()
-					: TransformationStrategies.rawUtf16();
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Iterable<byte[]> keys = new FileLinesByteArrayIterable(stringFile, decompressor);
+			BinIO.storeObject(new TwoStepsGOV3Function<>(keys, TransformationStrategies.rawByteArray(), values, tempDir, null), functionName);
+		} else {
 
-		BinIO.storeObject(new TwoStepsGOV3Function<CharSequence>(collection, transformationStrategy, LongBigArrayBigList.wrap(BinIO.loadLongsBig(jsapResult.getString("values"))), tempDir, null), functionName);
+			final Iterable<? extends CharSequence> keys;
+			if ("-".equals(stringFile)) {
+				final ObjectArrayList<String> list = new ObjectArrayList<>();
+				keys = list;
+				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+
+			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
+
+			BinIO.storeObject(new TwoStepsGOV3Function<>(keys, transformationStrategy, values, tempDir, null), functionName);
+		}
 		LOGGER.info("Completed.");
 	}
 }
