@@ -647,7 +647,7 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 			} else keys = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 			final TransformationStrategy<CharSequence> transformationStrategy = iso ? TransformationStrategies.rawIso() : utf32 ? TransformationStrategies.rawUtf32() : TransformationStrategies.rawUtf16();
 
-			BinIO.storeObject(new GOVMinimalPerfectHashFunction<CharSequence>(keys, transformationStrategy, signatureWidth, tempDir, null), functionName);
+			BinIO.storeObject(new GOVMinimalPerfectHashFunction<>(keys, transformationStrategy, signatureWidth, tempDir, null), functionName);
 		}
 
 		LOGGER.info("Saved.");
