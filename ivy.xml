@@ -29,6 +29,6 @@
 
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release" conf="test"/>
-
+		<dependency org="com.github.luben" name="zstd-jni" rev="latest.release" conf="test"/>
 	</dependencies>
 </ivy-module>
