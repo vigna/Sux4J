@@ -48,6 +48,7 @@ import it.unimi.dsi.fastutil.Size64;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.io.FileLinesByteArrayIterable;
 import it.unimi.dsi.io.FileLinesMutableStringIterable;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.bits.SparseRank;
@@ -224,6 +225,7 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 			new Switch("huTucker", 'h', "hu-tucker", "Use Hu-Tucker coding to reduce string length."),
 			new Switch("iso", 'i', "iso", "Use ISO-8859-1 coding internally (i.e., just use the lower eight bits of each character)."),
 			new Switch("utf32", JSAP.NO_SHORTFLAG, "utf-32", "Use UTF-32 internally (handles surrogate pairs)."),
+						new Switch("byteArray", 'b', "byte-array", "Create a function on byte arrays (no character encoding)."),
 			new Switch("zipped", 'z', "zipped", "The string list is compressed in gzip format."),
 						new FlaggedOption("decompressor", JSAP.CLASS_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'd', "decompressor", "Use this extension of InputStream to decompress the strings (e.g., java.util.zip.GZIPInputStream)."),
 			new UnflaggedOption("function", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename for the serialised monotone minimal perfect hash function."),
@@ -240,27 +242,29 @@ public class VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<T> extends 
 		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean huTucker = jsapResult.getBoolean("huTucker");
 
 		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
 		if (zipped) decompressor = GZIPInputStream.class;
 
-		final Iterable<? extends CharSequence> collection;
-		if ("-".equals(stringFile)) {
-			final ObjectArrayList<String> list = new ObjectArrayList<>();
-			collection = list;
-			FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
-		} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
+		if (byteArray) {
+			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
+			if (iso || utf32 || huTucker || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
+			final Iterable<byte[]> collection = new FileLinesByteArrayIterable(stringFile, decompressor);
+			BinIO.storeObject(new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<>(collection, TransformationStrategies.prefixFreeByteArray()), functionName);
+		} else {
+			final Iterable<? extends CharSequence> collection;
+			if ("-".equals(stringFile)) {
+				final ObjectArrayList<String> list = new ObjectArrayList<>();
+				collection = list;
+				FileLinesMutableStringIterable.iterator(System.in, encoding, decompressor).forEachRemaining(s -> list.add(s.toString()));
+			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 
-		final TransformationStrategy<CharSequence> transformationStrategy = huTucker
-				? new HuTuckerTransformationStrategy(collection, true)
-				: iso
-					? TransformationStrategies.prefixFreeIso()
-					: utf32
-						? TransformationStrategies.prefixFreeUtf32()
-						: TransformationStrategies.prefixFreeUtf16();
+			final TransformationStrategy<CharSequence> transformationStrategy = huTucker ? new HuTuckerTransformationStrategy(collection, true) : iso ? TransformationStrategies.prefixFreeIso() : utf32 ? TransformationStrategies.prefixFreeUtf32() : TransformationStrategies.prefixFreeUtf16();
 
-		BinIO.storeObject(new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<CharSequence>(collection, transformationStrategy), functionName);
+			BinIO.storeObject(new VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction<>(collection, transformationStrategy), functionName);
+		}
 		LOGGER.info("Completed.");
 	}
 }

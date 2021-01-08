@@ -71,7 +71,6 @@ EOF
 		# Check MPHFs
 
 		for class in GOVMinimalPerfectHashFunction LcpMonotoneMinimalPerfectHashFunction ZFastTrieDistributorMonotoneMinimalPerfectHashFunction VLPaCoTrieDistributorMonotoneMinimalPerfectHashFunction VLLcpMonotoneMinimalPerfectHashFunction TwoStepsLcpMonotoneMinimalPerfectHashFunction PaCoTrieDistributorMonotoneMinimalPerfectHashFunction HollowTrieMonotoneMinimalPerfectHashFunction HollowTrieDistributorMonotoneMinimalPerfectHashFunction; do
-			if [[ "$input" == --byte-array && $class != GOVMinimalPerfectHashFunction && $class != LcpMonotoneMinimalPerfectHashFunction ]]; then continue; fi
 
 			java -ea it.unimi.dsi.sux4j.mph.$class $comp $input $FUNCTION $KEYFILE
 

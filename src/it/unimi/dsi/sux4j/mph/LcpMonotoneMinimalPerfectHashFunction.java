@@ -394,12 +394,12 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 		final String stringFile = jsapResult.getString("stringFile");
 		final Charset encoding = (Charset)jsapResult.getObject("encoding");
 		final File tempDir = jsapResult.getFile("tempDir");
-		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final boolean zipped = jsapResult.getBoolean("zipped");
 		Class<? extends InputStream> decompressor = jsapResult.getClass("decompressor");
 		final boolean iso = jsapResult.getBoolean("iso");
 		final boolean utf32 = jsapResult.getBoolean("utf32");
 		final boolean huTucker = jsapResult.getBoolean("huTucker");
+		final boolean byteArray = jsapResult.getBoolean("byteArray");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
 		if (zipped && decompressor != null) throw new IllegalArgumentException("The zipped and decompressor options are incompatible");
@@ -409,7 +409,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			if ("-".equals(stringFile)) throw new IllegalArgumentException("Cannot read from standard input when building byte-array functions");
 			if (iso || utf32 || huTucker || jsapResult.userSpecified("encoding")) throw new IllegalArgumentException("Encoding options are not available when building byte-array functions");
 			final Iterable<byte[]> collection = new FileLinesByteArrayIterable(stringFile, decompressor);
-			BinIO.storeObject(new GOVMinimalPerfectHashFunction<>(collection, TransformationStrategies.prefixFreeByteArray(), signatureWidth, tempDir, null), functionName);
+			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(collection, -1, TransformationStrategies.prefixFreeByteArray(), signatureWidth, tempDir), functionName);
 		} else {
 			final Iterable<? extends CharSequence> collection;
 			if ("-".equals(stringFile)) {
@@ -419,7 +419,7 @@ public class LcpMonotoneMinimalPerfectHashFunction<T> extends AbstractHashFuncti
 			} else collection = new FileLinesMutableStringIterable(stringFile, encoding, decompressor);
 
 			final TransformationStrategy<CharSequence> transformationStrategy = huTucker ? new HuTuckerTransformationStrategy(collection, true) : iso ? TransformationStrategies.prefixFreeIso() : utf32 ? TransformationStrategies.prefixFreeUtf32() : TransformationStrategies.prefixFreeUtf16();
-			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<CharSequence>(collection, -1, transformationStrategy, signatureWidth, tempDir), functionName);
+			BinIO.storeObject(new LcpMonotoneMinimalPerfectHashFunction<>(collection, -1, transformationStrategy, signatureWidth, tempDir), functionName);
 		}
 		LOGGER.info("Completed.");
 	}
