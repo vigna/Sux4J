@@ -179,7 +179,7 @@
 					packagenames="it.unimi.dsi.sux4j.*" 
 					private="off"
 					overview="${src}/overview.html"
-					source="1.8" 
+					source="1.9" 
 					windowtitle="Sux4J ${version}"
 					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>
