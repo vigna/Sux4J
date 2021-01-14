@@ -99,7 +99,7 @@ public class ByteArrayFunctionSpeedTest {
 			if (shuffle) Collections.shuffle(Arrays.asList(test));
 
 			if (save != null) {
-				final PrintStream ps = new PrintStream(save, Charsets.ISO_8859_1);
+				final PrintStream ps = new PrintStream(save, Charsets.ISO_8859_1.toString());
 				for(final byte[] s: test) ps.println(new String(s, Charsets.ISO_8859_1));
 				ps.close();
 			}

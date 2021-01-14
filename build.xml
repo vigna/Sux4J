@@ -143,13 +143,13 @@
 	</target>
 
 	<target name="compile" depends="init" description="Compile sources (without tests)">
-		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="compile.classpath">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" release="9" classpathref="compile.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>
 	
 	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
-		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" source="1.8" target="1.8" classpathref="test.classpath">
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" release="9" classpathref="test.classpath">
 			<compilerarg value="-Xlint:all"/>
 		</javac>
 	</target>

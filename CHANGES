@@ -5,6 +5,10 @@
 
 - All non-deprecated function classes now support byte arrays.
 
+- Official support starts now at Java 9. By mistake, even if compiled
+  for Java 8, Sux4J was using Math.multiplyHigh(), which appears only
+  in the JDK library since Java 9.
+
 5.2.2
 
 - Sux4J is now dually licensed under the Lesser GNU Public License 2.1+ or
