@@ -266,11 +266,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public ObjectSet<LongArrayBitVector> keySet() {
-			return new AbstractObjectSet<LongArrayBitVector>() {
+			return new AbstractObjectSet<>() {
 
 				@Override
 				public ObjectIterator<LongArrayBitVector> iterator() {
-					return new ObjectIterator<LongArrayBitVector>() {
+					return new ObjectIterator<>() {
 						private int i = 0;
 						private int pos = -1;
 
@@ -304,11 +304,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 
 		public ObjectSet<Node<U>> values() {
-			return new AbstractObjectSet<Node<U>>() {
+			return new AbstractObjectSet<>() {
 
 				@Override
 				public ObjectIterator<Node<U>> iterator() {
-					return new ObjectIterator<Node<U>>() {
+					return new ObjectIterator<>() {
 						private int i = 0;
 						private int pos = -1;
 
@@ -1534,7 +1534,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	private ObjectBidirectionalIterator<T> iteratorFromLeaf(final Leaf<T> from) {
-		return new ObjectBidirectionalIterator<T>() {
+		return new ObjectBidirectionalIterator<>() {
 			private Leaf<T> curr = from;
 
 			@Override

@@ -712,7 +712,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 
 		@Override
 		public Iterator<long[]> iterator() {
-			return new ObjectIterator<long[]>() {
+			return new ObjectIterator<>() {
 				private int pos = start;
 				private final long[] triple = new long[3];
 
@@ -801,7 +801,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 			throw new RuntimeException(e);
 		}
 
-		return new ObjectIterator<Bucket>() {
+		return new ObjectIterator<>() {
 			private long bucket;
 			private ReadableByteChannel channel;
 			private final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());

@@ -415,7 +415,7 @@ public class HollowTrieDistributor<T> extends AbstractObject2LongFunction<T> imp
 			public Iterator<BitVector> iterator() {
 				try {
 					ibs.position(0);
-					return new ObjectIterator<BitVector>() {
+					return new ObjectIterator<>() {
 						private long pos = 0;
 
 						@Override

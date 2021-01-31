@@ -617,7 +617,7 @@ public class GOVMinimalPerfectHashFunction128<T> extends AbstractHashFunction<T>
 		final File tempDir = jsapResult.getFile("tempDir");
 		final int signatureWidth = jsapResult.getInt("signatureWidth", 0);
 
-		final Iterable<BitVector> iterable = () -> new Iterator<BitVector>() {
+		final Iterable<BitVector> iterable = () -> new Iterator<>() {
 			private final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 			private int i = 0;
 			private final LongArrayBitVector bv = LongArrayBitVector.ofLength(128);

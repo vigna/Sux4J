@@ -728,7 +728,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 		@Override
 		public Iterator<long[]> iterator() {
-			return new ObjectIterator<long[]>() {
+			return new ObjectIterator<>() {
 				private int pos = start;
 				private final long[] quadruple = new long[4];
 
@@ -815,7 +815,7 @@ public class ChunkedHashStore<T> implements Serializable, SafelyCloseable, Itera
 
 		final int maxCount = m;
 
-		return new ObjectIterator<Chunk>() {
+		return new ObjectIterator<>() {
 			private int chunk;
 			private ReadableByteChannel channel;
 			private final ByteBuffer iteratorByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());

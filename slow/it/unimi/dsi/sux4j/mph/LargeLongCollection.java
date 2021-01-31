@@ -39,7 +39,7 @@ final class LargeLongCollection implements Iterable<Long>, Size64 {
 
 	@Override
 	public Iterator<Long> iterator() {
-		return new ObjectIterator<Long>() {
+		return new ObjectIterator<>() {
 			long curr = 0;
 			@Override
 			public boolean hasNext() {
