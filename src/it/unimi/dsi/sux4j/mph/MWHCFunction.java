@@ -131,12 +131,11 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  *
  * <p>
  * Note that if you specify a store it will be used before building a new one (possibly because of a
- * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}), with
- * obvious benefits in terms of performance. If the store is not checked, and a
- * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is
- * thrown, the constructor will try to rebuild the store, but this requires, of course, that the
- * keys, and possibly the values, are available. Note that it is your responsibility to pass a
- * correct store.
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException}), with obvious benefits in
+ * terms of performance. If the store is not checked, and a
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} is thrown, the constructor will
+ * try to rebuild the store, but this requires, of course, that the keys, and possibly the values,
+ * are available. Note that it is your responsibility to pass a correct store.
  *
  * <h2>Implementation Details</h2>
  *

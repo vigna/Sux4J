@@ -90,11 +90,13 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * keys not in the original list. The class can then be saved by serialisation and reused later.
  *
  * <p>
- * This class uses a {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore chunked hash store} to provide highly scalable
- * construction. Note that at construction time you can {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore)
- * pass a it.unimi.dsi.sux4j.io.ChunkedHashStore} containing the keys (associated with any value); however, if the store
- * is rebuilt because of a {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException
- * DuplicateException} it will be rebuilt associating with each key its ordinal position.
+ * This class uses a {@linkplain it.unimi.dsi.sux4j.io.ChunkedHashStore chunked hash store} to
+ * provide highly scalable construction. Note that at construction time you can
+ * {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore) pass a
+ * it.unimi.dsi.sux4j.io.ChunkedHashStore} containing the keys (associated with any value); however,
+ * if the store is rebuilt because of a
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException DuplicateException} it will be
+ * rebuilt associating with each key its ordinal position.
  *
  * <P>
  * The memory requirements for the algorithm we use are &#8776;2 bits per key for
@@ -127,9 +129,10 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * The technique used is described by Djamal Belazzougui, Fabiano C. Botelho and Martin
  * Dietzfelbinger in &ldquo;Hash, displace and compress&rdquo;, <i>Algorithms - ESA 2009</i>, LNCS
  * 5757, pages 682&minus;693, 2009. However, with respect to the algorithm described in the paper,
- * this implementation is much more scalable, as it uses a {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} to split the
- * generation of large key sets into generation of smaller functions for each chunk (of size
- * approximately 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
+ * this implementation is much more scalable, as it uses a
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore} to split the generation of large key sets into
+ * generation of smaller functions for each chunk (of size approximately
+ * 2<sup>{@value #LOG2_CHUNK_SIZE}</sup>).
  *
  * @author Sebastiano Vigna
  * @since 3.2.0

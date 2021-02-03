@@ -81,8 +81,8 @@ import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
  * {@linkplain Builder#store(it.unimi.dsi.sux4j.io.ChunkedHashStore) pass a
  * it.unimi.dsi.sux4j.io.ChunkedHashStore} containing the keys (associated with any value); however,
  * if the store is rebuilt because of a
- * {@link it.unimi.dsi.sux4j.io.it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will
- * be rebuilt associating with each key its ordinal position.
+ * {@link it.unimi.dsi.sux4j.io.ChunkedHashStore.DuplicateException} it will be rebuilt associating
+ * with each key its ordinal position.
  *
  * <P>
  * The theoretical memory requirements for the algorithm we use are 2{@link HypergraphSorter#GAMMA
