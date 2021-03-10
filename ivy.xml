@@ -10,6 +10,9 @@
 	
 	<dependencies>
 
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
 		<dependency org="it.unimi.di" name="jsap" rev="20210129"/>
 		<dependency org="it.unimi.dsi" name="fastutil" rev="latest.release" />
 		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release">
@@ -20,12 +23,9 @@
 			<exclude org="org.apache.commons" name="commons-lang3"/>
 		</dependency>
 		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release"/>
 		<dependency org="org.apache.commons" name="commons-lang3" rev="latest.release"/>
 
-		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
-		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
 
 		<dependency org="junit" name="junit" rev="latest.release" conf="test"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release" conf="test"/>
