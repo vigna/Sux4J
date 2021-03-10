@@ -181,6 +181,7 @@
 					overview="${src}/overview.html"
 					source="1.9" 
 					windowtitle="Sux4J ${version}"
+					additionalparam="-breakiterator -tag &quot;apiNote:a:API Notes:&quot; -tag &quot;implSpec:a:Implementation Specification:&quot; -tag &quot;implNote:a:Implementation Notes:\&quot;"
 					classpathref="compile.classpath">
 			<link href="${j2se.apiurl}"/>
 			<link href="${fastutil.apiurl}"/>

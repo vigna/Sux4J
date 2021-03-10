@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.TreeSet;
 
 import org.apache.commons.math3.random.RandomGenerator;
 import org.junit.Test;
@@ -439,6 +440,28 @@ public class ZFastTrieTest {
 			for (int i = s.length; i-- != 0;)
 				s[i] = binary(random.nextInt(Integer.MAX_VALUE));
 
+		}
+	}
+
+
+	@Test
+	public void testPredSucc() {
+		final TreeSet<Long> t = new TreeSet<>();
+		final long u = 1 << 18;
+		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
+		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() & (u - 1));
+
+		final ZFastTrie<Long> z = new ZFastTrie<>(TransformationStrategies.fixedLong());
+		z.addAll(t);
+		for (long i = 0; i <= u + 1; i++) {
+			assertEquals(t.ceiling(i), z.successor(i));
+			assertEquals(t.ceiling(i), z.ceiling(i));
+			assertEquals(t.higher(i), z.strictSuccessor(i));
+			assertEquals(t.higher(i), z.higher(i));
+			assertEquals(t.lower(i), z.predecessor(i));
+			assertEquals(t.lower(i), z.lower(i));
+			assertEquals(t.floor(i), z.weakPredecessor(i));
+			assertEquals(t.floor(i), z.floor(i));
 		}
 	}
 }

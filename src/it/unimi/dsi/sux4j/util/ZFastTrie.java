@@ -593,6 +593,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 					" [" + nameLength + ".." + extentLength + "], " + (isInternal() ? ((InternalNode<U>)this).handleLength() + "->" + ((InternalNode<U>)this).jumpLength() : "") +
 				(isLeaf() ? "]" : ")");
 		}
+
+		@SuppressWarnings({ "unchecked" })
+		public String toString(final TransformationStrategy<? super U> transform) {
+			final long extentLength = extentLength(transform);
+			final Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
+			return (isLeaf() ? "[" + key + " " : "(") + Integer.toHexString(hashCode() & 0xFFFF) + (key(transform) == null ? "" : " " + (extentLength > 16 ? key(transform).subVector(0, 8) + "..." + key(transform).subVector(extentLength - 8, extentLength) : key(transform).subVector(0, extentLength))) + " [" + nameLength + ".." + extentLength + "], " + (isInternal() ? ((InternalNode<U>)this).handleLength() + "->" + ((InternalNode<U>)this).jumpLength() : "") + (isLeaf() ? "]" : ")");
+		}
 	}
 
 	/** A internal node. */
@@ -1494,33 +1501,170 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return exitData.exitNode.isLeaf() && exitData.lcp == transform.length(((Leaf<T>)exitData.exitNode).key);
 	}
 
-	private Leaf<T> predNode(final T k) {
-		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(k));
-		final long[] state = Hashes.preprocessMurmur(v, 42);
-		final Node<T> exitNode = getExitNode(v, state).exitNode;
-		if (v.compareTo(exitNode.extent(transform)) <= 0) return exitNode.rightLeaf();
-		else return exitNode.leftLeaf().prev;
-
-	}
-
-	@SuppressWarnings({ "unchecked", "null" })
-	public T pred(final Object o) {
-		if (size == 0) return null;
-		return predNode((T)o).key;
-	}
-
-	private Leaf<T> succNode(final T k) {
-		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(k));
+	/**
+	 * Returns the first node in the trie whose key is greater than or equal to the provided bound.
+	 *
+	 * @param lowerBound a lower bound on the returned value.
+	 * @return the first node in the trie whose key is greater than or equal to {@code lowerBound}, or
+	 *         {@code null} if no such element exists.
+	 */
+	private Leaf<T> successorNode(final T lowerBound) {
+		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(lowerBound));
 		final long[] state = Hashes.preprocessMurmur(v, 42);
 		final Node<T> exitNode = getExitNode(v, state).exitNode;
 		if (v.compareTo(exitNode.extent(transform)) <= 0) return exitNode.leftLeaf();
 		else return exitNode.rightLeaf().next;
 	}
 
-	@SuppressWarnings({ "unchecked", "null" })
-	public T succ(final Object o) {
+	/**
+	 * Returns the first element in the trie that is greater than or equal to the provided bound.
+	 *
+	 * @param lowerBound a lower bound on the returned value.
+	 * @return the first element in the trie that is greater than or equal to {@code lowerBound}, or
+	 *         {@code null} if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T successor(final Object lowerBound) {
 		if (size == 0) return null;
-		return succNode((T)o).key;
+		return successorNode((T)lowerBound).key;
+	}
+
+	/**
+	 * Returns the first element in the trie that is greater than or equal to the provided bound.
+	 *
+	 * @implSpec This method just delegates to {@link #successor(Object)}.
+	 *
+	 * @param lowerBound a lower bound on the returned value.
+	 * @return the first element in the trie that is greater than or equal to {@code lowerBound}, or
+	 *         {@code null} if no such element exists.
+	 */
+	public T ceiling(final Object lowerBound) {
+		return successor(lowerBound);
+	}
+
+	/**
+	 * Returns the first node in the trie whose key is greater than the provided bound.
+	 *
+	 * @param lowerBound a strict lower bound on the returned value.
+	 * @return the first node in the trie whose key is greater than {@code lowerBound}, or {@link #tail}
+	 *         if no such element exists.
+	 */
+	private Leaf<T> strictSuccessorNode(final T lowerBound) {
+		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(lowerBound));
+		final long[] state = Hashes.preprocessMurmur(v, 42);
+		final Node<T> exitNode = getExitNode(v, state).exitNode;
+		if (v.compareTo(exitNode.extent(transform)) < 0) return exitNode.leftLeaf();
+		else return exitNode.rightLeaf().next;
+	}
+
+	/**
+	 * Returns the first element in the trie that is greater than the provided bound.
+	 *
+	 * @param lowerBound a strict lower bound on the returned value.
+	 * @return the first element in the trie that is greater than {@code lowerBound}, or {@link #tail}
+	 *         if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T strictSuccessor(final Object lowerBound) {
+		if (size == 0) return null;
+		return strictSuccessorNode((T)lowerBound).key;
+	}
+
+	/**
+	 * Returns the first element in the trie that is greater than the provided bound.
+	 *
+	 * @implSpec This method just delegates to {@link #strictSuccessor(Object)}.
+	 *
+	 * @param lowerBound a strict lower bound on the returned value.
+	 * @return the first element in the trie that is greater than {@code lowerBound}, or {@link #tail}
+	 *         if no such element exists.
+	 */
+	public T higher(final Object lowerBound) {
+		return strictSuccessor(lowerBound);
+	}
+
+	/**
+	 * Returns the first node in the trie whose key is smaller than the provided bound.
+	 *
+	 * @param upperBound a strict upper bound on the returned value.
+	 * @return the first node in the trie whose key is smaller than {@code upperBound}, or {@link #head}
+	 *         if no such element exists.
+	 */
+	private Leaf<T> predecessorNode(final T upperBound) {
+		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(upperBound));
+		final long[] state = Hashes.preprocessMurmur(v, 42);
+		final Node<T> exitNode = getExitNode(v, state).exitNode;
+		if (v.compareTo(exitNode.extent(transform)) > 0) return exitNode.rightLeaf();
+		else return exitNode.leftLeaf().prev;
+	}
+
+	/**
+	 * Returns the first element in the trie that is smaller than the provided bound.
+	 *
+	 * @param upperBound a strict upper bound on the returned value.
+	 * @return the first element in the trie that is smaller than {@code upperBound}, or {@link #head}
+	 *         if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T predecessor(final Object upperBound) {
+		if (size == 0) return null;
+		return predecessorNode((T)upperBound).key;
+	}
+
+	/**
+	 * Returns the first element in the trie that is smaller than the provided bound.
+	 *
+	 * @implSpec This method just delegates to {@link #predecessor(Object)}.
+	 *
+	 * @param upperBound a strict upper bound on the returned value.
+	 * @return the first element in the trie that is smaller than {@code upperBound}, or {@link #head}
+	 *         if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T lower(final Object upperBound) {
+		return predecessor(upperBound);
+	}
+
+	/**
+	 * Returns the first node in the trie whose key is smaller than or equal to the provided bound.
+	 *
+	 * @param upperBound an upper bound on the returned value.
+	 * @return the first node in the trie whose key is smaller than or equal to {@code upperBound}, or
+	 *         {@link #head} if no such element exists.
+	 */
+	private Leaf<T> weakPredecessorNode(final T k) {
+		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(k));
+		final long[] state = Hashes.preprocessMurmur(v, 42);
+		final Node<T> exitNode = getExitNode(v, state).exitNode;
+		if (v.compareTo(exitNode.extent(transform)) >= 0) return exitNode.rightLeaf();
+		else return exitNode.leftLeaf().prev;
+	}
+
+	/**
+	 * Returns the first element in the trie that is smaller than or equal to the provided bound.
+	 *
+	 * @param upperBound an upper bound on the returned value.
+	 * @return the first element in the trie that is smaller than or equal to {@code upperBound}, or
+	 *         {@link #head} if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T weakPredecessor(final Object upperBound) {
+		if (size == 0) return null;
+		return weakPredecessorNode((T)upperBound).key;
+	}
+
+	/**
+	 * Returns the first element in the trie that is smaller than or equal to the provided bound.
+	 *
+	 * @implSpec This method just delegates to {@link #weakPredecessor(Object)}.
+	 *
+	 * @param upperBound an upper bound on the returned value.
+	 * @return the first element in the trie that is smaller than or equal to {@code upperBound}, or
+	 *         {@link #head} if no such element exists.
+	 */
+	@SuppressWarnings("unchecked")
+	public T floor(final Object upperBound) {
+		return weakPredecessor(upperBound);
 	}
 
 	@Override
@@ -1530,7 +1674,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 	@Override
 	public ObjectBidirectionalIterator<T> iterator(final T from) {
-		return size == 0 ? iteratorFromLeaf(tail) : iteratorFromLeaf(succNode(from));
+		return size == 0 ? iteratorFromLeaf(tail) : iteratorFromLeaf(successorNode(from));
 	}
 
 	private ObjectBidirectionalIterator<T> iteratorFromLeaf(final Leaf<T> from) {
