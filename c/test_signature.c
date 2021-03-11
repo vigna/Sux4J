@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 #define NKEYS 10000000
 	uint64_t u = 0;
 
-	uint64_t sample[SAMPLES], signature[4];
+	uint64_t sample[SAMPLES], signature[4] = { next(), next(), next(), next() };
 
 	for(int k = SAMPLES; k-- != 0; ) {
 		s[0] = 0x5603141978c51071;
@@ -74,10 +74,11 @@ int main(int argc, char* argv[]) {
 
 		int64_t elapsed = - get_system_time();
 		for (int i = 0; i < NKEYS; ++i) {
-			signature[0] = next();
-			signature[1] = next();
-			signature[2] = next();
-			signature[3] = next();
+			const uint64_t t = next();
+			signature[0] ^= t;
+			signature[1] ^= t;
+			signature[2] ^= t;
+			signature[3] ^= t;
 			u += SUX4J_GET_SIGNATURE(SUX4J_MAP, signature);
 		}
 
