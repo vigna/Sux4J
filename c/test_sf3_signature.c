@@ -18,8 +18,19 @@
  *
  */
 
-#include "sf.h"
+#include <stdio.h>
+#include <inttypes.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include "sf3.h"
 
-int64_t sf4_get_byte_array(const sf *sf, char *key, uint64_t len);
-int64_t sf4_get_uint64_t(const sf *sf, uint64_t key);
-int64_t sf4_get_signature(const sf *sf, const uint64_t signature[4]);
+#define SUX4J_MAP sf
+#define SUX4J_LOAD_MAP load_sf
+#define SUX4J_GET_SIGNATURE sf3_get_signature
+
+#include "test_signature.c"

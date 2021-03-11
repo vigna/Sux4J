@@ -21,4 +21,5 @@
 #include "sf.h"
 
 int64_t sf3_get_byte_array(const sf *sf, char *key, uint64_t len);
-int64_t sf3_get_uint64_t(const sf *mph, uint64_t key);
+int64_t sf3_get_uint64_t(const sf *sf, uint64_t key);
+int64_t sf3_get_signature(const sf *sf, const uint64_t signature[4]);

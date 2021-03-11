@@ -71,3 +71,13 @@ int64_t sf4_get_uint64_t(const sf *sf, const uint64_t key) {
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
 	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width) ^ get_value(sf->array, e[3] + bucket_offset, sf->width);
 }
+
+int64_t sf4_get_signature(const sf *sf, const uint64_t signature[4]) {
+	const int bucket = ((__uint128_t)(signature[0] >> 1) * (__uint128_t)sf->multiplier) >> 64;
+	const uint64_t offset_seed = sf->offset_and_seed[bucket];
+	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
+	const int num_variables = (sf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset;
+	int e[4];
+	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width) ^ get_value(sf->array, e[3] + bucket_offset, sf->width);
+}
