@@ -594,7 +594,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				(isLeaf() ? "]" : ")");
 		}
 
-		@SuppressWarnings({ "unchecked" })
 		public String toString(final TransformationStrategy<? super U> transform) {
 			final long extentLength = extentLength(transform);
 			final Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
@@ -1620,7 +1619,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than {@code upperBound}, or {@link #head}
 	 *         if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
 	public T lower(final Object upperBound) {
 		return predecessor(upperBound);
 	}
@@ -1662,7 +1660,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than or equal to {@code upperBound}, or
 	 *         {@link #head} if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
 	public T floor(final Object upperBound) {
 		return weakPredecessor(upperBound);
 	}
