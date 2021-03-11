@@ -1,10 +1,5 @@
-.classpath
-.project
-coverage/
-dist/
-reports/
-bin/
-build/
-pom.xml
-perf/
-docs/
+*array
+*int64_t
+*int128_t
+*signature
+*.dump
