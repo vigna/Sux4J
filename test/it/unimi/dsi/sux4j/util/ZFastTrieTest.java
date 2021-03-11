@@ -447,13 +447,14 @@ public class ZFastTrieTest {
 	@Test
 	public void testPredSucc() {
 		final TreeSet<Long> t = new TreeSet<>();
-		final long u = 1 << 18;
+		final long u = 1 << 16;
 		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
-		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() & (u - 1));
+		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() % u);
 
 		final ZFastTrie<Long> z = new ZFastTrie<>(TransformationStrategies.fixedLong());
 		z.addAll(t);
-		for (long i = 0; i <= u + 1; i++) {
+
+		for (long i = -u - 1; i <= u + 1; i++) {
 			assertEquals(t.ceiling(i), z.successor(i));
 			assertEquals(t.ceiling(i), z.ceiling(i));
 			assertEquals(t.higher(i), z.strictSuccessor(i));

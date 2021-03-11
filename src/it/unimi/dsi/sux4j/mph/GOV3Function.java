@@ -721,10 +721,10 @@ public class GOV3Function<T> extends AbstractObject2LongFunction<T> implements S
 
 		if (signatureWidth > 0) {
 			signatureMask = -1L >>> -signatureWidth;
-				signatures = bucketedHashStore.signatures(signatureWidth, pl);
+			signatures = bucketedHashStore.signatures(signatureWidth, pl);
 		} else if (signatureWidth < 0) {
 			signatureMask = -1L >>> Long.SIZE + signatureWidth;
-				signatures = null;
+			signatures = null;
 		} else {
 			signatureMask = 0;
 			signatures = null;
