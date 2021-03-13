@@ -25,7 +25,7 @@
 #include "sf4.h"
 #include "spooky.h"
 
-static void inline signature_to_equation(const uint64_t *signature, const uint64_t seed, int num_variables, int *e) {
+static void inline signature_to_equation(const uint64_t *signature, const uint64_t seed, int num_variables, unsigned int *e) {
 	uint64_t hash[4];
 	spooky_short_rehash(signature, seed, hash);
 	const int shift = __builtin_clzll(num_variables);
@@ -55,9 +55,14 @@ int64_t sf4_get_byte_array(const sf *sf, char *key, uint64_t len) {
 	const uint64_t offset_seed = sf->offset_and_seed[bucket];
 	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
 	const int num_variables = (sf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset;
-	int e[4];
+	unsigned int e[4];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+#ifdef SF_8
+	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
+	return p[e[0]] ^ p[e[1]] ^ p[e[2]] ^ p[e[3]];
+#else
 	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width) ^ get_value(sf->array, e[3] + bucket_offset, sf->width);
+#endif
 }
 
 int64_t sf4_get_uint64_t(const sf *sf, const uint64_t key) {
@@ -67,9 +72,14 @@ int64_t sf4_get_uint64_t(const sf *sf, const uint64_t key) {
 	const uint64_t offset_seed = sf->offset_and_seed[bucket];
 	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
 	const int num_variables = (sf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset;
-	int e[4];
+	unsigned int e[4];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+#ifdef SF_8
+	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
+	return p[e[0]] ^ p[e[1]] ^ p[e[2]] ^ p[e[3]];
+#else
 	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width) ^ get_value(sf->array, e[3] + bucket_offset, sf->width);
+#endif
 }
 
 int64_t sf4_get_signature(const sf *sf, const uint64_t signature[4]) {
@@ -77,7 +87,12 @@ int64_t sf4_get_signature(const sf *sf, const uint64_t signature[4]) {
 	const uint64_t offset_seed = sf->offset_and_seed[bucket];
 	const uint64_t bucket_offset = offset_seed & OFFSET_MASK;
 	const int num_variables = (sf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset;
-	int e[4];
+	unsigned int e[4];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+#ifdef SF_8
+	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
+	return p[e[0]] ^ p[e[1]] ^ p[e[2]] ^ p[e[3]];
+#else
 	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width) ^ get_value(sf->array, e[3] + bucket_offset, sf->width);
+#endif
 }
