@@ -16,3 +16,10 @@ transformation strategy; sources containing the string `uint64_t` expect
 data structures built using the `TransformationStrategies.RAW_LONG`
 transformation strategy. There is no check that the right kind of structure
 or strategy is being loaded, so watch your steps.
+
+For testing speed independently of hashing, tests containing the
+`signature` string test the structures using random signatures.
+
+Note that if you build a static function with an 8-bit output, by defining
+`SF_8` you will use direct byte access code instead of the generic code
+for the extraction of bit blocks.
