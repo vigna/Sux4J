@@ -529,6 +529,12 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		return getLongBySignature(signature);
 	}
 
+	private static final long getTwoBitValue(final long[] array, long pos) {
+	    pos *= 2;
+	    return array[(int)(pos >>> 6)] >> (pos & 63) & 3;
+	}
+
+	
 	/** Low-level access to the output of this minimal perfect hash function.
 	 *
 	 * <p>This method makes it possible to build several kind of functions on the same {@link BucketedHashStore} and
@@ -546,8 +552,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final int numVariables = (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset);
 		//if (numVariables == 0) return defRetValue;
 		Linear3SystemSolver.signatureToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, numVariables, e);
-
-		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
+		final long[] array = this.array;
+		final long result = (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(getTwoBitValue(array, e[0] + bucketOffset) + getTwoBitValue(array, e[1] + bucketOffset) + getTwoBitValue(array, e[2] + bucketOffset)) % 3], array);
 		if (signatureMask != 0) return result >= n || signatures.getLong(result) != (signature[0] & signatureMask) ? defRetValue : result;
 		return result < n ? result : defRetValue;
 	}
@@ -559,7 +565,8 @@ public class GOVMinimalPerfectHashFunction<T> extends AbstractHashFunction<T> im
 		final long edgeOffsetSeed = edgeOffsetAndSeed[bucket];
 		final long bucketOffset = vertexOffset(edgeOffsetSeed);
 		Linear3SystemSolver.signatureToEquation(signature, edgeOffsetSeed & ~OFFSET_MASK, (int)(vertexOffset(edgeOffsetAndSeed[bucket + 1]) - bucketOffset), e);
-		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(values.getLong(e[0] + bucketOffset) + values.getLong(e[1] + bucketOffset) + values.getLong(e[2] + bucketOffset)) % 3], array);
+		final long[] array = this.array;
+		return (edgeOffsetSeed & OFFSET_MASK) + countNonzeroPairs(bucketOffset, bucketOffset + e[(int)(getTwoBitValue(array, e[0] + bucketOffset) + getTwoBitValue(array, e[1] + bucketOffset) + getTwoBitValue(array, e[2] + bucketOffset)) % 3], array);
 	}
 
 	@Override
