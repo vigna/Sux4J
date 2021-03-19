@@ -2239,11 +2239,12 @@ public class Hashes {
 	}
 
 	/**
-	 * Constant-time SpookyHash 4-word-state hashing reusing precomputed state
-	 * partially.
+	 * Constant-time SpookyHash 4-word-state hashing reusing precomputed state.
 	 *
 	 * @param bv
 	 *            a bit vector.
+	 * @param prefixLength
+	 *            the length of the prefix of {@code bv} over which to compute the hash.
 	 * @param seed
 	 *            a seed for the hash.
 	 * @param state
@@ -2341,11 +2342,12 @@ public class Hashes {
 	}
 
 	/**
-	 * Constant-time SpookyHash 4-word-state hashing reusing precomputed state
-	 * partially.
+	 * Constant-time SpookyHash hashing reusing precomputed state.
 	 *
 	 * @param bv
 	 *            a bit vector.
+	 * @param prefixLength
+	 *            the length of the prefix of {@code bv} over which to compute the hash.	 * 
 	 * @param seed
 	 *            a seed for the hash.
 	 * @param state
@@ -2428,6 +2430,7 @@ public class Hashes {
 
 		return h0;
 	}
+
 
 	/**
 	 * SpookyHash (up to four values produced) for a triple of longs.
@@ -2587,60 +2590,43 @@ public class Hashes {
 
 		for (int k = 4; k-- != 0;) {
 			pl.start("Timing MurmurHash...");
-
 			for (int i = n; i-- != 0;)
 				t += murmur(bv, 0);
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			pl.start("Timing MurmurHash3...");
-
 			for (int i = n; i-- != 0;) {
 				murmur3(bv, 0, h);
 				t += h[0];
 			}
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			pl.start("Timing Jenkins's hash...");
-
 			for (int i = n; i-- != 0;) {
 				jenkins(bv, 0, h);
 				t += h[0];
 			}
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			pl.start("Timing SpookyHash4...");
-
 			for (int i = n; i-- != 0;) {
 				spooky4(bv, 0, h);
 				t += h[0];
 			}
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
+			
 			pl.start("Timing SpookyHash12...");
-
 			for (int i = n; i-- != 0;) {
 				spooky12(bv, 0, h);
 				t += h[0];
 			}
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			final long[] preprocessMurmur = preprocessMurmur(bv, 0);
 
 			pl.start("Timing preprocessed MurmurHash...");
-
 			for (int i = n; i-- != 0;)
 				t += murmur(bv, l - 1, preprocessMurmur);
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			final long[][] preprocessMurmur3 = preprocessMurmur3(bv, 0);
@@ -2650,12 +2636,9 @@ public class Hashes {
 			final long[] cc2 = preprocessMurmur3[3];
 
 			pl.start("Timing preprocessed MurmurHash3...");
-
 			for (int i = n / l; i-- != 0;)
 				for (int j = l; j-- != 0;)
 					t += murmur3(bv, j, hh1, hh2, cc1, cc2);
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			final long[][] preprocessJenkins = preprocessJenkins(bv, 0);
@@ -2664,24 +2647,20 @@ public class Hashes {
 			final long[] cc = preprocessJenkins[2];
 
 			pl.start("Timing preprocessed Jenkins's hash...");
-
 			for (int i = n / l; i-- != 0;)
 				for (int j = l; j-- != 0;)
 					t += jenkins(bv, j, aa, bb, cc);
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 
 			final long[] preprocessSpooky4 = preprocessSpooky4(bv, 0);
 
 			pl.start("Timing preprocessed SpookyHash...");
-
 			for (int i = n / l; i-- != 0;)
 				for (int j = l; j-- != 0;)
 					t += spooky4(bv, j, 0, preprocessSpooky4);
-			if (t == 0) System.err.println(t);
-
 			pl.done(n);
 		}
+
+		if (t == 0) System.err.println(t);
 	}
 }
