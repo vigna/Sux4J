@@ -204,6 +204,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Generates a hash table position starting from a signature.
 		 *
 		 * @param s a signature.
+		 * @return the hash table position of {@code s}.
 		 */
 		protected int hash(final long s) {
 			return (int)(s ^ s >>> 32) & mask;
@@ -216,8 +217,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * keys that are not handles. Nonetheless, it will always return a correct result on a handle.
 		 *
 		 * @param v a bit vector.
-		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
-		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
+		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
+		 * @param s the signature of the prefix of {@code v} of {@code handleLength} bits.
 		 *
 		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
 		 */
@@ -239,8 +240,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 *
 		 * <p>Note that this function compares handles. Thus, it always returns a correct value.
 		 * @param v a bit vector.
-		 * @param handleLength the length of the prefix of <code>v</code> that will be used as a handle.
-		 * @param s the signature of the prefix of <code>v</code> of <code>handleLength</code> bits.
+		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
+		 * @param s the signature of the prefix of {@code v} of {@code handleLength} bits.
 		 *
 		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
 		 */
@@ -344,8 +345,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Replaces an entry with a given node.
 		 *
 		 * @param oldNode a node appearing in the table.
-		 * @param newNode a node with the same handle as <code>oldNode</code>.
-		 * @param s the signature of the handle of <code>oldNode</code> and <code>newNode</code>.
+		 * @param newNode a node with the same handle as {@code oldNode}.
+		 * @param s the signature of the handle of {@code oldNode} and {@code newNode}.
 		 */
 		public void replaceExisting(final InternalNode<U> oldNode, final InternalNode<U> newNode, long s) {
 			if (DEBUG) System.err.println("Map.replaceExisting(" + oldNode + ", " + newNode + ", " + s + ")");
@@ -361,9 +362,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Removes an existing entry from the table.
 		 *
 		 * @param n the node to be removed.
-		 * @param s the signature of the handle of <code>n</code>.
+		 * @param s the signature of the handle of {@code n}.
 		 *
-		 * @throws IllegalStateException if <code>n</code> is not in the table.
+		 * @throws IllegalStateException if {@code n} is not in the table.
 		 */
 		public void removeExisting(final InternalNode<U> n, long s) {
 			if (DEBUG) System.err.println("Map.removeExisting(" + n + ", " + s + ")");
@@ -418,7 +419,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * the table will end up containing two copies of the same key (i.e., handle).
 		 *
 		 * @param n a node.
-		 * @param s the signature of the handle of <code>n</code>.
+		 * @param s the signature of the handle of {@code n}.
 		 */
 		public void addNew(final InternalNode<U> n, long s) {
 			if (SHORT_SIGNATURES) s = shortSignature(s);
@@ -473,13 +474,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		/** Retrieves a node given its handle.
 		 *
 		 * @param v a bit vector.
-		 * @param handleLength the prefix of <code>v</code> that must be used as a handle.
+		 * @param handleLength the prefix of {@code v} that must be used as a handle.
 		 * @param s the signature of the specified handle.
 		 * @param exact whether the search should be exact; if false, and the given handle does not
 		 * appear in the table, it is possible that an unpredictable internal node is returned.
 		 *
 		 * @return the node with given handle, or {@code null} if there is no such node (if
-		 * <code>exact</code> is false, a false positive might be returned).
+		 * {@code exact} is false, a false positive might be returned).
 		 */
 		public InternalNode<U> get(final BitVector v, final long handleLength, final long s, final boolean exact) {
 			final int pos;
@@ -500,7 +501,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * appear in the table, it is possible that an unpredictable internal node is returned.
 		 *
 		 * @return the node with given handle, or {@code null} if there is no such node (if
-		 * <code>exact</code> is false, a false positive might be returned).
+		 * {@code exact} is false, a false positive might be returned).
 		 *
 		 * @see #get(BitVector, long, long, boolean)
 		 */
@@ -562,6 +563,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 *
 		 * @param length the length of a string.
 		 * @param lcpLength the length of the longest common prefix between the string and the extent of this node.
+		 * @param transform the transformation strategy used to build the trie this node belongs to.
 		 * @return true if the string exits at this node.
 		 */
 		public boolean isExitNodeOf(final long length, final long lcpLength, final TransformationStrategy<? super U> transform) {
@@ -760,7 +762,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 *
 	 * @param a left extreme (excluded).
 	 * @param b right extreme (included).
-	 * @return the 2-fattest number in (<code>a</code>..<code>b</code>].
+	 * @return the 2-fattest number in ({@code a}..{@code b}].
 	 */
 	public final static long twoFattest(final long a, final long b) {
 		return (-1L << Fast.mostSignificantBit(a ^ b) & b);
@@ -1275,8 +1277,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Returns the exit node of a given bit vector.
 	 *
 	 * @param v a bit vector.
-	 * @param state the hash state of <code>v</code> precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
-	 * @return the exit node of <code>v</code>.
+	 * @param state the hash state of {@code v} precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
+	 * @return the exit node of {@code v}.
 	 */
 	private ExitData<T> getExitNode(final LongArrayBitVector v, final long[] state) {
 		if (size == 0) throw new IllegalStateException();
@@ -1325,9 +1327,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Returns the parent of the exit node of a given bit vector.
 	 *
 	 * @param v a bit vector.
-	 * @param state the hash state of <code>v</code> precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
+	 * @param state the hash state of {@code v} precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
 	 * @param stack if not {@code null}, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
-	 * @return the parent of the exit node of <code>v</code>, or {@code null} if the exit node is the root.
+	 * @return the parent of the exit node of {@code v}, or {@code null} if the exit node is the root.
 	 */
 	public ParexData<T> getParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentExitNode(" + v + ")");
@@ -1410,7 +1412,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	/** Returns the grandparent of the exit node of a given bit vector.
 	 *
 	 * @param v a bit vector.
+	 * @param state the hash state of {@code v} precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
 	 * @param stack as filled by {@link #getParentExitNode(LongArrayBitVector, long[], ObjectArrayList)}.
+	 * @return the grandparent of the exit node of {@code v}, or {@code null} if there is no grandparent.
 	 */
 	public InternalNode<T> getGrandParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentGrandExitNode(" + v + ", " + stack + ")");
@@ -1768,9 +1772,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param map the map representing the trie.
 	 * @param leafStack a stack that cumulates leaves as they are found: internal nodes extract references from this stack when their visit is completed.
 	 * @param jumpStack a stack that cumulates nodes that need jump pointer fixes.
-	 * @param depthStack a stack parallel to <code>jumpStack</code>, providing the depth of the corresponding node.
+	 * @param depthStack a stack parallel to {@code jumpStack}, providing the depth of the corresponding node.
 	 * @param segmentStack a stack of integers representing the length of maximal constant subsequences of the string of directions taken up to the current node; for instance, if we reached the current node by 1/1/0/0/0/1/0/0, the stack will contain 2,3,1,2.
-	 * @param dirStack a stack parallel to <code>segmentStack</code>: for each element, whether it counts left or right turns.
+	 * @param dirStack a stack parallel to {@code segmentStack}: for each element, whether it counts left or right turns.
 	 * @return the subtree rooted at the next node in the stream.
 	 */
 	@SuppressWarnings("unchecked")

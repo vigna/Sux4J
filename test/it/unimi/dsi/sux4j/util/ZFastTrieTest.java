@@ -444,6 +444,7 @@ public class ZFastTrieTest {
 	}
 
 
+	@SuppressWarnings("boxing")
 	@Test
 	public void testPredSucc() {
 		final TreeSet<Long> t = new TreeSet<>();

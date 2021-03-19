@@ -128,11 +128,6 @@ public class Modulo2SparseSystem {
 			return b.append(" = ").append(c).toString();
 		}
 
-
-		/** Returns the modulo-2 scalar product of the two provided bit vectors.
-		 *
-		 * @return the modulo-2 scalar product of {@code e} and {code f}.
-		 */
 		public static long scalarProduct(final Modulo2Equation e, final long[] solution) {
 			long sum = 0;
 			for(final IntListIterator iterator = e.variables.iterator(); iterator.hasNext();)

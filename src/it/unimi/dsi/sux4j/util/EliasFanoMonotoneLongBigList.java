@@ -128,6 +128,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 	/** Returns true if this class can accommodate a list with the given number of elements and upper bound.
 	 *
+	 * @param length the length of the list.
+	 * @param upperBound a strict upper bound to the values of the list.
 	 * @return true if this class can accommodate a list with the given number of elements and upper bound.
 	 */
 	public static boolean fits(final long length, final long upperBound) {

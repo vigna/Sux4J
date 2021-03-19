@@ -244,7 +244,6 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** Creates a bucketed hash store with given transformation strategy.
 	 *
 	 * @param transform a transformation strategy for the elements.
-	 * @throws IOException
 	 */
 	public BucketedHashStore(final TransformationStrategy<? super T> transform) throws IOException {
 		this(transform, null, null);
