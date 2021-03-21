@@ -905,7 +905,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if (DEBUG) System.err.println("fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
-		long jumpLength = -1;
+		long jumpLength;
 
 		if (! rightChild) {
 			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
@@ -927,7 +927,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			while(! stack.isEmpty()) {
 				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
 				while(exitNode.isInternal() && toBeFixed.jumpRight != exitNode) exitNode = ((InternalNode<U>)exitNode).jumpRight;
 				if (toBeFixed.jumpRight != exitNode) return;
 				toBeFixed.jumpRight = leaf;
@@ -947,7 +946,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if (DEBUG) System.err.println("fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + rightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed = null;
-		long jumpLength = -1;
+		long jumpLength;
 
 		if (rightChild) {
 			/* Nodes jumping to the right into the exit node but above the lcp must point to internal. */
@@ -970,7 +969,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			while(! stack.isEmpty()) {
 				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
 				while(exitNode.isInternal() && toBeFixed.jumpLeft != exitNode) exitNode = ((InternalNode<U>)exitNode).jumpLeft;
 				if (toBeFixed.jumpLeft != exitNode) return;
 				toBeFixed.jumpLeft = leaf;
@@ -989,13 +987,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static <U> void fixRightJumpsAfterDeletion(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixRightJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack);
 		InternalNode<U> toBeFixed = null;
-		long jumpLength = -1;
+		long jumpLength;
 
 		if (! rightChild) {
 			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
 			while(! stack.isEmpty()) {
 				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
 				if (toBeFixed.jumpLeft != parentExitNode) break;
 				toBeFixed.jumpLeft = otherNode;
 			}
@@ -1030,13 +1027,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static <U> void fixLeftJumpsAfterDeletion(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean rightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixLeftJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + rightChild + ", " + stack);
 		InternalNode<U> toBeFixed = null;
-		long jumpLength = -1;
+		long jumpLength;
 
 		if (rightChild) {
 			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
 			while(! stack.isEmpty()) {
 				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
 				if (toBeFixed.jumpRight != parentExitNode) break;
 				toBeFixed.jumpRight = otherNode;
 			}
