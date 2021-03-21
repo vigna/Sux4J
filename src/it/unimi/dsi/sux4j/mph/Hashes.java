@@ -1168,7 +1168,7 @@ public class Hashes {
 	 */
 
 	public static void murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long h[]) {
-		final int startStateWord = (int) (prefixLength / (2 * Long.SIZE));
+		final int startStateWord = (int) (prefixLength >>> (6 + 1));
 		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
 
 		long h1 = hh1[startStateWord];
@@ -1249,7 +1249,7 @@ public class Hashes {
 	 * @return a hash.
 	 */
 	public static long murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[]) {
-		final int startStateWord = (int) (prefixLength / (2 * Long.SIZE));
+		final int startStateWord = (int) (prefixLength >>> (6 + 1));
 		long precomputedUpTo = startStateWord * 2L * Long.SIZE;
 
 		long h1 = hh1[startStateWord];
@@ -1333,7 +1333,7 @@ public class Hashes {
 	 *            be saved.
 	 */
 	public static void murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp, final long h[]) {
-		final int startStateWord = (int) (Math.min(lcp, prefixLength) / (2 * Long.SIZE));
+		final int startStateWord = (int) (Math.min(lcp, prefixLength) >>> (6 + 1));
 		long from = startStateWord * 2L * Long.SIZE;
 
 		long h1 = hh1[startStateWord];
@@ -1444,7 +1444,7 @@ public class Hashes {
 	 * @return a hash.
 	 */
 	public static long murmur3(final BitVector bv, final long prefixLength, final long[] hh1, final long[] hh2, final long[] cc1, final long cc2[], final long lcp) {
-		final int startStateWord = (int) (Math.min(lcp, prefixLength) / (2 * Long.SIZE));
+		final int startStateWord = (int) (Math.min(lcp, prefixLength) >>> (6 + 1));
 		long from = startStateWord * 2L * Long.SIZE;
 
 		long h1 = hh1[startStateWord];
@@ -1549,7 +1549,7 @@ public class Hashes {
 		long c1 = 0x87c37b91114253d5L;
 		long c2 = 0x4cf5ad432745937fL;
 
-		final int wordLength = (int) (length / (2 * Long.SIZE));
+		final int wordLength = (int) (length >>> (6 + 1));
 		final long state[][] = new long[4][wordLength + 1];
 
 		long k1, k2;
@@ -2170,7 +2170,7 @@ public class Hashes {
 	public static long[] preprocessSpooky4(final BitVector bv, final long seed) {
 		final long length = bv.length();
 		if (length < Long.SIZE * 2) return null;
-		final long[] state = new long[4 * (int) (length + Long.SIZE * 2) / (4 * Long.SIZE)];
+		final long[] state = new long[4 * (int) (length + Long.SIZE * 2) >>> (6 + 2)];
 
 		long h0, h1, h2, h3;
 		h0 = seed;
@@ -2365,7 +2365,7 @@ public class Hashes {
 		long pos;
 
 		if (prefixLength >= 2 * Long.SIZE) {
-			final int p = 4 * (int) ((prefixLength - 2 * Long.SIZE) / (4 * Long.SIZE));
+			final int p = 4 * (int) ((prefixLength - 2 * Long.SIZE) >>> (6 + 2));
 			h0 = state[p + 0];
 			h1 = state[p + 1];
 			h2 = state[p + 2];
