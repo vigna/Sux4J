@@ -2347,7 +2347,7 @@ public class Hashes {
 	 * @param bv
 	 *            a bit vector.
 	 * @param prefixLength
-	 *            the length of the prefix of {@code bv} over which to compute the hash.	 * 
+	 *            the length of the prefix of {@code bv} over which to compute the hash.	 *
 	 * @param seed
 	 *            a seed for the hash.
 	 * @param state
@@ -2614,7 +2614,7 @@ public class Hashes {
 				t += h[0];
 			}
 			pl.done(n);
-			
+
 			pl.start("Timing SpookyHash12...");
 			for (int i = n; i-- != 0;) {
 				spooky12(bv, 0, h);

@@ -38,7 +38,10 @@ import it.unimi.dsi.bits.HuTuckerTransformationStrategy;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.TransformationStrategies;
 import it.unimi.dsi.fastutil.io.BinIO;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
+import it.unimi.dsi.sux4j.mph.Hashes;
+import it.unimi.dsi.sux4j.util.ZFastTrie.InternalNode;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
@@ -464,6 +467,26 @@ public class ZFastTrieTest {
 			assertEquals(t.lower(i), z.lower(i));
 			assertEquals(t.floor(i), z.weakPredecessor(i));
 			assertEquals(t.floor(i), z.floor(i));
+		}
+
+		for(final Long x: t) z.remove(x);
+	}
+
+	@Test
+	public void testPrefix() {
+		final ZFastTrie<LongArrayBitVector> z = new ZFastTrie<>(TransformationStrategies.identity());
+		z.add(LongArrayBitVector.of(0, 0, 0, 0));
+		z.add(LongArrayBitVector.of(1, 0, 0, 0));
+		z.add(LongArrayBitVector.of(1, 0, 1, 1));
+
+
+		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0),
+				LongArrayBitVector.of(1), LongArrayBitVector.of(0), LongArrayBitVector.of(0, 1),
+				LongArrayBitVector.of(0, 0), LongArrayBitVector.of(1, 1) }) {
+			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
+			final long[] state = Hashes.preprocessMurmur(v, 42);
+			final InternalNode<LongArrayBitVector> parex = z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			assertEquals(1, stack.size());
 		}
 	}
 }
