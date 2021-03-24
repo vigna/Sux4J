@@ -348,7 +348,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int pos = hash(s);
 			while(node[pos] != oldNode) pos = (pos + 1) & mask;
 			if (node[pos] == null) throw new IllegalStateException();
-			if (ASSERTS) assert node[pos].handle(transform).equals(newNode.handle(transform)) : node[pos].handle(transform) + " != " + newNode.handle(transform);
+			assert node[pos].handle(transform).equals(newNode.handle(transform)) : node[pos].handle(transform) + " != " + newNode.handle(transform);
 			node[pos] = newNode;
 			if (ASSERTS) assertTable();
 		}
@@ -871,10 +871,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		Node<U> jump;
 
 		for(jump = node.left; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength;) jump = ((InternalNode<U>)jump).jumpLeft;
-		if (ASSERTS) assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
+		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpLeft = jump;
 		for(jump = node.right; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength;) jump = ((InternalNode<U>)jump).jumpRight;
-		if (ASSERTS) assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
+		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpRight = jump;
 	}
 
@@ -1071,7 +1071,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long[] state = Hashes.preprocessMurmur(v, 42);
 		final ParexData<T> parexData = getParentExitNode(v, state, stack);
-		if (ASSERTS) assertParent(v, parexData, stack);
+		assertParent(v, parexData, stack);
 
 		parentExitNode = parexData.parexNode;
 		exitNode = parexData.exitNode;
@@ -1429,7 +1429,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		b--;
 
-		if (ASSERTS) assert a < b : a + " >= " + b;
+		assert a < b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = stack.isEmpty() ? null : stack.top();
@@ -1438,7 +1438,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while(b - a > 0) {
-			if (ASSERTS) assert checkMask != 0;
+			assert checkMask != 0;
 			if (DDDEBUG) System.err.println("(" + a + ".." + (b + 1) + ")");
 
 			final long f = b & checkMask;
@@ -1474,7 +1474,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		b--;
 
-		if (ASSERTS) assert a < b : a + " >= " + b;
+		assert a < b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = stack.isEmpty() ? null : stack.top();
@@ -1483,7 +1483,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (b - a > 0) {
-			if (ASSERTS) assert checkMask != 0;
+			assert checkMask != 0;
 			if (DDDEBUG) System.err.println("(" + a + ".." + (b + 1) + ")");
 
 			final long f = b & checkMask;
@@ -1516,7 +1516,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		b--;
 
-		if (ASSERTS) assert a < b : a + " >= " + b;
+		assert a < b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = null;
@@ -1525,7 +1525,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (b - a > 0) {
-			if (ASSERTS) assert checkMask != 0;
+			assert checkMask != 0;
 			if (DDDEBUG) System.err.println("(" + a + ".." + (b + 1) + ")");
 
 			final long f = b & checkMask;
@@ -1559,7 +1559,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		b--;
 
-		if (ASSERTS) assert a < b : a + " >= " + b;
+		assert a < b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = null;
@@ -1568,7 +1568,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (b - a > 0) {
-			if (ASSERTS) assert checkMask != 0;
+			assert checkMask != 0;
 			if (DDDEBUG) System.err.println("(" + a + ".." + (b + 1) + ")");
 
 			final long f = b & checkMask;
