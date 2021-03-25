@@ -132,7 +132,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			int c = 0;
 			for(int i = signature.length; i-- != 0;) {
 				if (node[i] != null) {
-					assert get(node[i].handle(transform), true) == node[i] : node[i] + " != " + get(node[i].handle(transform), true);
+					assert get(node[i].handle(transform)) == node[i] : node[i] + " != " + get(node[i].handle(transform));
 					c++;
 				}
 			}
@@ -205,51 +205,102 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return (int)(s ^ s >>> 32) & mask;
 		}
 
-		/** Find the position in the table of a given handle using signatures.
+		/**
+		 * Find a node with given handle using signatures.
 		 *
-		 * <p>Note that this function just compares signatures (except for duplicates, which are
-		 * checked explicitly). Thus, it might return false positives when queried with
-		 * keys that are not handles. Nonetheless, it will always return a correct result on a handle.
+		 * <p>
+		 * Note that this function just compares signatures (except for duplicates, which are checked
+		 * explicitly). Thus, it might return false positives when queried with keys that are not handles.
+		 * Nonetheless, it will always return a correct result on a handle.
 		 *
 		 * @param v a bit vector.
 		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
-		 * @param s the signature of the prefix of {@code v} of {@code handleLength} bits.
+		 * @param state the hash state of {@code v} precomputed by
+		 *            {@link Hashes#preprocessMurmur(BitVector, long)}.
 		 *
-		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
+		 * @return a node with the specified handle signature, or {@code null}.
 		 */
-		protected int findPos(final BitVector v, final long handleLength, final long s) {
+		protected InternalNode<U> find(final BitVector v, final long handleLength, final long[] state) {
+			final long s = Hashes.murmur(v, handleLength, state) & SIGNATURE_MASK;
+			return find(v, handleLength, s);
+		}
+
+		/**
+		 * Find a node with given handle using signatures.
+		 *
+		 * <p>
+		 * Note that this function just compares signatures (except for duplicates, which are checked
+		 * explicitly). Thus, it might return false positives when queried with keys that are not handles.
+		 * Nonetheless, it will always return a correct result on a handle.
+		 *
+		 * @param v a bit vector.
+		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
+		 * @param s the signature of the handle.
+		 *
+		 * @return a node with the specified handle signature, or {@code null}.
+		 */
+		private InternalNode<U> find(final BitVector v, final long handleLength, final long s) {
 			int pos = hash(s);
+
+			final InternalNode<U>[] node = this.node;
+			final long[] signature = this.signature;
+
 			while(signature[pos] != 0) { // Position is not empty
 				if ((signature[pos] & SIGNATURE_MASK) == s // Same signature
 						&& ((signature[pos] & DUPLICATE_MASK) == 0 // It's not a duplicate
 								|| (handleLength == node[pos].handleLength() && // Same handle length (it's a duplicate)
 									v.equals(node[pos].reference.key(transform), 0, handleLength)))) // Same handle
-					return pos;
+					return node[pos];
 				pos = (pos + 1) & mask;
 			}
-			return -1;
+			return null;
 		}
 
 
-		/** Find the position in the table of a given handle using handles.
+		/**
+		 * Find a node with given handle using handles.
 		 *
-		 * <p>Note that this function compares handles. Thus, it always returns a correct value.
+		 * <p>
+		 * Note that this function compares handles. Thus, it always returns a correct value.
+		 *
 		 * @param v a bit vector.
 		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
-		 * @param s the signature of the prefix of {@code v} of {@code handleLength} bits.
+		 * @param state the hash state of {@code v} precomputed by
+		 *            {@link Hashes#preprocessMurmur(BitVector, long)}.
 		 *
-		 * @return the position in the table where the specified handle can be found, or a position containing {@code null}.
+		 * @return a node with the specified handle, or {@code null}.
 		 */
-		protected int findExactPos(final BitVector v, final long handleLength, final long s) {
+		protected InternalNode<U> findExact(final BitVector v, final long handleLength, final long[] state) {
+			final long s = Hashes.murmur(v, handleLength, state) & SIGNATURE_MASK;
+			return findExact(v, handleLength, s);
+		}
+
+		/**
+		 * Find a node with given handle using handles.
+		 *
+		 * <p>
+		 * Note that this function compares handles. Thus, it always returns a correct value.
+		 *
+		 * @param v a bit vector.
+		 * @param handleLength the length of the prefix of {@code v} that will be used as a handle.
+		 * @param s the signature of the handle.
+		 *
+		 * @return a node with the specified handle, or {@code null}.
+		 */
+		private InternalNode<U> findExact(final BitVector v, final long handleLength, final long s) {
 			int pos = hash(s);
+
+			final InternalNode<U>[] node = this.node;
+			final long[] signature = this.signature;
+
 			while(node[pos] != null) { // Position is not empty
-					if ((signature[pos] & SIGNATURE_MASK) == s && // Same signature
+				if ((signature[pos] & SIGNATURE_MASK) == s && // Same signature
 							handleLength == node[pos].handleLength() && // Same handle length
 								v.equals(node[pos].reference.key(transform), 0, handleLength)) // Same handle
-						return pos;
+					return node[pos];
 				pos = (pos + 1) & mask;
 			}
-			return -1;
+			return null;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -288,7 +339,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				@Override
 				public boolean contains(final Object o) {
 					final BitVector v = (BitVector)o;
-					return get(v, true) != null;
+					return get(v) != null;
 				}
 
 				@Override
@@ -327,7 +378,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				public boolean contains(final Object o) {
 					@SuppressWarnings("unchecked")
 					final Node<U> node = (Node<U>)o;
-					return get(node.handle(transform), true) != null;
+					return get(node.handle(transform)) != null;
 				}
 
 				@Override
@@ -463,43 +514,27 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return size;
 		}
 
-		/** Retrieves a node given its handle.
-		 *
-		 * @param v a bit vector.
-		 * @param handleLength the prefix of {@code v} that must be used as a handle.
-		 * @param s the signature of the specified handle.
-		 * @param exact whether the search should be exact; if false, and the given handle does not
-		 * appear in the table, it is possible that an unpredictable internal node is returned.
-		 *
-		 * @return the node with given handle, or {@code null} if there is no such node (if
-		 * {@code exact} is false, a false positive might be returned).
-		 */
-		public InternalNode<U> get(final BitVector v, final long handleLength, final long s, final boolean exact) {
-			final int pos;
-			pos = exact ? findExactPos(v, handleLength, s) : findPos(v, handleLength, s);
-			return pos == -1 ? null : node[pos];
-		}
-
-		/** Retrieves a node given its handle.
+		/**
+		 * Retrieves a node given its handle.
 		 *
 		 * @param handle a handle.
-		 * @param exact whether the search should be exact; if false, and the given handle does not
-		 * appear in the table, it is possible that an unpredictable internal node is returned.
+		 * @param exact whether the search should be exact; if false, and the given handle does not appear
+		 *            in the table, it is possible that an unpredictable internal node is returned.
 		 *
-		 * @return the node with given handle, or {@code null} if there is no such node (if
-		 * {@code exact} is false, a false positive might be returned).
+		 * @return the node with given handle, or {@code null} if there is no such node (if {@code exact} is
+		 *         false, a false positive might be returned).
 		 *
 		 * @see #get(BitVector, long, long, boolean)
 		 */
-		public InternalNode<U> get(final BitVector handle, final boolean exact) {
-			return get(handle, handle.length(), Hashes.murmur(handle, 42) & SIGNATURE_MASK, exact);
+		public InternalNode<U> get(final BitVector handle) {
+			return findExact(handle, handle.length(), Hashes.murmur(handle, 42) & SIGNATURE_MASK);
 		}
 
 		@Override
 		public String toString() {
 			final StringBuilder s = new StringBuilder();
 			s.append('{');
-			for(final LongArrayBitVector v: keySet()) s.append(v).append(" => ").append(get(v, true)).append(", ");
+			for (final LongArrayBitVector v : keySet()) s.append(v).append(" => ").append(get(v)).append(", ");
 			if (s.length() > 1) s.setLength(s.length() - 2);
 			s.append('}');
 			return s.toString();
@@ -788,15 +823,15 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		/* Search for the root (shortest handle) and check that nodes and handles do match. */
 		for(final LongArrayBitVector v : handle2Node.keySet()) {
-			final long vHandleLength = handle2Node.get(v, true).handleLength();
-			if (root == null || handle2Node.get(root, true).handleLength() > vHandleLength) root = v;
-			final InternalNode<T> node = handle2Node.get(v, true);
+			final long vHandleLength = handle2Node.get(v).handleLength();
+			if (root == null || handle2Node.get(root).handleLength() > vHandleLength) root = v;
+			final InternalNode<T> node = handle2Node.get(v);
 			nodes.add(node);
 			assert node.reference.reference == node : node + " -> " + node.reference + " -> " + node.reference.reference;
 		}
 
 		assert nodes.size() == handle2Node.size() : nodes.size() + " != " + handle2Node.size();
-		assert size < 2 || this.root == handle2Node.get(root, true);
+		assert size < 2 || this.root == handle2Node.get(root);
 
 		if (size > 1) {
 			/* Verify doubly linked list of leaves. */
@@ -810,7 +845,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 				}
 			}
 
-			final int numNodes = visit(handle2Node.get(root, true), null, 0, 0, nodes, leaves, references);
+			final int numNodes = visit(handle2Node.get(root), null, 0, 0, nodes, leaves, references);
 			assert numNodes == 2 * size - 1 : numNodes + " != " + (2 * size - 1);
 			assert leaves.size() == size;
 			int c = 0;
@@ -1435,7 +1470,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		assert a <= b : a + " >= " + b;
 
-		final InternalNode<T>[] node = handle2Node.node;
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (a < b) {
@@ -1446,20 +1480,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				final int pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
-
-				final long g;
-				final InternalNode n;
+				final InternalNode<T> n = handle2Node.find(v, f, state);
 
 				// The second test is just to catch false positives.
-				if (pos == -1 || (g = (n = node[pos]).extentLength) < f) {
-					if (DDDEBUG) System.err.println("Missing");
-					b = f - 1;
+				if (n != null && n.handleLength() >= f) {
+					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
+					a = n.extentLength;
+					stack.push(n);
 				}
 				else {
-					if (DDDEBUG) System.err.println("Found extent of length " + g);
-					stack.push(n);
-					a = g;
+					if (DDDEBUG) System.err.println("Missing");
+					b = f - 1;
 				}
 			}
 
@@ -1488,7 +1519,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		assert a <= b : a + " > " + b;
 
-		final InternalNode<T>[] node = handle2Node.node;
+		final long length = v.length();
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (a < b) {
@@ -1499,10 +1530,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				final int pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
+				final InternalNode<T> n = handle2Node.findExact(v, f, state);
 
-				final InternalNode<T> n;
-				if (pos != -1 && (n = node[pos]).extent(transform).isProperPrefix(v)) {
+				if (n != null && n.extentLength < length && n.extent(transform).isPrefix(v)) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
 					stack.push(n);
@@ -1526,7 +1556,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		assert a <= b : a + " >= " + b;
 
-		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = null;
 
 		long checkMask = -1L << Fast.ceilLog2(b - a);
@@ -1539,17 +1568,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				final int pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
-				final long g;
+				final InternalNode<T> n = handle2Node.find(v, f, state);
 
 				// The second test is just to catch false positives.
-				if (pos == -1 || (g = node[pos].extentLength) < f) {
+				if (n != null && n.handleLength() >= f) {
+					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
+					a = n.extentLength;
+					top = n;
+				} else {
 					if (DDDEBUG) System.err.println("Missing");
 					b = f - 1;
-				} else {
-					if (DDDEBUG) System.err.println("Found extent of length " + g);
-					top = node[pos];
-					a = g;
 				}
 			}
 
@@ -1561,15 +1589,24 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return top;
 	}
 
+	/**
+	 * Performs an exact fat binary search.
+	 *
+	 * @param v the bit vector on which to perform the search.
+	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
+	 *            for {@code v}.
+	 * @param a the left extreme of the search interval (excluded).
+	 * @param b the right extreme of the search interval (excluded).
+	 * @return the parent of the exit node.
+	 */
+
 	protected InternalNode<T> fatBinarySearchExact(final LongArrayBitVector v, final long[] state, long a, long b) {
-		if (DDDEBUG) System.err.println("fatBinarySearchExact(" + v + ", (" + a + ".." + b + "))");
+		if (DDDEBUG) System.err.println("fatBinarySearchExact(" + v + ", (" + a + ".." + b + "])");
 
 		// We actually keep track of (a..b]
-		b--;
-
 		assert a <= b : a + " >= " + b;
 
-		final InternalNode<T>[] node = handle2Node.node;
+		final long length = v.length();
 		InternalNode<T> top = null;
 
 		long checkMask = -1L << Fast.ceilLog2(b - a);
@@ -1582,10 +1619,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				final int pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
+				final InternalNode<T> n = handle2Node.findExact(v, f, state);
 
-				final InternalNode<T> n;
-				if (pos != -1 && (n = node[pos]).extent(transform).isProperPrefix(v)) {
+				if (n != null && n.extentLength < length && n.extent(transform).isPrefix(v)) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
 					top = n;
