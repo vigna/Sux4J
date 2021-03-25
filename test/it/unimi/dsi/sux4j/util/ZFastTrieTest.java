@@ -41,7 +41,6 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import it.unimi.dsi.sux4j.mph.Hashes;
-import it.unimi.dsi.sux4j.util.ZFastTrie.InternalNode;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
@@ -476,17 +475,50 @@ public class ZFastTrieTest {
 	public void testPrefix() {
 		final ZFastTrie<LongArrayBitVector> z = new ZFastTrie<>(TransformationStrategies.identity());
 		z.add(LongArrayBitVector.of(0, 0, 0, 0));
+		z.add(LongArrayBitVector.of(0, 0, 0, 1));
 		z.add(LongArrayBitVector.of(1, 0, 0, 0));
-		z.add(LongArrayBitVector.of(1, 0, 1, 1));
+		z.add(LongArrayBitVector.of(1, 0, 1, 0, 1));
+		z.add(LongArrayBitVector.of(1, 0, 1, 1, 1));
 
+		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of() }) {
+			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
+			final long[] state = Hashes.preprocessMurmur(v, 42);
+			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			assertEquals(v.toString(), 0, stack.size());
+		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0),
 				LongArrayBitVector.of(1), LongArrayBitVector.of(0), LongArrayBitVector.of(0, 1),
-				LongArrayBitVector.of(0, 0), LongArrayBitVector.of(1, 1) }) {
+				LongArrayBitVector.of(0, 0), LongArrayBitVector.of(1, 1), LongArrayBitVector.of(0, 0, 1, 1),
+				LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			final InternalNode<LongArrayBitVector> parex = z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
-			assertEquals(1, stack.size());
+			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			assertEquals(v.toString(), 1, stack.size());
+		}
+
+		// This test avoid the root and make the 2-fattest test fail at the first iteration
+		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
+			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
+			final long[] state = Hashes.preprocessMurmur(v, 42);
+			z.fatBinarySearchStackExact(v, state, stack, 0, v.length());
+			assertEquals(v.toString(), 0, stack.size());
+		}
+
+		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1) }) {
+			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
+			final long[] state = Hashes.preprocessMurmur(v, 42);
+			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			assertEquals(v.toString(), 2, stack.size());
+		}
+
+		for (final LongArrayBitVector v : new LongArrayBitVector[] {
+				LongArrayBitVector.of(1, 0, 1, 0), LongArrayBitVector.of(1, 0, 1, 0, 1),
+				LongArrayBitVector.of(1, 0, 1, 1), LongArrayBitVector.of(1, 0, 1, 1, 1), }) {
+			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
+			final long[] state = Hashes.preprocessMurmur(v, 42);
+			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			assertEquals(v.toString(), 3, stack.size());
 		}
 	}
 }
