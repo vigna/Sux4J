@@ -1433,11 +1433,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// We actually keep track of (a..b]
 		b--;
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
-		int pos;
-
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (a < b) {
@@ -1448,10 +1446,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
+				final int pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
 
 				final long g;
 				final InternalNode n;
+
 				// The second test is just to catch false positives.
 				if (pos == -1 || (g = (n = node[pos]).extentLength) < f) {
 					if (DDDEBUG) System.err.println("Missing");
@@ -1470,6 +1469,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if (DDDEBUG) System.err.println("Final interval: (" + a + ".." + (b + 1) + "); stack: " + stack);
 	}
 
+	/**
+	 * Performs an exact fat binary search with stack.
+	 *
+	 * @param v the bit vector on which to perform the search.
+	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
+	 *            for {@code v}.
+	 * @param stack a stack where the results of the search will be cumulated.
+	 * @param a the left extreme of the search interval (excluded).
+	 * @param b the right extreme of the search interval (excluded).
+	 */
+
 	protected void fatBinarySearchStackExact(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchStackExact(" + v + ", " + stack + ", (" + a + ".." + b + "))");
 
@@ -1479,8 +1489,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert a <= b : a + " > " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
-		int pos;
-
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
 		while (a < b) {
@@ -1491,9 +1499,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
+				final int pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
 
-				InternalNode<T> n;
+				final InternalNode<T> n;
 				if (pos != -1 && (n = node[pos]).extent(transform).isProperPrefix(v)) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
@@ -1516,11 +1524,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// We actually keep track of (a..b]
 		b--;
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = null;
-		int pos;
 
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
@@ -1532,9 +1539,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
-
+				final int pos = handle2Node.findPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
 				final long g;
+
 				// The second test is just to catch false positives.
 				if (pos == -1 || (g = node[pos].extentLength) < f) {
 					if (DDDEBUG) System.err.println("Missing");
@@ -1559,11 +1566,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		// We actually keep track of (a..b]
 		b--;
-		assert a < b : a + " >= " + b;
+
+		assert a <= b : a + " >= " + b;
 
 		final InternalNode<T>[] node = handle2Node.node;
 		InternalNode<T> top = null;
-		int pos;
 
 		long checkMask = -1L << Fast.ceilLog2(b - a);
 
@@ -1575,17 +1582,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if ((a & checkMask) != f) {
 				if (DDDEBUG) System.err.println("Inquiring with key " + v.subVector(0, f) + " (" + f + ")");
 
-				pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
+				final int pos = handle2Node.findExactPos(v, f, Hashes.murmur(v, f, state) & SIGNATURE_MASK);
 
-				final long g;
-				// The second test is just to catch false positives.
-				if (pos == -1 || (g = node[pos].extentLength) < f) {
+				final InternalNode<T> n;
+				if (pos != -1 && (n = node[pos]).extent(transform).isProperPrefix(v)) {
+					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
+					a = n.extentLength;
+					top = n;
+				} else {
 					if (DDDEBUG) System.err.println("Missing");
 					b = f - 1;
-				} else {
-					if (DDDEBUG) System.err.println("Found extent of length " + g);
-					top = node[pos];
-					a = g;
 				}
 			}
 
