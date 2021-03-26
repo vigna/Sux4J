@@ -94,7 +94,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static final boolean DEBUG = false || DDEBUG;
 	/** The mask used to extract the actual signature (the high bit marks duplicates). */
 	private static final long SIGNATURE_MASK = 0x7FFFFFFFFFFFFFFFL;
-	// private static final long SIGNATURE_MASK = 0x0L;
+	// private static final long SIGNATURE_MASK = 0x1L;
 	/** The mask for the high bit (which marks duplicates). */
 	private static final long DUPLICATE_MASK = 0x8000000000000000L;
 
@@ -607,7 +607,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		@SuppressWarnings({"unchecked"})
 		public String toString() {
 			final Object key = isInternal() ? ((InternalNode<U>)this).reference.key : ((Leaf<U>)this).key;
-			final TransformationStrategy transform = key instanceof CharSequence ? TransformationStrategies.prefixFreeIso() : TransformationStrategies.identity();
+			final TransformationStrategy transform = key instanceof CharSequence ? TransformationStrategies.prefixFreeIso() : key instanceof Long ? TransformationStrategies.fixedLong() : TransformationStrategies.identity();
 			final long extentLength = extentLength(transform);
 			return (isLeaf() ? "[" : "(") + Integer.toHexString(hashCode() & 0xFFFF) +
 				(key(transform) == null ? "" :
@@ -1323,7 +1323,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		// Otherwise, something went horribly wrong. We restart in exact mode.
 		parexOrExitNode = fatBinarySearchExact(v, state, 0, length);
-		// TODO: shouldn't we check here too?
+		if (parexOrExitNode == null) parexOrExitNode = (InternalNode<T>)root;
 		candidateExitNode = parexOrExitNode.extent(transform).isProperPrefix(v) ?
 			parexOrExitNode.extentLength < length && v.getBoolean(parexOrExitNode.extentLength) ? parexOrExitNode.right : parexOrExitNode.left : parexOrExitNode;
 
@@ -1383,23 +1383,25 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			// If the exit node is the root, there is no parent.
 			if (parexOrExitNode == root) return new ParexData<>(null, parexOrExitNode, lcpLength);
 
-			final long startingPoint = stack.top().extentLength;
+			final long startingPoint = stack.top().extentLength + 1;
 			// We're lucky: the second element on the stack is the parex node.
-			if (startingPoint == parexOrExitNode.nameLength - 1) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength); // TODO check -1
+			if (startingPoint == parexOrExitNode.nameLength) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength); // TODO
+																																// check
+																																// -1
 			final int stackSize = stack.size();
 			// Unless there are mistakes, this is really the parex node.
 			// TODO: check starting point
-			fatBinarySearchStack(v, state, stack, startingPoint + 1, parexOrExitNode.nameLength - 1);
+			fatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
 			if (!stack.isEmpty()) {
 				final InternalNode<T> parexNode = stack.top();
 				if (parexNode.left == parexOrExitNode || parexNode.right == parexOrExitNode) return new ParexData<>(parexNode, parexOrExitNode, lcpLength);
 			}
 			// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 			stack.size(stackSize);
-			return new ParexData<>(fatBinarySearchExact(v, state, startingPoint + 1, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength);
+			return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength);
 		}
 
-		// The search failed. This even is so rare that we can afford to handle it inefficiently.
+		// The search failed. This event is so rare that we can afford to handle it inefficiently.
 		stack.clear();
 		fatBinarySearchStackExact(v, state, stack, 0, length - 1);
 		if (stack.isEmpty()) stack.push((InternalNode<T>)root);
@@ -1416,11 +1418,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// If the exit node is the root, there is no parent.
 		if (parexOrExitNode == root) return new ParexData<>(null, parexOrExitNode, lcpLength);
 
-		final long startingPoint = stack.top().extentLength;
+		final long startingPoint = stack.top().extentLength + 1;
 		// We're lucky: the second element on the stack is the parex node.
-		if (startingPoint == parexOrExitNode.nameLength - 1) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength);
+		if (startingPoint == parexOrExitNode.nameLength) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength);
 		// The fat binary search will certainly return the parex node.
-		return new ParexData<>(fatBinarySearchExact(v, state, startingPoint + 1, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength); // TODO
+		return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength); // TODO
 																																			// checl
 	}
 
@@ -1448,19 +1450,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// If the parent of the exit node is the root, there is no grandparent.
 		if (parentExitNode == root) return null;
 
-		final long startingPoint = stack.top().extentLength;
+		final long startingPoint = stack.top().extentLength + 1;
 		// We're lucky: the second element on the stack is the grandparent of the exit node.
-		if (startingPoint == parentExitNode.nameLength - 1) return stack.top();  // TODO check -1
+		if (startingPoint == parentExitNode.nameLength) return stack.top(); // TODO check -1
 
 		final int stackSize = stack.size();
 		// Unless there are mistakes, this is really the grandparent of the exit node.
-		fatBinarySearchStack(v, state, stack, startingPoint + 1, parentExitNode.nameLength - 1); // TODO check -1
+		fatBinarySearchStack(v, state, stack, startingPoint, parentExitNode.nameLength - 1); // TODO check -1
 		final InternalNode<T> grandParentExitNode = stack.top();																																// check
-																																		// -1
+		// -1
 		if (grandParentExitNode.left == parentExitNode || grandParentExitNode.right == parentExitNode) return grandParentExitNode;
 		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 		stack.size(stackSize);
-		return fatBinarySearchExact(v, state, startingPoint + 1, parentExitNode.nameLength - 1); // TODO check -1
+		return fatBinarySearchExact(v, state, startingPoint, parentExitNode.nameLength - 1); // TODO check -1
 	}
 
 
@@ -1487,7 +1489,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		while (a < b) {
 			assert checkMask != 0;
-			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + ")");
+			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + "]");
 
 			final long f = b & checkMask;
 			if ((a & checkMask) != f) {
@@ -1495,7 +1497,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				final InternalNode<T> n = handle2Node.find(v, f, state);
 
-				if (n != null) {
+				if (n != null && n.extentLength >= f) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
 					stack.push(n);
@@ -1536,7 +1538,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		while (a < b) {
 			assert checkMask != 0;
-			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + ")");
+			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + "]");
 
 			final long f = b & checkMask;
 			if ((a & checkMask) != f) {
@@ -1586,7 +1588,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		while (a < b) {
 			assert checkMask != 0;
-			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + ")");
+			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + "]");
 
 			final long f = b & checkMask;
 			if ((a & checkMask) != f) {
@@ -1594,7 +1596,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				final InternalNode<T> n = handle2Node.find(v, f, state);
 
-				if (n != null) {
+				if (n != null && n.extentLength >= f) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
 					top = n;
@@ -1637,7 +1639,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		while (a < b) {
 			assert checkMask != 0;
-			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + ")");
+			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + "]");
 
 			final long f = b & checkMask;
 			if ((a & checkMask) != f) {
