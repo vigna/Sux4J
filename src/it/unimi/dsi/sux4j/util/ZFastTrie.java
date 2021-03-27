@@ -247,9 +247,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 			while(signature[pos] != 0) { // Position is not empty
 				if ((signature[pos] & SIGNATURE_MASK) == s // Same signature
-						&& ((signature[pos] & DUPLICATE_MASK) == 0 // It's not a duplicate
-								|| (handleLength == node[pos].handleLength() && // Same handle length (it's a duplicate)
-									v.equals(node[pos].reference.key(transform), 0, handleLength)))) // Same handle
+						// It's not a duplicate and the extent length is compatible
+						&& ((signature[pos] & DUPLICATE_MASK) == 0 && node[pos].extentLength >= handleLength
+								// Same handle length (it's a duplicate)
+								|| (handleLength == node[pos].handleLength() &&
+								// Same handle
+										v.equals(node[pos].reference.key(transform), 0, handleLength))))
 					return node[pos];
 				pos = (pos + 1) & mask;
 			}
@@ -1480,12 +1483,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected void fatBinarySearchStack(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchStack(" + v + ", " + stack + ", [" + a + ".." + b + "])");
 
+		assert a <= b : a + " >= " + b;
+
 		// We actually keep track of (a..b]
 		a--;
 
-		assert a <= b : a + " >= " + b;
-
-		long checkMask = -1L << Fast.ceilLog2(b - a);
+		final long length = v.length();
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1497,9 +1501,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				final InternalNode<T> n = handle2Node.find(v, f, state);
 
-				if (n != null && n.extentLength >= f) {
-					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
-					a = n.extentLength;
+				final long extentLength;
+				if (n != null && (extentLength = n.extentLength) < length) {
+					if (DDDEBUG) System.err.println("Found extent of length " + extentLength);
+					a = extentLength;
 					stack.push(n);
 				}
 				else {
@@ -1528,13 +1533,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected void fatBinarySearchStackExact(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchStackExact(" + v + ", " + stack + ", [" + a + ".." + b + "])");
 
+		assert a <= b : a + " > " + b;
+
 		// We actually keep track of (a..b]
 		a--;
 
-		assert a <= b : a + " > " + b;
-
 		final long length = v.length();
-		long checkMask = -1L << Fast.ceilLog2(b - a);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1577,14 +1582,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected InternalNode<T> fatBinarySearch(final LongArrayBitVector v, final long[] state, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearch(" + v + ", [" + a + ".." + b + "]xw)");
 
+		assert a <= b : a + " >= " + b;
+
 		// We actually keep track of (a..b]
 		a--;
 
-		assert a <= b : a + " >= " + b;
-
 		InternalNode<T> top = null;
-
-		long checkMask = -1L << Fast.ceilLog2(b - a);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1596,7 +1600,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				final InternalNode<T> n = handle2Node.find(v, f, state);
 
-				if (n != null && n.extentLength >= f) {
+				if (n != null) {
 					if (DDDEBUG) System.err.println("Found extent of length " + n.extentLength);
 					a = n.extentLength;
 					top = n;
@@ -1634,8 +1638,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long length = v.length();
 		InternalNode<T> top = null;
-
-		long checkMask = -1L << Fast.ceilLog2(b - a);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
 
 		while (a < b) {
 			assert checkMask != 0;
