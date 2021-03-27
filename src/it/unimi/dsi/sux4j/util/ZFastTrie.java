@@ -1489,7 +1489,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		a--;
 
 		final long length = v.length();
-		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1539,7 +1539,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		a--;
 
 		final long length = v.length();
-		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1588,7 +1588,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		a--;
 
 		InternalNode<T> top = null;
-		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1638,7 +1638,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long length = v.length();
 		InternalNode<T> top = null;
-		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a - 1);
+		long checkMask = -1L << 64 - Long.numberOfLeadingZeros(b - a);
 
 		while (a < b) {
 			assert checkMask != 0;
