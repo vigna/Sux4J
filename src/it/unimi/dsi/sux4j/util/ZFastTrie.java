@@ -808,7 +808,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 *         search in {@code (a..b]}.
 	 */
 	public final static long checkMask(final long a, final long b) {
-		assert a != -1;
 		return -1L << Fast.mostSignificantBit(a ^ b);
 	}
 
