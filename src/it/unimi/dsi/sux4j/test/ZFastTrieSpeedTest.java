@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.io.FastBufferedReader;
 import it.unimi.dsi.io.LineIterator;
 import it.unimi.dsi.sux4j.util.ZFastTrie;
+import it.unimi.dsi.Util;
 
 public class ZFastTrieSpeedTest {
 
@@ -99,14 +100,14 @@ public class ZFastTrieSpeedTest {
 			Collections.shuffle(Arrays.asList(test));
 			System.out.println("Testing...");
 			for(int k = times; k-- != 0;) {
-				long time = -System.currentTimeMillis();
+				long time = -System.nanoTime();
 				for(int j = n; j-- != 0;) {
 					zFastTrie.contains(test[j]);
-					if (j % 10000 == 0) System.err.print('.');
+					if ((j & 0xFFFFF) == 0) System.err.print('.');
 				}
 				System.err.println();
-				time += System.currentTimeMillis();
-				System.err.println(time / 1E3 + "s, " + (time * 1E6) / n + " ns/vector");
+				time += System.nanoTime();
+				System.err.println(Util.format(time * 1E-9) + "s, " + Util.format((double)time / n) + " ns/vector");
 				//System.err.println("Probes: " + zFastTrie.map.probes + " Scans: " + zFastTrie.map.scans + " Average: " + (double)(zFastTrie.map.scans) / zFastTrie.map.probes);
 			}
 		}
@@ -121,14 +122,14 @@ public class ZFastTrieSpeedTest {
 			Collections.shuffle(Arrays.asList(test));
 			System.out.println("Testing...");
 			for(int k = times; k-- != 0;) {
-				long time = -System.currentTimeMillis();
+				long time = -System.nanoTime();
 				for(int j = n; j-- != 0;) {
 					zFastTrie.contains(test[j]);
-					if (j % 10000 == 0) System.err.print('.');
+					if ((j & 0xFFFFF) == 0) System.err.print('.');
 				}
 				System.err.println();
-				time += System.currentTimeMillis();
-				System.err.println(time / 1E3 + "s, " + (time * 1E6) / n + " ns/vector");
+				time += System.nanoTime();
+				System.err.println(Util.format(time * 1E-9) + "s, " + Util.format((double)time / n) + " ns/vector");
 			}
 		}
 	}
