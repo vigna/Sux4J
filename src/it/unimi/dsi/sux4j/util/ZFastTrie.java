@@ -1611,7 +1611,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param checkMask the correct check mask for the interval {@code (a..b]}
 	 * @see #checkMask(long)
 	 * @see #checkMask(long,long)
-	 * @return the parent of the exit node, or the exit node.
+	 * @return the parent of the exit node or the exit node, in case of success; an arbitrary node
+	 *         otherwise.
 	 */
 
 	protected InternalNode<T> fatBinarySearch(final LongArrayBitVector v, final long[] state, long a, long b, long checkMask) {
