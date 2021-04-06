@@ -229,7 +229,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * Find a node with given handle using signatures.
 		 *
 		 * <p>
-		 * Note that this function just compares signatures (except for duplicates, which are checked
+		 * Note that this function just compares signatures and handle lengths (except for duplicates, which are checked
 		 * explicitly). Thus, it might return false positives when queried with keys that are not handles.
 		 * Nonetheless, it will always return a correct result on a handle.
 		 *
