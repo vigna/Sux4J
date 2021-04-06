@@ -358,17 +358,10 @@ public class ZFastTrieTest {
 	@Test
 	public void testExtent() {
 		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
-		final LongArrayBitVector v = LongArrayBitVector.getInstance();
-		v.add(0);
-		v.add(1);
-		zft.add(v);
-		final LongArrayBitVector w = LongArrayBitVector.getInstance();
-		w.add(0);
-		w.add(0);
-		zft.add(w);
-		final LongArrayBitVector q = LongArrayBitVector.getInstance();
-		q.add(0);
-		zft.contains(q);
+		zft.add(LongArrayBitVector.of(0, 0));
+		zft.add(LongArrayBitVector.of(0, 1));
+		zft.contains(LongArrayBitVector.of(0));
+		zft.add(LongArrayBitVector.of(0));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -378,7 +371,7 @@ public class ZFastTrieTest {
 		File temp;
 		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
 
-		for (int d = 10; d < 10000; d *= 10) {
+		for (int d = 10; d < 1000; d *= 10) {
 			final String[] s = new String[d];
 
 			for (int rand = 0; rand < 2; rand++) {
@@ -452,7 +445,7 @@ public class ZFastTrieTest {
 	@Test
 	public void testPredSucc() {
 		final TreeSet<Long> t = new TreeSet<>();
-		final long u = 1 << 16;
+		final long u = 1 << 12;
 		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() % u);
 
