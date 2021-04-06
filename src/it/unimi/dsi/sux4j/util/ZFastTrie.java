@@ -250,7 +250,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 				if ((sig & SIGNATURE_MASK) == s) { // Same signature
 					// It's not a duplicate: if the extent length is compatible, we return the node, otherwise null
-					if ((sig & DUPLICATE_MASK) == 0) return node[pos].extentLength >= handleLength ? node[pos] : null;
+					if ((sig & DUPLICATE_MASK) == 0) return node[pos].handleLength() == handleLength ? node[pos] : null;
 					// It's a duplicate: we have to check explicitly
 					if (handleLength == node[pos].handleLength() && v.equals(node[pos].reference.key(transform), 0, handleLength)) return node[pos];
 				}
@@ -1141,7 +1141,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long[] state = Hashes.preprocessMurmur(v, 42);
 		final ParexData<T> parexData = getParentExitNode(v, state, stack);
-		assertParent(v, parexData, stack);
+		if (ASSERTS) assertParent(v, parexData, stack);
 
 		parentExitNode = parexData.parexNode;
 		exitNode = parexData.exitNode;
@@ -1387,79 +1387,62 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public ParexData<T> getParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentExitNode(" + v + ")");
 		if (size == 0) throw new IllegalStateException();
-		if (size == 1) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
 		final long length = v.length();
 
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
 		fatBinarySearchStack(v, state, stack, -1, length - 1);
-		if (stack.isEmpty()) stack.push((InternalNode<T>)root);
+
+		// In this case, necessarily the search was successful and we have the parex.
+		if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
+
 		InternalNode<T> parexOrExitNode = stack.top();
+		long lcpLength = v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
 
-		// This will contain the exit node if parexOrExitNode contains the correct parex node.
-		Node<T> candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean(parexOrExitNode.extentLength) ? parexOrExitNode.right : parexOrExitNode.left;
-
-		/* This lcp length makes it possible to compute the length of the lcp between v and
-		 * parexOrExitNode by minimisation with the extent length, as necessarily the extent of
-		 * candidateExitNode is an extension of the extent of parexOrExitNode. */
-		long lcpLength = v.longestCommonPrefixLength(candidateExitNode.extent(transform));
-
-		// In this case the fat binary search gave us the correct parex node, and we have all the data we need.
-		if (candidateExitNode.isExitNodeOf(length, lcpLength, transform)) return new ParexData<>(parexOrExitNode, candidateExitNode, lcpLength);
-
-		// Now this is the length of the longest common prefix between v and the extent of parexOrExitNode.
-		lcpLength = Math.min(parexOrExitNode.extentLength, lcpLength);
-
-		assert lcpLength == v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
-
-		if (parexOrExitNode.isExitNodeOf(length, lcpLength, transform)) {
-			// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack and maybe restart the search.
-			stack.pop();
-
-			// If the exit node is the root, there is no parent.
-			if (parexOrExitNode == root) return new ParexData<>(null, parexOrExitNode, lcpLength);
-
-			final long startingPoint = stack.top().extentLength;
-			// We're lucky: the second element on the stack is the parex node.
-			if (startingPoint == parexOrExitNode.nameLength - 1) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength); // TODO
-																																// check
-																																// -1
-			final int stackSize = stack.size();
-			// Unless there are mistakes, this is really the parex node.
-			// TODO: check starting point
-			fatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
-			if (!stack.isEmpty()) {
-				final InternalNode<T> parexNode = stack.top();
-				if (parexNode.left == parexOrExitNode || parexNode.right == parexOrExitNode) return new ParexData<>(parexNode, parexOrExitNode, lcpLength);
-			}
-			// Something went wrong with the last search. We can just, at this point, restart in exact mode.
-			stack.size(stackSize);
-			return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength);
+		// If the search is not correct, we redo it exactly
+		if (lcpLength < parexOrExitNode.handleLength()) {
+			stack.clear();
+			fatBinarySearchStackExact(v, state, stack, -1, length - 1);
+			if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
+			parexOrExitNode = stack.top();
+			lcpLength = v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
 		}
 
-		// The search failed. This event is so rare that we can afford to handle it inefficiently.
-		stack.clear();
-		fatBinarySearchStackExact(v, state, stack, -1, length - 1);
-		if (stack.isEmpty()) stack.push((InternalNode<T>)root);
-		parexOrExitNode = stack.top();
-		candidateExitNode = parexOrExitNode.extentLength < length && v.getBoolean(parexOrExitNode.extentLength) ? parexOrExitNode.right : parexOrExitNode.left;
-		lcpLength = v.longestCommonPrefixLength(candidateExitNode.extent(transform));
+		// From here the search is correct
+		if (lcpLength < v.length()) {
+			// We actually got the parex
+			final Node<T> exitNode = v.getBoolean(parexOrExitNode.extentLength) ? parexOrExitNode.right : parexOrExitNode.left;
+			return new ParexData<>(parexOrExitNode, exitNode, v.longestCommonPrefixLength(exitNode.extent(transform)));
+		}
 
-		// In this case the fat binary search gave us the correct parex node, and we have all the data we need.
-		if (candidateExitNode.isExitNodeOf(length, lcpLength, transform)) return new ParexData<>(parexOrExitNode, candidateExitNode, lcpLength);
-
-		// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack and maybe restart the search.
+		System.err.println("*********");
+		// In this case the fat binary search gave us the correct *exit* node. We must pop it from the stack
+		// and maybe restart the search.
 		stack.pop();
-
-		// If the exit node is the root, there is no parent.
-		if (parexOrExitNode == root) return new ParexData<>(null, parexOrExitNode, lcpLength);
+		if (stack.isEmpty()) return new ParexData<>(null, parexOrExitNode, lcpLength);
 
 		final long startingPoint = stack.top().extentLength;
 		// We're lucky: the second element on the stack is the parex node.
 		if (startingPoint == parexOrExitNode.nameLength - 1) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength);
-		// The fat binary search will certainly return the parex node.
-		return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength); // TODO
-																																			// checl
-																																		}
+
+		final int stackSize = stack.size();
+		// We have to restart the search
+		fatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
+
+		// In this case, necessarily the search was successful and we have the parex.
+		if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
+
+		final InternalNode<T> parex = stack.top();
+
+		if (v.longestCommonPrefixLength(parex.extent(transform)) >= parex.handleLength()) {
+			// We actually got the parex
+			final Node<T> exitNode = v.getBoolean(parex.extentLength) ? parex.right : parex.left;
+			return new ParexData<>(parex, exitNode, v.longestCommonPrefixLength(exitNode.extent(transform)));
+		}
+
+		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
+		stack.size(stackSize);
+		return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength);
+	}
 
 	private void assertParent(final LongArrayBitVector v, final ParexData<T> parexData, final ObjectArrayList<InternalNode<T>> stack) {
 		assert (parexData.parexNode == null) == stack.isEmpty() : (parexData.parexNode == null) + " != " + stack.isEmpty();
@@ -1482,6 +1465,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	public InternalNode<T> getGrandParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentGrandExitNode(" + v + ", " + stack + ")");
 		final InternalNode<T> parentExitNode = stack.pop();
+
 		// If the parent of the exit node is the root, there is no grandparent.
 		if (parentExitNode == root) return null;
 
@@ -1500,7 +1484,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 		stack.size(stackSize);
 		return fatBinarySearchExact(v, state, startingPoint, parentExitNode.nameLength - 1); // TODO
-																																															// check
+																								// check
 																																															// -1
 	}
 
