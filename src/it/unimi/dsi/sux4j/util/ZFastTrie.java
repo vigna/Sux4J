@@ -1403,9 +1403,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			parexOrExitNode = stack.top();
 			lcpLength = v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
 		}
-		
-		if (lcpLength == length) throw new IllegalArgumentException();
-		
+
 		// From here the search is correct
 		if (lcpLength >= parexOrExitNode.extentLength) {
 			// We actually got the parex
@@ -1426,9 +1424,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// We have to restart the search
 		fatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
 
-		// In this case, necessarily the search was successful and we have the parex.
-		if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
-
+		// Note that the stack cannot be empty, as an empty stack is the result of a
+		// successful search, and we are missing the parex.
 		final InternalNode<T> parex = stack.top();
 
 		if (v.longestCommonPrefixLength(parex.extent(transform)) >= parex.handleLength()) {
@@ -1439,7 +1436,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
 		stack.size(stackSize);
-		return new ParexData<>(fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1), parexOrExitNode, lcpLength);
+		fatBinarySearchExact(v, state, startingPoint, parexOrExitNode.nameLength - 1);
+		return new ParexData<>(stack.top(), parexOrExitNode, lcpLength);
 	}
 
 	private void assertParent(final LongArrayBitVector v, final ParexData<T> parexData, final ObjectArrayList<InternalNode<T>> stack) {
