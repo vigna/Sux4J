@@ -356,12 +356,54 @@ public class ZFastTrieTest {
 	}
 
 	@Test
-	public void testExtent() {
+	public void testPrefixExtension() {
 		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
 		zft.add(LongArrayBitVector.of(0, 0));
 		zft.add(LongArrayBitVector.of(0, 1));
-		zft.contains(LongArrayBitVector.of(0));
+		assertFalse(zft.add(LongArrayBitVector.of(0, 0)));
+		assertFalse(zft.add(LongArrayBitVector.of(0, 1)));
+		assertTrue(zft.contains(LongArrayBitVector.of(0, 0)));
+		assertTrue(zft.contains(LongArrayBitVector.of(0, 1)));
+		assertFalse(zft.contains(LongArrayBitVector.of(0)));
+		assertFalse(zft.contains(LongArrayBitVector.of(0, 0, 0)));
+		assertFalse(zft.remove(LongArrayBitVector.of(0)));
+		assertFalse(zft.remove(LongArrayBitVector.of(0, 0, 0)));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddingProperPrefix() {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		zft.add(LongArrayBitVector.of(0, 0));
+		zft.add(LongArrayBitVector.of(0, 1));
+		zft.contains(LongArrayBitVector.of(0, 0));
+		zft.contains(LongArrayBitVector.of(0, 1));
 		zft.add(LongArrayBitVector.of(0));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testAddingProperExtension() {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		zft.add(LongArrayBitVector.of(0, 0));
+		zft.add(LongArrayBitVector.of(0, 1));
+		zft.contains(LongArrayBitVector.of(0, 0));
+		zft.contains(LongArrayBitVector.of(0, 1));
+		zft.add(LongArrayBitVector.of(0, 0, 0));
+	}
+
+	@Test
+	public void testCatchAllSearches() {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		final LongArrayBitVector v = LongArrayBitVector.of();
+		for(int i = 0; i < 100; i++) {
+			final LongArrayBitVector w = v.copy();
+			w.add(1);
+			zft.add(w);
+			v.add(0);
+		}
+
+		v.length(50);
+		v.add(1);
+		zft.remove(v);
 	}
 
 	@SuppressWarnings("unchecked")
