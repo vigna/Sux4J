@@ -401,7 +401,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			if (DEBUG) System.err.println("Map.replaceExisting(" + oldNode + ", " + newNode + ", " + s + ")");
 			int pos = hash(s);
 			while(node[pos] != oldNode) pos = (pos + 1) & mask;
-			if (node[pos] == null) throw new IllegalStateException();
 			assert node[pos].handle(transform).equals(newNode.handle(transform)) : node[pos].handle(transform) + " != " + newNode.handle(transform);
 			node[pos] = newNode;
 			if (ASSERTS) assertTable();
