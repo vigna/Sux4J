@@ -1356,8 +1356,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// If the search is not correct, we redo it exactly
 		if (lcpLength < parexOrExitNode.handleLength()) {
 			parexOrExitNode = fatBinarySearchExact(v, state, -1, length);
-
-			if (parexOrExitNode == null) return new ExitData<>(root, v.longestCommonPrefixLength(root.extent(transform)));
 			lcpLength = v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
 		}
 
@@ -1505,7 +1503,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 *            for {@code v}.
 	 * @param stack a stack where the results of the search will be cumulated.
 	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &gt; {@code a} (included).
+	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
 	 * @param checkMask the correct check mask for the interval {@code (a..b]}
 	 * @see #checkMask(long)
 	 * @see #checkMask(long,long)
@@ -1514,7 +1512,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected void fatBinarySearchStack(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchStack(" + v + ", " + stack + ", [" + (a + 1) + ".." + b + "])");
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 		final long length = v.length();
 		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 
@@ -1553,7 +1551,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 *            for {@code v}.
 	 * @param stack a stack where the results of the search will be cumulated.
 	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &gt; {@code a} (included).
+	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
 	 * @param checkMask the correct check mask for the interval {@code (a..b]}
 	 * @see #checkMask(long)
 	 * @see #checkMask(long,long)
@@ -1562,7 +1560,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected void fatBinarySearchStackExact(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchStackExact(" + v + ", " + stack + ", [" + (a + 1) + ".." + b + "])");
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 		final long length = v.length();
 		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 
@@ -1600,7 +1598,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 *            for {@code v}.
 	 * @param stack a stack where the results of the search will be cumulated.
 	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &gt; {@code a} (included).
+	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
 	 * @param checkMask the correct check mask for the interval {@code (a..b]}
 	 * @see #checkMask(long)
 	 * @see #checkMask(long,long)
@@ -1611,7 +1609,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected InternalNode<T> fatBinarySearch(final LongArrayBitVector v, final long[] state, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearch(" + v + ", [" + (a + 1) + ".." + b + "])");
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 		InternalNode<T> top = null;
 		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 
@@ -1649,7 +1647,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
 	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &gt; {@code a} (included).
+	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
 	 * @param checkMask the correct check mask for the interval {@code (a..b]}
 	 * @see #checkMask(long)
 	 * @see #checkMask(long,long)
@@ -1659,7 +1657,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	protected InternalNode<T> fatBinarySearchExact(final LongArrayBitVector v, final long[] state, long a, long b) {
 		if (DDDEBUG) System.err.println("fatBinarySearchExact(" + v + ", [" + (a + 1) + ".." + b + "])");
 
-		assert a < b : a + " >= " + b;
+		assert a <= b : a + " >= " + b;
 		InternalNode<T> top = null;
 		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 

@@ -364,8 +364,10 @@ public class ZFastTrieTest {
 		assertFalse(zft.add(LongArrayBitVector.of(0, 1)));
 		assertTrue(zft.contains(LongArrayBitVector.of(0, 0)));
 		assertTrue(zft.contains(LongArrayBitVector.of(0, 1)));
+		assertFalse(zft.contains(LongArrayBitVector.of()));
 		assertFalse(zft.contains(LongArrayBitVector.of(0)));
 		assertFalse(zft.contains(LongArrayBitVector.of(0, 0, 0)));
+		assertFalse(zft.remove(LongArrayBitVector.of()));
 		assertFalse(zft.remove(LongArrayBitVector.of(0)));
 		assertFalse(zft.remove(LongArrayBitVector.of(0, 0, 0)));
 	}
@@ -388,6 +390,28 @@ public class ZFastTrieTest {
 		zft.contains(LongArrayBitVector.of(0, 0));
 		zft.contains(LongArrayBitVector.of(0, 1));
 		zft.add(LongArrayBitVector.of(0, 0, 0));
+	}
+
+	@Test
+	public void testCutsHighOnRoot() {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		zft.add(LongArrayBitVector.of(0, 0, 0, 0, 0, 0, 0));
+
+		final LongArrayBitVector v = LongArrayBitVector.of(0, 0, 0, 0, 0, 0, 1);
+		for (int i = 0; i < 100; i++) {
+			final LongArrayBitVector w = v.copy();
+			w.add(1);
+			zft.add(w);
+			v.add(0);
+		}
+
+		assertFalse(zft.contains(LongArrayBitVector.of(0)));
+		assertFalse(zft.contains(LongArrayBitVector.of(0, 0)));
+		assertFalse(zft.contains(LongArrayBitVector.of(0, 0, 0, 0)));
+		assertFalse(zft.contains(LongArrayBitVector.of(0, 1)));
+		assertFalse(zft.contains(LongArrayBitVector.of(1)));
+		assertFalse(zft.contains(LongArrayBitVector.of(1, 0)));
+		assertFalse(zft.contains(LongArrayBitVector.of(1, 1)));
 	}
 
 	@Test
