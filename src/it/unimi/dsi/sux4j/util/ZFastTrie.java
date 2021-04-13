@@ -88,7 +88,7 @@ import it.unimi.dsi.sux4j.mph.Hashes;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZFastTrie.class);
-	private static final boolean ASSERTS = false;
+	private static final boolean ASSERTS = true;
 	private static final boolean DDDEBUG = false;
 	private static final boolean DDEBUG = false || DDDEBUG;
 	private static final boolean DEBUG = false || DDEBUG;
@@ -955,11 +955,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixRightJumpsAfterInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
-		if (DEBUG) System.err.println("fixRightJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
+	private static <U> void fixJumpsAfterRightInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed;
 		long jumpLength;
+
+		if (!exitNodeIsRightChild) {
+			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
+			while (!stack.isEmpty()) {
+				toBeFixed = stack.pop();
+				jumpLength = toBeFixed.jumpLength();
+				if (toBeFixed.jumpLeft != exitNode || jumpLength >= leafNameLength) return;
+				toBeFixed.jumpLeft = internal;
+			}
+		}
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the exit node but now must point to the new internal node. */
@@ -992,11 +1002,21 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixLeftJumpsAfterInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
-		if (DEBUG) System.err.println("fixLeftJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
+	private static <U> void fixJumpsAfterLeftInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed;
 		long jumpLength;
+
+		if (exitNodeIsRightChild) {
+			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
+			while (!stack.isEmpty()) {
+				toBeFixed = stack.pop();
+				jumpLength = toBeFixed.jumpLength();
+				if (toBeFixed.jumpRight != exitNode || jumpLength >= leafNameLength) return;
+				toBeFixed.jumpRight = internal;
+			}
+		}
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the exit node but now must point to the new internal node. */
@@ -1191,8 +1211,8 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		if (DDEBUG) System.err.println("Cut " + (cutLow ? "low" : "high") + "; exit to the " + (exitDirection ? "right" : "left"));
 
-		if (exitDirection) fixRightJumpsAfterInsertion(internal, exitNode, rightChild, leaf, stack);
-		else fixLeftJumpsAfterInsertion(internal, exitNode, rightChild, leaf, stack);
+		if (exitDirection) fixJumpsAfterRightInsertion(internal, exitNode, rightChild, leaf, stack);
+		else fixJumpsAfterLeftInsertion(internal, exitNode, rightChild, leaf, stack);
 
 		if (cutLow && exitNodeIsInternal) {
 			handle2Node.replaceExisting((InternalNode<T>)exitNode, internal, Hashes.murmur(v, exitNodeHandleLength, state) & SIGNATURE_MASK);

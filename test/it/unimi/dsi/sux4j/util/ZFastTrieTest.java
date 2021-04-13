@@ -344,6 +344,19 @@ public class ZFastTrieTest {
 				assertTrue(zft.remove(LongArrayBitVector.getInstance().append(i, p)));
 			for (int i = 0; i < (1 << p); i++)
 				assertTrue(zft.add(LongArrayBitVector.getInstance().append(i, p)));
+			for (int i = 0; i < (1 << p); i++)
+				assertTrue(zft.remove(LongArrayBitVector.getInstance().append(i, p)));
+		}
+
+		for (int p = 0; p < 10; p++) {
+			for (int i = (1 << p); i-- != 0;)
+				assertTrue(zft.add(LongArrayBitVector.getInstance().append(i, p)));
+			for (int i = (1 << p); i-- != 0;)
+				assertTrue(zft.contains(LongArrayBitVector.getInstance().append(i, p)));
+			for (int i = (1 << p); i-- != 0;)
+				assertTrue(zft.remove(LongArrayBitVector.getInstance().append(i, p)));
+			for (int i = (1 << p); i-- != 0;)
+				assertTrue(zft.add(LongArrayBitVector.getInstance().append(i, p)));
 			for (int i = (1 << p); i-- != 0;)
 				assertTrue(zft.remove(LongArrayBitVector.getInstance().append(i, p)));
 		}
