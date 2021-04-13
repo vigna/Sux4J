@@ -21,7 +21,6 @@ package it.unimi.dsi.sux4j.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -606,7 +605,7 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of() }) {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
-			assertNull(top);
+			assertTrue(top.extentLength == 0); // root
 		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0),
@@ -618,7 +617,7 @@ public class ZFastTrieTest {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
 			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
-			assertEquals(stack.top(), top);
+			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
 		// This test avoid the root and make the 2-fattest test fail at the first iteration
@@ -627,7 +626,7 @@ public class ZFastTrieTest {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
 			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
-			assertEquals(stack.top(), top);
+			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1) }) {
@@ -635,7 +634,7 @@ public class ZFastTrieTest {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
 			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
-			assertEquals(stack.top(), top);
+			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1, 0),
@@ -645,7 +644,7 @@ public class ZFastTrieTest {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
 			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
-			assertEquals(stack.top(), top);
+			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 	}
 
