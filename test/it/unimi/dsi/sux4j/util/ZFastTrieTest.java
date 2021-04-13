@@ -193,7 +193,8 @@ public class ZFastTrieTest {
 	@Test
 	public void testExitNodeIsLeaf3() throws IOException, ClassNotFoundException {
 		final String[] s = { "a", "aa", "aaa" };
-		ZFastTrie<String> zft = new ZFastTrie<>(Arrays.asList(s), TransformationStrategies.prefixFreeIso());
+		ZFastTrie<String> zft = new ZFastTrie<>(TransformationStrategies.prefixFreeIso());
+		for (final String t : s) zft.add(t);
 		for (int i = s.length; i-- != 0;)
 			assertTrue(s[i], zft.contains(s[i]));
 		final File temp = File.createTempFile(getClass().getSimpleName(), "test");
@@ -207,6 +208,15 @@ public class ZFastTrieTest {
 			assertTrue(zft.remove(s[i]));
 			assertFalse(zft.contains(s[i]));
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testRightJumps() throws IOException, ClassNotFoundException {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		zft.add(LongArrayBitVector.of(0));
+		zft.add(LongArrayBitVector.of(1, 0));
+		zft.add(LongArrayBitVector.of(1, 1, 0));
 	}
 
 
