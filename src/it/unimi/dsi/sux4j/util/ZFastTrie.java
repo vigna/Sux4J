@@ -945,75 +945,23 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpRight = jump;
 	}
-	
-	
-	/**
-	 * Fixes all jumps of the ancestors of a node after an insertion.
-	 *
-	 * @param internal the new internal node.
-	 * @param exitNode the exit node.
-	 * @param exitNodeIsRightChild whether the exit node is a right child.
-	 * @param leaf the new leaf.
-	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
-	 */
-	private static <U> void fixJumpsAfterInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
-		if (DEBUG) System.err.println("fixJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
-		final long leafNameLength = leaf.nameLength;
-		InternalNode<U> toBeFixed;
-		long jumpLength;
-
-		/* In the first phase, we look for jump pointers that were pointing
-		 * to the exit node before the cutpoint, but now must point to the new internal node. */
-		while (!stack.isEmpty()) {
-			toBeFixed = stack.top();
-			jumpLength = toBeFixed.jumpLength();
-			if (toBeFixed.jumpRight != exitNode || jumpLength >= leafNameLength) break;
-			if (ASSERTS) assert toBeFixed.jumpLeft == exitNode;
-			toBeFixed.jumpRight = toBeFixed.jumpLeft = internal;
-			stack.pop();
-		}
-
-		/* All remaining pointers pointing to a left/right descendant (depending on whether the exit node is a right/left
-		 * child of internal) of the exit node must point to the new leaf. We follow the jump right pointer of the
-		 * exit node, popping in parallel elements from the stack, and update. */
-		Node<U> exitNodeDesc = exitNode;
-		while (!stack.isEmpty()) {
-			toBeFixed = stack.pop();
-			while (exitNodeDesc.isInternal() && (exitNodeIsRightChild? toBeFixed.jumpLeft : toBeFixed.jumpRight) != exitNodeDesc) 
-				exitNodeDesc = exitNodeIsRightChild? ((InternalNode<U>)exitNodeDesc).jumpLeft : ((InternalNode<U>)exitNodeDesc).jumpRight;
-			if ((exitNodeIsRightChild? toBeFixed.jumpLeft : toBeFixed.jumpRight) != exitNodeDesc) return;
-			if (exitNodeIsRightChild) 
-				toBeFixed.jumpLeft = leaf;
-			else
-				toBeFixed.jumpRight = leaf;
-		}	
-	}
 
 
 	/**
-	 * Fixes the right jumps of the ancestors of a node after an insertion.
+	 * Fixes the jumps of the ancestors of a node after an insertion when the exit node used to be right
+	 * child.
 	 *
 	 * @param internal the new internal node.
 	 * @param exitNode the exit node.
-	 * @param exitNodeIsRightChild whether the exit node is a right child.
+	 * @param keyExitsRight whether the new leaf is on the right.
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixJumpsAfterRightInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
-		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
+	private static <U> void fixJumpsForRightExitNode(final InternalNode<U> internal, final Node<U> exitNode, final boolean keyExitsRight, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + keyExitsRight + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed;
 		long jumpLength;
-
-		if (!exitNodeIsRightChild) {
-			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
-			while (!stack.isEmpty()) {
-				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
-				if (toBeFixed.jumpLeft != exitNode || jumpLength >= leafNameLength) return;
-				toBeFixed.jumpLeft = internal;
-			}
-		}
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the exit node but now must point to the new internal node. */
@@ -1025,42 +973,36 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			stack.pop();
 		}
 
-		/* All remaining pointers pointing to a right descendant of the exit node
-		 * must point to the new leaf. We follow the jump right pointer of the
-		 * exit node, popping in parallel elements from the stack, and update. */
-		Node<U> exitNodeRightDesc = exitNode;
-		while (!stack.isEmpty()) {
-			toBeFixed = stack.pop();
-			while (exitNodeRightDesc.isInternal() && toBeFixed.jumpRight != exitNodeRightDesc) exitNodeRightDesc = ((InternalNode<U>)exitNodeRightDesc).jumpRight;
-			if (toBeFixed.jumpRight != exitNodeRightDesc) return; // ! exitnodeRightDesc.isInternal()
-			toBeFixed.jumpRight = leaf;
+		if (keyExitsRight) {
+			/* If the key exits on the right and the exit node is a right child,
+			 * all remaining pointers pointing to a left descendant of the exit node
+			 * must point to the new leaf. We follow the jump left pointer of the
+			 * exit node, popping in parallel elements from the stack, and update. */
+			Node<U> exitNodeRightDesc = exitNode;
+			while (!stack.isEmpty()) {
+				toBeFixed = stack.pop();
+				while (exitNodeRightDesc.isInternal() && toBeFixed.jumpRight != exitNodeRightDesc) exitNodeRightDesc = ((InternalNode<U>)exitNodeRightDesc).jumpRight;
+				if (toBeFixed.jumpRight != exitNodeRightDesc) return; // ! exitnodeRightDesc.isInternal()
+				toBeFixed.jumpRight = leaf;
+			}
 		}
 	}
 
 	/**
-	 * Fixes the left jumps of the ancestors of a node after an insertion.
+	 * Fixes the jumps of the ancestors of a node after an insertion when the exit node used to be left
+	 * child.
 	 *
 	 * @param internal the new internal node.
 	 * @param exitNode the exit node.
-	 * @param exitNodeIsRightChild whether the exit node is a right child.
+	 * @param keyExitsRight whether the new leaf is on the right.
 	 * @param leaf the new leaf.
 	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
 	 */
-	private static <U> void fixJumpsAfterLeftInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
-		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
+	private static <U> void fixJumpsForLeftExitNode(final InternalNode<U> internal, final Node<U> exitNode, final boolean keyExitsRight, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+		if (DEBUG) System.err.println("fixJumpsAfterRightInsertion(" + internal + ", " + exitNode + ", " + keyExitsRight + ", " + leaf + ", " + stack);
 		final long leafNameLength = leaf.nameLength;
 		InternalNode<U> toBeFixed;
 		long jumpLength;
-
-		if (exitNodeIsRightChild) {
-			/* Nodes jumping to the left into the exit node but above the lcp must point to internal. */
-			while (!stack.isEmpty()) {
-				toBeFixed = stack.pop();
-				jumpLength = toBeFixed.jumpLength();
-				if (toBeFixed.jumpRight != exitNode || jumpLength >= leafNameLength) return;
-				toBeFixed.jumpRight = internal;
-			}
-		}
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the exit node but now must point to the new internal node. */
@@ -1072,15 +1014,18 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			stack.pop();
 		}
 
-		/* All remaining pointers pointing to a left descendant of the exit node
-		 * must point to the new leaf. We follow the jump left pointer of the
-		 * exit node, popping in parallel elements from the stack, and update. */
-		Node<U> exitNodeLeftDesc = exitNode;
-		while (!stack.isEmpty()) {
-			toBeFixed = stack.pop();
-			while (exitNodeLeftDesc.isInternal() && toBeFixed.jumpLeft != exitNodeLeftDesc) exitNodeLeftDesc = ((InternalNode<U>)exitNodeLeftDesc).jumpLeft;
-			if (toBeFixed.jumpLeft != exitNodeLeftDesc) return; // ! exitnodeLeftDesc.isInternal()
-			toBeFixed.jumpLeft = leaf;
+		if (!keyExitsRight) {
+			/* If the key exits on the left and the exit node is a left child,
+			 * all remaining pointers pointing to a left descendant of the exit node
+			 * must point to the new leaf. We follow the jump left pointer of the
+			 * exit node, popping in parallel elements from the stack, and update. */
+			Node<U> exitNodeLeftDesc = exitNode;
+			while (!stack.isEmpty()) {
+				toBeFixed = stack.pop();
+				while (exitNodeLeftDesc.isInternal() && toBeFixed.jumpLeft != exitNodeLeftDesc) exitNodeLeftDesc = ((InternalNode<U>)exitNodeLeftDesc).jumpLeft;
+				if (toBeFixed.jumpLeft != exitNodeLeftDesc) return; // ! exitnodeLeftDesc.isInternal()
+				toBeFixed.jumpLeft = leaf;
+			}
 		}
 	}
 
@@ -1190,7 +1135,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final ObjectArrayList<InternalNode<T>> stack = new ObjectArrayList<>(64);
 
 		InternalNode<T> parentExitNode;
-		boolean rightChild;
+		boolean exitNodeIsRightChild;
 		Node<T> exitNode;
 		long lcp;
 
@@ -1201,7 +1146,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		parentExitNode = parexData.parexNode;
 		exitNode = parexData.exitNode;
 		lcp = parexData.lcp;
-		rightChild = parentExitNode != null && parentExitNode.right == exitNode;
+		exitNodeIsRightChild = parentExitNode != null && parentExitNode.right == exitNode;
 
 		if (DDEBUG) System.err.println("Parex node: " + parentExitNode + " Exit node: " + exitNode  + " LCP: " + lcp);
 
@@ -1249,14 +1194,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		if (exitNode == root) root = internal; // Update root
 		else {
-			if (rightChild) parentExitNode.right = internal;
+			if (exitNodeIsRightChild) parentExitNode.right = internal;
 			else parentExitNode.left = internal;
 		}
 
 		if (DDEBUG) System.err.println("Cut " + (cutLow ? "low" : "high") + "; exit to the " + (exitDirection ? "right" : "left"));
 
-		if (exitDirection) fixJumpsAfterRightInsertion(internal, exitNode, rightChild, leaf, stack);
-		else fixJumpsAfterLeftInsertion(internal, exitNode, rightChild, leaf, stack);
+		if (exitNodeIsRightChild) fixJumpsForRightExitNode(internal, exitNode, exitDirection, leaf, stack);
+		else fixJumpsForLeftExitNode(internal, exitNode, exitDirection, leaf, stack);
 
 		if (cutLow && exitNodeIsInternal) {
 			handle2Node.replaceExisting((InternalNode<T>)exitNode, internal, Hashes.murmur(v, exitNodeHandleLength, state) & SIGNATURE_MASK);
