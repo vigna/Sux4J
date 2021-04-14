@@ -945,6 +945,50 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpRight = jump;
 	}
+	
+	
+	/**
+	 * Fixes all jumps of the ancestors of a node after an insertion.
+	 *
+	 * @param internal the new internal node.
+	 * @param exitNode the exit node.
+	 * @param exitNodeIsRightChild whether the exit node is a right child.
+	 * @param leaf the new leaf.
+	 * @param stack a stack containing the 2-fat ancestors of the parent of the exit node.
+	 */
+	private static <U> void fixJumpsAfterInsertion(final InternalNode<U> internal, final Node<U> exitNode, final boolean exitNodeIsRightChild, final Leaf<U> leaf, final ObjectArrayList<InternalNode<U>> stack) {
+		if (DEBUG) System.err.println("fixJumpsAfterInsertion(" + internal + ", " + exitNode + ", " + exitNodeIsRightChild + ", " + leaf + ", " + stack);
+		final long leafNameLength = leaf.nameLength;
+		InternalNode<U> toBeFixed;
+		long jumpLength;
+
+		/* In the first phase, we look for jump pointers that were pointing
+		 * to the exit node before the cutpoint, but now must point to the new internal node. */
+		while (!stack.isEmpty()) {
+			toBeFixed = stack.top();
+			jumpLength = toBeFixed.jumpLength();
+			if (toBeFixed.jumpRight != exitNode || jumpLength >= leafNameLength) break;
+			if (ASSERTS) assert toBeFixed.jumpLeft == exitNode;
+			toBeFixed.jumpRight = toBeFixed.jumpLeft = internal;
+			stack.pop();
+		}
+
+		/* All remaining pointers pointing to a left/right descendant (depending on whether the exit node is a right/left
+		 * child of internal) of the exit node must point to the new leaf. We follow the jump right pointer of the
+		 * exit node, popping in parallel elements from the stack, and update. */
+		Node<U> exitNodeDesc = exitNode;
+		while (!stack.isEmpty()) {
+			toBeFixed = stack.pop();
+			while (exitNodeDesc.isInternal() && (exitNodeIsRightChild? toBeFixed.jumpLeft : toBeFixed.jumpRight) != exitNodeDesc) 
+				exitNodeDesc = exitNodeIsRightChild? ((InternalNode<U>)exitNodeDesc).jumpLeft : ((InternalNode<U>)exitNodeDesc).jumpRight;
+			if ((exitNodeIsRightChild? toBeFixed.jumpLeft : toBeFixed.jumpRight) != exitNodeDesc) return;
+			if (exitNodeIsRightChild) 
+				toBeFixed.jumpLeft = leaf;
+			else
+				toBeFixed.jumpRight = leaf;
+		}	
+	}
+
 
 	/**
 	 * Fixes the right jumps of the ancestors of a node after an insertion.
