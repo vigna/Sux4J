@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.TreeSet;
 
 import org.apache.commons.math3.random.RandomGenerator;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import it.unimi.dsi.bits.BitVector;
@@ -724,4 +725,14 @@ public class ZFastTrieTest {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	@Ignore
+	public void testLarge() {
+		final ZFastTrie<Long> zft= new ZFastTrie<>(TransformationStrategies.fixedLong());
+		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator(0);
+		for (int i = 0; i < 100000; i++) assertTrue(zft.add(random.nextLong() >>> 1));
+		random.setSeed(0);
+		for (int i = 0; i < 100000; i++) assertTrue(zft.remove(random.nextLong() >>> 1));
+	}
 }
