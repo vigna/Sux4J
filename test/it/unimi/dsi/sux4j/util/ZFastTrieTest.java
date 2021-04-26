@@ -383,6 +383,7 @@ public class ZFastTrieTest {
 		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
 		zft.add(LongArrayBitVector.of(0, 0));
 		zft.add(LongArrayBitVector.of(0, 1));
+		assertTrue(zft.add(LongArrayBitVector.of(1, 0, 0, 0, 1)));
 		assertFalse(zft.add(LongArrayBitVector.of(0, 0)));
 		assertFalse(zft.add(LongArrayBitVector.of(0, 1)));
 		assertTrue(zft.contains(LongArrayBitVector.of(0, 0)));
@@ -393,6 +394,8 @@ public class ZFastTrieTest {
 		assertFalse(zft.remove(LongArrayBitVector.of()));
 		assertFalse(zft.remove(LongArrayBitVector.of(0)));
 		assertFalse(zft.remove(LongArrayBitVector.of(0, 0, 0)));
+		assertFalse(zft.remove(LongArrayBitVector.of(1, 0, 0, 1)));
+
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -567,7 +570,7 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of() }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
 			assertEquals(v.toString(), 0, stack.size());
 		}
 
@@ -578,7 +581,7 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
 			assertEquals(v.toString(), 1, stack.size());
 		}
 
@@ -586,14 +589,14 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length() - 1);
+			z.fatBinarySearchStackExact(v, state, stack, v.length() - 1);
 			assertEquals(v.toString(), 1, stack.size());
 		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
 			assertEquals(v.toString(), 2, stack.size());
 		}
 
@@ -602,7 +605,7 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(1, 0, 1, 1), LongArrayBitVector.of(1, 0, 1, 1, 1), }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
 			assertEquals(v.toString(), 3, stack.size());
 		}
 	}
@@ -618,7 +621,7 @@ public class ZFastTrieTest {
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of() }) {
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
+			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, v.length());
 			assertTrue(top.extentLength == 0); // root
 		}
 
@@ -629,8 +632,8 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
-			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
+			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, v.length());
 			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
@@ -638,16 +641,16 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
-			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
+			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, v.length());
 			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
-			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
+			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, v.length());
 			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 
@@ -656,8 +659,8 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(1, 0, 1, 1, 1), }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStackExact(v, state, stack, -1, v.length());
-			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, -1, v.length());
+			z.fatBinarySearchStackExact(v, state, stack, v.length());
+			final InternalNode<LongArrayBitVector> top = z.fatBinarySearchExact(v, state, v.length());
 			assertTrue(stack.top() == top || stack.top().right == top || stack.top().left == top);
 		}
 	}
@@ -675,7 +678,7 @@ public class ZFastTrieTest {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
 			// Here we cannot use v.length() - 1 == -1
-			z.fatBinarySearchStack(v, state, stack, -1, v.length());
+			z.fatBinarySearchStack(v, state, stack, v.length());
 			assertEquals(v.toString(), 0, stack.size());
 		}
 
@@ -686,7 +689,7 @@ public class ZFastTrieTest {
 		}) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStack(v, state, stack, -1, v.length() - 1);
+			z.fatBinarySearchStack(v, state, stack, v.length() - 1);
 			assertEquals(v.toString(), 1, stack.size());
 		}
 
@@ -695,7 +698,7 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStack(v, state, stack, -1, v.length() - 1);
+			z.fatBinarySearchStack(v, state, stack, v.length() - 1);
 			assertEquals(v.toString(), 2, stack.size());
 		}
 
@@ -703,7 +706,7 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(0, 0, 1, 1, 1, 1, 1, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStack(v, state, stack, -1, v.length());
+			z.fatBinarySearchStack(v, state, stack, v.length());
 			// Exit node
 			assertEquals(v.toString(), 2, stack.size());
 		}
@@ -711,7 +714,7 @@ public class ZFastTrieTest {
 		for (final LongArrayBitVector v : new LongArrayBitVector[] { LongArrayBitVector.of(1, 0, 1) }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStack(v, state, stack, -1, v.length() - 1);
+			z.fatBinarySearchStack(v, state, stack, v.length() - 1);
 			assertEquals(v.toString(), 2, stack.size());
 		}
 
@@ -720,7 +723,7 @@ public class ZFastTrieTest {
 				LongArrayBitVector.of(1, 0, 1, 1, 1), }) {
 			final ObjectArrayList<ZFastTrie.InternalNode<LongArrayBitVector>> stack = new ObjectArrayList<>();
 			final long[] state = Hashes.preprocessMurmur(v, 42);
-			z.fatBinarySearchStack(v, state, stack, -1, v.length() - 1);
+			z.fatBinarySearchStack(v, state, stack, v.length() - 1);
 			assertEquals(v.toString(), 3, stack.size());
 		}
 	}

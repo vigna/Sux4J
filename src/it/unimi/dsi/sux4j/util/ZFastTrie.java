@@ -88,13 +88,13 @@ import it.unimi.dsi.sux4j.mph.Hashes;
 public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializable {
     public static final long serialVersionUID = 2L;
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZFastTrie.class);
-	private static final boolean ASSERTS = true;
+	private static final boolean ASSERTS = false;
 	private static final boolean DDDEBUG = false;
 	private static final boolean DDEBUG = false || DDDEBUG;
 	private static final boolean DEBUG = false || DDEBUG;
 	/** The mask used to extract the actual signature (the high bit marks duplicates). */
 	private static final long SIGNATURE_MASK = 0x7FFFFFFFFFFFFFFFL;
-	// private static final long SIGNATURE_MASK = 0xFFL;
+	// private static final long SIGNATURE_MASK = 0x1L;
 	/** The mask for the high bit (which marks duplicates). */
 	private static final long DUPLICATE_MASK = 0x8000000000000000L;
 
@@ -482,7 +482,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			signature[pos] = s;
 			node[pos] = n;
 
-			if (3L * size > 2L * length) {
+			if (2L * length < 3L * size) {
 				length *= 2;
 				mask = length - 1;
 				final long newKey[] = new long[length];
@@ -929,35 +929,23 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	/**
-	 * Sets the left jump pointer of a node by searching exhaustively for handles that are jumps of the
-	 * node handle length.
+	 * Sets the jump pointers of a node by searching exhaustively for handles that are jumps of the node
+	 * handle length.
 	 *
-	 * @param node the node whose left jump pointer must be set.
+	 * @param node the node whose jump pointers must be set.
 	 */
-	private static <U> void setLeftJump(final InternalNode<U> node) {
-		if (DEBUG) System.err.println("setLeftJump(" + node + ")");
-		final long jumpLength = node.jumpLength();
-		Node<U> jump;
-
-		for (jump = node.left; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength;) jump = ((InternalNode<U>)jump).jumpLeft;
-		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
-		node.jumpLeft = jump;
-	}
-
-	/**
-	 * Sets the right jump pointer of a node by searching exhaustively for handles that are jumps of the
-	 * node handle length.
-	 *
-	 * @param node the node whose right jump pointer must be set.
-	 */
-	private static <U> void setRightJump(final InternalNode<U> node) {
-		if (DEBUG) System.err.println("setRightJump(" + node + ")");
+	private static <U> void setJumps(final InternalNode<U> node) {
+		if (DEBUG) System.err.println("setJumps(" + node + ")");
 		final long jumpLength = node.jumpLength();
 		Node<U> jump;
 
 		for (jump = node.right; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength;) jump = ((InternalNode<U>)jump).jumpRight;
 		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
 		node.jumpRight = jump;
+
+		for (jump = node.left; jump.isInternal() && jumpLength > ((InternalNode<U>)jump).extentLength;) jump = ((InternalNode<U>)jump).jumpLeft;
+		assert jump.intercepts(jumpLength) : jumpLength + " not in " + "[" + jump.nameLength + ".." + ((InternalNode<U>)jump).extentLength + "] " + jump;
+		node.jumpLeft = jump;
 	}
 
 	/**
@@ -1147,19 +1135,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final ObjectArrayList<InternalNode<T>> stack = new ObjectArrayList<>(64);
 
-		InternalNode<T> parentExitNode;
-		boolean exitNodeIsRightChild;
-		Node<T> exitNode;
-		long lcp;
-
 		final long[] state = Hashes.preprocessMurmur(v, 42);
 		final ParexData<T> parexData = getParentExitNode(v, state, stack);
 		if (ASSERTS) assertParent(v, parexData, stack);
 
-		parentExitNode = parexData.parexNode;
-		exitNode = parexData.exitNode;
-		lcp = parexData.lcp;
-		exitNodeIsRightChild = parentExitNode != null && parentExitNode.right == exitNode;
+		final InternalNode<T> parentExitNode = parexData.parexNode;
+		final Node<T> exitNode = parexData.exitNode;
+		final long lcp = parexData.lcp;
+		final boolean exitNodeIsRightChild = parentExitNode != null && parentExitNode.right == exitNode;
 
 		if (DDEBUG) System.err.println("Parex node: " + parentExitNode + " Exit node: " + exitNode  + " LCP: " + lcp);
 
@@ -1220,8 +1203,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			handle2Node.replaceExisting((InternalNode<T>)exitNode, internal, Hashes.murmur(v, exitNodeHandleLength, state) & SIGNATURE_MASK);
 			exitNode.nameLength = lcp + 1;
 			handle2Node.addNew((InternalNode<T>)exitNode, Hashes.murmur(exitNode.key(transform), exitNode.handleLength(transform), state, lcp) & SIGNATURE_MASK);
-			setRightJump((InternalNode<T>)exitNode);
-			setLeftJump((InternalNode<T>)exitNode);
+			setJumps((InternalNode<T>)exitNode);
 		}
 		else {
 			exitNode.nameLength = lcp + 1;
@@ -1267,20 +1249,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final ObjectArrayList<InternalNode<T>> stack = new ObjectArrayList<>(64);
 
-		InternalNode<T> parentExitNode;
-		boolean exitNodeIsRightChild, parexIsRightChild = false;
-		Node<T> exitNode;
-		long lcp;
-
 		final long[] state = Hashes.preprocessMurmur(v, 42);
 
 		final ParexData<T> parexData = getParentExitNode(v, state, stack);
 		if (ASSERTS) assertParent(v, parexData, stack);
 
-		parentExitNode = parexData.parexNode;
-		exitNode = parexData.exitNode;
-		lcp = parexData.lcp;
-		exitNodeIsRightChild = parentExitNode != null && parentExitNode.right == exitNode;
+		final InternalNode<T> parentExitNode = parexData.parexNode;
+		final Node<T> exitNode = parexData.exitNode;
+		final long lcp = parexData.lcp;
 
 		if (DDEBUG) System.err.println("Parex node: " + parentExitNode + " Exit node: " + exitNode  + " LCP: " + lcp);
 
@@ -1288,14 +1264,19 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		if (!(exitNode.isLeaf() && transform.length(((Leaf<T>)exitNode).key) == parexData.lcp && v.length() == parexData.lcp)) return false;
 
 		// size > 1 && exitNode().isLeaf() => parentExitNode != null
+		final boolean exitNodeIsRightChild = parentExitNode.right == exitNode;
 		final Node<T> otherNode = exitNodeIsRightChild ? parentExitNode.left : parentExitNode.right;
 		final boolean otherNodeIsInternal = otherNode.isInternal();
+
+		boolean parexIsRightChild = false;
 
 		if (parentExitNode == root) root = otherNode;
 		else {
 			// Let us fix grandpa's child pointer and update the stack.
-			final InternalNode<T> grandParentExitNode = getGrandParentExitNode(v, state, stack);
+			getGrandParentExitNode(v, state, stack);
+			final InternalNode<T> grandParentExitNode = stack.top();
 			if (DDEBUG) System.err.println("Grandparex node: " + grandParentExitNode);
+			assert grandParentExitNode.left == parentExitNode || grandParentExitNode.right == parentExitNode;
 			if (parexIsRightChild = (grandParentExitNode.right == parentExitNode)) grandParentExitNode.right = otherNode;
 			else grandParentExitNode.left = otherNode;
 		}
@@ -1325,13 +1306,14 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			otherNode.nameLength = parentExitNode.nameLength;
 			handle2Node.replaceExisting(parentExitNode, (InternalNode<T>)otherNode, Hashes.murmur(v, parentExitNodehandleLength, state) & SIGNATURE_MASK);
 			// We just need to fix the jump on the side of the exit node
-			setRightJump((InternalNode<T>)otherNode);
-			setLeftJump((InternalNode<T>)otherNode);
+			setJumps((InternalNode<T>)otherNode);
 		}
 		else {
 			otherNode.nameLength = parentExitNode.nameLength;
 			handle2Node.removeExisting(parentExitNode, Hashes.murmur(v, parentExitNodehandleLength, state) & SIGNATURE_MASK);
 		}
+
+		assert parentExitNode != root || stack.isEmpty();
 
 		if (parexIsRightChild) fixJumpsForRightParexNode(parentExitNode, (Leaf<T>)exitNode, otherNode, exitNodeIsRightChild, stack);
 		else fixJumpsForLeftParexNode(parentExitNode, (Leaf<T>)exitNode, otherNode, exitNodeIsRightChild, stack);
@@ -1367,7 +1349,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		InternalNode<T> parexOrExitNode = fatBinarySearch(v, state, -1, length);
+		InternalNode<T> parexOrExitNode = fatBinarySearch(v, state, length);
 
 		// In this case, necessarily the search was successful and we have the parex.
 		if (parexOrExitNode == null) return new ExitData<>(root, v.longestCommonPrefixLength(root.extent(transform)));
@@ -1375,7 +1357,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		// If the search is not correct, we redo it exactly
 		if (lcpLength < parexOrExitNode.handleLength()) {
-			parexOrExitNode = fatBinarySearchExact(v, state, -1, length);
+			parexOrExitNode = fatBinarySearchExact(v, state, length);
 			lcpLength = v.longestCommonPrefixLength(parexOrExitNode.extent(transform));
 		}
 
@@ -1414,7 +1396,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		final long length = v.length();
 
 		// This can be the exit node of v, the parex node of v, or something completely wrong.
-		fatBinarySearchStack(v, state, stack, -1, length - 1);
+		fatBinarySearchStack(v, state, stack, length - 1);
 
 		// In this case, necessarily the search was successful and we have the parex.
 		if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
@@ -1425,7 +1407,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// If the search is not correct, we redo it exactly
 		if (lcpLength < parexOrExitNode.handleLength()) {
 			stack.clear();
-			fatBinarySearchStackExact(v, state, stack, -1, length - 1);
+			fatBinarySearchStackExact(v, state, stack, length - 1);
 
 			if (stack.isEmpty()) return new ParexData<>(null, root, v.longestCommonPrefixLength(root.extent(transform)));
 
@@ -1450,20 +1432,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		// We're lucky: the second element on the stack is the parex node.
 		if (startingPoint == parexOrExitNode.nameLength - 1) return new ParexData<>(stack.top(), parexOrExitNode, lcpLength);
 
-		final int stackSize = stack.size();
-		// We have to restart the search
-		fatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
-
-		// Note that the stack cannot be empty, as an empty stack is the result of a
-		// successful search, and we are missing the parex.
-		InternalNode<T> parex = stack.top();
-
-		if (v.longestCommonPrefixLength(parex.extent(transform)) < parex.handleLength()) {
-			// Something went wrong with the last search. We can just, at this point, restart in exact mode.
-			stack.size(stackSize);
-			fatBinarySearchStackExact(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
-			parex = stack.top();
-		}
+		// We have to complete the stack.
+		completeFatBinarySearchStack(v, state, stack, startingPoint, parexOrExitNode.nameLength - 1);
+		final InternalNode<T> parex = stack.top();
 
 		final Node<T> exitNode = v.getBoolean(parex.extentLength) ? parex.right : parex.left;
 		return new ParexData<>(parex, exitNode, v.longestCommonPrefixLength(exitNode.extent(transform)));
@@ -1492,7 +1463,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the grandparent of the exit node of {@code v}, or {@code null} if there is no
 	 *         grandparent.
 	 */
-	public InternalNode<T> getGrandParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
+	public void getGrandParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentGrandExitNode(" + v + ", " + stack + ")");
 		assert !stack.isEmpty();
 		assert stack.top() != root;
@@ -1500,18 +1471,12 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final long startingPoint = stack.top().extentLength;
 		// We're lucky: the second element on the stack is the grandparent of the exit node.
-		if (startingPoint == parentExitNode.nameLength - 1) return stack.top();
+		if (startingPoint == parentExitNode.nameLength - 1) return;
 
-		final int stackSize = stack.size();
-		// Unless there are mistakes, this is really the grandparent of the exit node.
-		fatBinarySearchStack(v, state, stack, startingPoint, parentExitNode.nameLength - 1);
+		// We have to complete the stack.
+		completeFatBinarySearchStack(v, state, stack, startingPoint, parentExitNode.nameLength - 1);
 		final InternalNode<T> grandParentExitNode = stack.top();																																// check
-		if (grandParentExitNode.left == parentExitNode || grandParentExitNode.right == parentExitNode) return grandParentExitNode;
-
-		// Something went wrong with the last search. We can just, at this point, restart in exact mode.
-		stack.size(stackSize);
-		fatBinarySearchStackExact(v, state, stack, startingPoint, parentExitNode.nameLength - 1);
-		return stack.top();
+		assert grandParentExitNode.left == parentExitNode || grandParentExitNode.right == parentExitNode;
 	}
 
 
@@ -1522,19 +1487,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
 	 * @param stack a stack where the results of the search will be cumulated.
-	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
-	 * @param checkMask the correct check mask for the interval {@code (a..b]}
-	 * @see #checkMask(long)
-	 * @see #checkMask(long,long)
+	 * @param b the right extreme of the search interval, &ge; &minus;1 (included).
 	 */
 
-	protected void fatBinarySearchStack(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
-		if (DDDEBUG) System.err.println("fatBinarySearchStack(" + v + ", " + stack + ", [" + (a + 1) + ".." + b + "])");
+	protected void fatBinarySearchStack(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long b) {
+		if (DDDEBUG) System.err.println("fatBinarySearchStack(" + v + ", " + stack + ", [0.." + b + "])");
+		assert b >= -1 : b + " < " + -1;
 
-		assert a <= b : a + " >= " + b;
+		long a = -1;
 		final long length = v.length();
-		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
+		long checkMask = checkMask(b);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1570,19 +1532,16 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
 	 * @param stack a stack where the results of the search will be cumulated.
-	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
-	 * @param checkMask the correct check mask for the interval {@code (a..b]}
-	 * @see #checkMask(long)
-	 * @see #checkMask(long,long)
+	 * @param b the right extreme of the search interval, &ge; &minus;1 (included).
 	 */
 
-	protected void fatBinarySearchStackExact(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, long b) {
-		if (DDDEBUG) System.err.println("fatBinarySearchStackExact(" + v + ", " + stack + ", [" + (a + 1) + ".." + b + "])");
+	protected void fatBinarySearchStackExact(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long b) {
+		if (DDDEBUG) System.err.println("fatBinarySearchStackExact(" + v + ", " + stack + ", [0.." + b + "])");
+		assert b >= -1 : b + " < " + -1;
 
-		assert a <= b : a + " >= " + b;
+		long a = -1;
 		final long length = v.length();
-		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
+		long checkMask = checkMask(b);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1611,27 +1570,56 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	}
 
 	/**
+	 * Completes the stack of a previous successful fat binary search.
+	 *
+	 * @param v the bit vector on which to perform the search.
+	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
+	 *            for {@code v}.
+	 * @param stack a stack where the results of the completion will be cumulated.
+	 * @param a the left extreme of the completion interval, &ge; &minus;1 (excluded)
+	 * @param b the right extreme of the completion interval, &ge; {@code a} (included).
+	 */
+
+	protected void completeFatBinarySearchStack(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack, long a, final long b) {
+		if (DDDEBUG) System.err.println("completeFatBinarySearchStack(" + v + ", " + stack + ", [" + (a + 1) + ".." + b + "])");
+		assert a > -1;
+		assert a <= b : a + " >= " + b;
+		long checkMask = checkMask(a, b);
+
+		while (a < b) {
+			assert checkMask != 0;
+			if (DDDEBUG) System.err.println("[" + (a + 1) + ".." + b + "]");
+
+			final long f = b & checkMask;
+			if ((a & checkMask) != f) {
+				final InternalNode<T> n = handle2Node.find(v, f, state);
+				a = n.extentLength;
+				stack.push(n);
+			}
+
+			checkMask >>= 1;
+		}
+	}
+
+	/**
 	 * Performs a non-exact fat binary search.
 	 *
 	 * @param v the bit vector on which to perform the search.
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
+	 * @param b the right extreme of the search interval, &ge; &minus;1 (included).
 	 * @param stack a stack where the results of the search will be cumulated.
-	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
-	 * @param checkMask the correct check mask for the interval {@code (a..b]}
-	 * @see #checkMask(long)
-	 * @see #checkMask(long,long)
 	 * @return the parent of the exit node or the exit node, in case of success; an arbitrary node
 	 *         otherwise.
 	 */
 
-	protected InternalNode<T> fatBinarySearch(final LongArrayBitVector v, final long[] state, long a, long b) {
-		if (DDDEBUG) System.err.println("fatBinarySearch(" + v + ", [" + (a + 1) + ".." + b + "])");
+	protected InternalNode<T> fatBinarySearch(final LongArrayBitVector v, final long[] state, long b) {
+		if (DDDEBUG) System.err.println("fatBinarySearch(" + v + ", [0.." + b + "])");
+		assert b >= -1 : b + " < " + -1;
 
-		assert a <= b : a + " >= " + b;
+		long a = -1;
+		long checkMask = checkMask(b);
 		InternalNode<T> top = null;
-		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 
 		while (a < b) {
 			assert checkMask != 0;
@@ -1666,20 +1654,17 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param v the bit vector on which to perform the search.
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
-	 * @param a the left extreme of the search interval, &ge; &minus;1 (excluded)
-	 * @param b the right extreme of the search interval, &ge; {@code a} (included).
-	 * @param checkMask the correct check mask for the interval {@code (a..b]}
-	 * @see #checkMask(long)
-	 * @see #checkMask(long,long)
+	 * @param b the right extreme of the search interval, &ge; &minus;1 (included).
 	 * @return the parent of the exit node.
 	 */
 
-	protected InternalNode<T> fatBinarySearchExact(final LongArrayBitVector v, final long[] state, long a, long b) {
-		if (DDDEBUG) System.err.println("fatBinarySearchExact(" + v + ", [" + (a + 1) + ".." + b + "])");
+	protected InternalNode<T> fatBinarySearchExact(final LongArrayBitVector v, final long[] state, long b) {
+		if (DDDEBUG) System.err.println("fatBinarySearchExact(" + v + ", [0.." + b + "])");
+		assert b >= -1 : b + " < " + -1;
 
-		assert a <= b : a + " >= " + b;
+		long a = -1;
+		long checkMask = checkMask(b);
 		InternalNode<T> top = null;
-		long checkMask = a == -1 ? checkMask(b) : checkMask(a, b);
 
 		while (a < b) {
 			assert checkMask != 0;
