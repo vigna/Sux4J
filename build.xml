@@ -1,6 +1,6 @@
 <project name="sux4j" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
 	
-	<property name="build.sysclasspath" value="ignore"/>
+	<property name="build.sysclasspath" value="first"/>
 	<property name="jars.dir" value="${basedir}/jars"/>
 	<property file="build.properties"/>
 

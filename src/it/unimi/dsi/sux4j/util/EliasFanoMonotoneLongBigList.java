@@ -23,9 +23,14 @@ import static it.unimi.dsi.bits.LongArrayBitVector.bit;
 import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 import java.util.NoSuchElementException;
 
 import it.unimi.dsi.bits.BitVector;
@@ -36,6 +41,7 @@ import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
@@ -594,6 +600,30 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	@Override
 	public long size64() {
 		return length;
+	}
+
+	public void dump(final String basename) throws IOException {
+		dump(basename, ByteOrder.nativeOrder());
+	}
+
+	public void dump(final String basename, final ByteOrder byteOrder) throws IOException {
+		BinIO.storeObject(new MappedEliasFanoMonotoneLongBigList(length, l, upperBits, selectUpper, byteOrder == ByteOrder.LITTLE_ENDIAN), basename + MappedEliasFanoMonotoneLongBigList.OBJECT_EXTENSION);
+		final FileChannel fileChannel = FileChannel.open(new File(basename + MappedEliasFanoMonotoneLongBigList.LOWER_BITS_EXTENSION).toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+		final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024);
+		byteBuffer.order(byteOrder);
+		for (final long l : lowerBits) {
+			byteBuffer.putLong(l);
+			if (!byteBuffer.hasRemaining()) {
+				byteBuffer.flip();
+				fileChannel.write(byteBuffer);
+				byteBuffer.clear();
+			}
+		}
+
+		byteBuffer.flip();
+		fileChannel.write(byteBuffer);
+
+		fileChannel.close();
 	}
 
 	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
