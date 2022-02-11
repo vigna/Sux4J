@@ -35,7 +35,7 @@ import java.util.NoSuchElementException;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
-import it.unimi.dsi.fastutil.longs.MappedLongBigList;
+import it.unimi.dsi.fastutil.longs.LongMappedBigList;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 /**
@@ -114,7 +114,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 	/** The upper bits, stored as unary gaps. */
 	protected long[] upperBits;
 	/** The list of lower bits of each element, stored explicitly. */
-	protected MappedLongBigList lowerBits;
+	protected LongMappedBigList lowerBits;
 	/** The select structure used to extract the upper bits. */
 	protected final SimpleSelect selectUpper;
 	/** The mask for the lower bits. */
@@ -130,7 +130,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 
 	public MappedEliasFanoMonotoneLongBigList lowerBits(final String lowerBits) throws IOException {
 		fileChannel = FileChannel.open(new File(lowerBits).toPath());
-		this.lowerBits = MappedLongBigList.map(fileChannel, littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
+		this.lowerBits = LongMappedBigList.map(fileChannel, littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
 		return this;
 	}
 
@@ -191,7 +191,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 		selectUpper.select(index, dest, 0, 2);
 
 		final int l = this.l;
-		final MappedLongBigList lowerBits = this.lowerBits;
+		final LongMappedBigList lowerBits = this.lowerBits;
 
 		long position = index * l;
 		int startWord = word(position);
@@ -229,7 +229,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 
 		final int l = this.l;
 		final long lowerBitsMask = this.lowerBitsMask;
-		final MappedLongBigList lowerBits = this.lowerBits;
+		final LongMappedBigList lowerBits = this.lowerBits;
 
 		long position = index * l;
 		for (int i = 0; i < length; i++) {
