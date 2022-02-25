@@ -36,72 +36,34 @@ import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.fastutil.longs.LongMappedBigList;
+import it.unimi.dsi.lang.FlyweightPrototype;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 /**
- * An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies
- * a number of bits bounded by two plus the logarithm of the average gap.
+ * A memory-mapped implementation of {@link EliasFanoMonotoneLongBigList}.
  *
  * <p>
- * Instances of this class represent in a highly compacted form a nondecreasing sequence of natural
- * numbers. Instances are built by providing either an iterator returning the (nondecreasing)
- * sequence, or an {@linkplain Iterable iterable object} that provides such an iterator. In the
- * first case, you must also provide in advance the number of elements that will be returned and an
- * upper bound to their values (see below), and at the end of the construction the iterator will be
- * exhausted.
+ * This class makes it possible to use an {@link EliasFanoMonotoneLongBigList} without actually
+ * loading the lower bits, but rather {@linkplain LongMappedBigList mapping them into memory}. You
+ * build an {@link EliasFanoMonotoneLongBigList} instance first, and then you use the
+ * {@linkplain EliasFanoMonotoneLongBigList#dump(String, ByteOrder) dump} it to disk providing a
+ * basename. The same basename must be used when {@linkplain #load(String) loading an instance of
+ * this class}.
  *
  * <p>
- * An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible to extract
- * several consecutive entries at high speed, and {@link #getDelta(long)} computes directly the
- * difference between two consecutive elements. Moreover, the
- * {@link MappedEliasFanoMonotoneLongBigListIterator#nextLong() nextLong()} method of an
- * {@linkplain #listIterator(long) iterator} will read read consecutive data much faster than
- * repeated calls to {@link #getLong(long)}.
+ * After usage, you should {@link #close()} instances of this class to release the associated
+ * {@link FileChannel}.
  *
  * <p>
- * Methods to not usually perform bound checks on the arguments. Bounds checks can be enabled,
- * however, by enabling assertions.
+ * Instances of this class are not thread safe, but the {@link #copy()} method provides a
+ * lightweight duplicate that can be read independently by another thread. The method uses
+ * {@link LongMappedBigList#copy()} to provide an independent mapping of the lower bits. Note that
+ * the {@link #close()} method, when invoked on any copy, will stop mapping of all copies. *
  *
- * <p>
- * This class is thread safe.
- *
- * <h2>Implementation details</h2>
- *
- * <p>
- * Given a monotone sequence 0 &le; <var>x</var><sub>0</sub> &le; <var>x</var><sub>1</sub> &le;
- * &hellip; &le; <var>x</var><sub><var>n</var>&nbsp;&minus;&nbsp;1</sub> &lt; <var>u</var>, where
- * <var>u</var> is a given upper bound (the size of the universe), the Elias&ndash;Fano
- * representation makes it possible to store it using at most 2 + log(<var>u</var>/<var>n</var>)
- * bits per element, which is very close to the information-theoretical lower bound &#x2248; log
- * <i>e</i> + log(<var>u</var>/<var>n</var>). A typical example is a list of pointer into records of
- * a large file: instead of using, for each pointer, a number of bit sufficient to express the
- * length of the file, the Elias&ndash;Fano representation makes it possible to use, for each
- * pointer, a number of bits roughly equal to the logarithm of the average length of a record. The
- * representation was introduced in Peter Elias, &ldquo;Efficient storage and retrieval by content
- * and address of static files&rdquo;, <i>J. Assoc. Comput. Mach.</i>, 21(2):246&minus;260, 1974,
- * and also independently by Robert Fano, &ldquo;On the number of bits required to implement an
- * associative memory&rdquo;, Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge,
- * Mass., n.d., 1971.
- *
- * <p>
- * The elements of the sequence are recorded by storing separately the lower <var>s</var> =
- * &lfloor;log(<var>u</var>/<var>n</var>)&rfloor; bits and the remaining upper bits. The lower bits
- * are stored contiguously, whereas the upper bits are stored in an array of <var>n</var> +
- * <var>u</var> / 2<sup><var>s</var></sup> bits by setting, for each 0 &le; <var>i</var> &lt;
- * <var>n</var>, the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> +
- * <var>i</var>; the value can then be recovered by selecting the <var>i</var>-th bit of the
- * resulting bit array and subtracting <var>i</var> (note that this will work because the upper bits
- * are nondecreasing).
- *
- * <p>
- * This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array,
- * and exploits {@link SimpleSelect#select(long, long[], int, int)} to implement
- * {@link #get(long, long[], int, int)}.
- *
- * @see EliasFanoIndexedMonotoneLongBigList
+ * @see EliasFanoMonotoneLongBigList
  */
 
-public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable, Closeable {
+public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable, Closeable, FlyweightPrototype<MappedEliasFanoMonotoneLongBigList> {
 	private static final long serialVersionUID = 4L;
 
 	public static final String OBJECT_EXTENSION = ".object";
@@ -124,10 +86,31 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 	/** Whether the byte order is little endian. */
 	private final boolean littleEndian;
 
+	/**
+	 * Maps an Elias&ndash;Fano monotone list into memory.
+	 *
+	 * @param basename the basename of the
+	 *            {@linkplain EliasFanoMonotoneLongBigList#dump(String, ByteOrder) dumped list}. From
+	 *            the basename, two files will be derived: a serialized object with extension
+	 *            {@link MappedEliasFanoMonotoneLongBigList#OBJECT_EXTENSION} and a list of longs with
+	 *            extension {@link MappedEliasFanoMonotoneLongBigList#LOWER_BITS_EXTENSION}.
+	 *
+	 * @return an instance of this class.
+	 */
 	public static MappedEliasFanoMonotoneLongBigList load(final String basename) throws IOException, ClassNotFoundException {
 		return ((MappedEliasFanoMonotoneLongBigList)BinIO.loadObject(basename + OBJECT_EXTENSION)).lowerBits(basename + LOWER_BITS_EXTENSION);
 	}
 
+	/**
+	 * Maps the lower bits of this list from a file.
+	 *
+	 * <p>
+	 * This method is low level and should not be used in geneneral. There is no check that the file you
+	 * are using is actually the right file for this instance.
+	 *
+	 * @param lowerBits the name of the file containing the lower bits.
+	 * @return this instance.
+	 */
 	public MappedEliasFanoMonotoneLongBigList lowerBits(final String lowerBits) throws IOException {
 		fileChannel = FileChannel.open(new File(lowerBits).toPath());
 		this.lowerBits = LongMappedBigList.map(fileChannel, littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
@@ -420,5 +403,12 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
 		upperBits = selectUpper.bitVector().bits();
+	}
+
+	@Override
+	public MappedEliasFanoMonotoneLongBigList copy() {
+		final MappedEliasFanoMonotoneLongBigList copy = new MappedEliasFanoMonotoneLongBigList(length, l, upperBits, selectUpper, littleEndian);
+		copy.lowerBits = this.lowerBits.copy();
+		return copy;
 	}
 }

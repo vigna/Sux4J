@@ -79,6 +79,12 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * <p>
  * This class is thread safe.
  *
+ * <h2>Memory mapping</h2>
+ *
+ * <p>
+ * Instances of this class can be {@linkplain #dump(String, ByteOrder) dumped} and then loaded uses
+ * {@link MappedEliasFanoMonotoneLongBigList}.
+ *
  * <h2>Implementation details</h2>
  *
  * <p>
@@ -602,10 +608,29 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		return length;
 	}
 
+	/**
+	 * Dumps this list's lower bits in {@linkplain ByteOrder#nativeOrder() native order} so that it can
+	 * be used with {@link MappedEliasFanoMonotoneLongBigList}.
+	 *
+	 * @param basename the basename of the generated files.
+	 */
 	public void dump(final String basename) throws IOException {
 		dump(basename, ByteOrder.nativeOrder());
 	}
 
+	/**
+	 * Dumps this list's lower bits so that it can be used with
+	 * {@link MappedEliasFanoMonotoneLongBigList}.
+	 *
+	 * <p>
+	 * Two files will be generated: a serialized object with extension
+	 * {@link MappedEliasFanoMonotoneLongBigList#OBJECT_EXTENSION} and a list of longs in the specified
+	 * {@linkplain ByteOrder byte order} with extension
+	 * {@link MappedEliasFanoMonotoneLongBigList#LOWER_BITS_EXTENSION}.
+	 *
+	 * @param basename the basename of the generated files.
+	 * @param byteOrder the desired byte order.
+	 */
 	public void dump(final String basename, final ByteOrder byteOrder) throws IOException {
 		BinIO.storeObject(new MappedEliasFanoMonotoneLongBigList(length, l, upperBits, selectUpper, byteOrder == ByteOrder.LITTLE_ENDIAN), basename + MappedEliasFanoMonotoneLongBigList.OBJECT_EXTENSION);
 		final FileChannel fileChannel = FileChannel.open(new File(basename + MappedEliasFanoMonotoneLongBigList.LOWER_BITS_EXTENSION).toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
