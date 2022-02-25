@@ -13,5 +13,9 @@
  * towards small values. {@link it.unimi.dsi.sux4j.util.EliasFanoIndexedMonotoneLongBigList}
  * provides {@linkplain it.unimi.dsi.sux4j.util.EliasFanoIndexedMonotoneLongBigList#successor(long)
  * content-based addressing methods}.
+ *
+ * <p>
+ * {@link it.unimi.dsi.sux4j.util.MappedEliasFanoMonotoneLongBigList} is a memory-mapped version of
+ * {@link it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList}.
  */
 package it.unimi.dsi.sux4j.util;
