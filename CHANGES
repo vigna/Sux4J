@@ -1,3 +1,10 @@
+5.3.0
+
+- New MappedEliasFanoMonotoneBigList class makes it possible to
+  map into memory the lower bits of an Elias-Fano list.
+
+- Completely revamped ZFastTrie implementation.
+
 5.2.3
 
 - Thanks to FileLines*Iterable, all classes can read term lists using
