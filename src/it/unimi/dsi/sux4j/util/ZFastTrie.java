@@ -1898,11 +1898,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			return l.compareTo(node.extent(transform)) <= 0;
 		}
 
-		final long lcpLength = l.longestCommonPrefixLength(u);
-		final LongArrayBitVector lcp = LongArrayBitVector.copy(l.subVector(0, lcpLength));
-		final long[] lcpState = Hashes.preprocessMurmur(lcp, 42); // Can be avoided
-		// This is necessarily internal
-		final InternalNode<T> lcpExitNode = (InternalNode<T>)getExitNode(lcp, lcpState).exitNode;
+		final LongArrayBitVector lcp = LongArrayBitVector.copy(l.subVector(0, l.longestCommonPrefixLength(u)));
+		// This is necessarily internal, and we can use the preprocessed state of either bound
+		final InternalNode<T> lcpExitNode = (InternalNode<T>)getExitNode(lcp, lowerState).exitNode;
 
 		Node<T> node = lcpExitNode.left;
 		while (node.isInternal() && node.extentLength(transform) < l.length()) node = ((InternalNode<T>)node).jumpRight;
