@@ -1869,6 +1869,51 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		return weakPredecessor(upperBound);
 	}
 
+
+	/**
+	 * Returns whether there is an element between the given bounds.
+	 *
+	 * @param lowerBound a lower bound.
+	 * @param upperBound an upper bound.
+	 * @return true if there is an element in the interval {@code [lowerBound...upperBound)}.
+	 */
+	@SuppressWarnings("unchecked")
+	public boolean nonemptyRange(final Object lowerBound, final Object upperBound) {
+		final LongArrayBitVector l = LongArrayBitVector.copy(transform.toBitVector((T)lowerBound));
+		final LongArrayBitVector u = LongArrayBitVector.copy(transform.toBitVector((T)upperBound));
+
+		final long[] lowerState = Hashes.preprocessMurmur(l, 42);
+		final Node<T> lowerExitNode = getExitNode(l, lowerState).exitNode;
+		if (l.compareTo(lowerExitNode.extent(transform)) <= 0) {
+			Node<T> node = lowerExitNode;
+			while (node.isInternal() && node.extentLength(transform) < u.length()) node = ((InternalNode<T>)node).jumpLeft;
+			return node.extent(transform).compareTo(u) < 0;
+		}
+
+		final long[] upperState = Hashes.preprocessMurmur(u, 42);
+		final Node<T> upperExitNode = getExitNode(u, upperState).exitNode;
+		if (u.compareTo(upperExitNode.extent(transform)) > 0) {
+			Node<T> node = upperExitNode;
+			while (node.isInternal() && node.extent(transform).length() < l.length()) node = ((InternalNode<T>)node).jumpRight;
+			return l.compareTo(node.extent(transform)) <= 0;
+		}
+
+		final long lcpLength = l.longestCommonPrefixLength(u);
+		final LongArrayBitVector lcp = LongArrayBitVector.copy(l.subVector(0, lcpLength));
+		final long[] lcpState = Hashes.preprocessMurmur(lcp, 42); // Can be avoided
+		// This is necessarily internal
+		final InternalNode<T> lcpExitNode = (InternalNode<T>)getExitNode(lcp, lcpState).exitNode;
+
+		Node<T> node = lcpExitNode.left;
+		while (node.isInternal() && node.extentLength(transform) < l.length()) node = ((InternalNode<T>)node).jumpRight;
+		if (l.compareTo(node.extent(transform)) <= 0) return true;
+
+		node = lcpExitNode.right;
+		while (node.isInternal() && node.extentLength(transform) < u.length()) node = ((InternalNode<T>)node).jumpLeft;
+		return node.extent(transform).compareTo(u) < 0;
+	}
+
+
 	@Override
 	public ObjectBidirectionalIterator<T> iterator() {
 		return iteratorFromLeaf(head.next);

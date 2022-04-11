@@ -517,8 +517,8 @@ public class ZFastTrieTest {
 
 	@SuppressWarnings("boxing")
 	@Test
-	public void testPredSucc() throws ClassNotFoundException, IOException {
-		final TreeSet<Long> t = new TreeSet<>();
+	public void testPredSuccRangeLongs() throws ClassNotFoundException, IOException {
+		final TreeSet<Long> t = new TreeSet<>((x, y) -> Long.compareUnsigned(x, y));
 		final long u = 1 << 12;
 		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() % u);
@@ -539,7 +539,97 @@ public class ZFastTrieTest {
 			assertEquals(t.floor(i), zft.floor(i));
 		}
 
+		Long prev = null, prevPrev = null;
+		for (final Long l : zft) {
+			// Empty ranges from consecutive keys
+			if (prev != null) {
+				assertFalse(zft.nonemptyRange(prev + 1, l));
+				assertTrue(zft.nonemptyRange(prev, l));
+				assertTrue(zft.nonemptyRange(prev, l + 1));
+			}
+			// Nonempty ranges from keys two places apart
+			if (prevPrev != null) {
+				assertTrue(zft.nonemptyRange(prevPrev - 1, l));
+				assertTrue(zft.nonemptyRange(prevPrev, l));
+				assertTrue(zft.nonemptyRange(prevPrev, l + 1));
+			}
+			prevPrev = prev;
+			prev = l;
+		}
+
+		for (int i = 0; i < 1000; i++) {
+			long x = r.nextLong() % u;
+			long y = r.nextLong() % u;
+			if (Long.compareUnsigned(x, y) > 0) {
+				final long tt = x;
+				x = y;
+				y = tt;
+			}
+
+			assertTrue(zft.nonemptyRange(x, y) == Long.compareUnsigned(t.ceiling(x), y) < 0);
+			assertTrue(zft.nonemptyRange(x, x + 1) == Long.compareUnsigned(t.ceiling(x), x + 1) < 0);
+		}
+
 		for (final Long x : t) zft.remove(x);
+	}
+
+	private static LongArrayBitVector randomBitVector(final RandomGenerator r, final int maxLength) {
+		final LongArrayBitVector v = LongArrayBitVector.ofLength(r.nextInt(maxLength));
+		for (int i = 0; i < v.length(); i++) if (r.nextBoolean()) v.set(i);
+		return v;
+	}
+
+	@Test
+	public void testPredSuccRangeBits() throws ClassNotFoundException, IOException {
+		final TreeSet<LongArrayBitVector> t = new TreeSet<>();
+		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
+		for (int i = 0; i < 1 << 12; i++) t.add(randomBitVector(r, 100));
+
+		ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.prefixFree());
+		zft.addAll(t);
+
+		System.out.println(zft);
+		zft = testSerialization(zft);
+
+		/*	for (long i = -u - 1; i <= u + 1; i++) {
+				assertEquals(t.ceiling(i), zft.successor(i));
+				assertEquals(t.ceiling(i), zft.ceiling(i));
+				assertEquals(t.higher(i), zft.strictSuccessor(i));
+				assertEquals(t.higher(i), zft.higher(i));
+				assertEquals(t.lower(i), zft.predecessor(i));
+				assertEquals(t.lower(i), zft.lower(i));
+				assertEquals(t.floor(i), zft.weakPredecessor(i));
+				assertEquals(t.floor(i), zft.floor(i));
+			}
+		*/
+		for (int i = 0; i < 10000; i++) {
+			LongArrayBitVector x = randomBitVector(r, 100);
+			LongArrayBitVector y = randomBitVector(r, 100);
+			if (x.compareTo(y) > 0) {
+				final LongArrayBitVector tt = x;
+				x = y;
+				y = tt;
+			}
+
+			assertTrue(zft.nonemptyRange(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
+		}
+
+		for (int i = 0; i < 10000; i++) {
+			LongArrayBitVector x = randomBitVector(r, 100);
+			if (x.length() == 0) continue;
+			LongArrayBitVector y = x.copy();
+			final long p = r.nextLong(y.length());
+			y.flip(p);
+			if (x.compareTo(y) > 0) {
+				final LongArrayBitVector tt = x;
+				x = y;
+				y = tt;
+			}
+
+			assertTrue(zft.nonemptyRange(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
+		}
+
+		for (final LongArrayBitVector x : t) zft.remove(x);
 	}
 
 	@Test
