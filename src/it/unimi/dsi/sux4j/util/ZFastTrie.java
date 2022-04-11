@@ -1715,9 +1715,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> successorNode(final T lowerBound) {
 		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(lowerBound));
 		final long[] state = Hashes.preprocessMurmur(v, 42);
-		final Node<T> exitNode = getExitNode(v, state).exitNode;
-		if (v.compareTo(exitNode.extent(transform)) <= 0) return exitNode.leftLeaf();
-		else return exitNode.rightLeaf().next;
+		final ExitData<T> exitData = getExitNode(v, state);
+		if (v.length() == exitData.lcp || !v.getBoolean(exitData.lcp)) return exitData.exitNode.leftLeaf();
+		else return exitData.exitNode.rightLeaf().next;
 	}
 
 	/**
@@ -1756,9 +1756,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> strictSuccessorNode(final T lowerBound) {
 		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(lowerBound));
 		final long[] state = Hashes.preprocessMurmur(v, 42);
-		final Node<T> exitNode = getExitNode(v, state).exitNode;
-		if (v.compareTo(exitNode.extent(transform)) < 0) return exitNode.leftLeaf();
-		else return exitNode.rightLeaf().next;
+		final ExitData<T> exitData = getExitNode(v, state);
+		if (v.length() > exitData.lcp && !v.getBoolean(exitData.lcp)) return exitData.exitNode.leftLeaf();
+		else return exitData.exitNode.rightLeaf().next;
 	}
 
 	/**
@@ -1797,9 +1797,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> predecessorNode(final T upperBound) {
 		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(upperBound));
 		final long[] state = Hashes.preprocessMurmur(v, 42);
-		final Node<T> exitNode = getExitNode(v, state).exitNode;
-		if (v.compareTo(exitNode.extent(transform)) > 0) return exitNode.rightLeaf();
-		else return exitNode.leftLeaf().prev;
+		final ExitData<T> exitData = getExitNode(v, state);
+		if (v.length() > exitData.lcp && v.getBoolean(exitData.lcp)) return exitData.exitNode.rightLeaf();
+		else return exitData.exitNode.leftLeaf().prev;
 	}
 
 	/**
@@ -1838,9 +1838,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private Leaf<T> weakPredecessorNode(final T k) {
 		final LongArrayBitVector v = LongArrayBitVector.copy(transform.toBitVector(k));
 		final long[] state = Hashes.preprocessMurmur(v, 42);
-		final Node<T> exitNode = getExitNode(v, state).exitNode;
-		if (v.compareTo(exitNode.extent(transform)) >= 0) return exitNode.rightLeaf();
-		else return exitNode.leftLeaf().prev;
+		final ExitData<T> exitData = getExitNode(v, state);
+		if (v.length() == exitData.lcp || v.getBoolean(exitData.lcp)) return exitData.exitNode.rightLeaf();
+		else return exitData.exitNode.leftLeaf().prev;
 	}
 
 	/**
