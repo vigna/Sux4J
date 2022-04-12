@@ -543,15 +543,15 @@ public class ZFastTrieTest {
 		for (final Long l : zft) {
 			// Empty ranges from consecutive keys
 			if (prev != null) {
-				assertFalse(zft.nonemptyRange(prev + 1, l));
-				assertTrue(zft.nonemptyRange(prev, l));
-				assertTrue(zft.nonemptyRange(prev, l + 1));
+				assertFalse(zft.isNonempty(prev + 1, l));
+				assertTrue(zft.isNonempty(prev, l));
+				assertTrue(zft.isNonempty(prev, l + 1));
 			}
 			// Nonempty ranges from keys two places apart
 			if (prevPrev != null) {
-				assertTrue(zft.nonemptyRange(prevPrev - 1, l));
-				assertTrue(zft.nonemptyRange(prevPrev, l));
-				assertTrue(zft.nonemptyRange(prevPrev, l + 1));
+				assertTrue(zft.isNonempty(prevPrev - 1, l));
+				assertTrue(zft.isNonempty(prevPrev, l));
+				assertTrue(zft.isNonempty(prevPrev, l + 1));
 			}
 			prevPrev = prev;
 			prev = l;
@@ -566,8 +566,8 @@ public class ZFastTrieTest {
 				y = tt;
 			}
 
-			assertTrue(zft.nonemptyRange(x, y) == Long.compareUnsigned(t.ceiling(x), y) < 0);
-			assertTrue(zft.nonemptyRange(x, x + 1) == Long.compareUnsigned(t.ceiling(x), x + 1) < 0);
+			assertTrue(zft.isNonempty(x, y) == Long.compareUnsigned(t.ceiling(x), y) < 0);
+			assertTrue(zft.isNonempty(x, x + 1) == Long.compareUnsigned(t.ceiling(x), x + 1) < 0);
 		}
 
 		for (final Long x : t) zft.remove(x);
@@ -611,7 +611,7 @@ public class ZFastTrieTest {
 				y = tt;
 			}
 
-			assertTrue(zft.nonemptyRange(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
+			assertTrue(zft.isNonempty(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
 		}
 
 		for (int i = 0; i < 10000; i++) {
@@ -626,7 +626,7 @@ public class ZFastTrieTest {
 				y = tt;
 			}
 
-			assertTrue(zft.nonemptyRange(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
+			assertTrue(zft.isNonempty(x, y) == (t.ceiling(x) != null && t.ceiling(x).compareTo(y) < 0));
 		}
 
 		for (final LongArrayBitVector x : t) zft.remove(x);

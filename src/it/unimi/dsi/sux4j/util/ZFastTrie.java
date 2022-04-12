@@ -1729,10 +1729,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is greater than or equal to {@code lowerBound}, or
 	 *         {@code null} if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
-	public T successor(final Object lowerBound) {
+	public T successor(final T lowerBound) {
 		if (size == 0) return null;
-		return successorNode((T)lowerBound).key;
+		return successorNode(lowerBound).key;
 	}
 
 	/**
@@ -1744,7 +1743,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is greater than or equal to {@code lowerBound}, or
 	 *         {@code null} if no such element exists.
 	 */
-	public T ceiling(final Object lowerBound) {
+	public T ceiling(final T lowerBound) {
 		return successor(lowerBound);
 	}
 
@@ -1770,10 +1769,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is greater than {@code lowerBound}, or {@link #tail}
 	 *         if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
-	public T strictSuccessor(final Object lowerBound) {
+	public T strictSuccessor(final T lowerBound) {
 		if (size == 0) return null;
-		return strictSuccessorNode((T)lowerBound).key;
+		return strictSuccessorNode(lowerBound).key;
 	}
 
 	/**
@@ -1785,7 +1783,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is greater than {@code lowerBound}, or {@link #tail}
 	 *         if no such element exists.
 	 */
-	public T higher(final Object lowerBound) {
+	public T higher(final T lowerBound) {
 		return strictSuccessor(lowerBound);
 	}
 
@@ -1811,10 +1809,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than {@code upperBound}, or {@link #head}
 	 *         if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
-	public T predecessor(final Object upperBound) {
+	public T predecessor(final T upperBound) {
 		if (size == 0) return null;
-		return predecessorNode((T)upperBound).key;
+		return predecessorNode(upperBound).key;
 	}
 
 	/**
@@ -1826,7 +1823,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than {@code upperBound}, or {@link #head}
 	 *         if no such element exists.
 	 */
-	public T lower(final Object upperBound) {
+	public T lower(final T upperBound) {
 		return predecessor(upperBound);
 	}
 
@@ -1852,10 +1849,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than or equal to {@code upperBound}, or
 	 *         {@link #head} if no such element exists.
 	 */
-	@SuppressWarnings("unchecked")
-	public T weakPredecessor(final Object upperBound) {
+	public T weakPredecessor(final T upperBound) {
 		if (size == 0) return null;
-		return weakPredecessorNode((T)upperBound).key;
+		return weakPredecessorNode(upperBound).key;
 	}
 
 	/**
@@ -1867,7 +1863,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @return the first element in the trie that is smaller than or equal to {@code upperBound}, or
 	 *         {@link #head} if no such element exists.
 	 */
-	public T floor(final Object upperBound) {
+	public T floor(final T upperBound) {
 		return weakPredecessor(upperBound);
 	}
 
@@ -1879,10 +1875,10 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param upperBound an upper bound.
 	 * @return true if there is an element in the interval {@code [lowerBound...upperBound)}.
 	 */
-	@SuppressWarnings("unchecked")
-	public boolean nonemptyRange(final Object lowerBound, final Object upperBound) {
-		final LongArrayBitVector l = LongArrayBitVector.copy(transform.toBitVector((T)lowerBound));
-		final LongArrayBitVector u = LongArrayBitVector.copy(transform.toBitVector((T)upperBound));
+	public boolean isNonempty(final T lowerBound, final T upperBound) {
+		final LongArrayBitVector l = LongArrayBitVector.copy(transform.toBitVector(lowerBound));
+		final LongArrayBitVector u = LongArrayBitVector.copy(transform.toBitVector(upperBound));
+		if (l.compareTo(u) > 0) throw new IllegalArgumentException("Arguments are in the wrong order: " + l + " > " + u);
 
 		final long[] lowerState = Hashes.preprocessMurmur(l, 42);
 		final Node<T> lowerExitNode = getExitNode(l, lowerState).exitNode;
@@ -1902,6 +1898,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 
 		final LongArrayBitVector lcp = LongArrayBitVector.copy(l.subVector(0, l.longestCommonPrefixLength(u)));
 		// This is necessarily internal, and we can use the preprocessed state of either bound
+		// In fact, we could even reuse part of the stack
 		final InternalNode<T> lcpExitNode = (InternalNode<T>)getExitNode(lcp, lowerState).exitNode;
 
 		Node<T> node = lcpExitNode.left;
