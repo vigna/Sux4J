@@ -1384,11 +1384,13 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		}
 	}
 
-	/** Returns the parent of the exit node of a given bit vector.
+	/**
+	 * Returns the parent of the exit node of a given bit vector.
 	 *
 	 * @param v a bit vector.
-	 * @param state the hash state of {@code v} precomputed by {@link Hashes#preprocessMurmur(BitVector, long)}.
-	 * @param stack if not {@code null}, a stack that will be filled with the <em>fat nodes</em> along the path to the parent of the exit node.
+	 * @param state the hash state of {@code v} precomputed by
+	 *            {@link Hashes#preprocessMurmur(BitVector, long)}.
+	 * @param stack a stack that will be filled with the 2-fat ancestors.
 	 * @return the parent of the exit node of {@code v}, or {@code null} if the exit node is the root.
 	 */
 	public ParexData<T> getParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {

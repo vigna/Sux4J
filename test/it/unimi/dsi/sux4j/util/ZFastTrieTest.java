@@ -588,20 +588,20 @@ public class ZFastTrieTest {
 		ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.prefixFree());
 		zft.addAll(t);
 
-		System.out.println(zft);
 		zft = testSerialization(zft);
 
-		/*	for (long i = -u - 1; i <= u + 1; i++) {
-				assertEquals(t.ceiling(i), zft.successor(i));
-				assertEquals(t.ceiling(i), zft.ceiling(i));
-				assertEquals(t.higher(i), zft.strictSuccessor(i));
-				assertEquals(t.higher(i), zft.higher(i));
-				assertEquals(t.lower(i), zft.predecessor(i));
-				assertEquals(t.lower(i), zft.lower(i));
-				assertEquals(t.floor(i), zft.weakPredecessor(i));
-				assertEquals(t.floor(i), zft.floor(i));
-			}
-		*/
+		for (int i = 0; i < 10000; i++) {
+			final LongArrayBitVector x = randomBitVector(r, 100);
+			assertEquals(t.ceiling(x), zft.successor(x));
+			assertEquals(t.ceiling(x), zft.ceiling(x));
+			assertEquals(t.higher(x), zft.strictSuccessor(x));
+			assertEquals(t.higher(x), zft.higher(x));
+			assertEquals(t.lower(x), zft.predecessor(x));
+			assertEquals(t.lower(x), zft.lower(x));
+			assertEquals(t.floor(x), zft.weakPredecessor(x));
+			assertEquals(t.floor(x), zft.floor(x));
+		}
+
 		for (int i = 0; i < 10000; i++) {
 			LongArrayBitVector x = randomBitVector(r, 100);
 			LongArrayBitVector y = randomBitVector(r, 100);
