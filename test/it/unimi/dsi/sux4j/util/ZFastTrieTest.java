@@ -813,4 +813,18 @@ public class ZFastTrieTest {
 		random.setSeed(0);
 		for (int i = 0; i < 1000000; i++) assertTrue(zft.remove(random.nextLong() >>> 1));
 	}
+	
+	@Test
+	public void testNonemptyRange() throws ClassNotFoundException, IOException {
+		final ZFastTrie<LongArrayBitVector> zft = new ZFastTrie<>(TransformationStrategies.identity());
+		zft.add(LongArrayBitVector.of(0, 1, 0, 0, 0, 0, 0, 0, 0));
+		zft.add(LongArrayBitVector.of(0, 0, 0, 0, 1, 1, 0, 0));
+		zft.add(LongArrayBitVector.of(0, 0, 0, 0, 1, 1, 0, 1));
+		zft.add(LongArrayBitVector.of(0, 1, 0, 1, 1, 1, 0, 0, 0));
+		zft.add(LongArrayBitVector.of(0, 1, 0, 1, 1, 1, 0, 1, 1));
+		zft.add(LongArrayBitVector.of(1, 1, 1, 1, 1, 1, 1, 1, 1));
+		final LongArrayBitVector x = LongArrayBitVector.of(0, 1, 0, 0, 0, 1, 0, 0, 0);
+		final LongArrayBitVector y = LongArrayBitVector.of(0, 1, 0, 1, 0);		
+	}
+
 }
