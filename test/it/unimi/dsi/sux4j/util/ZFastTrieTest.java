@@ -825,7 +825,7 @@ public class ZFastTrieTest {
 		zft.add(LongArrayBitVector.of(1, 1, 1, 1, 1, 1, 1, 1, 1));
 		final LongArrayBitVector x = LongArrayBitVector.of(0, 1, 0, 0, 0, 1, 0, 0, 0);
 		final LongArrayBitVector y = LongArrayBitVector.of(0, 1, 0, 1, 0);
-		assertFalse(zft.nonemptyRange(x, y));
+		assertFalse(zft.isNonempty(x, y));
 	}
 
 }
