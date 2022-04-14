@@ -1043,13 +1043,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static <U> void fixJumpsForRightParexNode(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean exitNodeIsRightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixJumpForRightParexNode(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + exitNodeIsRightChild + ", " + stack);
 		InternalNode<U> toBeFixed;
-		long jumpLength;
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the parent of the exit node but now must point the other node. */
 		while (!stack.isEmpty()) {
 			toBeFixed = stack.top();
-			jumpLength = toBeFixed.jumpLength();
 			if (toBeFixed.jumpRight != parentExitNode) break;
 			toBeFixed.jumpRight = otherNode;
 			stack.pop();
@@ -1064,7 +1062,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while (!stack.isEmpty()) {
 				toBeFixed = stack.pop();
 				if (toBeFixed.jumpRight != exitNode) break;
-				jumpLength = toBeFixed.jumpLength();
+				final long jumpLength = toBeFixed.jumpLength();
 				while (!otherNode.intercepts(jumpLength)) otherNode = ((InternalNode<U>)otherNode).jumpRight;
 				toBeFixed.jumpRight = otherNode;
 			}
@@ -1084,13 +1082,11 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	private static <U> void fixJumpsForLeftParexNode(final InternalNode<U> parentExitNode, final Leaf<U> exitNode, Node<U> otherNode, final boolean exitNodeIsRightChild, final ObjectArrayList<InternalNode<U>> stack) {
 		if (DEBUG) System.err.println("fixLeftJumpsAfterDeletion(" + parentExitNode + ", " + exitNode + ", " + otherNode + ", " + exitNodeIsRightChild + ", " + stack);
 		InternalNode<U> toBeFixed;
-		long jumpLength;
 
 		/* In the first phase, we look for jump pointers that were pointing
 		 * to the parent of the exit node but now must point the other node. */
 		while (!stack.isEmpty()) {
 			toBeFixed = stack.top();
-			jumpLength = toBeFixed.jumpLength();
 			if (toBeFixed.jumpLeft != parentExitNode) break;
 			toBeFixed.jumpLeft = otherNode;
 			stack.pop();
@@ -1105,7 +1101,7 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 			while(! stack.isEmpty()) {
 				toBeFixed = stack.pop();
 				if (toBeFixed.jumpLeft != exitNode) break;
-				jumpLength = toBeFixed.jumpLength();
+				final long jumpLength = toBeFixed.jumpLength();
 				while(! otherNode.intercepts(jumpLength)) otherNode = ((InternalNode<U>)otherNode).jumpLeft;
 				toBeFixed.jumpLeft = otherNode;
 			}
