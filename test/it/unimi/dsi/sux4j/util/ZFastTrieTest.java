@@ -518,7 +518,7 @@ public class ZFastTrieTest {
 	@SuppressWarnings("boxing")
 	@Test
 	public void testPredSuccRangeLongs() throws ClassNotFoundException, IOException {
-		final TreeSet<Long> t = new TreeSet<>((x, y) -> Long.compareUnsigned(x, y));
+		final TreeSet<Long> t = new TreeSet<>();
 		final long u = 1 << 12;
 		final XoRoShiRo128PlusRandomGenerator r = new XoRoShiRo128PlusRandomGenerator(0);
 		for (int i = 0; i < u / 4; i++) t.add(r.nextLong() % u);
@@ -560,14 +560,15 @@ public class ZFastTrieTest {
 		for (int i = 0; i < 1000; i++) {
 			long x = r.nextLong() % u;
 			long y = r.nextLong() % u;
-			if (Long.compareUnsigned(x, y) > 0) {
+			if (x > y) {
 				final long tt = x;
 				x = y;
 				y = tt;
 			}
 
-			assertTrue(zft.isNonempty(x, y) == Long.compareUnsigned(t.ceiling(x), y) < 0);
-			assertTrue(zft.isNonempty(x, x + 1) == Long.compareUnsigned(t.ceiling(x), x + 1) < 0);
+			assertTrue(zft.isNonempty(x, y) == (t.ceiling(x) < y));
+			assertTrue(zft.isNonempty(x, x + 1) == (t.ceiling(x) < x + 1));
+			assertTrue(zft.isNonempty(x, y + 1) == (t.ceiling(x) < y + 1));
 		}
 
 		for (final Long x : t) zft.remove(x);

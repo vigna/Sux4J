@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
+@Deprecated
 public class EliasFanoMonotoneLongBigList16Test {
 
 	@Test
