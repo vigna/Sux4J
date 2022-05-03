@@ -36,13 +36,16 @@ import java.util.NoSuchElementException;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
+import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.Arrays;
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.fastutil.longs.LongIterable;
@@ -53,81 +56,17 @@ import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 /**
- * An implementation of Elias&ndash;Fano's representation of monotone sequences; an element occupies
- * a number of bits bounded by two plus the logarithm of the average gap.
+ * An implementation of Elias&ndash;Fano's representation of monotone sequences identical to
+ * {@link EliasFanoMonotoneLongBigList}, but slightly slower and without size limitations.
  *
  * <p>
- * Instances of this class represent in a highly compacted form a nondecreasing sequence of natural
- * numbers. Instances are built by providing either an iterator returning the (nondecreasing)
- * sequence, or an {@linkplain Iterable iterable object} that provides such an iterator. In the
- * first case, you must also provide in advance the number of elements that will be returned and an
- * upper bound to their values (see below), and at the end of the construction the iterator will be
- * exhausted.
+ * Instances of this class can be memory mapped using {@link MappedEliasFanoMonotoneLongBigList}.
  *
- * <p>
- * An additional {@linkplain #get(long, long[], int, int) bulk method} makes it possible to extract
- * several consecutive entries at high speed, and {@link #getDelta(long)} computes directly the
- * difference between two consecutive elements. Moreover, the
- * {@link EliasFanoMonotoneLongBigListIterator#nextLong() nextLong()} method of an
- * {@linkplain #listIterator(long) iterator} will read read consecutive data much faster than
- * repeated calls to {@link #getLong(long)}.
- *
- * <p>
- * Methods to not usually perform bound checks on the arguments. Bounds checks can be enabled,
- * however, by enabling assertions.
- *
- * <p>
- * Because Java array are limited in size, it might not possible to build certain instances: you can
- * use the {@link #fits(long, long)} methods to check is this might happen. In this case, please use
- * {@link EliasFanoMonotoneBigLongBigList} which is slightly slower but has no such limitations.
- *
- * <p>
- * This class is thread safe.
- *
- * <h2>Memory mapping</h2>
- *
- * <p>
- * Instances of this class can be {@linkplain #dump(String, ByteOrder) dumped} and then loaded uses
- * {@link MappedEliasFanoMonotoneLongBigList}.
- *
- * <h2>Implementation details</h2>
- *
- * <p>
- * Given a monotone sequence 0 &le; <var>x</var><sub>0</sub> &le; <var>x</var><sub>1</sub> &le;
- * &hellip; &le; <var>x</var><sub><var>n</var>&nbsp;&minus;&nbsp;1</sub> &lt; <var>u</var>, where
- * <var>u</var> is a given upper bound (the size of the universe), the Elias&ndash;Fano
- * representation makes it possible to store it using at most 2 + log(<var>u</var>/<var>n</var>)
- * bits per element, which is very close to the information-theoretical lower bound &#x2248; log
- * <i>e</i> + log(<var>u</var>/<var>n</var>). A typical example is a list of pointer into records of
- * a large file: instead of using, for each pointer, a number of bit sufficient to express the
- * length of the file, the Elias&ndash;Fano representation makes it possible to use, for each
- * pointer, a number of bits roughly equal to the logarithm of the average length of a record. The
- * representation was introduced in Peter Elias, &ldquo;Efficient storage and retrieval by content
- * and address of static files&rdquo;, <i>J. Assoc. Comput. Mach.</i>, 21(2):246&minus;260, 1974,
- * and also independently by Robert Fano, &ldquo;On the number of bits required to implement an
- * associative memory&rdquo;, Memorandum 61, Computer Structures Group, Project MAC, MIT, Cambridge,
- * Mass., n.d., 1971.
- *
- * <p>
- * The elements of the sequence are recorded by storing separately the lower <var>s</var> =
- * &lfloor;log(<var>u</var>/<var>n</var>)&rfloor; bits and the remaining upper bits. The lower bits
- * are stored contiguously, whereas the upper bits are stored in an array of <var>n</var> +
- * <var>u</var> / 2<sup><var>s</var></sup> bits by setting, for each 0 &le; <var>i</var> &lt;
- * <var>n</var>, the bit of index <var>x</var><sub><var>i</var></sub> / 2<sup><var>s</var></sup> +
- * <var>i</var>; the value can then be recovered by selecting the <var>i</var>-th bit of the
- * resulting bit array and subtracting <var>i</var> (note that this will work because the upper bits
- * are nondecreasing).
- *
- * <p>
- * This implementation uses {@link SimpleSelect} to support selection inside the upper-bits array,
- * and exploits {@link SimpleSelect#select(long, long[], int, int)} to implement
- * {@link #get(long, long[], int, int)}.
- *
- * @see EliasFanoIndexedMonotoneLongBigList
- * @see EliasFanoMonotoneBigLongBigList
+ * @see EliasFanoMonotoneLongBigList
+ * @see MappedEliasFanoMonotoneLongBigList
  */
 
-public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
+public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 4L;
 
 	/** The length of the sequence. */
@@ -136,8 +75,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	protected final int l;
 	/** The upper bits, stored as unary gaps. */
 	protected transient long[] upperBits;
-	/** The list of lower bits of each element, stored explicitly. */
-	protected long[] lowerBits;
+	/** The list of lower bits of each element, stored explicitly in a big array. */
+	protected long[][] lowerBits;
 	/** The select structure used to extract the upper bits. */
 	protected final SimpleSelect selectUpper;
 	/** The mask for the lower bits. */
@@ -155,7 +94,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		return (length + 1) * l < bits(Arrays.MAX_ARRAY_SIZE);
 	}
 
-	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] upperBits, final long[] lowerBits, final SimpleSelect selectUpper) {
+	protected EliasFanoMonotoneBigLongBigList(final long length, final int l, final long[] upperBits, final long[][] lowerBits, final SimpleSelect selectUpper) {
 		this.length = length;
 		this.l = l;
 		this.upperBits = upperBits;
@@ -170,7 +109,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *
 	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final IntIterable list) {
+	public EliasFanoMonotoneBigLongBigList(final IntIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
@@ -180,7 +119,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *
 	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final ShortIterable list) {
+	public EliasFanoMonotoneBigLongBigList(final ShortIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
@@ -190,7 +129,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *
 	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final ByteIterable list) {
+	public EliasFanoMonotoneBigLongBigList(final ByteIterable list) {
 		this((LongIterable) () -> LongIterators.wrap(list.iterator()));
 	}
 
@@ -201,7 +140,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @param list an iterable object returning nondecreasing natural numbers.
 	 */
 
-	public EliasFanoMonotoneLongBigList(final LongIterable list) {
+	public EliasFanoMonotoneBigLongBigList(final LongIterable list) {
 		this(computeParameters(list.iterator()), list.iterator());
 	}
 
@@ -239,7 +178,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *            it used to be non-strict).
 	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
+	public EliasFanoMonotoneBigLongBigList(final long n, final long upperBound, final ByteIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
@@ -256,7 +195,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *            it used to be non-strict).
 	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
+	public EliasFanoMonotoneBigLongBigList(final long n, final long upperBound, final ShortIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
@@ -273,7 +212,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *            it used to be non-strict).
 	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final IntIterator iterator) {
+	public EliasFanoMonotoneBigLongBigList(final long n, final long upperBound, final IntIterator iterator) {
 		this(new long[] { n, upperBound }, LongIterators.wrap(iterator));
 	}
 
@@ -290,7 +229,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *            it used to be non-strict).
 	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
-	public EliasFanoMonotoneLongBigList(final long n, final long upperBound, final LongIterator iterator) {
+	public EliasFanoMonotoneBigLongBigList(final long n, final long upperBound, final LongIterator iterator) {
 		this(new long[] { n, upperBound }, iterator);
 	}
 
@@ -307,18 +246,15 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 *            to be non-strict).
 	 * @param iterator an iterator returning nondecreasing natural numbers.
 	 */
-	protected EliasFanoMonotoneLongBigList(final long[] a, final LongIterator iterator) {
+	protected EliasFanoMonotoneBigLongBigList(final long[] a, final LongIterator iterator) {
 		length = a[0];
 		long v = -1;
 		final long upperBound = a[1];
 		l = length == 0 ? 0 : Math.max(0, Fast.mostSignificantBit(upperBound / length));
 		lowerBitsMask = (1L << l) - 1;
 		final long lowerBitsMask = (1L << l) - 1;
-		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
+		final LongBigArrayBitVector lowerBitsVector = LongBigArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
-
-		if ((length + 1) * l >= bits(Arrays.MAX_ARRAY_SIZE)) throw new IllegalArgumentException("Lower-bits array is too large: please use EliasFanoMonotoneBigLongBigList");
-
 		lowerBitsList.size(length + 1);
 		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound >>> l) + 2);
 		long last = -1;
@@ -342,7 +278,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + length + " values in the provided iterator");
 		// The initialization for l == 0 avoids tests for l == 0 throughout the code.
-		this.lowerBits = l == 0 ? new long[1] : lowerBitsVector.bits();
+		this.lowerBits = l == 0 ? LongBigArrays.newBigArray(1) : lowerBitsVector.bigBits();
 		this.upperBits = upperBits.bits();
 		selectUpper = new SimpleSelect(upperBits);
 	}
@@ -371,8 +307,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 		final int startWord = word(position);
 		final int startBit = bit(position);
-		final long result = lowerBits[startWord] >>> startBit;
-		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
+		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 	}
 
 	/**
@@ -391,18 +327,18 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		selectUpper.select(index, dest, 0, 2);
 
 		final int l = this.l;
-		final long[] lowerBits = this.lowerBits;
+		final long[][] lowerBits = this.lowerBits;
 
 		long position = index * l;
 		int startWord = word(position);
 		int startBit = bit(position);
-		long first = lowerBits[startWord] >>> startBit;
-		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		long first = BigArrays.get(lowerBits, startWord) >>> startBit;
+		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 		position += l;
 		startWord = word(position);
 		startBit = bit(position);
-		long second = lowerBits[startWord] >>> startBit;
-		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+		long second = BigArrays.get(lowerBits, startWord) >>> startBit;
+		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 		return second - first;
 	}
 
@@ -429,14 +365,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 
 		final int l = this.l;
 		final long lowerBitsMask = this.lowerBitsMask;
-		final long[] lowerBits = this.lowerBits;
+		final long[][] lowerBits = this.lowerBits;
 
 		long position = index * l;
 		for (int i = 0; i < length; i++) {
 			final int startWord = word(position);
 			final int startBit = bit(position);
-			final long result = lowerBits[startWord] >>> startBit;
-			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | lowerBits[startWord + 1] << -startBit) & lowerBitsMask;
+			final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
+			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 			position += l;
 		}
 
@@ -457,12 +393,12 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	/**
-	 * A list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * A list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 *
 	 * <p>
 	 * {@linkplain #nextLong() Forward iteration} will be faster than iterated calls to
-	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
-	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 * {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}.
 	 *
 	 * <p>
 	 * Additional <em>unsafe</em> methods {@link #nextLongUnsafe()} and {@link #previousLongUnsafe()}
@@ -526,11 +462,11 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		 *         behavior is undefined.
 		 */
 		public long nextLongUnsafe() {
-			final int l = EliasFanoMonotoneLongBigList.this.l;
+			final int l = EliasFanoMonotoneBigLongBigList.this.l;
 			final int startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
-			long lower = lowerBits[startWord] >>> startBit;
-			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
+			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;
 			lowerBitsPosition += l;
 			return getNextUpperBits() << l | lower & lowerBitsMask;
 		}
@@ -549,7 +485,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		 *         otherwise, behavior is undefined.
 		 */
 		public long previousLongUnsafe() {
-			final int l = EliasFanoMonotoneLongBigList.this.l;
+			final int l = EliasFanoMonotoneBigLongBigList.this.l;
 			--index;
 			final long position = selectUpper.select(index);
 			window = upperBits[word = word(position)] & -1L << position;
@@ -557,22 +493,22 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 			lowerBitsPosition = index * l;
 			final int startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
-			long lower = lowerBits[startWord] >>> startBit;
-			if (startBit + l > Long.SIZE) lower |= lowerBits[startWord + 1] << -startBit;
+			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
+			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;
 			return (position - index) << l | lower & lowerBitsMask;
 		}
 	}
 
 	/**
-	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 *
 	 * <p>
 	 * Forward iteration will be faster than iterated calls to
-	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
-	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 * {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}.
 	 *
 	 * @param from the starting position in the sequence.
-	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 * @see EliasFanoMonotoneLongBigListIterator
 	 */
 	@Override
@@ -581,14 +517,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	/**
-	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 *
 	 * <p>
 	 * Forward iteration will be faster than iterated calls to
-	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
-	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 * {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}.
 	 *
-	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 * @see EliasFanoMonotoneLongBigListIterator
 	 */
 	@Override
@@ -597,14 +533,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	}
 
 	/**
-	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * Returns a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 *
 	 * <p>
 	 * Forward iteration will be faster than iterated calls to
-	 * {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}. Backward iteration is available,
-	 * but it will perform similarly to {@link EliasFanoMonotoneLongBigList#getLong(long) getLong()}.
+	 * {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}. Backward iteration is available,
+	 * but it will perform similarly to {@link EliasFanoMonotoneBigLongBigList#getLong(long) getLong()}.
 	 *
-	 * @return a list iterator over the values of this {@link EliasFanoMonotoneLongBigList}.
+	 * @return a list iterator over the values of this {@link EliasFanoMonotoneBigLongBigList}.
 	 * @see EliasFanoMonotoneLongBigListIterator
 	 */
 	@Override
@@ -645,12 +581,14 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final FileChannel fileChannel = FileChannel.open(new File(basename + MappedEliasFanoMonotoneLongBigList.LOWER_BITS_EXTENSION).toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
 		final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024);
 		byteBuffer.order(byteOrder);
-		for (final long l : lowerBits) {
-			byteBuffer.putLong(l);
-			if (!byteBuffer.hasRemaining()) {
-				byteBuffer.flip();
-				fileChannel.write(byteBuffer);
-				byteBuffer.clear();
+		for (final long[] s : lowerBits) {
+			for (final long l : s) {
+				byteBuffer.putLong(l);
+				if (!byteBuffer.hasRemaining()) {
+					byteBuffer.flip();
+					fileChannel.write(byteBuffer);
+					byteBuffer.clear();
+				}
 			}
 		}
 
@@ -664,6 +602,6 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		s.defaultReadObject();
 		upperBits = selectUpper.bitVector().bits();
 		// A fix that avoids bumping the serial id from 4L
-		if (lowerBits.length == 0) lowerBits = new long[1];
+		if (lowerBits.length == 0) lowerBits = LongBigArrays.newBigArray(1);
 	}
 }

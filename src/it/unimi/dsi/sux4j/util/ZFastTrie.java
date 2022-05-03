@@ -519,13 +519,9 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 		 * Retrieves a node given its handle.
 		 *
 		 * @param handle a handle.
-		 * @param exact whether the search should be exact; if false, and the given handle does not appear
-		 *            in the table, it is possible that an unpredictable internal node is returned.
 		 *
 		 * @return the node with given handle, or {@code null} if there is no such node (if {@code exact} is
 		 *         false, a false positive might be returned).
-		 *
-		 * @see #get(BitVector, long, long, boolean)
 		 */
 		public InternalNode<U> get(final BitVector handle) {
 			return findExact(handle, handle.length(), Hashes.murmur(handle, 42) & SIGNATURE_MASK);
@@ -1458,8 +1454,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param stack a nonempty stack as filled by
 	 *            {@link #getParentExitNode(LongArrayBitVector, long[], ObjectArrayList)}; the top of
 	 *            the stack must not be the root.
-	 * @return the grandparent of the exit node of {@code v}, or {@code null} if there is no
-	 *         grandparent.
 	 */
 	public void getGrandParentExitNode(final LongArrayBitVector v, final long[] state, final ObjectArrayList<InternalNode<T>> stack) {
 		if (DDEBUG) System.err.println("getParentGrandExitNode(" + v + ", " + stack + ")");
@@ -1606,7 +1600,6 @@ public class ZFastTrie<T> extends AbstractObjectSortedSet<T> implements Serializ
 	 * @param state {@linkplain Hashes#preprocessMurmur(BitVector, long) preprocessed MurmurHash state}
 	 *            for {@code v}.
 	 * @param b the right extreme of the search interval, &ge; &minus;1 (included).
-	 * @param stack a stack where the results of the search will be cumulated.
 	 * @return the parent of the exit node or the exit node, in case of success; an arbitrary node
 	 *         otherwise.
 	 */

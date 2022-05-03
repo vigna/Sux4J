@@ -40,15 +40,17 @@ import it.unimi.dsi.lang.FlyweightPrototype;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 /**
- * A memory-mapped implementation of {@link EliasFanoMonotoneLongBigList}.
+ * A memory-mapped implementation of
+ * {@link EliasFanoMonotoneLongBigList}/{@link EliasFanoMonotoneBigLongBigList}.
  *
  * <p>
- * This class makes it possible to use an {@link EliasFanoMonotoneLongBigList} without actually
- * loading the lower bits, but rather {@linkplain LongMappedBigList mapping them into memory}. You
- * build an {@link EliasFanoMonotoneLongBigList} instance first, and then you use the
- * {@linkplain EliasFanoMonotoneLongBigList#dump(String, ByteOrder) dump} it to disk providing a
- * basename. The same basename must be used when {@linkplain #load(String) loading an instance of
- * this class}.
+ * This class makes it possible to use an {@link EliasFanoMonotoneLongBigList} (or
+ * {@link EliasFanoMonotoneBigLongBigList}) without actually loading the lower bits, but rather
+ * {@linkplain LongMappedBigList mapping them into memory}. You build an
+ * {@link EliasFanoMonotoneLongBigList} (or {@link EliasFanoMonotoneBigLongBigList}) instance first,
+ * and then you use the {@linkplain EliasFanoMonotoneLongBigList#dump(String, ByteOrder) dump} it to
+ * disk providing a basename. The same basename must be used when {@linkplain #load(String) loading
+ * an instance of this class}.
  *
  * <p>
  * After usage, you should {@link #close()} instances of this class to release the associated
@@ -61,6 +63,7 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * the {@link #close()} method, when invoked on any copy, will stop mapping of all copies. *
  *
  * @see EliasFanoMonotoneLongBigList
+ * @see EliasFanoMonotoneBigLongBigList
  */
 
 public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable, Closeable, FlyweightPrototype<MappedEliasFanoMonotoneLongBigList> {

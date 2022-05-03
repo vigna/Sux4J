@@ -1,3 +1,10 @@
+5.3.1
+
+- New EliasFanoMonotoneBigLongBigList which uses a LongBigArrayBitVector
+  for the lower bits and avoids the limitations of
+  EliasFanoMonotoneLongBigList. Instances can be mapped in memory with
+  MappedEliasFanoMonotoneLongBigList.
+
 5.3.0
 
 - New MappedEliasFanoMonotoneBigList class makes it possible to

@@ -38,12 +38,19 @@ import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
-/** An implementation of Elias&ndash;Fano's representation of monotone sequences with number of lower bits set fixed to 16.
+/**
+ * An implementation of Elias&ndash;Fano's representation of monotone sequences with number of lower
+ * bits set fixed to 16.
  *
- * <p>Instances of this class behave like those of {@link EliasFanoMonotoneLongBigList}, but they use a big array of shorts
- * to store the lower bits, thus bypassing the 128Gb limit of a {@link LongArrayBitVector} instance.
+ * <p>
+ * Instances of this class behave like those of {@link EliasFanoMonotoneLongBigList}, but they use a
+ * big array of shorts to store the lower bits, thus bypassing the 128Gb limit of a
+ * {@link LongArrayBitVector} instance.
+ *
+ * @deprecated Please use {@link EliasFanoMonotoneBigLongBigList}
  */
 
+@Deprecated
 public class EliasFanoMonotoneLongBigList16 extends AbstractLongBigList implements Serializable {
 	private static final long serialVersionUID = 4L;
 

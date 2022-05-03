@@ -34,9 +34,9 @@ import it.unimi.dsi.fastutil.longs.LongBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandom;
 
-public class EliasFanoMonotoneLongBigListTest {
+public class EliasFanoMonotoneBigLongBigListTest {
 
-	private static void test(final EliasFanoMonotoneLongBigList l) throws IOException, ClassNotFoundException {
+	private static void test(final EliasFanoMonotoneBigLongBigList l) throws IOException, ClassNotFoundException {
 		for (long i = 0; i < l.size64(); i++) {
 			LongBigListIterator iterator = l.listIterator(i);
 			for (long j = i; j < l.size64(); j++) {
@@ -67,26 +67,27 @@ public class EliasFanoMonotoneLongBigListTest {
 		new File(basename + MappedEliasFanoMonotoneLongBigList.LOWER_BITS_EXTENSION).delete();
 	}
 
+
 	@Test
-	public void testSmall() throws IOException, ClassNotFoundException {
+	public void testSmall() throws ClassNotFoundException, IOException {
 		LongBigArrayBigList l;
 
 		l = new LongBigArrayBigList(new long[][] { { 0, 1, 2 } });
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 
 		l = new LongBigArrayBigList(new long[][] { { 0, 10, 20 } });
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 	}
 
 	@Test
-	public void testRepeated() throws IOException, ClassNotFoundException {
+	public void testRepeated() throws ClassNotFoundException, IOException {
 		LongBigArrayBigList l;
 
 		l = new LongBigArrayBigList(new long[][] { { 0, 1, 1 } });
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 
 	}
 
@@ -95,25 +96,25 @@ public class EliasFanoMonotoneLongBigListTest {
 		LongBigArrayBigList l;
 
 		l = new LongBigArrayBigList(Util.identity(100L));
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 	}
 
 	@Test
 	public void testLarge() throws ClassNotFoundException, IOException {
 		LongBigArrayBigList l;
 
-		l = new LongBigArrayBigList(Util.identity(2 * (1000L)));
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		l = new LongBigArrayBigList(Util.identity(2 * (100L)));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 
 		for(int i = (int)l.size64(); i-- != 0;) l.set(i, l.getLong(i) * 1000);
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 	}
 
 	@Test
@@ -125,15 +126,15 @@ public class EliasFanoMonotoneLongBigListTest {
 			c += Long.numberOfTrailingZeros(random.nextLong());
 			l.add(c);
 		}
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
-		test(new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
+		test(new EliasFanoMonotoneBigLongBigList(l));
 
 		l = new LongBigArrayBigList();
 		for(long i = 10000000, c = 0; i-- != 0;) {
 			c += Long.numberOfTrailingZeros(random.nextLong());
 			l.add(c);
 		}
-		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		assertEquals(l, new EliasFanoMonotoneBigLongBigList(l));
 	}
 
 	@Test
@@ -143,7 +144,7 @@ public class EliasFanoMonotoneLongBigListTest {
 			for(final int jump : new int[] { 1, 10, 100 }) {
 				final long[] s = new long[100000];
 				for(int i = 1; i < s.length; i++) s[i] = s[i - 1] + random.nextInt(jump) + base;
-				final EliasFanoMonotoneLongBigList ef = new EliasFanoMonotoneLongBigList(LongArrayList.wrap(s));
+				final EliasFanoMonotoneBigLongBigList ef = new EliasFanoMonotoneBigLongBigList(LongArrayList.wrap(s));
 
 				for(int i = 0; i < 1000; i++) {
 					final int from = random.nextInt(s.length - 100);
