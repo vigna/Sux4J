@@ -77,9 +77,10 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * however, by enabling assertions.
  *
  * <p>
- * Because Java array are limited in size, it might not possible to build certain instances: you can
- * use the {@link #fits(long, long)} methods to check is this might happen. In this case, please use
- * {@link EliasFanoMonotoneBigLongBigList} which is slightly slower but has no such limitations.
+ * Because Java array are limited in size, it might not be possible to build certain instances: you
+ * can use the {@link #fits(long, long)} methods to check is this might happen. In this case, please
+ * use {@link EliasFanoMonotoneBigLongBigList}, which is slightly slower but has no such
+ * limitations.
  *
  * <p>
  * This class is thread safe.
@@ -123,8 +124,8 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  * and exploits {@link SimpleSelect#select(long, long[], int, int)} to implement
  * {@link #get(long, long[], int, int)}.
  *
- * @see EliasFanoIndexedMonotoneLongBigList
  * @see EliasFanoMonotoneBigLongBigList
+ * @see EliasFanoIndexedMonotoneLongBigList
  */
 
 public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable {
