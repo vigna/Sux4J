@@ -33,7 +33,10 @@ import it.unimi.dsi.bits.BitVector;
  * <p>
  * This interface specifies a zero-based selection. More precisely, select is applied to a bit
  * vector in which bits positions are numbered starting from zero. Then, {@link #select(long)
- * select(r)} is the position of the leftmost bit set to one and preceded by {@code r} ones.
+ * select(r)} is the position of the leftmost bit set to one and preceded by {@code r} ones. There
+ * are also default bulk methods {@link #select(long, long[], int, int)} and {@link #select(long)}
+ * whose implementation delegates to {@link #select(long)} but might be implemented more
+ * efficiently.
  *
  * <p>
  * A number of equations link {@link Rank#rank(long) rank()} and {@link #select(long) select()}:
@@ -69,18 +72,61 @@ public interface Select extends Serializable {
 	 */
 	public long select(long rank);
 
-	/** Returns the bit vector indexed by this structure.
+	/**
+	 * Performs a bulk select of consecutive ranks into a given array fragment.
 	 *
-	 * <p>Note that you are not supposed to modify the returned vector.
+	 * @apiNote Implementations are allowed to require that {@code dest} be of length greater than
+	 *          {@code offset} even if {@code length} is zero.
+	 *
+	 * @implSpec This implementation just makes multiple calls to {@link #select(long)}.
+	 *
+	 * @param rank the first rank to select.
+	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
+	 *            bits starting at position {@code offset}; must be of length greater than
+	 *            {@code offset}.
+	 * @param offset the first bit position written in {@code dest}.
+	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
+	 * @return {@code dest}
+	 * @see #select(long, long[])
+	 */
+	public default long[] select(final long rank, final long[] dest, final int offset, final int length) {
+		for (int i = 0; i < length; i++) dest[offset + i] = select(rank + i);
+		return dest;
+	}
+
+	/**
+	 * Performs a bulk select of consecutive ranks into a given array.
+	 *
+	 * @apiNote Implementations are allowed to require that {@code dest} be of length greater than zero.
+	 *
+	 * @implSpec This implementation just delegates to {@link #select(long, long[], int, int)}.
+	 *
+	 * @param rank the first rank to select.
+	 * @param dest the destination array; it will be filled with position of consecutive bits.
+	 * @return {@code dest}
+	 * @see #select(long, long[], int, int)
+	 */
+	public default long[] select(final long rank, final long[] dest) {
+		final int length = dest.length;
+		if (length == 0) return dest;
+		return select(rank, dest, 0, dest.length);
+	}
+
+	/**
+	 * Returns the bit vector indexed by this structure.
+	 *
+	 * <p>
+	 * Note that you are not supposed to modify the returned vector.
 	 *
 	 * @return the bit vector indexed by this structure.
 	 */
 	public BitVector bitVector();
 
-	/** Returns the overall number of bits allocated by this structure.
+	/**
+	 * Returns the overall number of bits allocated by this structure.
 	 *
-	 * @return the overall number of bits allocated by this structure (not including the bits
-	 * of the {@linkplain #bitVector() indexed vector}).
+	 * @return the overall number of bits allocated by this structure (not including the bits of the
+	 *         {@linkplain #bitVector() indexed vector}).
 	 */
 
 	public long numBits();

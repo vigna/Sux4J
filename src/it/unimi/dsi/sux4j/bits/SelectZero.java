@@ -58,18 +58,61 @@ public interface SelectZero extends Serializable {
 	 */
 	public long selectZero(long zeroRank);
 
-	/** Returns the bit vector indexed by this structure.
+	/**
+	 * Performs a bulk select of consecutive zero ranks into a given array fragment.
 	 *
-	 * <p>Note that you are not supposed to modify the returned vector.
+	 * @apiNote Implementations are allowed to require that {@code dest} be of length greater than
+	 *          {@code offset} even if {@code length} is zero.
+	 *
+	 * @implSpec This implementation just makes multiple calls to {@link #selectZero(long)}.
+	 *
+	 * @param zeroRank the first zero rank to select.
+	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
+	 *            bits starting at position {@code offset}; must be of length greater than
+	 *            {@code offset}.
+	 * @param offset the first bit position written in {@code dest}.
+	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
+	 * @return {@code dest}
+	 * @see #selectZero(long, long[])
+	 */
+	public default long[] selectZero(final long zeroRank, final long[] dest, final int offset, final int length) {
+		for (int i = 0; i < length; i++) dest[offset + i] = selectZero(zeroRank + i);
+		return dest;
+	}
+
+	/**
+	 * Performs a bulk select of consecutive zero ranks into a given array.
+	 *
+	 * @apiNote Implementations are allowed to require that {@code dest} be of length greater than zero.
+	 *
+	 * @implSpec This implementation just delegates to {@link #selectZero(long, long[], int, int)}.
+	 *
+	 * @param zeroRank the first zero rank to select.
+	 * @param dest the destination array; it will be filled with position of consecutive bits.
+	 * @return {@code dest}
+	 * @see #selectZero(long, long[], int, int)
+	 */
+	public default long[] selectZero(final long zeroRank, final long[] dest) {
+		final int length = dest.length;
+		if (length == 0) return dest;
+		return selectZero(zeroRank, dest, 0, dest.length);
+	}
+
+	/**
+	 * Returns the bit vector indexed by this structure.
+	 *
+	 * <p>
+	 * Note that you are not supposed to modify the returned vector.
 	 *
 	 * @return the bit vector indexed by this structure.
 	 */
 	public BitVector bitVector();
 
-	/** Returns the overall number of bits allocated by this structure.
+	/**
+	 * Returns the overall number of bits allocated by this structure.
 	 *
-	 * @return the overall number of bits allocated by this structure (not including the bits
-	 * of the {@linkplain #bitVector() indexed vector}).
+	 * @return the overall number of bits allocated by this structure (not including the bits of the
+	 *         {@linkplain #bitVector() indexed vector}).
 	 */
 
 	public long numBits();
