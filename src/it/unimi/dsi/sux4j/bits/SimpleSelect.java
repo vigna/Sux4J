@@ -33,15 +33,19 @@ import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 
-/** A simple select implementation based on a two-level inventory, a spill list and broadword bit search.
+/**
+ * A simple select implementation based on a two-level inventory, a spill list and broadword bit
+ * search.
  *
- * <p>This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
- * under the same conditions, provide very fast selects. For very unevenly distributed arrays
- * the space occupancy will grow significantly, and access time might vary wildly.
+ * <p>
+ * This implementation uses around 13.75% additional space on evenly distributed bit arrays, and,
+ * under the same conditions, provide very fast selects. For very unevenly distributed arrays the
+ * space occupancy will grow significantly, and access time might vary wildly.
  *
- * <p>An additional {@linkplain #select(long, long[], int, int) bulk method} makes it possible
- * to select several consecutive bits at high speed, if the array is reasonably uniform. This is
- * the typical case when this structure is backing an {@link EliasFanoMonotoneLongBigList}.
+ * @implNote The {@linkplain #select(long, long[], int, int) bulk methods} makes it possible to
+ *           select several consecutive bits at high speed, if the array is reasonably uniform. This
+ *           is the typical case when this structure is backing an
+ *           {@link EliasFanoMonotoneLongBigList}.
  */
 
 public class SimpleSelect implements Select {
@@ -278,9 +282,8 @@ public class SimpleSelect implements Select {
 	/**
 	 * Performs a bulk select of consecutive ranks into a given array fragment.
 	 *
-	 * <p>
-	 * <strong>Warning</strong>: form Sux4J 5.1.5, {@code dest} must be of length greater than
-	 * {@code offset} even if {@code length} is zero.
+	 * @implNote {@code dest} must be of length greater than {@code offset} even if {@code length} is
+	 *           zero.
 	 *
 	 * @param rank the first rank to select.
 	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
@@ -291,6 +294,7 @@ public class SimpleSelect implements Select {
 	 * @return {@code dest}
 	 * @see #select(long, long[])
 	 */
+	@Override
 	public long[] select(final long rank, final long[] dest, int offset, final int length) {
 		assert rank >= 0;
 		assert rank < numOnes;
@@ -321,8 +325,7 @@ public class SimpleSelect implements Select {
 	/**
 	 * Performs a bulk select of consecutive ranks into a given array.
 	 *
-	 * <p>
-	 * <strong>Warning</strong>: from Sux4J 5.1.5, {@code dest} must be of length greater than zero.
+	 * @implNote {@code dest} must be of length greater than zero.
 	 *
 	 * @param rank the first rank to select.
 	 * @param dest the destination array; it will be filled with position of consecutive bits; must be
@@ -330,6 +333,7 @@ public class SimpleSelect implements Select {
 	 * @return {@code dest}
 	 * @see #select(long, long[], int, int)
 	 */
+	@Override
 	public long[] select(final long rank, final long[] dest) {
 		assert rank >= 0;
 		assert rank < numOnes;
