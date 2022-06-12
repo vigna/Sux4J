@@ -33,9 +33,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.NoSuchElementException;
 
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
-import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.BigArrays;
@@ -53,7 +51,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.bits.SimpleBigSelect;
 
 /**
  * An implementation of Elias&ndash;Fano's representation of monotone sequences identical to
@@ -67,7 +65,7 @@ import it.unimi.dsi.sux4j.bits.SimpleSelect;
  */
 
 public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList implements Serializable {
-	private static final long serialVersionUID = 4L;
+	private static final long serialVersionUID = 5L;
 
 	/** The length of the sequence. */
 	protected final long length;
@@ -78,7 +76,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 	/** The list of lower bits of each element, stored explicitly in a big array. */
 	protected long[][] lowerBits;
 	/** The select structure used to extract the upper bits. */
-	protected final SimpleSelect selectUpper;
+	protected final SimpleBigSelect selectUpper;
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
 
@@ -94,7 +92,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		return (length + 1) * l < bits(Arrays.MAX_ARRAY_SIZE);
 	}
 
-	protected EliasFanoMonotoneBigLongBigList(final long length, final int l, final long[] upperBits, final long[][] lowerBits, final SimpleSelect selectUpper) {
+	protected EliasFanoMonotoneBigLongBigList(final long length, final int l, final long[] upperBits, final long[][] lowerBits, final SimpleBigSelect selectUpper) {
 		this.length = length;
 		this.l = l;
 		this.upperBits = upperBits;
@@ -256,7 +254,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		final LongBigArrayBitVector lowerBitsVector = LongBigArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
 		lowerBitsList.size(length + 1);
-		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound >>> l) + 2);
+		final LongBigArrayBitVector upperBits = LongBigArrayBitVector.getInstance().length(length + (upperBound >>> l) + 2);
 		long last = -1;
 		long finalUpperBound = upperBound;
 
@@ -280,7 +278,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		// The initialization for l == 0 avoids tests for l == 0 throughout the code.
 		this.lowerBits = l == 0 ? LongBigArrays.newBigArray(1) : lowerBitsVector.bigBits();
 		this.upperBits = upperBits.bits();
-		selectUpper = new SimpleSelect(upperBits);
+		selectUpper = new SimpleBigSelect(upperBits);
 	}
 
 

@@ -37,7 +37,7 @@ import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
 import it.unimi.dsi.fastutil.longs.LongMappedBigList;
 import it.unimi.dsi.lang.FlyweightPrototype;
-import it.unimi.dsi.sux4j.bits.SimpleSelect;
+import it.unimi.dsi.sux4j.bits.Select;
 
 /**
  * A memory-mapped implementation of
@@ -81,7 +81,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 	/** The list of lower bits of each element, stored explicitly. */
 	protected LongMappedBigList lowerBits;
 	/** The select structure used to extract the upper bits. */
-	protected final SimpleSelect selectUpper;
+	protected final Select selectUpper;
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
 	/** The file channel used for memory mapping. */
@@ -125,7 +125,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 		fileChannel.close();
 	}
 
-	protected MappedEliasFanoMonotoneLongBigList(final long length, final int l, final long[] upperBits, final SimpleSelect selectUpper, final boolean littleEndian) {
+	protected MappedEliasFanoMonotoneLongBigList(final long length, final int l, final long[] upperBits, final Select selectUpper, final boolean littleEndian) {
 		this.length = length;
 		this.l = l;
 		this.upperBits = upperBits;
