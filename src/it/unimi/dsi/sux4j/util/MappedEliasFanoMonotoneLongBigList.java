@@ -32,6 +32,7 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.NoSuchElementException;
 
+import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.AbstractLongBigList;
 import it.unimi.dsi.fastutil.longs.LongBigListIterator;
@@ -155,7 +156,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 
 		final long position = index * l;
 
-		final int startWord = word(position);
+		final long startWord = LongBigArrayBitVector.word(position);
 		final int startBit = bit(position);
 		final long result = lowerBits.getLong(startWord) >>> startBit;
 		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | lowerBits.getLong(startWord + 1) << -startBit) & lowerBitsMask;
@@ -180,12 +181,12 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 		final LongMappedBigList lowerBits = this.lowerBits;
 
 		long position = index * l;
-		int startWord = word(position);
+		long startWord = LongBigArrayBitVector.word(position);
 		int startBit = bit(position);
 		long first = lowerBits.getLong(startWord) >>> startBit;
 		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | lowerBits.getLong(startWord + 1) << -startBit) & lowerBitsMask;
 		position += l;
-		startWord = word(position);
+		startWord = LongBigArrayBitVector.word(position);
 		startBit = bit(position);
 		long second = lowerBits.getLong(startWord) >>> startBit;
 		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | lowerBits.getLong(startWord + 1) << -startBit) & lowerBitsMask;
@@ -219,7 +220,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 
 		long position = index * l;
 		for (int i = 0; i < length; i++) {
-			final int startWord = word(position);
+			final long startWord = LongBigArrayBitVector.word(position);
 			final int startBit = bit(position);
 			final long result = lowerBits.getLong(startWord) >>> startBit;
 			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | lowerBits.getLong(startWord + 1) << -startBit) & lowerBitsMask;
@@ -313,7 +314,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 		 */
 		public long nextLongUnsafe() {
 			final int l = MappedEliasFanoMonotoneLongBigList.this.l;
-			final int startWord = word(lowerBitsPosition);
+			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = lowerBits.getLong(startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= lowerBits.getLong(startWord + 1) << -startBit;
@@ -341,7 +342,7 @@ public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList impl
 			window = upperBits[word = word(position)] & -1L << position;
 
 			lowerBitsPosition = index * l;
-			final int startWord = word(lowerBitsPosition);
+			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = lowerBits.getLong(startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= lowerBits.getLong(startWord + 1) << -startBit;
