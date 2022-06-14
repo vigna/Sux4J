@@ -515,7 +515,7 @@ public class ZFastTrieTest {
 	}
 
 
-	@SuppressWarnings("boxing")
+	@SuppressWarnings({ "boxing", "null" })
 	@Test
 	public void testPredSuccRangeLongs() throws ClassNotFoundException, IOException {
 		final TreeSet<Long> t = new TreeSet<>();

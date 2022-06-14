@@ -303,7 +303,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 		final long position = index * l;
 
-		final int startWord = word(position);
+		final long startWord = LongBigArrayBitVector.word(position);
 		final int startBit = bit(position);
 		final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
 		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -328,12 +328,12 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		final long[][] lowerBits = this.lowerBits;
 
 		long position = index * l;
-		int startWord = word(position);
+		long startWord = LongBigArrayBitVector.word(position);
 		int startBit = bit(position);
 		long first = BigArrays.get(lowerBits, startWord) >>> startBit;
 		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 		position += l;
-		startWord = word(position);
+		startWord = LongBigArrayBitVector.word(position);
 		startBit = bit(position);
 		long second = BigArrays.get(lowerBits, startWord) >>> startBit;
 		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -367,7 +367,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 		long position = index * l;
 		for (int i = 0; i < length; i++) {
-			final int startWord = word(position);
+			final long startWord = LongBigArrayBitVector.word(position);
 			final int startBit = bit(position);
 			final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
 			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -461,7 +461,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		 */
 		public long nextLongUnsafe() {
 			final int l = EliasFanoMonotoneBigLongBigList.this.l;
-			final int startWord = word(lowerBitsPosition);
+			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;
@@ -489,7 +489,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 			window = upperBits[word = word(position)] & -1L << position;
 
 			lowerBitsPosition = index * l;
-			final int startWord = word(lowerBitsPosition);
+			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;

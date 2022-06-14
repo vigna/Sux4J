@@ -1,3 +1,20 @@
+5.3.2
+
+- New structures for simple selection on LongBigArrayBitVector instances.
+
+- Bulk select methods are now part of the interface (with default
+  implementations).
+
+- Replaced LongArrayBitVector.word() with LongBigArrayBitVector.word() 
+  in EliasFanoMonotoneBigLongBigList. Previously, big arrays of lower
+  bits with more than 2^31 elements would have caused an assertion
+  failure or an out-of-bounds exception.
+
+- To make EliasFanoMonotoneBigLongBigList completely free from
+  limitations, also its upper bits now are implemented using a
+  LongBigArrayBitVector. This change required to bump the serial version
+  UID.
+
 5.3.1
 
 - New EliasFanoMonotoneBigLongBigList which uses a LongBigArrayBitVector
