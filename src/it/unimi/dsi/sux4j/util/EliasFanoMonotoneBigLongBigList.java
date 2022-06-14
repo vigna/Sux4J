@@ -20,8 +20,8 @@
 package it.unimi.dsi.sux4j.util;
 
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
-import static it.unimi.dsi.bits.LongArrayBitVector.bits;
-import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.word;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +35,6 @@ import java.util.NoSuchElementException;
 
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
-import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
@@ -72,7 +71,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 	/** The number of lower bits. */
 	protected final int l;
 	/** The upper bits, stored as unary gaps. */
-	protected transient long[] upperBits;
+	protected transient long[][] upperBits;
 	/** The list of lower bits of each element, stored explicitly in a big array. */
 	protected long[][] lowerBits;
 	/** The select structure used to extract the upper bits. */
@@ -80,19 +79,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 	/** The mask for the lower bits. */
 	protected final long lowerBitsMask;
 
-
-	/** Returns true if this class can accommodate a list with the given number of elements and upper bound.
-	 *
-	 * @param length the length of the list.
-	 * @param upperBound a strict upper bound to the values of the list.
-	 * @return true if this class can accommodate a list with the given number of elements and upper bound.
-	 */
-	public static boolean fits(final long length, final long upperBound) {
-		final int l = length == 0 ? 0 : Math.max(0, Fast.mostSignificantBit(upperBound / length));
-		return (length + 1) * l < bits(Arrays.MAX_ARRAY_SIZE);
-	}
-
-	protected EliasFanoMonotoneBigLongBigList(final long length, final int l, final long[] upperBits, final long[][] lowerBits, final SimpleBigSelect selectUpper) {
+	protected EliasFanoMonotoneBigLongBigList(final long length, final int l, final long[][] upperBits, final long[][] lowerBits, final SimpleBigSelect selectUpper) {
 		this.length = length;
 		this.l = l;
 		this.upperBits = upperBits;
@@ -277,7 +264,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		if (iterator.hasNext()) throw new IllegalArgumentException("There are more than " + length + " values in the provided iterator");
 		// The initialization for l == 0 avoids tests for l == 0 throughout the code.
 		this.lowerBits = l == 0 ? LongBigArrays.newBigArray(1) : lowerBitsVector.bigBits();
-		this.upperBits = upperBits.bits();
+		this.upperBits = upperBits.bigBits();
 		selectUpper = new SimpleBigSelect(upperBits);
 	}
 
@@ -303,7 +290,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 		final long position = index * l;
 
-		final long startWord = LongBigArrayBitVector.word(position);
+		final long startWord = word(position);
 		final int startBit = bit(position);
 		final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
 		return upperBits << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -328,12 +315,12 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		final long[][] lowerBits = this.lowerBits;
 
 		long position = index * l;
-		long startWord = LongBigArrayBitVector.word(position);
+		long startWord = word(position);
 		int startBit = bit(position);
 		long first = BigArrays.get(lowerBits, startWord) >>> startBit;
 		first = dest[0] - index++ << l | (startBit + l <= Long.SIZE ? first : first | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
 		position += l;
-		startWord = LongBigArrayBitVector.word(position);
+		startWord = word(position);
 		startBit = bit(position);
 		long second = BigArrays.get(lowerBits, startWord) >>> startBit;
 		second = dest[1] - index << l | (startBit + l <= Long.SIZE ? second : second | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -367,7 +354,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 		long position = index * l;
 		for (int i = 0; i < length; i++) {
-			final long startWord = LongBigArrayBitVector.word(position);
+			final long startWord = word(position);
 			final int startBit = bit(position);
 			final long result = BigArrays.get(lowerBits, startWord) >>> startBit;
 			dest[offset + i] = dest[offset + i] - index++ << l | (startBit + l <= Long.SIZE ? result : result | BigArrays.get(lowerBits, startWord + 1) << -startBit) & lowerBitsMask;
@@ -406,7 +393,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		/** The index of the next element to return. */
 		protected long index;
 		/** The current word in the array of upper bits. */
-		protected int word;
+		protected long word;
 		/** The current window. */
 		protected long window;
 		/** The current position in the array of lower bits. */
@@ -415,12 +402,12 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		protected EliasFanoMonotoneLongBigListIterator(final long from) {
 			index = from;
 			final long position = selectUpper.select(from);
-			window = upperBits[word = word(position)] & -1L << position;
+			window = BigArrays.get(upperBits, word = word(position)) & -1L << position;
 			lowerBitsPosition = index * l;
 		}
 
 		private long getNextUpperBits() {
-			while (window == 0) window = upperBits[++word];
+			while (window == 0) window = BigArrays.get(upperBits, ++word);
 			final long upperBits = bits(word) + Long.numberOfTrailingZeros(window) - index++;
 			window &= window - 1;
 			return upperBits;
@@ -461,7 +448,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 		 */
 		public long nextLongUnsafe() {
 			final int l = EliasFanoMonotoneBigLongBigList.this.l;
-			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
+			final long startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;
@@ -486,10 +473,10 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 			final int l = EliasFanoMonotoneBigLongBigList.this.l;
 			--index;
 			final long position = selectUpper.select(index);
-			window = upperBits[word = word(position)] & -1L << position;
+			window = BigArrays.get(upperBits, word = word(position)) & -1L << position;
 
 			lowerBitsPosition = index * l;
-			final long startWord = LongBigArrayBitVector.word(lowerBitsPosition);
+			final long startWord = word(lowerBitsPosition);
 			final int startBit = bit(lowerBitsPosition);
 			long lower = BigArrays.get(lowerBits, startWord) >>> startBit;
 			if (startBit + l > Long.SIZE) lower |= BigArrays.get(lowerBits, startWord + 1) << -startBit;
@@ -598,7 +585,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 	private void readObject(final ObjectInputStream s) throws IOException, ClassNotFoundException {
 		s.defaultReadObject();
-		upperBits = selectUpper.bitVector().bits();
+		upperBits = selectUpper.bitVector().bigBits();
 		// A fix that avoids bumping the serial id from 4L
 		if (lowerBits.length == 0) lowerBits = LongBigArrays.newBigArray(1);
 	}

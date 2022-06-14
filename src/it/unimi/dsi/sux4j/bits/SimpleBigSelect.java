@@ -19,22 +19,23 @@
 
 package it.unimi.dsi.sux4j.bits;
 
-import static it.unimi.dsi.bits.LongArrayBitVector.LOG2_BITS_PER_WORD;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.word;
 import static it.unimi.dsi.fastutil.BigArrays.get;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /**
- * A big version of {@link SimpleSelect}.
- *
+ * A big version of {@link SimpleSelect} that can only be used with a {@link LongBigArrayBitVector}
+ * (or {@linkplain LongBigArrays long big arrays}).
  */
 
 public class SimpleBigSelect implements Select {
@@ -151,7 +152,7 @@ public class SimpleBigSelect implements Select {
 
 		if (onesPerInventory > 1) {
 			d = 0;
-			int ones;
+			long ones;
 			long diff16 = 0, start = 0, span = 0;
 			int spilled = 0, inventoryIndex = 0;
 
@@ -180,7 +181,7 @@ public class SimpleBigSelect implements Select {
 			exactSpill = new long[exactSpillSize];
 			subinventory16 = LongArrayBitVector.wrap(subinventory).asLongBigList(Short.SIZE);
 
-			int offset = 0;
+			long offset = 0;
 			spilled = 0;
 			d = 0;
 
@@ -189,7 +190,7 @@ public class SimpleBigSelect implements Select {
 			final long[] subinventory = this.subinventory;
 			final LongBigList subinventory16 = this.subinventory16;
 
-			for(int i = 0; i < numWords; i++)
+			for (long i = 0; i < numWords; i++)
 				for (int j = 0; j < Long.SIZE; j++) {
 					if (bits(i) + j >= length) break;
 					if ((get(bits, i) & 1L << j) != 0) {
@@ -224,14 +225,6 @@ public class SimpleBigSelect implements Select {
 			subinventory16 = null;
 		}
 
-	}
-
-	private static long bits(final long i) {
-		return i << LOG2_BITS_PER_WORD;
-	}
-
-	private static final long word(final long index) {
-		return index >>> LOG2_BITS_PER_WORD;
 	}
 
 	@Override
@@ -349,7 +342,7 @@ public class SimpleBigSelect implements Select {
 	}
 
 	@Override
-	public BitVector bitVector() {
+	public LongBigArrayBitVector bitVector() {
 		return bitVector;
 	}
 }

@@ -37,6 +37,7 @@ import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.Arrays;
+import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
 import it.unimi.dsi.fastutil.ints.IntIterable;
@@ -50,6 +51,7 @@ import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongIterators;
 import it.unimi.dsi.fastutil.shorts.ShortIterable;
 import it.unimi.dsi.fastutil.shorts.ShortIterator;
+import it.unimi.dsi.sux4j.bits.SimpleBigSelect;
 import it.unimi.dsi.sux4j.bits.SimpleSelect;
 
 /**
@@ -642,7 +644,8 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 * @param byteOrder the desired byte order.
 	 */
 	public void dump(final String basename, final ByteOrder byteOrder) throws IOException {
-		BinIO.storeObject(new MappedEliasFanoMonotoneLongBigList(length, l, upperBits, selectUpper, byteOrder == ByteOrder.LITTLE_ENDIAN), basename + MappedEliasFanoMonotoneLongBigList.OBJECT_EXTENSION);
+		final long[][] upperBitsBig = BigArrays.wrap(upperBits);
+		BinIO.storeObject(new MappedEliasFanoMonotoneLongBigList(length, l, upperBitsBig, new SimpleBigSelect(upperBitsBig, selectUpper.bitVector().length()), byteOrder == ByteOrder.LITTLE_ENDIAN), basename + MappedEliasFanoMonotoneLongBigList.OBJECT_EXTENSION);
 		final FileChannel fileChannel = FileChannel.open(new File(basename + MappedEliasFanoMonotoneLongBigList.LOWER_BITS_EXTENSION).toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
 		final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024);
 		byteBuffer.order(byteOrder);
