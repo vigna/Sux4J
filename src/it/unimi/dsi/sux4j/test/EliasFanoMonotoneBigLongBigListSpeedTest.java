@@ -31,18 +31,20 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
+import it.unimi.dsi.sux4j.util.EliasFanoMonotoneBigLongBigList;
 import it.unimi.dsi.util.XoRoShiRo128PlusRandomGenerator;
 
-public class EliasFanoMonotoneLongBigListSpeedTest {
+public class EliasFanoMonotoneBigLongBigListSpeedTest {
 
 	public static void main(final String[] arg) throws JSAPException {
 
-		final SimpleJSAP jsap = new SimpleJSAP(EliasFanoMonotoneLongBigListSpeedTest.class.getName(), "Tests the speed Elias-Fano monotone lists.", new Parameter[] {
-				new UnflaggedOption("numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements."),
-				new UnflaggedOption("density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density."),
-				new FlaggedOption("numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test"),
-				new FlaggedOption("bulk", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 'b', "bulk", "The number of positions to read with the bulk method"), });
+		final SimpleJSAP jsap = new SimpleJSAP(EliasFanoMonotoneBigLongBigListSpeedTest.class.getName(), "Tests the speed Elias-Fano monotone lists.",
+				new Parameter[] {
+					new UnflaggedOption("numElements", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The number of elements."),
+					new UnflaggedOption("density", JSAP.DOUBLE_PARSER, ".5", JSAP.NOT_REQUIRED, JSAP.NOT_GREEDY, "The density."),
+					new FlaggedOption("numPos", JSAP.INTSIZE_PARSER, "1Mi", JSAP.NOT_REQUIRED, 'p', "positions", "The number of positions to test"),
+					new FlaggedOption("bulk", JSAP.INTSIZE_PARSER, "10", JSAP.NOT_REQUIRED, 'b', "bulk", "The number of positions to read with the bulk method"),
+		});
 
 		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
@@ -54,36 +56,36 @@ public class EliasFanoMonotoneLongBigListSpeedTest {
 
 		final RandomGenerator random = new XoRoShiRo128PlusRandomGenerator(42);
 		final IntArrayList list = new IntArrayList(numElements);
-		for (long i = numElements; i-- != 0;) list.add(random.nextDouble() < density ? 0 : 100);
+		for(long i = numElements; i-- != 0;) list.add(random.nextDouble() < density ? 0 : 100);
 
 		final int[] position = new int[numPos];
 
-		for (int i = numPos; i-- != 0;) position[i] = (random.nextInt() & 0x7FFFFFFF) % (numElements - bulk);
+		for(int i = numPos; i-- != 0;) position[i] = (random.nextInt() & 0x7FFFFFFF) % (numElements - bulk);
 		final long[] elements = new long[list.size()];
 		elements[0] = list.getInt(0);
-		for (int i = 1; i < list.size(); i++) elements[i] = list.getInt(i) + elements[i - 1];
-		final EliasFanoMonotoneLongBigList eliasFanoMonotoneLongBigList = new EliasFanoMonotoneLongBigList(LongArrayList.wrap(elements));
+		for(int i = 1; i < list.size(); i++) elements[i] = list.getInt(i) + elements[i - 1];
+		final EliasFanoMonotoneBigLongBigList eliasFanoMonotoneBigLongBigList = new EliasFanoMonotoneBigLongBigList(LongArrayList.wrap(elements));
 		long time;
 		long u = 0;
-		final long[] dest = new long[bulk];
 
-		for (int k = 10; k-- != 0;) {
-			System.out.println("getLong():");
-			time = -System.nanoTime();
-			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneLongBigList.getLong(position[i]);
+		final long[] dest = new long[bulk];
+		System.out.println("getLong():");
+		for(int k = 10; k-- != 0;) {
+			time = - System.nanoTime();
+			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneBigLongBigList.getLong(position[i]);
 			time += System.nanoTime();
 			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
 
 			System.out.println("getDelta():");
 			time = -System.nanoTime();
-			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneLongBigList.getDelta(position[i]);
+			for (int i = 0; i < numPos; i++) u += eliasFanoMonotoneBigLongBigList.getDelta(position[i]);
 			time += System.nanoTime();
 			System.out.println(time / 1E9 + "s, " + time / (double)numPos + " ns/element");
 
 			System.out.println("get():");
-			time = -System.nanoTime();
+			time = - System.nanoTime();
 			for (int i = 0; i < numPos; i++) {
-				eliasFanoMonotoneLongBigList.get(position[i], dest);
+				eliasFanoMonotoneBigLongBigList.get(position[i], dest);
 				u += dest[0];
 			}
 			time += System.nanoTime();
