@@ -19,22 +19,23 @@
 
 package it.unimi.dsi.sux4j.bits;
 
-import static it.unimi.dsi.bits.LongArrayBitVector.LOG2_BITS_PER_WORD;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.bits;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.word;
 import static it.unimi.dsi.fastutil.BigArrays.get;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 
-import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
 import it.unimi.dsi.fastutil.longs.LongArrays;
+import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
 
 /**
- * A big version of {@link SimpleSelectZero}.
- *
+ * A big version of {@link SimpleSelectZero} that can only be used with a {@link LongBigArrayBitVector}
+ * (or {@linkplain LongBigArrays long big arrays}).
  */
 
 public class SimpleBigSelectZero implements SelectZero {
@@ -95,9 +96,10 @@ public class SimpleBigSelectZero implements SelectZero {
 		this(LongBigArrayBitVector.wrap(bits, length));
 	}
 
-	/** Creates a new selection structure using the specified bit vector.
+	/**
+	 * Creates a new selection structure using the specified instance of {@link LongArrayBitVector}.
 	 *
-	 * @param bitVector a bit vector.
+	 * @param bitVector an instance of {@link LongArrayBitVector}.
 	 */
 	public SimpleBigSelectZero(final LongBigArrayBitVector bitVector) {
 		this.bitVector = bitVector;
@@ -151,7 +153,7 @@ public class SimpleBigSelectZero implements SelectZero {
 
 		if (onesPerInventory > 1) {
 			d = 0;
-			int ones;
+			long ones;
 			long diff16 = 0, start = 0, span = 0;
 			int spilled = 0, inventoryIndex = 0;
 
@@ -180,7 +182,7 @@ public class SimpleBigSelectZero implements SelectZero {
 			exactSpill = new long[exactSpillSize];
 			subinventory16 = LongArrayBitVector.wrap(subinventory).asLongBigList(Short.SIZE);
 
-			int offset = 0;
+			long offset = 0;
 			spilled = 0;
 			d = 0;
 
@@ -189,7 +191,7 @@ public class SimpleBigSelectZero implements SelectZero {
 			final long[] subinventory = this.subinventory;
 			final LongBigList subinventory16 = this.subinventory16;
 
-			for(int i = 0; i < numWords; i++)
+			for (long i = 0; i < numWords; i++)
 				for (int j = 0; j < Long.SIZE; j++) {
 					if (bits(i) + j >= length) break;
 					if ((get(bits, i) & 1L << j) != 0) {
@@ -224,14 +226,6 @@ public class SimpleBigSelectZero implements SelectZero {
 			subinventory16 = null;
 		}
 
-	}
-
-	private static long bits(final long i) {
-		return i << LOG2_BITS_PER_WORD;
-	}
-
-	private static final long word(final long index) {
-		return index >>> LOG2_BITS_PER_WORD;
 	}
 
 	@Override
@@ -275,22 +269,6 @@ public class SimpleBigSelectZero implements SelectZero {
 		return bits(wordIndex) + Fast.select(word, residual);
 	}
 
-	/**
-	 * Performs a bulk select of consecutive ranks into a given array fragment.
-	 *
-	 * <p>
-	 * <strong>Warning</strong>: form Sux4J 5.1.5, {@code dest} must be of length greater than
-	 * {@code offset} even if {@code length} is zero.
-	 *
-	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
-	 *            bits starting at position {@code offset}; must be of length greater than
-	 *            {@code offset}.
-	 * @param offset the first bit position written in {@code dest}.
-	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
-	 * @return {@code dest}
-	 * @see #selectZero(long, long[])
-	 */
 	@Override
 	public long[] selectZero(final long rank, final long[] dest, int offset, final int length) {
 		assert rank >= 0;
@@ -319,15 +297,6 @@ public class SimpleBigSelectZero implements SelectZero {
 		return dest;
 	}
 
-	/**
-	 * Performs a bulk select of consecutive ranks into a given array.
-	 *
-	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with position of consecutive bits; must be
-	 *            of length greater than zero.
-	 * @return {@code dest}
-	 * @see #selectZero(long, long[], int, int)
-	 */
 	@Override
 	public long[] selectZero(final long rank, final long[] dest) {
 		assert rank >= 0;
@@ -349,7 +318,7 @@ public class SimpleBigSelectZero implements SelectZero {
 	}
 
 	@Override
-	public BitVector bitVector() {
+	public LongBigArrayBitVector bitVector() {
 		return bitVector;
 	}
 }

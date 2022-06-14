@@ -32,11 +32,10 @@ import it.unimi.dsi.bits.BitVector;
  * trivially implemented in {@link AbstractRank}), but selecting zeroes requires specific data
  * structures.
  *
- * <p>
- * <strong>Warning</strong>: from Sux4J 5.2.0, the {@link #selectZero(long)} method is no longer
- * required to return &minus;1 when no bit with the given rank exists. If you relied on such
- * behavior, please test the argument before calling {@link #selectZero(long)}. Implementations
- * might provide assertions to check the argument for correctness.
+ * @apiNote From Sux4J 5.2.0, the {@link #selectZero(long)} method is no longer required to return
+ *          &minus;1 when no bit with the given rank exists. If you relied on such behavior, please
+ *          test the argument before calling {@link #selectZero(long)}. Implementations might
+ *          provide assertions to check the argument for correctness.
  *
  * @see Select
  */
@@ -46,15 +45,14 @@ public interface SelectZero extends Serializable {
 	 * Returns the position of the bit of given zero rank. Equivalently, returns the greatest position
 	 * that is preceded by the specified number of zeroes.
 	 *
-	 * <p>
-	 * <strong>Warning</strong>: from Sux4J 5.2.0, this method is no longer required to return &minus;1
-	 * when no bit with the given rank exists. If you relied on such behavior, please test the argument
-	 * before calling this method. Implementations might provide assertions to check the argument for
-	 * correctness.
+	 * @apiNote From Sux4J 5.2.0, this method is no longer required to return &minus;1 when no bit with
+	 *          the given rank exists. If you relied on such behavior, please test the argument before
+	 *          calling this method. Implementations might provide assertions to check the argument for
+	 *          correctness.
 	 *
 	 * @param zeroRank a zero rank.
 	 * @return the position of the bit of given zero rank; if no such bit exists, behavior is undefined
-	 *        .
+	 *         .
 	 */
 	public long selectZero(long zeroRank);
 

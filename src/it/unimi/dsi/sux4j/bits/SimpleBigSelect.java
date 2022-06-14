@@ -96,9 +96,10 @@ public class SimpleBigSelect implements Select {
 		this(LongBigArrayBitVector.wrap(bits, length));
 	}
 
-	/** Creates a new selection structure using the specified bit vector.
+	/**
+	 * Creates a new selection structure using the specified instance of {@link LongArrayBitVector}.
 	 *
-	 * @param bitVector a bit vector.
+	 * @param bitVector an instance of {@link LongArrayBitVector}.
 	 */
 	public SimpleBigSelect(final LongBigArrayBitVector bitVector) {
 		this.bitVector = bitVector;
@@ -268,22 +269,6 @@ public class SimpleBigSelect implements Select {
 		return bits(wordIndex) + Fast.select(word, residual);
 	}
 
-	/**
-	 * Performs a bulk select of consecutive ranks into a given array fragment.
-	 *
-	 * <p>
-	 * <strong>Warning</strong>: form Sux4J 5.1.5, {@code dest} must be of length greater than
-	 * {@code offset} even if {@code length} is zero.
-	 *
-	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with {@code length} positions of consecutive
-	 *            bits starting at position {@code offset}; must be of length greater than
-	 *            {@code offset}.
-	 * @param offset the first bit position written in {@code dest}.
-	 * @param length the number of bit positions in {@code dest} starting at {@code offset}.
-	 * @return {@code dest}
-	 * @see #select(long, long[])
-	 */
 	@Override
 	public long[] select(final long rank, final long[] dest, int offset, final int length) {
 		assert rank >= 0;
@@ -312,15 +297,6 @@ public class SimpleBigSelect implements Select {
 		return dest;
 	}
 
-	/**
-	 * Performs a bulk select of consecutive ranks into a given array.
-	 *
-	 * @param rank the first rank to select.
-	 * @param dest the destination array; it will be filled with position of consecutive bits; must be
-	 *            of length greater than zero.
-	 * @return {@code dest}
-	 * @see #select(long, long[], int, int)
-	 */
 	@Override
 	public long[] select(final long rank, final long[] dest) {
 		assert rank >= 0;
