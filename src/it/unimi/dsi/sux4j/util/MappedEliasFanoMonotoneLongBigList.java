@@ -68,7 +68,7 @@ import it.unimi.dsi.sux4j.bits.SimpleBigSelect;
  */
 
 public class MappedEliasFanoMonotoneLongBigList extends AbstractLongBigList implements Serializable, Closeable, FlyweightPrototype<MappedEliasFanoMonotoneLongBigList> {
-	private static final long serialVersionUID = 4L;
+	private static final long serialVersionUID = 5L;
 
 	public static final String OBJECT_EXTENSION = ".object";
 	public static final String LOWER_BITS_EXTENSION = ".lowerbits";

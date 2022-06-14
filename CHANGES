@@ -13,7 +13,7 @@
 - To make EliasFanoMonotoneBigLongBigList completely free from
   limitations, also its upper bits now are implemented using a
   LongBigArrayBitVector. This change required to bump the serial version
-  UID.
+  UID (also in MappedEliasFanoMonotoneLongBigList).
 
 - Several problem related to "int vs. long" in the new classes were fixed.
 
