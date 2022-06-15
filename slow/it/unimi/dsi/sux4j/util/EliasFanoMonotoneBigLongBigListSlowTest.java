@@ -65,7 +65,6 @@ public class EliasFanoMonotoneBigLongBigListSlowTest {
 		m++;
 
 		final EliasFanoMonotoneBigLongBigList ef = new EliasFanoMonotoneBigLongBigList(n, m, new Elements(n, k));
-
 		assertTrue(Iterators.elementsEqual(new Elements(n, k), ef.iterator()));
 		iterator = new Elements(n, k);
 		for (long i = 0; i < n; i++) assertEquals(iterator.nextLong(), ef.getLong(i));
@@ -73,22 +72,22 @@ public class EliasFanoMonotoneBigLongBigListSlowTest {
 
 	@Test
 	public void test1Mi() {
-		testRandom(1 << 20, 5);
+		testRandom(1 << 20, 9);
 	}
 
 	@Test
 	public void test100Mi() {
-		testRandom(100 * (1 << 20), 5);
+		testRandom(100 * (1 << 20), 9);
 	}
 
 	@Test
 	public void test2Gi() {
-		testRandom(2 * (1L << 30), 5);
+		testRandom(2 * (1L << 30), 9);
 	}
 
 	@Test
 	public void test64Gi() {
-		testRandom(64 * (1L << 30), 5);
+		testRandom(64 * (1L << 30), 9);
 	}
 
 	@Test
