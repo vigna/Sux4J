@@ -118,7 +118,25 @@ public class EliasFanoMonotoneLongBigListTest {
 
 	@Test
 	public void testRandom() throws ClassNotFoundException, IOException {
-		// Weird skips
+		LongBigArrayBigList l = new LongBigArrayBigList();
+		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
+		for (long i = 1000, c = 0; i-- != 0;) {
+			c += 5 * Long.numberOfTrailingZeros(random.nextLong());
+			l.add(c);
+		}
+		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+		test(new EliasFanoMonotoneLongBigList(l));
+
+		l = new LongBigArrayBigList();
+		for(long i = 10000000, c = 0; i-- != 0;) {
+			c += 5 * Long.numberOfTrailingZeros(random.nextLong());
+			l.add(c);
+		}
+		assertEquals(l, new EliasFanoMonotoneLongBigList(l));
+	}
+
+	@Test
+	public void testRandomNoLower() throws ClassNotFoundException, IOException {
 		LongBigArrayBigList l = new LongBigArrayBigList();
 		final XoRoShiRo128PlusRandom random = new XoRoShiRo128PlusRandom(0);
 		for (long i = 1000, c = 0; i-- != 0;) {
@@ -129,7 +147,7 @@ public class EliasFanoMonotoneLongBigListTest {
 		test(new EliasFanoMonotoneLongBigList(l));
 
 		l = new LongBigArrayBigList();
-		for(long i = 10000000, c = 0; i-- != 0;) {
+		for (long i = 10000000, c = 0; i-- != 0;) {
 			c += Long.numberOfTrailingZeros(random.nextLong());
 			l.add(c);
 		}
