@@ -270,7 +270,7 @@ public class EliasFanoMonotoneBigLongBigList extends AbstractLongBigList impleme
 
 
 	public long numBits() {
-		return selectUpper.numBits() + selectUpper.bitVector().length() + bits(lowerBits.length);
+		return selectUpper.numBits() + selectUpper.bitVector().length() + bits(BigArrays.length(lowerBits));
 	}
 
 	/**
