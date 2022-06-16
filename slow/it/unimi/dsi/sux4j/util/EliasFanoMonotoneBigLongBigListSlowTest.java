@@ -86,8 +86,8 @@ public class EliasFanoMonotoneBigLongBigListSlowTest {
 	}
 
 	@Test
-	public void test64Gi() {
-		testRandom(64 * (1L << 30), 9);
+	public void test128Gi() {
+		testRandom(128 * (1L << 30), 9);
 	}
 
 	@Test
@@ -106,7 +106,7 @@ public class EliasFanoMonotoneBigLongBigListSlowTest {
 	}
 
 	@Test
-	public void test64GiNoLower() {
-		testRandom(64 * (1L << 30), 1);
+	public void test128GiNoLower() {
+		testRandom(128 * (1L << 30), 1);
 	}
 }
