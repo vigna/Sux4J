@@ -115,7 +115,7 @@ public class SimpleBigSelect implements Select {
 
 		onesPerInventory = 1L << (log2OnesPerInventory = Fast.mostSignificantBit(length == 0 ? 1 : ((d * MAX_ONES_PER_INVENTORY + length - 1) / length)));
 		onesPerInventoryMask = onesPerInventory - 1;
-		assert ((d + onesPerInventory - 1) / onesPerInventory) <= Integer.MAX_VALUE - Arrays.MAX_ARRAY_SIZE : "Inventory too large: " + ((d + onesPerInventory - 1) / onesPerInventory);
+		assert ((d + onesPerInventory - 1) / onesPerInventory) >= Integer.MAX_VALUE - Arrays.MAX_ARRAY_SIZE : "Inventory too large: " + ((d + onesPerInventory - 1) / onesPerInventory);
 		final int inventorySize = (int)((d + onesPerInventory - 1) / onesPerInventory);
 
 		inventory = new long[inventorySize + 1];
