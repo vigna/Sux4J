@@ -29,6 +29,7 @@ import java.io.ObjectInputStream;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
+import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
@@ -112,8 +113,9 @@ public class SimpleBigSelectZero implements SelectZero {
 		long d = 0;
 		for (final long[] s : bits) for (final long t : s) d += Long.bitCount(t);
 
-		onesPerInventory = 1 << (log2OnesPerInventory = Fast.mostSignificantBit(length == 0 ? 1 : (int)((d * MAX_ONES_PER_INVENTORY + length - 1) / length)));
+		onesPerInventory = 1L << (log2OnesPerInventory = Fast.mostSignificantBit(length == 0 ? 1 : ((d * MAX_ONES_PER_INVENTORY + length - 1) / length)));
 		onesPerInventoryMask = onesPerInventory - 1;
+		assert ((d + onesPerInventory - 1) / onesPerInventory) >= Integer.MAX_VALUE - Arrays.MAX_ARRAY_SIZE : "Inventory too large: " + ((d + onesPerInventory - 1) / onesPerInventory);
 		final int inventorySize = (int)((d + onesPerInventory - 1) / onesPerInventory);
 
 		inventory = new long[inventorySize + 1];
@@ -205,7 +207,7 @@ public class SimpleBigSelectZero implements SelectZero {
 						if (span < MAX_SPAN) {
 							assert bits(i) + j - start <= MAX_SPAN;
 							if ((d & onesPerSub16Mask) == 0) {
-								subinventory16.set((inventoryIndex << log2LongwordsPerSubinventory + 2) + offset++, bits(i) + j - start);
+								subinventory16.set(((long)inventoryIndex << log2LongwordsPerSubinventory + 2) + offset++, bits(i) + j - start);
 							}
 						}
 						else {
@@ -244,8 +246,8 @@ public class SimpleBigSelectZero implements SelectZero {
 		int residual;
 
 		if (inventoryRank >= 0) {
-			final int index16 = (inventoryIndex << log2LongwordsPerSubinventory + 2) + (subrank >>> log2OnesPerSub16);
-			start = inventoryRank + ((subinventory[index16 >>> 2] >>> ((index16 & 3) << 4) & 0xFFFF));
+			final long index16 = ((long)inventoryIndex << log2LongwordsPerSubinventory + 2) + (subrank >>> log2OnesPerSub16);
+			start = inventoryRank + ((subinventory[(int)(index16 >>> 2)] >>> ((index16 & 3) << 4) & 0xFFFF));
 			residual = subrank & onesPerSub16Mask;
 		}
 		else {
