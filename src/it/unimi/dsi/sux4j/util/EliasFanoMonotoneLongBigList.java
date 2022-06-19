@@ -22,6 +22,7 @@ package it.unimi.dsi.sux4j.util;
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
 import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,7 +37,6 @@ import java.util.NoSuchElementException;
 import it.unimi.dsi.bits.BitVector;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
-import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteIterable;
 import it.unimi.dsi.fastutil.bytes.ByteIterator;
@@ -155,7 +155,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 	 */
 	public static boolean fits(final long length, final long upperBound) {
 		final int l = length == 0 ? 0 : Math.max(0, Fast.mostSignificantBit(upperBound / length));
-		return (length + 1) * l < bits(Arrays.MAX_ARRAY_SIZE);
+		return (length + 1) * l < bits(MAX_ARRAY_SIZE);
 	}
 
 	protected EliasFanoMonotoneLongBigList(final long length, final int l, final long[] upperBits, final long[] lowerBits, final SimpleSelect selectUpper) {
@@ -320,7 +320,7 @@ public class EliasFanoMonotoneLongBigList extends AbstractLongBigList implements
 		final LongArrayBitVector lowerBitsVector = LongArrayBitVector.getInstance();
 		final LongBigList lowerBitsList = lowerBitsVector.asLongBigList(l);
 
-		if ((length + 1) * l >= bits(Arrays.MAX_ARRAY_SIZE)) throw new IllegalArgumentException("Lower-bits array is too large: please use EliasFanoMonotoneBigLongBigList");
+		if ((length + 1) * l >= bits(MAX_ARRAY_SIZE)) throw new IllegalArgumentException("Lower-bits array is too large: please use EliasFanoMonotoneBigLongBigList");
 
 		lowerBitsList.size(length + 1);
 		final BitVector upperBits = LongArrayBitVector.getInstance().length(length + (upperBound >>> l) + 2);

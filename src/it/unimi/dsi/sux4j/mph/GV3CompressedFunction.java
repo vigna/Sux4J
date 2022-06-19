@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.bits.LongArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongArrayBitVector.words;
+import static it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -582,7 +583,7 @@ public class GV3CompressedFunction<T> extends AbstractObject2LongFunction<T> imp
 		globalSeed = bucketedHashStore.seed();
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
 
-		if ((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1 < bits(it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE)) {
+		if ((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1 < bits(MAX_ARRAY_SIZE)) {
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((offsetAndSeed[numBuckets] & OFFSET_MASK) + 1);
 			this.data = dataBitVector;
 			while (iterator.hasNext()) dataBitVector.append(iterator.next());

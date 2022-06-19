@@ -20,6 +20,7 @@
 package it.unimi.dsi.sux4j.mph;
 
 import static it.unimi.dsi.bits.LongArrayBitVector.bits;
+import static it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -615,7 +616,7 @@ public class GOV4Function<T> extends AbstractObject2LongFunction<T> implements S
 		globalSeed = bucketedHashStore.seed();
 		m = offsetAndSeed[offsetAndSeed.length - 1];
 		final OfflineIterator<BitVector, LongArrayBitVector> iterator = offlineData.iterator();
-		if ((m + 1) * width < bits(it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE)) {
+		if ((m + 1) * width < bits(MAX_ARRAY_SIZE)) {
 			final LongArrayBitVector dataBitVector = LongArrayBitVector.getInstance((m + 1) * width);
 			this.data = dataBitVector.asLongBigList(this.width);
 			while (iterator.hasNext()) dataBitVector.append(iterator.next());
