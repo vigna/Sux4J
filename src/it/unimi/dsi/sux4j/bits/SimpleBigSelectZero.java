@@ -21,6 +21,7 @@ package it.unimi.dsi.sux4j.bits;
 
 import static it.unimi.dsi.bits.LongBigArrayBitVector.bits;
 import static it.unimi.dsi.bits.LongBigArrayBitVector.word;
+import static it.unimi.dsi.fastutil.Arrays.MAX_ARRAY_SIZE;
 import static it.unimi.dsi.fastutil.BigArrays.get;
 
 import java.io.IOException;
@@ -29,7 +30,6 @@ import java.io.ObjectInputStream;
 import it.unimi.dsi.bits.Fast;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.bits.LongBigArrayBitVector;
-import it.unimi.dsi.fastutil.Arrays;
 import it.unimi.dsi.fastutil.longs.LongArrays;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.longs.LongBigList;
@@ -115,7 +115,7 @@ public class SimpleBigSelectZero implements SelectZero {
 
 		onesPerInventory = 1L << (log2OnesPerInventory = Fast.mostSignificantBit(length == 0 ? 1 : ((d * MAX_ONES_PER_INVENTORY + length - 1) / length)));
 		onesPerInventoryMask = onesPerInventory - 1;
-		assert ((d + onesPerInventory - 1) / onesPerInventory) >= Integer.MAX_VALUE - Arrays.MAX_ARRAY_SIZE : "Inventory too large: " + ((d + onesPerInventory - 1) / onesPerInventory);
+		assert ((d + onesPerInventory - 1) / onesPerInventory) <= MAX_ARRAY_SIZE : "Inventory too large: " + ((d + onesPerInventory - 1) / onesPerInventory);
 		final int inventorySize = (int)((d + onesPerInventory - 1) / onesPerInventory);
 
 		inventory = new long[inventorySize + 1];
