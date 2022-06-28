@@ -38,6 +38,7 @@ binary:
 	(cd sux4j-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-clean ivy-setupjars && ant junit && ant clean && ant jar javadoc)
 	$(TAR) zcvf sux4j-$(version)-bin.tar.gz --owner=0 --group=0 \
 		sux4j-$(version)/README.md \
+		sux4j-$(version)/CHANGES \
 		sux4j-$(version)/COPYING.LESSER \
 		sux4j-$(version)/LICENSE-2.0.txt \
 		sux4j-$(version)/COPYING.LESSER \
