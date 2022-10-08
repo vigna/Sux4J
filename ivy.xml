@@ -10,9 +10,9 @@
 	
 	<dependencies>
 
-		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
-		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
-		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.3" conf="runtime" force="true"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="2.0.3" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.3.4" conf="runtime" force="true"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.3.4" conf="runtime" force="true"/>
 		<dependency org="it.unimi.di" name="jsap" rev="20210129"/>
 		<dependency org="it.unimi.dsi" name="fastutil" rev="latest.release" />
 		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release">
