@@ -2,7 +2,7 @@ package it.unimi.dsi.sux4j.util;
 /*
  * Sux4J: Succinct data structures for Java
  *
- * Copyright (C) 2010-2022 Sebastiano Vigna
+ * Copyright (C) 2010-2023 Sebastiano Vigna
  *
  * This program and the accompanying materials are made available under the
  * terms of the GNU Lesser General Public License v2.1 or later,

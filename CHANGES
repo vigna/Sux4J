@@ -1,3 +1,7 @@
+5.4.1
+
+- Updated SLF4J/logback.
+
 5.4.0
 
 - New structures for simple selection on LongBigArrayBitVector instances.
