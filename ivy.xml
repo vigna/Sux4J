@@ -20,7 +20,6 @@
 			<exclude org="org.apache.commons" name="commons-configuration2"/>
 			<exclude org="org.apache.commons" name="commons-text"/>
 			<exclude org="commons-logging" name="commons-logging"/>
-			<exclude org="org.apache.commons" name="commons-lang3"/>
 		</dependency>
 		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
 		<dependency org="org.apache.commons" name="commons-collections4" rev="latest.release"/>
