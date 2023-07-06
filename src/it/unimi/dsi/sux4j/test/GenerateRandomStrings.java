@@ -24,7 +24,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 import org.apache.commons.math3.random.RandomGenerator;
 
@@ -42,12 +41,10 @@ public class GenerateRandomStrings {
 
 	public static void main(final String[] arg) throws JSAPException, UnsupportedEncodingException, FileNotFoundException {
 
-		final SimpleJSAP jsap = new SimpleJSAP(GenerateRandomStrings.class.getName(), "Generates random strings",
-				new Parameter[] {
-					new UnflaggedOption("n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings."),
-					new UnflaggedOption("l", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of characters per string."),
-					new UnflaggedOption("output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file.")
-		});
+		final SimpleJSAP jsap = new SimpleJSAP(GenerateRandomStrings.class.getName(), "Generates (not necessarily unique) random strings", new Parameter[] {
+				new UnflaggedOption("n", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of strings."),
+				new UnflaggedOption("l", JSAP.INTEGER_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The number of characters per string."),
+				new UnflaggedOption("output", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The output file.") });
 
 		final JSAPResult jsapResult = jsap.parse(arg);
 		if (jsap.messagePrinted()) return;
@@ -60,11 +57,11 @@ public class GenerateRandomStrings {
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		final PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "ISO-8859-1"));
 
-			for(int i = 0; i < n; i++) {
-				final MutableString t = new MutableString(l);
-				for(int j = 0; j < l; j++) t.append((char)(32 + r.nextInt(94) + 1));
-				t.println(pw);
-			}
+		for (int i = 0; i < n; i++) {
+			final MutableString t = new MutableString(l);
+			for (int j = 0; j < l; j++) t.append((char)(32 + r.nextInt(94) + 1));
+			t.println(pw);
+		}
 
 		pw.close();
 	}
