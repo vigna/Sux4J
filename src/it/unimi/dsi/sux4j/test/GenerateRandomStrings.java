@@ -58,23 +58,14 @@ public class GenerateRandomStrings {
 
 		final MutableString[] s = new MutableString[n];
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
+		final PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "ISO-8859-1"));
 
-		int p;
-
-		do {
 			for(int i = 0; i < n; i++) {
 				final MutableString t = new MutableString(l);
-				for(int j = 0; j < l; j++) t.append((char)r.nextInt(255) + 1);
-				s[i] = t;
+				for(int j = 0; j < l; j++) t.append((char)(32 + r.nextInt(94) + 1));
+				t.println(pw);
 			}
 
-			Arrays.sort(s);
-
-			for(p = 1; p < n; p++) if (s[p].equals(s[p - 1])) break;
-		} while(p < n);
-
-		final PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "ISO-8859-1"));
-		for(final MutableString t : s) t.println(pw);
 		pw.close();
 	}
 }

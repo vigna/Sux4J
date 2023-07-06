@@ -8,7 +8,7 @@ if (( count == 0 )); then
 elif (( count > 1 )); then
 	echo "WARNING: several $JAR jar files ($(\ls -m $JAR-*.jar))"
 else
-	if echo $CLASSPATH | egrep -q slf4j\|logback; then
+	if echo $CLASSPATH | grep -E -q slf4j\|logback; then
 		deps=$(\ls -1 $sourcedir/jars/test/*.jar | grep -v slf4j | paste -d: -s)
 	else
 		deps=$(\ls -1 $sourcedir/jars/test/*.jar | paste -d: -s)
