@@ -53,7 +53,6 @@ public class GenerateRandomStrings {
 		final int l = jsapResult.getInt("l");
 		final String output = jsapResult.getString("output");
 
-		final MutableString[] s = new MutableString[n];
 		final RandomGenerator r = new XoRoShiRo128PlusRandomGenerator();
 		final PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "ISO-8859-1"));
 
