@@ -32,6 +32,9 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.math3.random.RandomGenerator;
@@ -209,7 +212,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	/** The multiplier to perform fixed-point computation of the destination bucket (twice {@link #numBuckets}). */
 	private long multiplier;
 	/** The number of elements ever {@linkplain #add(Object) added}. */
-	protected long size;
+	protected AtomicLong size = new AtomicLong(0);
 	/** The number of elements that pass the current filter, or -1 we it must be recomputed. */
 	protected long filteredSize;
 	/** The seed used to generate the hash signatures. */
@@ -240,6 +243,8 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	private boolean closed;
 	/** The optional map from values to count. */
 	private Long2LongOpenHashMap value2FrequencyMap;
+	/** Write lock for each disk segment */
+	Lock[] writeLocks;
 
 	/** Creates a bucketed hash store with given transformation strategy.
 	 *
@@ -299,11 +304,13 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 		file = new File[DISK_SEGMENTS];
 		writableByteChannel = new WritableByteChannel[DISK_SEGMENTS];
 		byteBuffer = new ByteBuffer[DISK_SEGMENTS];
+		writeLocks = new Lock[DISK_SEGMENTS];
 		// Create disk segments
 		for(int i = 0; i < DISK_SEGMENTS; i++) {
 			byteBuffer[i] = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
 			writableByteChannel[i] = new FileOutputStream(file[i] = File.createTempFile(BucketedHashStore.class.getSimpleName(), String.valueOf(i), tempDir)).getChannel();
 			file[i].deleteOnExit();
+			writeLocks[i] = new ReentrantLock();
 		}
 
 		count = new int[DISK_SEGMENTS];
@@ -379,15 +386,20 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 */
 	private void add(final long[] signature, final long value) throws IOException {
 		final int segment = (int)(signature[0] >>> DISK_SEGMENTS_SHIFT);
-		count[segment]++;
-		checkedForDuplicates = false;
-		if (DEBUG) System.err.println("Adding " + Arrays.toString(signature));
-		writeLong(signature[0], byteBuffer[segment], writableByteChannel[segment]);
-		writeLong(signature[1], byteBuffer[segment], writableByteChannel[segment]);
-		if (hashMask == 0) writeLong(value, byteBuffer[segment], writableByteChannel[segment]);
-		if (filteredSize != -1 && (filter == null || filter.evaluate(signature))) filteredSize++;
-		if (value2FrequencyMap != null) value2FrequencyMap.addTo(value, 1);
-		size++;
+		writeLocks[segment].lock();
+		try{
+			count[segment]++;
+			checkedForDuplicates = false;
+			if (DEBUG) System.err.println("Adding " + Arrays.toString(signature));
+			writeLong(signature[0], byteBuffer[segment], writableByteChannel[segment]);
+			writeLong(signature[1], byteBuffer[segment], writableByteChannel[segment]);
+			if (hashMask == 0) writeLong(value, byteBuffer[segment], writableByteChannel[segment]);
+			if (filteredSize != -1 && (filter == null || filter.evaluate(signature))) filteredSize++;
+			if (value2FrequencyMap != null) value2FrequencyMap.addTo(value, 1);
+			size.getAndIncrement();
+		}finally {
+            		writeLocks[segment].unlock();
+        	}
 	}
 
 	/** Adds the elements returned by an iterator to this store, associating them with specified values,
@@ -441,7 +453,7 @@ public class BucketedHashStore<T> implements Serializable, SafelyCloseable, Iter
 	 */
 
 	public long size() throws IOException {
-		if (filter == null) return size;
+		if (filter == null) return size.get();
 		if (filteredSize == - 1) {
 			long c = 0;
 			final long[] signature = new long[2];
