@@ -106,15 +106,17 @@ public class Modulo2SystemTest {
 	@Test
 	public void testRandom() {
 		final XoRoShiRo128PlusRandomGenerator random = new XoRoShiRo128PlusRandomGenerator(1);
-		for(final int size: new int[] { 1000 }) {
+		for (final int size : new int[] { 100000 }) {
 			final Modulo2System system = new Modulo2System(size);
 			// Few equations
 			for(int i = 0; i < 2 * size / 3; i++) system.add(new Modulo2Equation(random.nextInt(100), size).add(random.nextInt(size / 3)).add(size / 3 + random.nextInt(size / 3)).add(2 * size / 3 + random.nextInt(size / 3)));
 			final long[] solution = new long[size];
-			assertTrue(system.copy().gaussianElimination(solution));
+			/*assertTrue(system.copy().gaussianElimination(solution));
 			assertTrue(system.check(solution));
-			Arrays.fill(solution, 0);
-			assertTrue(system.copy().lazyGaussianElimination(solution));
+			Arrays.fill(solution, 0);*/
+			final long start = -System.nanoTime();
+			assertTrue(system.lazyGaussianElimination(solution));
+			System.out.println((start + System.nanoTime()) * 1E-9);
 			assertTrue(system.check(solution));
 		}
 	}

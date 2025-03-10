@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import it.unimi.dsi.Util;
 import it.unimi.dsi.bits.LongArrayBitVector;
 import it.unimi.dsi.fastutil.HashCommon;
@@ -40,7 +37,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
  */
 
 public class Modulo2System {
-	private final static Logger LOGGER = LoggerFactory.getLogger(Modulo2System.class);
 	private final static boolean DEBUG = false;
 
 	/** An equation on <b>F</b><sub>2</sub>. */
@@ -497,7 +493,8 @@ public class Modulo2System {
 		}
 
 
-		LOGGER.debug("Active variables: " + numActive + " (" + Util.format(numActive * 100 / numVars) + "%)");
+		// LOGGER.debug("Active variables: " + numActive + " (" + Util.format(numActive * 100 / numVars) +
+		// "%)");
 
 		if (DEBUG) {
 			System.err.println("Dense equations: " + dense);
