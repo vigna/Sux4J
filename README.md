@@ -1,4 +1,4 @@
-# Welcome to Sux4J!
+# Welcome to the Sux Project and Sux4J!
 
 ## Introduction
 
@@ -6,8 +6,11 @@ Sux is an umbrella nickname for the results of my fiddling with the
 implementation of basic succinct data structures in
 [C++](https://github.com/vigna/sux/),
 [Java](https://github.com/vigna/Sux4J/), and
-[Rust](https://github.com/vigna/sux-rs/). Please have a look at the
-documentation for the main highlights in each language.
+[Rust](https://github.com/vigna/sux-rs/).
+
+This repository contains the Java code and references to some papers.
+Please have a look at the other repositories for the main highlights in
+each language.
 
 This is free software. The Rust and Java code is distributed under either
 the [GNU Lesser General Public License
