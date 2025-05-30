@@ -31,7 +31,8 @@ Then, run `ant ivy-setupjars jar`.
 
 * A [paper](http://vigna.di.unimi.it/papers.php#VigBIRSQ) on the broadword
   techniques used in the rank/select code, and in particular about the
-  broadword implementation of select queries.
+  broadword implementation of select queries implemented in <A
+  HREF="https://dsiutils.di.unimi.it/docs/it/unimi/dsi/bits/Fast.html#select(long,int)"><code>Fast.select()</code></A>.
 
 * A [paper](http://vigna.di.unimi.it/papers.php#BBPMMPH) on the theory of
   monotone minimal perfect hashing.
