@@ -56,11 +56,22 @@ int64_t sf3_get_byte_array(const sf *sf, char *key, uint64_t len) {
 	const int num_variables = (sf->offset_and_seed[bucket + 1] & OFFSET_MASK) - bucket_offset;
 	unsigned int e[3];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
+	/* SF_8/SF_16/SF_32: direct typed-pointer access for power-of-2 widths.
+	   Requires little-endian byte order (the packed bit array's byte layout
+	   must match typed-pointer indexing). */
 #ifdef SF_8
-	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
-	return p[e[0]] ^ p[e[1]] ^ p[e[2]];
+	const int64_t result = ((uint8_t *)sf->array)[e[0] + bucket_offset] ^ ((uint8_t *)sf->array)[e[1] + bucket_offset] ^ ((uint8_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_16)
+	const int64_t result = ((uint16_t *)sf->array)[e[0] + bucket_offset] ^ ((uint16_t *)sf->array)[e[1] + bucket_offset] ^ ((uint16_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_32)
+	const int64_t result = ((uint32_t *)sf->array)[e[0] + bucket_offset] ^ ((uint32_t *)sf->array)[e[1] + bucket_offset] ^ ((uint32_t *)sf->array)[e[2] + bucket_offset];
 #else
-	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+	const int64_t result = get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+#endif
+#ifdef FILTER
+	return ((result ^ signature[0]) & ((UINT64_C(1) << sf->width) - 1)) == 0;
+#else
+	return result;
 #endif
 }
 
@@ -74,10 +85,18 @@ int64_t sf3_get_uint64_t(const sf *sf, const uint64_t key) {
 	unsigned int e[3];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
 #ifdef SF_8
-	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
-	return p[e[0]] ^ p[e[1]] ^ p[e[2]];
+	const int64_t result = ((uint8_t *)sf->array)[e[0] + bucket_offset] ^ ((uint8_t *)sf->array)[e[1] + bucket_offset] ^ ((uint8_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_16)
+	const int64_t result = ((uint16_t *)sf->array)[e[0] + bucket_offset] ^ ((uint16_t *)sf->array)[e[1] + bucket_offset] ^ ((uint16_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_32)
+	const int64_t result = ((uint32_t *)sf->array)[e[0] + bucket_offset] ^ ((uint32_t *)sf->array)[e[1] + bucket_offset] ^ ((uint32_t *)sf->array)[e[2] + bucket_offset];
 #else
-	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+	const int64_t result = get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+#endif
+#ifdef FILTER
+	return ((result ^ signature[0]) & ((UINT64_C(1) << sf->width) - 1)) == 0;
+#else
+	return result;
 #endif
 }
 
@@ -89,9 +108,17 @@ int64_t sf3_get_signature(const sf *sf, const uint64_t signature[4]) {
 	unsigned int e[3];
 	signature_to_equation(signature, offset_seed & ~OFFSET_MASK, num_variables, e);
 #ifdef SF_8
-	const uint8_t *p = (uint8_t *)sf->array + bucket_offset;
-	return p[e[0]] ^ p[e[1]] ^ p[e[2]];
+	const int64_t result = ((uint8_t *)sf->array)[e[0] + bucket_offset] ^ ((uint8_t *)sf->array)[e[1] + bucket_offset] ^ ((uint8_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_16)
+	const int64_t result = ((uint16_t *)sf->array)[e[0] + bucket_offset] ^ ((uint16_t *)sf->array)[e[1] + bucket_offset] ^ ((uint16_t *)sf->array)[e[2] + bucket_offset];
+#elif defined(SF_32)
+	const int64_t result = ((uint32_t *)sf->array)[e[0] + bucket_offset] ^ ((uint32_t *)sf->array)[e[1] + bucket_offset] ^ ((uint32_t *)sf->array)[e[2] + bucket_offset];
 #else
-	return get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+	const int64_t result = get_value(sf->array, e[0] + bucket_offset, sf->width) ^ get_value(sf->array, e[1] + bucket_offset, sf->width) ^ get_value(sf->array, e[2] + bucket_offset, sf->width);
+#endif
+#ifdef FILTER
+	return ((result ^ signature[0]) & ((UINT64_C(1) << sf->width) - 1)) == 0;
+#else
+	return result;
 #endif
 }
