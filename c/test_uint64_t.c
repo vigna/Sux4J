@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#define SAMPLES 11
+#define SAMPLES 5
 
 static uint64_t get_system_time(void) {
 	struct timeval tv;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	SUX4J_MAP *map = SUX4J_LOAD_MAP(h);
 	close(h);
 
-#define NKEYS 10000000
+#define NKEYS 100000000
 	uint64_t u = 0;
 	uint64_t sample[SAMPLES];
 
