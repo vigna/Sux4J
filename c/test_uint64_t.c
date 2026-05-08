@@ -40,22 +40,6 @@ static int cmp_uint64_t(const void *a, const void *b) {
 	return *(uint64_t *)a < *(uint64_t *)b ? -1 : *(uint64_t *)a > *(uint64_t *)b ? 1 : 0;
 }
 
-static inline uint64_t rotl(const uint64_t x, int k) {
-	return (x << k) | (x >> (64 - k));
-}
-
-static uint64_t s[2];
-
-static uint64_t next(void) {
-	const uint64_t s0 = s[0];
-	uint64_t s1 = s[1];
-	const uint64_t result = s0 + s1;
-	s1 ^= s0;
-	s[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16);
-	s[1] = rotl(s1, 37);
-	return result;
-}
-
 int main(int argc, char *argv[]) {
 	int h = open(argv[1], O_RDONLY);
 	assert(h >= 0);
@@ -67,12 +51,13 @@ int main(int argc, char *argv[]) {
 	uint64_t sample[SAMPLES];
 
 	for (int k = SAMPLES; k-- != 0;) {
-		s[0] = 0x5603141978c51071;
-		s[1] = 0x3bbddc01ebdf4b72;
+		uint64_t key = 0;
 
 		int64_t elapsed = -get_system_time();
-		for (int i = 0; i < NKEYS; ++i)
-			u += SUX4J_GET_UINT64_T(map, next());
+		for (int i = 0; i < NKEYS; ++i) {
+			key += UINT64_C(0x9e3779b97f4a7c15);
+			u += SUX4J_GET_UINT64_T(map, key);
+		}
 		elapsed += get_system_time();
 
 		sample[k] = elapsed;
