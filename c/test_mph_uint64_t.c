@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include "mph.h"
+#include "read_fully.h"
 
 static uint64_t get_system_time(void) {
 	struct timeval tv;
@@ -44,7 +45,7 @@ int main(int argc, char* argv[]) {
 #define NKEYS 10000000
 	h = open(argv[2], O_RDONLY);
 	uint64_t *data = calloc(NKEYS, sizeof *data);
-	read(h, data, NKEYS * sizeof *data);
+	read_fully(h, data, NKEYS * sizeof *data);
 	close(h);
 	
 	uint64_t total = 0;

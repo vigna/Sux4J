@@ -24,21 +24,22 @@
 #include <math.h>
 #include "spooky.h"
 #include "mph.h"
+#include "read_fully.h"
 
 mph *load_mph(int h) {
 	mph *mph = calloc(1, sizeof *mph);
-	read(h, &mph->size, sizeof mph->size);
+	read_fully(h, &mph->size, sizeof mph->size);
 	uint64_t t;
-	read(h, &t, sizeof t);
+	read_fully(h, &t, sizeof t);
 	mph->multiplier = t;
-	read(h, &mph->global_seed, sizeof mph->global_seed);
-	read(h, &mph->edge_offset_and_seed_length, sizeof mph->edge_offset_and_seed_length);
+	read_fully(h, &mph->global_seed, sizeof mph->global_seed);
+	read_fully(h, &mph->edge_offset_and_seed_length, sizeof mph->edge_offset_and_seed_length);
 	mph->edge_offset_and_seed = calloc(mph->edge_offset_and_seed_length, sizeof *mph->edge_offset_and_seed);
-	read(h, mph->edge_offset_and_seed, mph->edge_offset_and_seed_length * sizeof *mph->edge_offset_and_seed);
+	read_fully(h, mph->edge_offset_and_seed, mph->edge_offset_and_seed_length * sizeof *mph->edge_offset_and_seed);
 
-	read(h, &mph->array_length, sizeof mph->array_length);
+	read_fully(h, &mph->array_length, sizeof mph->array_length);
 	mph->array = calloc(mph->array_length, sizeof *mph->array);
-	read(h, mph->array, mph->array_length * sizeof *mph->array);
+	read_fully(h, mph->array, mph->array_length * sizeof *mph->array);
 	return mph;
 }
 

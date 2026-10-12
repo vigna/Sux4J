@@ -23,22 +23,23 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "sf.h"
+#include "read_fully.h"
 
 sf *load_sf(int h) {
 	sf *sf = calloc(1, sizeof *sf);
-	read(h, &sf->size, sizeof sf->size);
+	read_fully(h, &sf->size, sizeof sf->size);
 	uint64_t t;
-	read(h, &t, sizeof t);
+	read_fully(h, &t, sizeof t);
 	sf->width = t;
-	read(h, &t, sizeof t);
+	read_fully(h, &t, sizeof t);
 	sf->multiplier = t;
-	read(h, &sf->global_seed, sizeof sf->global_seed);
-	read(h, &sf->offset_and_seed_length, sizeof sf->offset_and_seed_length);
+	read_fully(h, &sf->global_seed, sizeof sf->global_seed);
+	read_fully(h, &sf->offset_and_seed_length, sizeof sf->offset_and_seed_length);
 	sf->offset_and_seed = calloc(sf->offset_and_seed_length, sizeof *sf->offset_and_seed);
-	read(h, sf->offset_and_seed, sf->offset_and_seed_length * sizeof *sf->offset_and_seed);
+	read_fully(h, sf->offset_and_seed, sf->offset_and_seed_length * sizeof *sf->offset_and_seed);
 
-	read(h, &sf->array_length, sizeof sf->array_length);
+	read_fully(h, &sf->array_length, sizeof sf->array_length);
 	sf->array = calloc(sf->array_length, sizeof *sf->array);
-	read(h, sf->array, sf->array_length * sizeof *sf->array);
+	read_fully(h, sf->array, sf->array_length * sizeof *sf->array);
 	return sf;
 }

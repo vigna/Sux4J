@@ -27,6 +27,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include "read_fully.h"
 #define SAMPLES 11
 
 static uint64_t get_system_time(void) {
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]) {
 	off_t len = lseek(h, 0, SEEK_END);
 	lseek(h, 0, SEEK_SET);
 	char *data = malloc(len);
-	read(h, data, len);
+	read_fully(h, data, len);
 	close(h);
 	
 	static char *test_buf[NKEYS];
